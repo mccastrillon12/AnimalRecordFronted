@@ -30,10 +30,16 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_bloc: ^8.1.0       # Gestión de estado (BLoC)
+  dio: ^5.0.0                # Cliente HTTP para tu Backend
+  get_it: ^7.2.0             # Inyección de dependencias
+  equatable: ^2.0.5          # Para comparar estados sin errores
+  dartz: ^0.10.1             # Programación funcional (manejo de errores)
 
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  uuid: ^4.5.2
 
 dev_dependencies:
   flutter_test:
@@ -45,6 +51,7 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
+  mocktail: ^1.0.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
