@@ -1,25 +1,49 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // Primarios
-  static const Color primaryDark = Color(
-    0xFF0A1931,
-  ); // Azul muy oscuro del logo
-  static const Color accentOrange = Color(0xFFF07B3F); // Naranja de los botones
+  // --- Primary Colors ---
+  static const Color primaryAzulClaro = Color(0xFF67C1FF);
+  static const Color primaryFrances = Color(0xFF0072BB);
+  static const Color primaryIndigo = Color(0xFF1A345C);
 
-  // Fondo y superficies
-  static const Color background = Color(0xFFF5F7FA);
-  static const Color surface = Colors.white;
-  static const Color cardBackground = Color(0xFF0A1931);
+  // --- Secondary Colors ---
+  static const Color secondaryCoral = Color(0xFFF26F49);
 
-  // Texto
-  static const Color textPrimary = Color(0xFF0A1931);
-  static const Color textSecondary = Color(0xFF7B8794);
-  static const Color textWhite = Colors.white;
+  // --- IA Colors ---
+  static const Color iaDegradadoStart = Color(0xFFE7E0FD);
+  static const Color iaDegradadoEnd = Color(0xFFD9EAFF);
+  static const Color iaMorado = Color(0xFF926AFF);
 
-  // Bordes y estados
-  static const Color border = Color(0xFFE4E7EB);
-  static const Color error = Color(0xFFE53E3E);
-  static const Color success = Color(0xFF38A169);
-  static const Color greyLight = Color(0xFFEDF2F7);
+  // --- Semantic Colors ---
+  static const Color successEsmeralda = Color(0xFF02CC84);
+  static const Color errorRojo = Color(0xFFFA2844);
+  static const Color infoAzulMedio = Color(0xFF1E91D6);
+  static const Color warningMandarina = Color(0xFFFF975C);
+
+  // --- Background Colors ---
+  static const Color bgMenta = Color(0xFFF0FFF7);
+  static const Color bgRosa = Color(0xFFFFF0F0);
+  static const Color bgHielo = Color(0xFFF2F8FF);
+  static const Color bgChampana = Color(0xFFFFE4D4);
+  static const Color bgBlancoAntiFlash = Color(0xFFF5F6FA);
+  static const Color bgOxford = Color(0xFF091534);
+
+  // --- Grey Colors ---
+  static const Color greyBlanco = Color(0xFFFFFFFF);
+  static const Color greyDelineante = Color(0xFFE8E9EC);
+  static const Color greyMedio = Color(0xFFA8AFBD);
+  static const Color greyIconos = Color(0xFF59667A);
+  static const Color greyTextos = Color(0xFF2E3949);
+  static const Color greyNegro = Color(0xFF0F1925);
+
+  // --- Legacy / Theme mappings ---
+  static const Color primaryDark = primaryIndigo;
+  static const Color accentOrange = secondaryCoral;
+  static const Color background = bgBlancoAntiFlash;
+  static const Color surface = greyBlanco;
+  static const Color error = errorRojo;
+  static const Color success = successEsmeralda;
+  static const Color textPrimary = greyTextos;
+  static const Color textSecondary = greyIconos;
+  static const Color border = greyDelineante;
 }
