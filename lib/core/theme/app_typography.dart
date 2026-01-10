@@ -44,7 +44,7 @@ class AppTypography {
   static TextStyle body4 = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    height: 2,
+    height: 1.4,
     color: AppColors.greyNegro,
   );
 

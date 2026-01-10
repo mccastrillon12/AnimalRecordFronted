@@ -9,6 +9,9 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/features/auth/domain/entities/register_params.dart';
 import 'package:uuid/uuid.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -84,22 +87,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final String newUserId = uuid.v4();
 
     context.read<AuthBloc>().add(
-      SignUpSubmitted({
-        'id': newUserId,
-        'name': nameController.text,
-        'email': emailController.text,
-        'password': passwordController.text,
-        'identificationType': 'CC',
-        'identificationNumber': idController.text,
-        'country': 'Colombia',
-        'city': 'Medellín',
-        'cellPhone': phoneController.text,
-        'professionalCard': professionalCardController.text,
-        'roles': [widget.role],
-        'animalTypes': ['Dogs', 'Cats'],
-        'services': ['General Consultation'],
-        'isHomeDelivery': true,
-      }),
+      SignUpSubmitted(
+        RegisterParams(
+          id: newUserId,
+          name: nameController.text,
+          email: emailController.text,
+          password: passwordController.text,
+          identificationType: 'CC',
+          identificationNumber: idController.text,
+          country: 'Colombia',
+          city: 'Medellín',
+          cellPhone: phoneController.text,
+          professionalCard: professionalCardController.text,
+          roles: [widget.role],
+          animalTypes: const ['Dogs', 'Cats'],
+          services: const ['General Consultation'],
+          isHomeDelivery: true,
+        ),
+      ),
     );
   }
 
@@ -139,32 +144,50 @@ class _RegisterScreenState extends State<RegisterScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.all(32),
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.xxl,
+                  right: AppSpacing.l,
+                  left: AppSpacing.l,
+                ),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Text(
-                      'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primaryDark,
-                      ),
-                    ),
-                    Text(
-                      'Datos - ${_currentStep + 1} de ${steps.length}',
-                      style: const TextStyle(
-                        color: AppColors.textSecondary,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 32),
                     SizedBox(
-                      height: 450,
-                      child: PageView(
-                        controller: _pageController,
-                        physics: const NeverScrollableScrollPhysics(),
-                        children: steps,
+                      height: AppSpacing.registerTitleHeight,
+                      child: Text(
+                        'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
+                        style: AppTypography.heading1,
+                      ),
+                    ),
+                    SizedBox(
+                      height: AppSpacing.registerSubtitleHeight,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Datos personales ',
+                              style: AppTypography.body4,
+                            ),
+                            TextSpan(
+                              text: '- ${_currentStep + 1} de ${steps.length}',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.only(top: AppSpacing.xl),
+                      child: SizedBox(
+                        height: 450,
+                        child: PageView(
+                          controller: _pageController,
+                          physics: const NeverScrollableScrollPhysics(),
+                          children: steps,
+                        ),
                       ),
                     ),
                   ],
@@ -173,10 +196,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
             Padding(
               padding: const EdgeInsets.only(
-                left: 24,
-                right: 24,
-                bottom: 40,
-                top: 16,
+                left: AppSpacing.l,
+                right: AppSpacing.l,
+                bottom: AppSpacing.xxl,
+                top: AppSpacing.m,
               ),
               child: BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
@@ -38,33 +39,49 @@ class CustomTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final defaultBorder = borderColor != null
-        ? OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: BorderSide(color: borderColor!),
-          )
-        : null;
+    final defaultBorder = OutlineInputBorder(
+      borderRadius: BorderRadius.circular(4),
+      borderSide: const BorderSide(color: AppColors.greyMedio, width: 1.0),
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: labelStyle ?? AppTypography.body3),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          obscureText: isPassword,
-          keyboardType: keyboardType,
-          validator: validator,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle:
-                hintStyle ??
-                AppTypography.body4.copyWith(color: AppColors.greyMedio),
-            prefixIcon: prefixIcon,
-            suffixIcon: suffixIcon,
-            border: border ?? defaultBorder,
-            enabledBorder: enabledBorder ?? defaultBorder,
-            focusedBorder: focusedBorder ?? defaultBorder,
+        SizedBox(
+          height: AppSpacing.labelHeight,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(label, style: labelStyle ?? AppTypography.body6),
+          ),
+        ),
+
+        Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.inputTopPadding),
+          child: SizedBox(
+            height: AppSpacing.inputHeight,
+            child: TextFormField(
+              controller: controller,
+              obscureText: isPassword,
+              keyboardType: keyboardType,
+              validator: validator,
+              textAlignVertical: TextAlignVertical.center,
+              decoration: InputDecoration(
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 10,
+                  horizontal: 12,
+                ),
+                hintText: hint,
+                hintStyle:
+                    hintStyle ??
+                    AppTypography.body4.copyWith(color: AppColors.greyMedio),
+                prefixIcon: prefixIcon,
+                suffixIcon: suffixIcon,
+                border: border ?? defaultBorder,
+                enabledBorder: enabledBorder ?? defaultBorder,
+                focusedBorder: focusedBorder ?? defaultBorder,
+              ),
+            ),
           ),
         ),
       ],

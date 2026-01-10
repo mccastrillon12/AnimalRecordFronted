@@ -7,6 +7,13 @@ class AppSpacing {
   static const double xxl = 40.0;
   static const double xxxl = 56.0;
 
+  // Component Dimensions
+  static const double inputHeight = 41.0;
+  static const double labelHeight = 18.0;
+  static const double inputTopPadding = 4.0;
+  static const double registerTitleHeight = 30.0;
+  static const double registerSubtitleHeight = 21.0;
+
   // Specific semantic spacings
   static const double formPadding = l;
   static const double verticalBetweenElements = l;

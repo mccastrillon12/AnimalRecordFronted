@@ -22,7 +22,7 @@ class AuthFormContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: AppColors.bgOxford,
       body: SafeArea(
         child: Column(
           children: [
