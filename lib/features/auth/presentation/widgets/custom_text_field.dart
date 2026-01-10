@@ -18,6 +18,8 @@ class CustomTextField extends StatelessWidget {
   final InputBorder? enabledBorder;
   final InputBorder? focusedBorder;
   final Color? borderColor;
+  final bool? obscureText;
+  final VoidCallback? onToggleVisibility;
 
   const CustomTextField({
     super.key,
@@ -35,6 +37,8 @@ class CustomTextField extends StatelessWidget {
     this.enabledBorder,
     this.focusedBorder,
     this.borderColor,
+    this.obscureText,
+    this.onToggleVisibility,
   });
 
   @override
@@ -61,7 +65,7 @@ class CustomTextField extends StatelessWidget {
             height: AppSpacing.inputHeight,
             child: TextFormField(
               controller: controller,
-              obscureText: isPassword,
+              obscureText: obscureText ?? isPassword,
               keyboardType: keyboardType,
               validator: validator,
               textAlignVertical: TextAlignVertical.center,
@@ -77,7 +81,20 @@ class CustomTextField extends StatelessWidget {
                     hintStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyMedio),
                 prefixIcon: prefixIcon,
-                suffixIcon: suffixIcon,
+                suffixIcon:
+                    suffixIcon ??
+                    (isPassword
+                        ? IconButton(
+                            icon: Icon(
+                              (obscureText ?? true)
+                                  ? Icons.visibility_outlined
+                                  : Icons.visibility_off_outlined,
+                              color: AppColors.greyMedio,
+                              size: 20,
+                            ),
+                            onPressed: onToggleVisibility,
+                          )
+                        : null),
                 border: border ?? defaultBorder,
                 enabledBorder: enabledBorder ?? defaultBorder,
                 focusedBorder: focusedBorder ?? defaultBorder,
