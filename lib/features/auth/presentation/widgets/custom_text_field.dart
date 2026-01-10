@@ -65,6 +65,7 @@ class CustomTextField extends StatelessWidget {
               keyboardType: keyboardType,
               validator: validator,
               textAlignVertical: TextAlignVertical.center,
+              style: AppTypography.body4,
               decoration: InputDecoration(
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(

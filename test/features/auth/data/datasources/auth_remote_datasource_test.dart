@@ -16,12 +16,6 @@ void main() {
   });
 
   group('signUp', () {
-    final tUserData = {
-      'name': 'Test',
-      'email': 'test@test.com',
-      // ... otros campos
-    };
-
     final tUserModel = UserModel.fromJson({
       'id': '1',
       'name': 'Test',
@@ -61,10 +55,10 @@ void main() {
       );
 
       // act
-      final result = await dataSource.signUp(tUserData);
+      final result = await dataSource.signUp(tUserModel);
 
       // assert
-      verify(() => mockDio.post('/users', data: tUserData)).called(1);
+      verify(() => mockDio.post('/users', data: tUserModel.toJson())).called(1);
       expect(result, equals(tUserModel));
     });
 
@@ -81,7 +75,7 @@ void main() {
         );
 
         // act
-        final call = dataSource.signUp(tUserData);
+        final call = dataSource.signUp(tUserModel);
 
         // assert
         expect(() => call, throwsA(isA<Exception>()));
