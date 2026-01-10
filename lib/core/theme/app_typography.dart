@@ -8,7 +8,8 @@ class AppTypography {
     fontSize: 20,
     fontWeight: FontWeight.w700,
     height: 1.25,
-    color: AppColors.greyTextos,
+    color: AppColors.greyNegro,
+    letterSpacing: 0,
   );
 
   static TextStyle heading2 = GoogleFonts.titilliumWeb(
@@ -43,8 +44,8 @@ class AppTypography {
   static TextStyle body4 = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    height: 0.875,
-    color: AppColors.greyTextos,
+    height: 2,
+    color: AppColors.greyNegro,
   );
 
   static TextStyle body5 = GoogleFonts.notoSans(

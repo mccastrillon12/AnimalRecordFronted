@@ -11,10 +11,9 @@ class AppTheme {
         seedColor: AppColors.primaryIndigo,
         primary: AppColors.primaryFrances,
         secondary: AppColors.secondaryCoral,
-        surface: AppColors.greyBlanco,
+        surface: AppColors.bgBlancoAntiFlash,
         onSurface: AppColors.greyTextos,
         error: AppColors.errorRojo,
-        background: AppColors.bgBlancoAntiFlash,
       ),
       scaffoldBackgroundColor: AppColors.bgBlancoAntiFlash,
       textTheme: TextTheme(
@@ -44,10 +43,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(
-            color: AppColors.primaryFrances,
-            width: 2,
-          ),
+          borderSide: const BorderSide(color: AppColors.greyDelineante),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),

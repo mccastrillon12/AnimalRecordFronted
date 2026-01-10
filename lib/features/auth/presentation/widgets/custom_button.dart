@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 
@@ -21,11 +22,14 @@ class CustomButton extends StatelessWidget {
       onPressed: isLoading ? null : onPressed,
       style: ElevatedButton.styleFrom(
         backgroundColor: isSecondary
-            ? AppColors.border
-            : AppColors.accentOrange,
-        foregroundColor: isSecondary ? AppColors.textPrimary : Colors.white,
+            ? AppColors.primaryWhite
+            : AppColors.secondaryCoral,
+        foregroundColor: isSecondary
+            ? AppColors.greyTextos
+            : AppColors.primaryWhite,
         elevation: 0,
-        minimumSize: const Size(double.infinity, 50),
+        minimumSize: const Size(double.infinity, 36),
+        textStyle: AppTypography.body3,
       ),
       child: isLoading
           ? const SizedBox(

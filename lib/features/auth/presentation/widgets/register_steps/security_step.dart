@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../custom_text_field.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 
 class SecurityStep extends StatelessWidget {
   final TextEditingController passwordController;
@@ -20,10 +21,7 @@ class SecurityStep extends StatelessWidget {
         const SizedBox(height: 16),
         const CustomTextField(label: 'Confirmar contraseña', isPassword: true),
         const SizedBox(height: 24),
-        const Text(
-          'Debe contener:',
-          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-        ),
+        Text('Debe contener:', style: AppTypography.body5),
         const SizedBox(height: 8),
         _buildRequirementItem('8 caracteres mínimo', true),
         _buildRequirementItem('1 minúscula y 1 mayúscula', true),
@@ -44,8 +42,7 @@ class SecurityStep extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           text,
-          style: TextStyle(
-            fontSize: 12,
+          style: AppTypography.body6.copyWith(
             color: met ? AppColors.success : AppColors.textSecondary,
           ),
         ),

@@ -1,3 +1,4 @@
+import 'package:animal_record/features/auth/domain/entities/register_params.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class AuthEvent extends Equatable {
@@ -7,7 +8,7 @@ abstract class AuthEvent extends Equatable {
 
 // Este evento se dispara cuando el usuario presiona "Registrar"
 class SignUpSubmitted extends AuthEvent {
-  final Map<String, dynamic> userData;
+  final RegisterParams userData;
   SignUpSubmitted(this.userData);
 
   @override
