@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
-  Future<UserModel> signUp(Map<String, dynamic> userData);
+  Future<UserModel> signUp(UserModel user);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -11,9 +11,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl({required this.dio});
 
   @override
-  Future<UserModel> signUp(Map<String, dynamic> userData) async {
+  Future<UserModel> signUp(UserModel user) async {
     try {
-      final response = await dio.post('/users', data: userData);
+      final response = await dio.post('/users', data: user.toJson());
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return UserModel.fromJson(response.data);

@@ -1,0 +1,6 @@
+﻿Analyzing AnimalRecordFronted...                                
+
+   info - 'DeviceFrameAddon' is deprecated and shouldn't be used. The [DeviceFrameAddon] is deprecated and will be removed in a future version. Please use the [ViewportAddon] instead. More info: https://docs.widgetbook.io/addons/viewport-addon - lib\widgetbook.dart:25:9 - deprecated_member_use
+  error - The argument type 'Map<String, String>' can't be assigned to the parameter type 'UserModel'.  - test\features\auth\data\datasources\auth_remote_datasource_test.dart:64:46 - argument_type_not_assignable
+  error - The argument type 'Map<String, String>' can't be assigned to the parameter type 'UserModel'.  - test\features\auth\data\datasources\auth_remote_datasource_test.dart:84:40 - argument_type_not_assignable
+

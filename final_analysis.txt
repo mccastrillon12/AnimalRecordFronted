@@ -1,0 +1,4 @@
+﻿Analyzing AnimalRecordFronted...                                
+
+   info - 'DeviceFrameAddon' is deprecated and shouldn't be used. The [DeviceFrameAddon] is deprecated and will be removed in a future version. Please use the [ViewportAddon] instead. More info: https://docs.widgetbook.io/addons/viewport-addon - lib\widgetbook.dart:25:9 - deprecated_member_use
+

@@ -1,0 +1,2 @@
+[info] 'background' is deprecated and shouldn't be used. Use surface instead. This feature was deprecated after v3.18.0-0.1.pre (C:\Users\USUARIO\Desktop\AnimalRecordFronted\lib\core\theme\app_theme.dart:17:9)
+[info] 'DeviceFrameAddon' is deprecated and shouldn't be used. The [DeviceFrameAddon] is deprecated and will be removed in a future version. Please use the [ViewportAddon] instead. More info: https://docs.widgetbook.io/addons/viewport-addon (C:\Users\USUARIO\Desktop\AnimalRecordFronted\lib\widgetbook.dart:25:9)

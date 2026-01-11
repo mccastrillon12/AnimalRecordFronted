@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'register_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -16,12 +17,10 @@ class RoleSelectionScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Elige un perfil para comenzar',
-              style: TextStyle(
-                fontSize: 18,
+              style: AppTypography.heading2.copyWith(
                 fontWeight: FontWeight.w500,
-                color: AppColors.primaryDark,
               ),
             ),
             const SizedBox(height: 24),
@@ -79,26 +78,17 @@ class RoleSelectionScreen extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F8FB),
+          color: AppColors.bgHielo,
           borderRadius: BorderRadius.circular(20),
         ),
         child: Row(
           children: [
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primaryDark,
-                ),
-              ),
-            ),
+            Expanded(child: Text(title, style: AppTypography.heading2)),
             // Placeholder para ilustración
             Icon(
               icon,
               size: 60,
-              color: AppColors.accentOrange.withValues(alpha: 0.5),
+              color: AppColors.secondaryCoral.withValues(alpha: 0.5),
             ),
           ],
         ),

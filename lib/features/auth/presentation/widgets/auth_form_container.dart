@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 
 class AuthFormContainer extends StatelessWidget {
   final Widget child;
@@ -20,13 +22,16 @@ class AuthFormContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.primaryDark,
+      backgroundColor: AppColors.bgOxford,
       body: SafeArea(
         child: Column(
           children: [
             // Header con flecha y Cancelar
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.m,
+                vertical: AppSpacing.xs,
+              ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -40,14 +45,16 @@ class AuthFormContainer extends StatelessWidget {
                   if (showCancelButton)
                     GestureDetector(
                       onTap: onCancel ?? () => Navigator.pop(context),
-                      child: const Row(
+                      child: Row(
                         children: [
                           Text(
                             'Cancelar',
-                            style: TextStyle(color: Colors.white, fontSize: 16),
+                            style: AppTypography.body4.copyWith(
+                              color: Colors.white,
+                            ),
                           ),
-                          SizedBox(width: 8),
-                          Icon(Icons.close, color: Colors.white),
+                          const SizedBox(width: AppSpacing.xs),
+                          const Icon(Icons.close, color: Colors.white),
                         ],
                       ),
                     )
@@ -68,24 +75,23 @@ class AuthFormContainer extends StatelessWidget {
                     color: Colors.white.withValues(alpha: 0.1),
                     shape: BoxShape.circle,
                   ),
-                  child: const Text(
+                  child: Text(
                     '.AR',
-                    style: TextStyle(
+                    style: AppTypography.heading1.copyWith(
                       color: Colors.white,
                       fontSize: 32,
-                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: AppSpacing.xl),
             ],
             // Contenido Blanco
             Expanded(
               child: Container(
                 width: double.infinity,
                 decoration: const BoxDecoration(
-                  color: Colors.white,
+                  color: AppColors.greyBlanco,
                   borderRadius: BorderRadius.only(
                     topLeft: Radius.circular(32),
                     topRight: Radius.circular(32),

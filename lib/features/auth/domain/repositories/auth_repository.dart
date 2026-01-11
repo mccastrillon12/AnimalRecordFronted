@@ -1,5 +1,8 @@
-import 'package:animal_record/features/auth/domain/entities/user_entity.dart';
+import 'package:dartz/dartz.dart';
+import '../../../../core/errors/failure.dart';
+import '../entities/user_entity.dart';
+import '../entities/register_params.dart';
 
 abstract class AuthRepository {
-  Future<UserEntity> signUp(Map<String, dynamic> userData);
+  Future<Either<Failure, UserEntity>> signUp(RegisterParams params);
 }
