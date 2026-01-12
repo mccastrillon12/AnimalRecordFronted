@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import '../custom_text_field.dart';
+import '../tag_input_widget.dart';
 
 class ProfessionalDataStep extends StatelessWidget {
   final TextEditingController professionalCardController;
-  final TextEditingController idController;
-  final TextEditingController phoneController;
+  final List<String> animalTypes;
+  final Function(List<String>) onAnimalTypesChanged;
+  final List<String> services;
+  final Function(List<String>) onServicesChanged;
 
   const ProfessionalDataStep({
     super.key,
     required this.professionalCardController,
-    required this.idController,
-    required this.phoneController,
+    required this.animalTypes,
+    required this.onAnimalTypesChanged,
+    required this.services,
+    required this.onServicesChanged,
   });
 
   @override
@@ -23,16 +28,18 @@ class ProfessionalDataStep extends StatelessWidget {
           controller: professionalCardController,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: 'Número de Identificación (C.C.)',
-          hint: '1037123123',
-          controller: idController,
+        TagInputWidget(
+          label: 'Tipos de animales',
+          hint: 'Ej: Canino, Felino',
+          tags: animalTypes,
+          onTagsChanged: onAnimalTypesChanged,
         ),
         const SizedBox(height: 16),
-        CustomTextField(
-          label: 'Número de celular',
-          hint: '300 123 4567',
-          controller: phoneController,
+        TagInputWidget(
+          label: 'Servicios',
+          hint: 'Ej: Consulta general, Cirugía',
+          tags: services,
+          onTagsChanged: onServicesChanged,
         ),
       ],
     );

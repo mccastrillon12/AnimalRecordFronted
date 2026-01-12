@@ -6,6 +6,8 @@ class PersonalDataStep extends StatelessWidget {
   final TextEditingController emailController;
   final TextEditingController countryController;
   final TextEditingController cityController;
+  final TextEditingController idController;
+  final TextEditingController phoneController;
 
   const PersonalDataStep({
     super.key,
@@ -13,6 +15,8 @@ class PersonalDataStep extends StatelessWidget {
     required this.emailController,
     required this.countryController,
     required this.cityController,
+    required this.idController,
+    required this.phoneController,
   });
 
   @override
@@ -41,6 +45,20 @@ class PersonalDataStep extends StatelessWidget {
           label: 'Ciudad de residencia',
           hint: 'Medellín, Antioquia',
           controller: cityController,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: 'Número de Identificación (C.C.)',
+          hint: '1037123456',
+          controller: idController,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: 'Número de celular',
+          hint: '3001234567',
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
         ),
       ],
     );
