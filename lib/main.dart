@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:animal_record/core/theme/app_theme.dart';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
@@ -6,8 +7,16 @@ import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
-void main() async {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Load environment variables
+  // Change fileName to switch between environments:
+  // - .env.development (for emulator)
+  // - .env.physical (for physical device)
+  // - .env.production (for production)
+  await dotenv.load(fileName: ".env.physical");
+
   await di.init();
   runApp(const MyApp());
 }

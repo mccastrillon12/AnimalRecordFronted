@@ -5,6 +5,7 @@ import 'package:animal_record/features/auth/domain/usecases/register_usecase.dar
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 final sl = GetIt.instance;
 
@@ -28,13 +29,20 @@ Future<void> init() async {
   );
 
   //! Core & External
+
+  // Get configuration from environment variables
+  final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
+  final int connectTimeout = int.parse(dotenv.env['CONNECT_TIMEOUT'] ?? '60');
+  final int receiveTimeout = int.parse(dotenv.env['RECEIVE_TIMEOUT'] ?? '60');
+  final int sendTimeout = int.parse(dotenv.env['SEND_TIMEOUT'] ?? '60');
+
   sl.registerLazySingleton(
     () => Dio(
       BaseOptions(
-        baseUrl:
-            'http://10.0.2.2:3000', // IP por defecto para emular local en Android
-        connectTimeout: const Duration(seconds: 5),
-        receiveTimeout: const Duration(seconds: 3),
+        baseUrl: baseUrl,
+        connectTimeout: Duration(seconds: connectTimeout),
+        receiveTimeout: Duration(seconds: receiveTimeout),
+        sendTimeout: Duration(seconds: sendTimeout),
       ),
     ),
   );
