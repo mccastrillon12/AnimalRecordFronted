@@ -160,64 +160,58 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xxl,
+                right: AppSpacing.l,
+                left: AppSpacing.l,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: AppSpacing.registerTitleHeight,
+                    child: Text(
+                      'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
+                      style: AppTypography.heading1,
+                    ),
+                  ),
+                  SizedBox(
+                    height: AppSpacing.registerSubtitleHeight,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Datos personales ',
+                            style: AppTypography.body4,
+                          ),
+                          TextSpan(
+                            text: '- ${_currentStep + 1} de ${steps.length}',
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyMedio,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  return SingleChildScrollView(
-                    padding: const EdgeInsets.only(
-                      top: AppSpacing.xxl,
-                      right: AppSpacing.l,
-                      left: AppSpacing.l,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        SizedBox(
-                          height: AppSpacing.registerTitleHeight,
-                          child: Text(
-                            'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
-                            style: AppTypography.heading1,
-                          ),
-                        ),
-                        SizedBox(
-                          height: AppSpacing.registerSubtitleHeight,
-                          child: Text.rich(
-                            TextSpan(
-                              children: [
-                                TextSpan(
-                                  text: 'Datos personales ',
-                                  style: AppTypography.body4,
-                                ),
-                                TextSpan(
-                                  text:
-                                      '- ${_currentStep + 1} de ${steps.length}',
-                                  style: AppTypography.body4.copyWith(
-                                    color: AppColors.greyMedio,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        Padding(
-                          padding: const EdgeInsets.only(top: AppSpacing.xl),
-                          child: SizedBox(
-                            height:
-                                constraints.maxHeight - 200, // Dynamic height
-                            child: PageView(
-                              controller: _pageController,
-                              physics: const NeverScrollableScrollPhysics(),
-                              children: steps.map((step) {
-                                return SingleChildScrollView(child: step);
-                              }).toList(),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  );
-                },
+              child: Padding(
+                padding: const EdgeInsets.only(
+                  top: AppSpacing.xl,
+                  right: AppSpacing.l,
+                  left: AppSpacing.l,
+                ),
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: steps.map((step) {
+                    return SingleChildScrollView(child: step);
+                  }).toList(),
+                ),
               ),
             ),
             Padding(
