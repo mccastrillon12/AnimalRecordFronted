@@ -15,7 +15,7 @@ Future<void> main() async {
   // - .env.development (for emulator)
   // - .env.physical (for physical device)
   // - .env.production (for production)
-  await dotenv.load(fileName: ".env.physical");
+  await dotenv.load(fileName: ".env.development");
 
   await di.init();
   runApp(const MyApp());

@@ -33,6 +33,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final idController = TextEditingController();
   final phoneController = TextEditingController();
   final professionalCardController = TextEditingController();
+  final countryController = TextEditingController();
+  final cityController = TextEditingController();
 
   @override
   void dispose() {
@@ -42,6 +44,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     idController.dispose();
     phoneController.dispose();
     professionalCardController.dispose();
+    countryController.dispose();
+    cityController.dispose();
     super.dispose();
   }
 
@@ -51,6 +55,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       PersonalDataStep(
         nameController: nameController,
         emailController: emailController,
+        countryController: countryController,
+        cityController: cityController,
       ),
     ];
 
@@ -95,8 +101,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: passwordController.text,
           identificationType: 'CC',
           identificationNumber: idController.text,
-          country: 'Colombia',
-          city: 'Medellín',
+          country: countryController.text,
+          city: cityController.text,
           cellPhone: phoneController.text,
           professionalCard: professionalCardController.text,
           roles: [widget.role],
