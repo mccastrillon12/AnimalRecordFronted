@@ -4,11 +4,19 @@ import '../custom_text_field.dart';
 class PersonalDataStep extends StatelessWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
+  final TextEditingController countryController;
+  final TextEditingController cityController;
+  final TextEditingController idController;
+  final TextEditingController phoneController;
 
   const PersonalDataStep({
     super.key,
     required this.nameController,
     required this.emailController,
+    required this.countryController,
+    required this.cityController,
+    required this.idController,
+    required this.phoneController,
   });
 
   @override
@@ -27,16 +35,30 @@ class PersonalDataStep extends StatelessWidget {
           controller: emailController,
         ),
         const SizedBox(height: 16),
-        const CustomTextField(
+        CustomTextField(
           label: 'País de residencia',
           hint: 'Colombia',
-          suffixIcon: Icon(Icons.keyboard_arrow_down),
+          controller: countryController,
         ),
         const SizedBox(height: 16),
-        const CustomTextField(
+        CustomTextField(
           label: 'Ciudad de residencia',
           hint: 'Medellín, Antioquia',
-          suffixIcon: Icon(Icons.keyboard_arrow_down),
+          controller: cityController,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: 'Número de Identificación (C.C.)',
+          hint: '1037123456',
+          controller: idController,
+          keyboardType: TextInputType.number,
+        ),
+        const SizedBox(height: 16),
+        CustomTextField(
+          label: 'Número de celular',
+          hint: '3001234567',
+          controller: phoneController,
+          keyboardType: TextInputType.phone,
         ),
       ],
     );

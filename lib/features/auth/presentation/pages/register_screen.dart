@@ -33,6 +33,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final idController = TextEditingController();
   final phoneController = TextEditingController();
   final professionalCardController = TextEditingController();
+  final countryController = TextEditingController();
+  final cityController = TextEditingController();
+
+  // State for tag inputs
+  List<String> _animalTypes = [];
+  List<String> _services = [];
 
   @override
   void dispose() {
@@ -42,6 +48,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     idController.dispose();
     phoneController.dispose();
     professionalCardController.dispose();
+    countryController.dispose();
+    cityController.dispose();
     super.dispose();
   }
 
@@ -51,6 +59,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       PersonalDataStep(
         nameController: nameController,
         emailController: emailController,
+        countryController: countryController,
+        cityController: cityController,
+        idController: idController,
+        phoneController: phoneController,
       ),
     ];
 
@@ -58,8 +70,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       steps.add(
         ProfessionalDataStep(
           professionalCardController: professionalCardController,
-          idController: idController,
-          phoneController: phoneController,
+          animalTypes: _animalTypes,
+          onAnimalTypesChanged: (types) => setState(() => _animalTypes = types),
+          services: _services,
+          onServicesChanged: (services) => setState(() => _services = services),
         ),
       );
     } else if (widget.role == 'LABORATORIO') {
@@ -95,13 +109,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
           password: passwordController.text,
           identificationType: 'CC',
           identificationNumber: idController.text,
-          country: 'Colombia',
-          city: 'Medellín',
+          country: countryController.text,
+          city: cityController.text,
           cellPhone: phoneController.text,
           professionalCard: professionalCardController.text,
           roles: [widget.role],
-          animalTypes: const ['Dogs', 'Cats'],
-          services: const ['General Consultation'],
+          animalTypes: _animalTypes.isNotEmpty
+              ? _animalTypes
+              : const ['Dogs', 'Cats'],
+          services: _services.isNotEmpty
+              ? _services
+              : const ['General Consultation'],
           isHomeDelivery: true,
         ),
       ),
@@ -142,55 +160,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
         },
         child: Column(
           children: [
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xxl,
+                right: AppSpacing.l,
+                left: AppSpacing.l,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  SizedBox(
+                    height: AppSpacing.registerTitleHeight,
+                    child: Text(
+                      'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
+                      style: AppTypography.heading1,
+                    ),
+                  ),
+                  SizedBox(
+                    height: AppSpacing.registerSubtitleHeight,
+                    child: Text.rich(
+                      TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'Datos personales ',
+                            style: AppTypography.body4,
+                          ),
+                          TextSpan(
+                            text: '- ${_currentStep + 1} de ${steps.length}',
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyMedio,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
             Expanded(
-              child: SingleChildScrollView(
+              child: Padding(
                 padding: const EdgeInsets.only(
-                  top: AppSpacing.xxl,
+                  top: AppSpacing.xl,
                   right: AppSpacing.l,
                   left: AppSpacing.l,
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      height: AppSpacing.registerTitleHeight,
-                      child: Text(
-                        'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
-                        style: AppTypography.heading1,
-                      ),
-                    ),
-                    SizedBox(
-                      height: AppSpacing.registerSubtitleHeight,
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Datos personales ',
-                              style: AppTypography.body4,
-                            ),
-                            TextSpan(
-                              text: '- ${_currentStep + 1} de ${steps.length}',
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyMedio,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                    Padding(
-                      padding: const EdgeInsets.only(top: AppSpacing.xl),
-                      child: SizedBox(
-                        height: 450,
-                        child: PageView(
-                          controller: _pageController,
-                          physics: const NeverScrollableScrollPhysics(),
-                          children: steps,
-                        ),
-                      ),
-                    ),
-                  ],
+                child: PageView(
+                  controller: _pageController,
+                  physics: const NeverScrollableScrollPhysics(),
+                  children: steps.map((step) {
+                    return SingleChildScrollView(child: step);
+                  }).toList(),
                 ),
               ),
             ),
