@@ -1,0 +1,169 @@
+import 'package:dio/dio.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
+import '../services/token_storage.dart';
+
+/// Interceptor to automatically add auth tokens to requests and handle token refresh
+class AuthInterceptor extends Interceptor {
+  final TokenStorage tokenStorage;
+  final Dio dio;
+
+  // Rate limiting for refresh attempts
+  int _refreshAttempts = 0;
+  static const int _maxRefreshAttempts = 3;
+  DateTime? _lastRefreshAttempt;
+
+  AuthInterceptor({required this.tokenStorage, required this.dio});
+
+  @override
+  Future<void> onRequest(
+    RequestOptions options,
+    RequestInterceptorHandler handler,
+  ) async {
+    // Skip adding token for auth endpoints
+    if (_isAuthEndpoint(options.path)) {
+      return handler.next(options);
+    }
+
+    // Get access token and validate it's not expired
+    final accessToken = await _getValidAccessToken();
+    if (accessToken != null) {
+      options.headers['Authorization'] = 'Bearer $accessToken';
+    }
+
+    return handler.next(options);
+  }
+
+  @override
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    // Handle 401 Unauthorized - token expired
+    if (err.response?.statusCode == 401 &&
+        !_isAuthEndpoint(err.requestOptions.path)) {
+      // Check rate limiting
+      if (_isRefreshRateLimited()) {
+        print('⚠️ Refresh rate limit exceeded, clearing tokens');
+        await tokenStorage.clearTokens();
+        return handler.next(err);
+      }
+
+      try {
+        // Try to refresh the token
+        final newAccessToken = await _refreshToken();
+
+        if (newAccessToken != null) {
+          // Retry the original request with new token
+          final options = err.requestOptions;
+          options.headers['Authorization'] = 'Bearer $newAccessToken';
+
+          final response = await dio.fetch(options);
+          return handler.resolve(response);
+        }
+      } catch (e) {
+        // Refresh failed, clear tokens and let error propagate
+        print('❌ Token refresh failed: $e');
+        await tokenStorage.clearTokens();
+      }
+    }
+
+    return handler.next(err);
+  }
+
+  /// Get access token and validate it's not expired
+  Future<String?> _getValidAccessToken() async {
+    try {
+      final token = await tokenStorage.getAccessToken();
+
+      if (token == null) return null;
+
+      // Validate JWT is not expired
+      if (JwtDecoder.isExpired(token)) {
+        print('⚠️ Access token expired, refreshing proactively');
+        return await _refreshToken();
+      }
+
+      return token;
+    } catch (e) {
+      // If JWT parsing fails, token is invalid
+      print('⚠️ Invalid JWT token: $e');
+      return null;
+    }
+  }
+
+  /// Check if refresh attempts are rate limited
+  bool _isRefreshRateLimited() {
+    final now = DateTime.now();
+
+    // Reset counter if more than 5 minutes have passed
+    if (_lastRefreshAttempt != null &&
+        now.difference(_lastRefreshAttempt!).inMinutes > 5) {
+      _refreshAttempts = 0;
+      _lastRefreshAttempt = null;
+    }
+
+    // Check if max attempts exceeded
+    if (_refreshAttempts >= _maxRefreshAttempts) {
+      return true;
+    }
+
+    return false;
+  }
+
+  /// Check if path is an auth endpoint that shouldn't have token
+  bool _isAuthEndpoint(String path) {
+    return path.contains('/auth/login') ||
+        path.contains('/auth/refresh') ||
+        path.contains('/users'); // signup endpoint
+  }
+
+  /// Refresh the access token using refresh token
+  Future<String?> _refreshToken() async {
+    try {
+      // Update rate limiting counters
+      _refreshAttempts++;
+      _lastRefreshAttempt = DateTime.now();
+
+      final refreshToken = await tokenStorage.getRefreshToken();
+
+      if (refreshToken == null) {
+        return null;
+      }
+
+      print(
+        '🔄 Refreshing access token (attempt $_refreshAttempts/$_maxRefreshAttempts)',
+      );
+
+      final response = await dio.post(
+        '/auth/refresh',
+        data: {'refreshToken': refreshToken},
+      );
+
+      if (response.statusCode == 200) {
+        final newAccessToken = response.data['accessToken'] as String?;
+        final newRefreshToken = response.data['refreshToken'] as String?;
+
+        if (newAccessToken != null) {
+          await tokenStorage.saveAccessToken(newAccessToken);
+
+          // Some backends also return a new refresh token
+          if (newRefreshToken != null) {
+            await tokenStorage.saveRefreshToken(newRefreshToken);
+          }
+
+          // Reset counter on success
+          _refreshAttempts = 0;
+          _lastRefreshAttempt = null;
+
+          print('✅ Token refreshed successfully');
+          return newAccessToken;
+        }
+      }
+
+      return null;
+    } catch (e) {
+      print('❌ Refresh token error: $e');
+      return null;
+    }
+  }
+}

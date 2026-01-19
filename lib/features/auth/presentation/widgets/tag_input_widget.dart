@@ -17,12 +17,15 @@ class TagInputWidget extends StatefulWidget {
   });
 
   @override
-  State<TagInputWidget> createState() => _TagInputWidgetState();
+  State<TagInputWidget> createState() => TagInputWidgetState();
 }
 
-class _TagInputWidgetState extends State<TagInputWidget> {
+class TagInputWidgetState extends State<TagInputWidget> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
+
+  // Expose controller for parent to check pending text
+  TextEditingController get controller => _controller;
 
   @override
   void dispose() {
@@ -43,6 +46,13 @@ class _TagInputWidgetState extends State<TagInputWidget> {
   void _removeTag(String tag) {
     final updatedTags = widget.tags.where((t) => t != tag).toList();
     widget.onTagsChanged(updatedTags);
+  }
+
+  // Public method to add any pending text before form submission
+  void addPendingTag() {
+    if (_controller.text.trim().isNotEmpty) {
+      _addTag();
+    }
   }
 
   @override
@@ -82,7 +92,7 @@ class _TagInputWidgetState extends State<TagInputWidget> {
                         vertical: 8,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.greyMedio.withOpacity(0.15),
+                        color: AppColors.greyMedio.withValues(alpha: 0.15),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Row(
@@ -131,13 +141,27 @@ class _TagInputWidgetState extends State<TagInputWidget> {
                         isDense: true,
                       ),
                       onSubmitted: (_) => _addTag(),
+                      onChanged: (_) =>
+                          setState(() {}), // Rebuild to show/hide button
                     ),
                   ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: AppColors.greyMedio,
-                    size: 20,
-                  ),
+                  // Show add button when there's text in the field
+                  if (_controller.text.trim().isNotEmpty)
+                    GestureDetector(
+                      onTap: _addTag,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryFrances,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Icon(
+                          Icons.add,
+                          color: Colors.white,
+                          size: 16,
+                        ),
+                      ),
+                    ),
                 ],
               ),
             ],

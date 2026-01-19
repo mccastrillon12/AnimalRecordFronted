@@ -44,6 +44,8 @@ dependencies:
   widgetbook_annotation: ^3.0.0
   google_fonts: ^6.1.0
   flutter_dotenv: ^5.1.0
+  flutter_secure_storage: ^9.0.0  # Almacenamiento seguro de tokens
+  jwt_decoder: ^2.0.1  # Validación de JWT
 
 dev_dependencies:
   flutter_test:

@@ -8,6 +8,8 @@ class ProfessionalDataStep extends StatelessWidget {
   final Function(List<String>) onAnimalTypesChanged;
   final List<String> services;
   final Function(List<String>) onServicesChanged;
+  final GlobalKey<TagInputWidgetState>? animalTypesKey;
+  final GlobalKey<TagInputWidgetState>? servicesKey;
 
   const ProfessionalDataStep({
     super.key,
@@ -16,6 +18,8 @@ class ProfessionalDataStep extends StatelessWidget {
     required this.onAnimalTypesChanged,
     required this.services,
     required this.onServicesChanged,
+    this.animalTypesKey,
+    this.servicesKey,
   });
 
   @override
@@ -29,6 +33,7 @@ class ProfessionalDataStep extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         TagInputWidget(
+          key: animalTypesKey,
           label: 'Tipos de animales',
           hint: 'Ej: Canino, Felino',
           tags: animalTypes,
@@ -36,6 +41,7 @@ class ProfessionalDataStep extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         TagInputWidget(
+          key: servicesKey,
           label: 'Servicios',
           hint: 'Ej: Consulta general, Cirugía',
           tags: services,
