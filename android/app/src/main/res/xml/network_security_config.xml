@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <!-- 
+        Network Security Configuration for Android
+        This file enforces HTTPS and can enable certificate pinning
+    -->
+    
+    <!-- Base configuration: Block all cleartext (HTTP) traffic -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust system certificates (Play Store updates) -->
+            <certificates src="system" />
+        </trust-anchors>
+    </base-config>
+    
+    <!-- 
+        Certificate Pinning Configuration
+        IMPORTANTE: Debes obtener el SHA-256 fingerprint de tu certificado SSL
+        
+        Para obtener el SHA-256 de tu certificado:
+        
+        Método 1 - Desde el servidor:
+        openssl s_client -servername api.animalrecord.com -connect api.animalrecord.com:443 | openssl x509 -pubkey -noout | openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
+        
+        Método 2 - Desde un browser:
+        1. Abre tu API en Chrome
+        2. Click en el candado → Certificado
+        3. Detalles → Clave pública
+        4. Copia el SHA-256
+        
+        Método 3 - Herramienta online:
+        https://www.ssllabs.com/ssltest/analyze.html
+    -->
+    
+    <!-- Dominio de producción con certificate pinning -->
+    <domain-config cleartextTrafficPermitted="false">
+        <!-- Reemplaza con tu dominio real -->
+        <domain includeSubdomains="true">api.animalrecord.com</domain>
+        
+        <pin-set expiration="2027-01-01">
+            <!-- 
+                Reemplaza ESTOS VALORES con los fingerprints reales de tu certificado
+                IMPORTANTE: Incluye SIEMPRE al menos 2 pines:
+                1. Pin principal (certificado actual)
+                2. Pin de backup (certificado de respaldo o CA)
+            -->
+            <pin digest="SHA-256">AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</pin>
+            <pin digest="SHA-256">BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB=</pin>
+        </pin-set>
+    </domain-config>
+    
+    <!-- 
+        Configuración para desarrollo local
+        ELIMINAR ESTO EN PRODUCCIÓN
+    -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain>  <!-- Emulador Android -->
+        <domain includeSubdomains="true">127.0.0.1</domain>
+    </domain-config>
+</network-security-config>

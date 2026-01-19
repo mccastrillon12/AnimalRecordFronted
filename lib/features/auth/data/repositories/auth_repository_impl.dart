@@ -1,6 +1,8 @@
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failure.dart';
+import '../../../../core/services/token_storage.dart';
 import '../../domain/entities/register_params.dart';
+import '../../domain/entities/login_params.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -8,8 +10,12 @@ import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
+  final TokenStorage tokenStorage;
 
-  AuthRepositoryImpl({required this.remoteDataSource});
+  AuthRepositoryImpl({
+    required this.remoteDataSource,
+    required this.tokenStorage,
+  });
 
   @override
   Future<Either<Failure, UserEntity>> signUp(RegisterParams params) async {
@@ -35,6 +41,59 @@ class AuthRepositoryImpl implements AuthRepository {
       return Right(result);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> login(LoginParams params) async {
+    try {
+      final credentials = params.toJson();
+      final response = await remoteDataSource.login(credentials);
+
+      // Parse user data from response
+      final userData = response['user'] ?? response;
+      final userModel = UserModel.fromJson(userData);
+
+      // Store tokens securely
+      final accessToken = response['accessToken'] as String?;
+      final refreshToken = response['refreshToken'] as String?;
+
+      if (accessToken != null && refreshToken != null) {
+        await tokenStorage.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+
+      return Right(userModel);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> logout() async {
+    try {
+      // Call backend logout (optional)
+      await remoteDataSource.logout();
+
+      // Clear tokens from secure storage
+      await tokenStorage.clearTokens();
+
+      return const Right(null);
+    } catch (e) {
+      // Even if backend logout fails, clear local tokens
+      await tokenStorage.clearTokens();
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<bool> isAuthenticated() async {
+    try {
+      return await tokenStorage.hasTokens();
+    } catch (e) {
+      return false;
     }
   }
 }

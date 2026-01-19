@@ -3,12 +3,44 @@ import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
 import '../pages/role_selection_screen.dart';
+import '../pages/password_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _identifierController = TextEditingController();
+
+  @override
+  void dispose() {
+    _identifierController.dispose();
+    super.dispose();
+  }
+
+  void _handleContinue() {
+    final identifier = _identifierController.text.trim();
+
+    if (identifier.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Por favor ingresa tu correo o celular')),
+      );
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PasswordScreen(identifier: identifier),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +99,7 @@ class LoginScreen extends StatelessWidget {
               child: CustomTextField(
                 label: 'Correo electrónico o celular',
                 hint: 'Correo / Celular',
+                controller: _identifierController,
                 labelStyle: AppTypography.body6,
                 hintStyle: AppTypography.body4.copyWith(
                   color: AppColors.greyMedio,
@@ -79,9 +112,7 @@ class LoginScreen extends StatelessWidget {
               padding: const EdgeInsets.only(top: AppSpacing.xl),
               child: CustomButton(
                 text: 'Continuar',
-                onPressed: () {
-                  // Acción de login
-                },
+                onPressed: _handleContinue,
               ),
             ),
             const SizedBox(height: 36), // Diseñado específicamente a 36px
