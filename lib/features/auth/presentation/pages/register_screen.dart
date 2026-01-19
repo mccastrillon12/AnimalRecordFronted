@@ -13,6 +13,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
 import 'package:uuid/uuid.dart';
+import '../widgets/tag_input_widget.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String role;
@@ -39,6 +40,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // State for tag inputs
   List<String> _animalTypes = [];
   List<String> _services = [];
+
+  // GlobalKeys to access TagInputWidget state
+  final GlobalKey<TagInputWidgetState> _animalTypesKey = GlobalKey();
+  final GlobalKey<TagInputWidgetState> _servicesKey = GlobalKey();
 
   @override
   void dispose() {
@@ -74,6 +79,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onAnimalTypesChanged: (types) => setState(() => _animalTypes = types),
           services: _services,
           onServicesChanged: (services) => setState(() => _services = services),
+          animalTypesKey: _animalTypesKey,
+          servicesKey: _servicesKey,
         ),
       );
     } else if (widget.role == 'LABORATORIO') {
@@ -97,6 +104,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _submitRegistration() {
+    // Add any pending tags before submitting
+    _animalTypesKey.currentState?.addPendingTag();
+    _servicesKey.currentState?.addPendingTag();
+
     const uuid = Uuid();
     final String newUserId = uuid.v4();
 
