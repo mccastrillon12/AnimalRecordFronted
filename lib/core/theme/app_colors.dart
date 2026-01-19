@@ -47,4 +47,9 @@ class AppColors {
   static const Color textPrimary = greyTextos;
   static const Color textSecondary = greyIconos;
   static const Color border = greyDelineante;
+
+  // Additional common aliases
+  static const Color white = greyBlanco;
+  static const Color greyClaro = greyDelineante;
+  static const Color primaryOrange = secondaryCoral;
 }

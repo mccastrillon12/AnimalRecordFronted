@@ -48,11 +48,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            ScaffoldMessenger.of(
+            Navigator.pushNamedAndRemoveUntil(
               context,
-            ).showSnackBar(const SnackBar(content: Text('¡Login exitoso!')));
-            // TODO: Navigate to home screen
-            // Navigator.pushReplacementNamed(context, '/home');
+              '/home',
+              (route) => false,
+            );
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
