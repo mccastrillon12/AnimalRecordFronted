@@ -42,14 +42,14 @@ class RoleSelectionScreen extends StatelessWidget {
               context,
               title: 'Estudiante',
               icon: Icons.school_outlined,
-              onTap: () => _navigateToRegister(context, 'ESTUDIANTE'),
+              onTap: () => _showComingSoon(context, 'Estudiante'),
             ),
             const SizedBox(height: 16),
             _buildRoleCard(
               context,
               title: 'Laboratorio',
               icon: Icons.science_outlined,
-              onTap: () => _navigateToRegister(context, 'LABORATORIO'),
+              onTap: () => _showComingSoon(context, 'Laboratorio'),
             ),
           ],
         ),
@@ -61,6 +61,16 @@ class RoleSelectionScreen extends StatelessWidget {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => RegisterScreen(role: role)),
+    );
+  }
+
+  void _showComingSoon(BuildContext context, String role) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('El registro para $role estará disponible próximamente'),
+        backgroundColor: AppColors.primaryFrances,
+        duration: const Duration(seconds: 2),
+      ),
     );
   }
 

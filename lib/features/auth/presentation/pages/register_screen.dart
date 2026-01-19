@@ -4,6 +4,8 @@ import '../widgets/custom_button.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
+import '../widgets/register_steps/owner_method_selection_step.dart';
+import '../widgets/register_steps/owner_personal_data_step.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
@@ -58,19 +60,55 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  // Owner-specific state
+  AccessMethod? _selectedAccessMethod;
+
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
-    final List<Widget> steps = [
-      PersonalDataStep(
-        nameController: nameController,
-        emailController: emailController,
-        countryController: countryController,
-        cityController: cityController,
-        idController: idController,
-        phoneController: phoneController,
-      ),
-    ];
+    final List<Widget> steps = [];
 
+    // PROPIETARIO: First step is method selection
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      steps.add(
+        OwnerMethodSelectionStep(
+          emailController: emailController,
+          phoneController: phoneController,
+          onMethodChanged: (method) {
+            setState(() {
+              _selectedAccessMethod = method;
+            });
+          },
+        ),
+      );
+
+      // PROPIETARIO: Owner-specific personal data step
+      if (_selectedAccessMethod != null) {
+        steps.add(
+          OwnerPersonalDataStep(
+            nameController: nameController,
+            emailController: emailController,
+            phoneController: phoneController,
+            countryController: countryController,
+            idController: idController,
+            selectedMethod: _selectedAccessMethod!,
+          ),
+        );
+      }
+    } else {
+      // Other roles: Standard personal data step
+      steps.add(
+        PersonalDataStep(
+          nameController: nameController,
+          emailController: emailController,
+          countryController: countryController,
+          cityController: cityController,
+          idController: idController,
+          phoneController: phoneController,
+        ),
+      );
+    }
+
+    // VETERINARIO: Professional data step
     if (widget.role == 'VETERINARIO') {
       steps.add(
         ProfessionalDataStep(
@@ -87,8 +125,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       // TODO: Añadir paso específico para laboratorio si es necesario
     }
 
+    // All roles: Security/Password step
     steps.add(SecurityStep(passwordController: passwordController));
     return steps;
+  }
+
+  // Helper to get readable role name
+  String get _roleName {
+    switch (widget.role) {
+      case 'VETERINARIO':
+        return 'Veterinario';
+      case 'PROPIETARIO_MASCOTA':
+        return 'Propietario';
+      case 'ESTUDIANTE':
+        return 'Estudiante';
+      case 'LABORATORIO':
+        return 'Laboratorio';
+      default:
+        return widget.role;
+    }
   }
 
   void _nextStep() {
@@ -111,27 +166,34 @@ class _RegisterScreenState extends State<RegisterScreen> {
     const uuid = Uuid();
     final String newUserId = uuid.v4();
 
+    // Helper to get non-empty string or empty string (backend accepts empty now)
+    String getFieldValue(TextEditingController controller) {
+      return controller.text.trim();
+    }
+
     context.read<AuthBloc>().add(
       SignUpSubmitted(
         RegisterParams(
           id: newUserId,
-          name: nameController.text,
-          email: emailController.text,
-          password: passwordController.text,
-          identificationType: 'CC',
-          identificationNumber: idController.text,
-          country: countryController.text,
-          city: cityController.text,
-          cellPhone: phoneController.text,
-          professionalCard: professionalCardController.text,
+          name: getFieldValue(nameController),
+          email: getFieldValue(emailController),
+          password: getFieldValue(passwordController),
+          identificationType: widget.role == 'PROPIETARIO_MASCOTA'
+              ? 'CC'
+              : 'CC',
+          identificationNumber: getFieldValue(idController),
+          cellPhone: getFieldValue(phoneController),
+          country: getFieldValue(countryController),
+          city: widget.role == 'PROPIETARIO_MASCOTA'
+              ? ''
+              : getFieldValue(cityController),
           roles: [widget.role],
-          animalTypes: _animalTypes.isNotEmpty
-              ? _animalTypes
-              : const ['Dogs', 'Cats'],
-          services: _services.isNotEmpty
-              ? _services
-              : const ['General Consultation'],
-          isHomeDelivery: true,
+          professionalCard: widget.role == 'VETERINARIO'
+              ? getFieldValue(professionalCardController)
+              : '',
+          animalTypes: widget.role == 'VETERINARIO' ? _animalTypes : [],
+          services: widget.role == 'VETERINARIO' ? _services : [],
+          isHomeDelivery: widget.role == 'VETERINARIO' ? true : false,
         ),
       ),
     );
@@ -183,7 +245,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   SizedBox(
                     height: AppSpacing.registerTitleHeight,
                     child: Text(
-                      'Tu cuenta AnimalRecord - ${widget.role.toLowerCase()}',
+                      'Tu cuenta AnimalRecord - $_roleName',
                       style: AppTypography.heading1,
                     ),
                   ),
@@ -193,7 +255,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextSpan(
                         children: [
                           TextSpan(
-                            text: 'Datos personales ',
+                            text:
+                                widget.role == 'PROPIETARIO_MASCOTA' &&
+                                    _currentStep == 0
+                                ? 'Ingreso '
+                                : 'Datos personales ',
                             style: AppTypography.body4,
                           ),
                           TextSpan(

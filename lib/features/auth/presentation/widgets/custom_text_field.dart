@@ -51,16 +51,15 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          height: AppSpacing.labelHeight,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(label, style: labelStyle ?? AppTypography.body6),
-          ),
-        ),
+        // Label without extra spacing
+        if (label.isNotEmpty)
+          Text(label, style: labelStyle ?? AppTypography.body6),
+
+        if (label.isNotEmpty)
+          const SizedBox(height: AppSpacing.inputTopPadding),
 
         Padding(
-          padding: const EdgeInsets.only(top: AppSpacing.inputTopPadding),
+          padding: const EdgeInsets.only(top: 0),
           child: SizedBox(
             height: AppSpacing.inputHeight,
             child: TextFormField(
