@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import '../custom_text_field.dart';
 import 'owner_method_selection_step.dart';
