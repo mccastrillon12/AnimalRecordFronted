@@ -10,6 +10,7 @@ import '../pages/password_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -130,6 +131,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     'O ingresa con',
                     style: AppTypography.body4.copyWith(
                       color: AppColors.greyNegroV2,
+                      height: 1.49,
                     ),
                   ),
                 ),
@@ -138,16 +140,18 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: AppSpacing.l),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 _SocialButton(
                   iconPath: 'assets/icons/Google_icon.svg',
                   label: 'Google',
                 ),
+                const SizedBox(width: AppSpacing.socialButtonGap),
                 _SocialButton(
                   iconPath: 'assets/icons/Microsoft_icon.svg',
                   label: 'Microsoft',
                 ),
+                const SizedBox(width: AppSpacing.socialButtonGap),
                 _SocialButton(
                   iconPath: 'assets/icons/Apple_icon.svg',
                   label: 'Apple',
@@ -182,15 +186,15 @@ class _BiometricButton extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(8.0),
+              padding: const EdgeInsets.all(AppSpacing.xs),
               decoration: BoxDecoration(
                 color: AppColors.greyIconosBackground,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: AppBorders.medium(),
               ),
               child: SvgPicture.asset(
                 iconPath,
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
                 colorFilter: ColorFilter.mode(
                   AppColors.textSecondary,
                   BlendMode.srcIn,
@@ -220,15 +224,19 @@ class _SocialButton extends StatelessWidget {
     return Column(
       children: [
         Container(
-          width: 50,
-          height: 50,
+          width: AppSpacing.socialButtonSize,
+          height: AppSpacing.socialButtonSize,
           padding: const EdgeInsets.all(AppSpacing.s),
           decoration: BoxDecoration(
             color: AppColors.greyIconosBackground,
             border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppBorders.medium(),
           ),
-          child: SvgPicture.asset(iconPath, width: 24, height: 24),
+          child: SvgPicture.asset(
+            iconPath,
+            width: AppSpacing.iconSizeSmall,
+            height: AppSpacing.iconSizeSmall,
+          ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(

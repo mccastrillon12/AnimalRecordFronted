@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 
 class CustomTextField extends StatelessWidget {
   final String label;
@@ -44,7 +45,7 @@ class CustomTextField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final defaultBorder = OutlineInputBorder(
-      borderRadius: BorderRadius.circular(4),
+      borderRadius: AppBorders.small(),
       borderSide: const BorderSide(color: AppColors.greyMedio, width: 1.0),
     );
 
@@ -53,7 +54,10 @@ class CustomTextField extends StatelessWidget {
       children: [
         // Label without extra spacing
         if (label.isNotEmpty)
-          Text(label, style: labelStyle ?? AppTypography.body6),
+          Text(
+            label,
+            style: (labelStyle ?? AppTypography.body6).copyWith(height: 1.5),
+          ),
 
         if (label.isNotEmpty)
           const SizedBox(height: AppSpacing.inputTopPadding),
