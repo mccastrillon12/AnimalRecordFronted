@@ -3,6 +3,7 @@ import '../../../../core/errors/failure.dart';
 import '../../../../core/services/token_storage.dart';
 import '../../domain/entities/register_params.dart';
 import '../../domain/entities/login_params.dart';
+import '../../domain/entities/verify_code_params.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
@@ -94,6 +95,16 @@ class AuthRepositoryImpl implements AuthRepository {
       return await tokenStorage.hasTokens();
     } catch (e) {
       return false;
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> verifyCode(VerifyCodeParams params) async {
+    try {
+      await remoteDataSource.verifyCode(params.email, params.code);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
     }
   }
 }

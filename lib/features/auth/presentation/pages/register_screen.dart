@@ -6,6 +6,7 @@ import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
 import '../widgets/register_steps/owner_method_selection_step.dart';
 import '../widgets/register_steps/owner_personal_data_step.dart';
+import '../widgets/register_steps/verification_step.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
@@ -14,6 +15,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
+import 'package:animal_record/features/auth/domain/entities/verify_code_params.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 
@@ -46,6 +48,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // GlobalKeys to access TagInputWidget state
   final GlobalKey<TagInputWidgetState> _animalTypesKey = GlobalKey();
   final GlobalKey<TagInputWidgetState> _servicesKey = GlobalKey();
+
+  // GlobalKey to access VerificationStep state
+  final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
 
   @override
   void dispose() {
@@ -127,6 +132,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // All roles: Security/Password step
     steps.add(SecurityStep(passwordController: passwordController));
+
+    // All roles: Verification step
+    steps.add(
+      VerificationStep(
+        key: _verificationKey,
+        email: emailController.text,
+        phoneNumber: phoneController.text,
+        onResendCode: _resendVerificationCode,
+      ),
+    );
+
     return steps;
   }
 
@@ -147,15 +163,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _nextStep() {
-    if (_currentStep < _steps.length - 1) {
+    // Si estamos en el penúltimo paso (SecurityStep), crear el usuario
+    if (_currentStep == _steps.length - 2) {
+      _submitRegistration();
+    } else if (_currentStep < _steps.length - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
       setState(() => _currentStep++);
     } else {
-      _submitRegistration();
+      // En el último paso (verificación), verificar el código
+      _verifyCode();
     }
+  }
+
+  void _verifyCode() {
+    final code = _verificationKey.currentState?.getCode() ?? '';
+    if (code.length != 5) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor ingresa el código completo de 5 dígitos'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    context.read<AuthBloc>().add(
+      VerifyCodeSubmitted(
+        VerifyCodeParams(email: emailController.text, code: code),
+      ),
+    );
+  }
+
+  void _resendVerificationCode() {
+    // TODO: Implementar reenvío de código si el backend lo soporta
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Código reenviado exitosamente')),
+    );
   }
 
   void _submitRegistration() {
@@ -218,6 +264,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
+            // Usuario creado exitosamente, avanzar a verificación
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Revisa tu correo para el código de verificación',
+                ),
+              ),
+            );
+            // Avanzar a la pantalla de verificación
+            _pageController.nextPage(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+            );
+            setState(() => _currentStep++);
+          } else if (state is VerificationSuccess) {
+            // Código verificado exitosamente, registro completo
             ScaffoldMessenger.of(
               context,
             ).showSnackBar(const SnackBar(content: Text('¡Registro exitoso!')));
@@ -300,10 +362,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               child: BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
+                  final buttonText = _currentStep == steps.length - 1
+                      ? 'Verificar'
+                      : _currentStep == steps.length - 2
+                      ? 'Crear cuenta'
+                      : 'Continuar';
                   return CustomButton(
-                    text: _currentStep == steps.length - 1
-                        ? 'Crear cuenta'
-                        : 'Continuar',
+                    text: buttonText,
                     isLoading: state is AuthLoading,
                     onPressed: _nextStep,
                   );

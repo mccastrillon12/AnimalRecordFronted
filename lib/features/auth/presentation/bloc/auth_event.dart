@@ -1,5 +1,6 @@
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
 import 'package:animal_record/features/auth/domain/entities/login_params.dart';
+import 'package:animal_record/features/auth/domain/entities/verify_code_params.dart';
 import 'package:equatable/equatable.dart';
 
 abstract class AuthEvent extends Equatable {
@@ -23,4 +24,13 @@ class LoginSubmitted extends AuthEvent {
 
   @override
   List<Object?> get props => [credentials];
+}
+
+// Este evento se dispara cuando el usuario presiona "Verificar"
+class VerifyCodeSubmitted extends AuthEvent {
+  final VerifyCodeParams params;
+  VerifyCodeSubmitted(this.params);
+
+  @override
+  List<Object?> get props => [params];
 }
