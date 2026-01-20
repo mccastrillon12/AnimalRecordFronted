@@ -65,26 +65,18 @@ class AuthFormContainer extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 56),
             // Logo Placeholder
             if (showLogo) ...[
               Center(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '.AR',
-                    style: AppTypography.heading1.copyWith(
-                      color: Colors.white,
-                      fontSize: 32,
-                    ),
-                  ),
+                child: Image.asset(
+                  'assets/Logo/Imagotipo_blanco.png',
+                  width: 40,
+                  height: 28,
+                  fit: BoxFit.contain,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xl),
+              const SizedBox(height: AppSpacing.l),
             ],
             // Contenido Blanco
             Expanded(

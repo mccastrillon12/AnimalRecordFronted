@@ -24,14 +24,11 @@ class UserHeader extends StatelessWidget {
               top: AppSpacing.l,
               bottom: AppSpacing.m,
             ),
-            child: Text(
-              '.AR',
-              style: AppTypography.heading1.copyWith(
-                color: AppColors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+            child: Image.asset(
+              'assets/Logo/Imagotipo_blanco.png',
+              width: 40,
+              height: 28,
+              fit: BoxFit.contain,
             ),
           ),
 

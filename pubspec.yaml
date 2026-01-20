@@ -46,6 +46,7 @@ dependencies:
   flutter_dotenv: ^5.1.0
   flutter_secure_storage: ^9.0.0  # Almacenamiento seguro de tokens
   jwt_decoder: ^2.0.1  # Validación de JWT
+  flutter_svg: ^2.0.0  # Para renderizar SVGs
 
 dev_dependencies:
   flutter_test:
@@ -77,6 +78,9 @@ flutter:
     - .env.development
     - .env.physical
     - .env.production
+    - assets/Logo/
+    - assets/icons/
+    - assets/illustrations/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

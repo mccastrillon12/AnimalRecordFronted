@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/auth_form_container.dart';
 import '../widgets/custom_text_field.dart';
 import '../widgets/custom_button.dart';
@@ -115,25 +118,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _handleContinue,
               ),
             ),
-            const SizedBox(height: 36), // Diseñado específicamente a 36px
-            Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.filter_center_focus_outlined,
-                    size: 40,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Ingresa con FaceID',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+
+            Center(child: _BiometricButton()),
             const SizedBox(height: AppSpacing.xl),
             Row(
               children: [
@@ -143,7 +129,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     'O ingresa con',
                     style: AppTypography.body4.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.greyNegroV2,
                     ),
                   ),
                 ),
@@ -154,9 +140,18 @@ class _LoginScreenState extends State<LoginScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _SocialButton(icon: Icons.g_mobiledata, label: 'Google'),
-                _SocialButton(icon: Icons.window, label: 'Microsoft'),
-                _SocialButton(icon: Icons.apple, label: 'Apple'),
+                _SocialButton(
+                  iconPath: 'assets/icons/Google_icon.svg',
+                  label: 'Google',
+                ),
+                _SocialButton(
+                  iconPath: 'assets/icons/Microsoft_icon.svg',
+                  label: 'Microsoft',
+                ),
+                _SocialButton(
+                  iconPath: 'assets/icons/Apple_icon.svg',
+                  label: 'Apple',
+                ),
               ],
             ),
           ],
@@ -166,23 +161,74 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+class _BiometricButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    final String iconPath = isIOS
+        ? 'assets/icons/scan-face.svg'
+        : 'assets/icons/fingerprint.svg';
+    final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometria';
+
+    return GestureDetector(
+      onTap: () {
+        // TODO: Implementar autenticación biométrica
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxl,
+          bottom: AppSpacing.xl,
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8.0),
+              decoration: BoxDecoration(
+                color: AppColors.greyIconosBackground,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: SvgPicture.asset(
+                iconPath,
+                width: 24,
+                height: 24,
+                colorFilter: ColorFilter.mode(
+                  AppColors.textSecondary,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              style: AppTypography.body6.copyWith(color: AppColors.greyNegroV2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SocialButton extends StatelessWidget {
-  final IconData icon;
+  final String iconPath;
   final String label;
 
-  const _SocialButton({required this.icon, required this.label});
+  const _SocialButton({required this.iconPath, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Container(
+          width: 50,
+          height: 50,
           padding: const EdgeInsets.all(AppSpacing.s),
           decoration: BoxDecoration(
+            color: AppColors.greyIconosBackground,
             border: Border.all(color: AppColors.border),
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(icon, size: 24, color: AppColors.primaryDark),
+          child: SvgPicture.asset(iconPath, width: 24, height: 24),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(
