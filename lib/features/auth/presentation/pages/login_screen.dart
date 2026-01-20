@@ -3,8 +3,8 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/auth_form_container.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_button.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../pages/role_selection_screen.dart';
 import '../pages/password_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';

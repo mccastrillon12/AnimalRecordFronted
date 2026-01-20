@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import '../custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'owner_method_selection_step.dart';
 import '../country_dropdown.dart';
 import '../id_selector.dart';
+import '../phone_input_field.dart';
 
 class OwnerPersonalDataStep extends StatefulWidget {
   final TextEditingController nameController;
@@ -56,6 +57,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
           label: 'País de residencia',
           value: _getCountryCode(),
           countries: CountryOption.all,
+          width: double.infinity, // Full width for this screen
           onChanged: (value) {
             if (value != null) {
               final country = CountryOption.all.firstWhere(
@@ -86,7 +88,10 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
 
         // Teléfono (condicional)
         if (widget.selectedMethod == AccessMethod.email) ...[
-          _buildPhoneField(isOptional: true),
+          PhoneInputField(
+            label: 'Número de celular (Opcional)',
+            controller: widget.phoneController,
+          ),
         ],
       ],
     );
@@ -113,38 +118,5 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
       default:
         return 'Colombia';
     }
-  }
-
-  Widget _buildPhoneField({bool isOptional = false}) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Country selector using reusable component
-        Expanded(
-          flex: 2,
-          child: CountryDropdown(
-            label: 'País',
-            value: 'COP',
-            countries: CountryOption.onlyColombia,
-            onChanged: null, // Only Colombia for now
-          ),
-        ),
-
-        const SizedBox(width: AppSpacing.m),
-
-        // Phone number field
-        Expanded(
-          flex: 3,
-          child: CustomTextField(
-            label: isOptional
-                ? 'Número de celular (Opcional)'
-                : 'Número de celular',
-            hint: '(+57) 310 123 45 67',
-            controller: widget.phoneController,
-            keyboardType: TextInputType.phone,
-          ),
-        ),
-      ],
-    );
   }
 }

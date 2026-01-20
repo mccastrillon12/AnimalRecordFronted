@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
-import '../widgets/custom_button.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
@@ -68,8 +68,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Owner-specific state
   AccessMethod? _selectedAccessMethod;
 
+  // Cache for steps to avoid rebuilding on every setState
+  List<Widget>? _cachedSteps;
+  AccessMethod? _lastAccessMethod;
+
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
+    // Return cached steps if nothing changed
+    if (_cachedSteps != null && _lastAccessMethod == _selectedAccessMethod) {
+      return _cachedSteps!;
+    }
+
+    _lastAccessMethod = _selectedAccessMethod;
     final List<Widget> steps = [];
 
     // PROPIETARIO: First step is method selection
@@ -81,6 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onMethodChanged: (method) {
             setState(() {
               _selectedAccessMethod = method;
+              _cachedSteps = null; // Invalidate cache when method changes
             });
           },
         ),
@@ -143,6 +154,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
 
+    _cachedSteps = steps;
     return steps;
   }
 

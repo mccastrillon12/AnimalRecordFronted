@@ -54,11 +54,19 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label without extra spacing
+        // Label with consistent spacing pattern
         if (label.isNotEmpty)
-          Text(
-            label,
-            style: (labelStyle ?? AppTypography.body6).copyWith(height: 1.5),
+          SizedBox(
+            height: 18,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                label,
+                style: (labelStyle ?? AppTypography.body6).copyWith(
+                  color: AppColors.greyNegroV2,
+                ),
+              ),
+            ),
           ),
 
         if (label.isNotEmpty)

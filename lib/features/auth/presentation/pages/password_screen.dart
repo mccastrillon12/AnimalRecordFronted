@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/auth_form_container.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_button.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';

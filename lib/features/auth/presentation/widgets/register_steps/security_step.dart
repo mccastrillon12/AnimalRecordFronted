@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
-import '../custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/password_requirements_validator.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 
 class SecurityStep extends StatefulWidget {
   final TextEditingController passwordController;
@@ -17,17 +19,6 @@ class _SecurityStepState extends State<SecurityStep> {
   bool _obscureConfirmPassword = true;
   bool _acceptTerms = false;
   final TextEditingController _confirmController = TextEditingController();
-
-  // Password requirements
-  bool get _hasMinLength => widget.passwordController.text.length >= 8;
-  bool get _hasUpperLower =>
-      widget.passwordController.text.contains(RegExp(r'[a-z]')) &&
-      widget.passwordController.text.contains(RegExp(r'[A-Z]'));
-  bool get _hasNumber =>
-      widget.passwordController.text.contains(RegExp(r'[0-9]'));
-  bool get _hasSpecialChar => widget.passwordController.text.contains(
-    RegExp(r'[!@#$%^&*(),.?":{}|<>]'),
-  );
 
   @override
   void initState() {
@@ -60,17 +51,12 @@ class _SecurityStepState extends State<SecurityStep> {
             setState(() => _obscurePassword = !_obscurePassword);
           },
         ),
-        const SizedBox(height: 24),
-        Text('Debe contener:', style: AppTypography.body3),
-        const SizedBox(height: 12),
-        _buildRequirementItem('8 caracteres mínimo', _hasMinLength),
-        const SizedBox(height: 8),
-        _buildRequirementItem('1 minúscula y 1 mayúscula', _hasUpperLower),
-        const SizedBox(height: 8),
-        _buildRequirementItem('1 número', _hasNumber),
-        const SizedBox(height: 8),
-        _buildRequirementItem('1 carácter especial', _hasSpecialChar),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.l),
+
+        // Using reusable PasswordRequirementsValidator component
+        PasswordRequirementsValidator(password: widget.passwordController.text),
+
+        const SizedBox(height: AppSpacing.l),
         CustomTextField(
           label: 'Confirmar contraseña',
           isPassword: true,
@@ -80,7 +66,7 @@ class _SecurityStepState extends State<SecurityStep> {
             setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
           },
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.l),
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -97,7 +83,7 @@ class _SecurityStepState extends State<SecurityStep> {
                 side: const BorderSide(color: AppColors.greyMedio),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: AppSpacing.s),
             Expanded(
               child: Text.rich(
                 TextSpan(
@@ -125,25 +111,6 @@ class _SecurityStepState extends State<SecurityStep> {
               ),
             ),
           ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRequirementItem(String text, bool met) {
-    return Row(
-      children: [
-        Icon(
-          Icons.check,
-          size: 16,
-          color: met ? AppColors.primaryFrances : AppColors.greyMedio,
-        ),
-        const SizedBox(width: 8),
-        Text(
-          text,
-          style: AppTypography.body4.copyWith(
-            color: met ? AppColors.primaryFrances : AppColors.greyMedio,
-          ),
         ),
       ],
     );

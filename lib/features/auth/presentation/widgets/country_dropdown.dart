@@ -8,6 +8,7 @@ class CountryDropdown extends StatelessWidget {
   final String value;
   final ValueChanged<String?>? onChanged;
   final List<CountryOption> countries;
+  final double? width; // Optional width parameter
 
   const CountryDropdown({
     super.key,
@@ -15,6 +16,7 @@ class CountryDropdown extends StatelessWidget {
     required this.value,
     this.onChanged,
     required this.countries,
+    this.width, // Default to 116 if not provided
   });
 
   @override
@@ -23,14 +25,27 @@ class CountryDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label
-        Text(label, style: AppTypography.body6),
+        SizedBox(
+          height: 18,
+
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(label, style: AppTypography.body6),
+          ),
+        ),
 
         const SizedBox(height: AppSpacing.inputTopPadding),
 
         // Dropdown container
         Container(
           height: AppSpacing.inputHeight,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+          width: width ?? 116, // Use provided width or default to 116
+          padding: const EdgeInsets.only(
+            top: 8,
+            bottom: 8,
+            right: 12,
+            left: 12,
+          ),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.greyMedio),
             borderRadius: BorderRadius.circular(4),
@@ -45,7 +60,24 @@ class CountryDropdown extends StatelessWidget {
                   value: country.code,
                   child: Row(
                     children: [
-                      Text(country.flag, style: const TextStyle(fontSize: 20)),
+                      ClipOval(
+                        child: Image.asset(
+                          country.imagePath,
+                          width: 24,
+                          height: 24,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: AppColors.greyMedio,
+                                shape: BoxShape.circle,
+                              ),
+                            );
+                          },
+                        ),
+                      ),
                       const SizedBox(width: 8),
                       Text(country.name, style: AppTypography.body4),
                     ],
@@ -65,20 +97,32 @@ class CountryDropdown extends StatelessWidget {
 class CountryOption {
   final String code;
   final String name;
-  final String flag;
+  final String imagePath;
 
   const CountryOption({
     required this.code,
     required this.name,
-    required this.flag,
+    required this.imagePath,
   });
 
   // Predefined countries
-  static const colombia = CountryOption(code: 'COP', name: 'COP', flag: '🇨🇴');
+  static const colombia = CountryOption(
+    code: 'COP',
+    name: 'COP',
+    imagePath: 'assets/icons/Colombia.png',
+  );
 
-  static const usa = CountryOption(code: 'USA', name: 'USA', flag: '🇺🇸');
+  static const usa = CountryOption(
+    code: 'USA',
+    name: 'USA',
+    imagePath: 'assets/icons/Colombia.png',
+  );
 
-  static const mexico = CountryOption(code: 'MEX', name: 'MEX', flag: '🇲🇽');
+  static const mexico = CountryOption(
+    code: 'MEX',
+    name: 'MEX',
+    imagePath: 'assets/icons/Colombia.png',
+  );
 
   // List of available countries
   static const List<CountryOption> all = [colombia, usa, mexico];

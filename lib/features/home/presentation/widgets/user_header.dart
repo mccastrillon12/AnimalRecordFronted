@@ -83,8 +83,6 @@ class UserHeader extends StatelessWidget {
                         'Hola, John Doe', // TODO: Replace with actual user name
                         style: AppTypography.heading2.copyWith(
                           color: AppColors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
                         ),
                       ),
 
@@ -93,9 +91,8 @@ class UserHeader extends StatelessWidget {
                       // User role
                       Text(
                         'Propietario', // TODO: Replace with actual user role
-                        style: AppTypography.body5.copyWith(
+                        style: AppTypography.body3.copyWith(
                           color: AppColors.white.withValues(alpha: 0.85),
-                          fontSize: 14,
                         ),
                       ),
                     ],

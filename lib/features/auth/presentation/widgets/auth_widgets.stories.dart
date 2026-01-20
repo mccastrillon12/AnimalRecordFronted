@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:widgetbook/widgetbook.dart';
 import 'package:widgetbook_annotation/widgetbook_annotation.dart' as widgetbook;
-import 'custom_button.dart';
-import 'custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 
 @widgetbook.UseCase(name: 'Default', type: CustomButton)
 Widget buildCustomButtonUseCase(BuildContext context) {
