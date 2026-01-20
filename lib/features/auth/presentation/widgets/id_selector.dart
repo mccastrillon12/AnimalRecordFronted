@@ -92,7 +92,7 @@ class _IdSelectorState extends State<IdSelector> {
                   decoration: InputDecoration(
                     hintText: '1234567890',
                     hintStyle: AppTypography.body4.copyWith(
-                      color: AppColors.textSecondary.withOpacity(0.5),
+                      color: AppColors.textSecondary.withValues(alpha: 0.5),
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                       horizontal: AppSpacing.m,

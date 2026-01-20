@@ -2,16 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'animal_card.dart';
 
 class AnimalsSection extends StatelessWidget {
   const AnimalsSection({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Replace with actual data from BLoC/backend
-    final bool hasAnimals = false;
-
+    // TODO: Replace with actual data from BLoC/backend when implementing animal list
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
       child: Column(
@@ -27,43 +24,17 @@ class AnimalsSection extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-
-              if (hasAnimals)
-                TextButton(
-                  onPressed: () {
-                    // TODO: Navigate to all animals list
-                  },
-                  child: Text(
-                    'Ver todos',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.primaryFrances,
-                    ),
-                  ),
-                ),
+              // TODO: Add 'Ver todos' button when hasAnimals is true
             ],
           ),
 
           const SizedBox(height: AppSpacing.l),
 
           // Animals list or empty state
-          if (hasAnimals)
-            // TODO: Replace with actual list from backend
-            _buildAnimalsList()
-          else
-            _buildEmptyState(context),
+          // TODO: When implementing BLoC, replace with conditional based on actual data
+          _buildEmptyState(context),
         ],
       ),
-    );
-  }
-
-  Widget _buildAnimalsList() {
-    // TODO: Replace with BlocBuilder to get actual animals
-    return const Column(
-      children: [
-        AnimalCard(name: 'Max', species: 'Perro', imageUrl: null),
-        SizedBox(height: AppSpacing.m),
-        AnimalCard(name: 'Luna', species: 'Gato', imageUrl: null),
-      ],
     );
   }
 
