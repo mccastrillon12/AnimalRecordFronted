@@ -21,6 +21,7 @@ class CustomTextField extends StatelessWidget {
   final Color? borderColor;
   final bool? obscureText;
   final VoidCallback? onToggleVisibility;
+  final int? maxLength;
 
   const CustomTextField({
     super.key,
@@ -40,6 +41,7 @@ class CustomTextField extends StatelessWidget {
     this.borderColor,
     this.obscureText,
     this.onToggleVisibility,
+    this.maxLength,
   });
 
   @override
@@ -71,6 +73,7 @@ class CustomTextField extends StatelessWidget {
               obscureText: obscureText ?? isPassword,
               keyboardType: keyboardType,
               validator: validator,
+              maxLength: maxLength,
               textAlignVertical: TextAlignVertical.center,
               style: AppTypography.body4,
               decoration: InputDecoration(
@@ -79,6 +82,7 @@ class CustomTextField extends StatelessWidget {
                   vertical: 10,
                   horizontal: 12,
                 ),
+                counterText: '', // Ocultar contador de caracteres
                 hintText: hint,
                 hintStyle:
                     hintStyle ??

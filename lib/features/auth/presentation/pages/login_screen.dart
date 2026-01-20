@@ -21,11 +21,42 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _identifierController = TextEditingController();
+  bool _isValidInput = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _identifierController.addListener(_validateInput);
+  }
 
   @override
   void dispose() {
+    _identifierController.removeListener(_validateInput);
     _identifierController.dispose();
     super.dispose();
+  }
+
+  void _validateInput() {
+    final value = _identifierController.text.trim();
+    setState(() {
+      _isValidInput = _isValidEmail(value) || _isValidPhone(value);
+    });
+  }
+
+  bool _isValidEmail(String value) {
+    if (value.isEmpty) return false;
+    // Regex básico para email
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(value);
+  }
+
+  bool _isValidPhone(String value) {
+    if (value.isEmpty) return false;
+    // Solo números, mínimo 10 dígitos
+    final phoneRegex = RegExp(r'^[0-9]{10,}$');
+    return phoneRegex.hasMatch(value);
   }
 
   void _handleContinue() {
@@ -109,6 +140,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.greyMedio,
                 ),
                 borderColor: AppColors.greyMedio,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 50,
               ),
             ),
 
@@ -116,7 +149,7 @@ class _LoginScreenState extends State<LoginScreen> {
               padding: const EdgeInsets.only(top: AppSpacing.xl),
               child: CustomButton(
                 text: 'Continuar',
-                onPressed: _handleContinue,
+                onPressed: _isValidInput ? _handleContinue : null,
               ),
             ),
 
