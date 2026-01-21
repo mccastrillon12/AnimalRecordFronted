@@ -26,6 +26,7 @@ class CustomTextField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final VoidCallback? onEditingComplete;
   final TextInputAction? textInputAction;
+  final String? errorText;
 
   const CustomTextField({
     super.key,
@@ -49,6 +50,7 @@ class CustomTextField extends StatelessWidget {
     this.inputFormatters,
     this.onEditingComplete,
     this.textInputAction,
+    this.errorText,
   });
 
   @override
@@ -56,6 +58,11 @@ class CustomTextField extends StatelessWidget {
     final defaultBorder = OutlineInputBorder(
       borderRadius: AppBorders.small(),
       borderSide: const BorderSide(color: AppColors.greyMedio, width: 1.0),
+    );
+
+    final errorBorder = OutlineInputBorder(
+      borderRadius: AppBorders.small(),
+      borderSide: const BorderSide(color: AppColors.error, width: 1.0),
     );
 
     return Column(
@@ -102,6 +109,8 @@ class CustomTextField extends StatelessWidget {
                 ),
                 counterText: '', // Ocultar contador de caracteres
                 hintText: hint,
+                // Hide internal error text to use external custom error
+                errorText: null,
                 hintStyle:
                     hintStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyMedio),
@@ -120,13 +129,33 @@ class CustomTextField extends StatelessWidget {
                             onPressed: onToggleVisibility,
                           )
                         : null),
-                border: border ?? defaultBorder,
-                enabledBorder: enabledBorder ?? defaultBorder,
-                focusedBorder: focusedBorder ?? defaultBorder,
+                border: errorText != null
+                    ? errorBorder
+                    : (border ?? defaultBorder),
+                enabledBorder: errorText != null
+                    ? errorBorder
+                    : (enabledBorder ?? defaultBorder),
+                focusedBorder: errorText != null
+                    ? errorBorder
+                    : (focusedBorder ?? defaultBorder),
               ),
             ),
           ),
         ),
+
+        // Error text displayed outside to align with label
+        if (errorText != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            errorText!,
+            style: AppTypography.body6.copyWith(
+              color: AppColors.error,
+              height: 1.2,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ],
     );
   }

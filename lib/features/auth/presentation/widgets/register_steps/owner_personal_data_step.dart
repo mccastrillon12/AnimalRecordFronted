@@ -26,6 +26,12 @@ class OwnerPersonalDataStep extends StatefulWidget {
   /// Whether to show the phone field as optional (when email is primary method)
   final bool showOptionalPhone;
 
+  /// Error text to display for the phone field
+  final String? phoneErrorText;
+
+  /// Error text to display for the email field
+  final String? emailErrorText;
+
   const OwnerPersonalDataStep({
     super.key,
     required this.nameController,
@@ -35,6 +41,8 @@ class OwnerPersonalDataStep extends StatefulWidget {
     required this.idController,
     this.showOptionalEmail = false,
     this.showOptionalPhone = false,
+    this.phoneErrorText,
+    this.emailErrorText,
   });
 
   @override
@@ -105,6 +113,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                 controller: widget.emailController,
                 keyboardType: TextInputType.emailAddress,
                 maxLength: 50,
+                errorText: widget.emailErrorText,
               ),
               const SizedBox(height: AppSpacing.m),
             ],
@@ -121,6 +130,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                       : null,
                   maxLength: 15,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  errorText: widget.phoneErrorText,
                 ),
             ],
           ],

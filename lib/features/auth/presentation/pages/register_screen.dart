@@ -52,40 +52,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // GlobalKey to access VerificationStep state
   final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
 
-  @override
-  void initState() {
-    super.initState();
-    // Add listeners removed to prevent crash. Validation handled by ValueListenableBuilder.
-  }
-
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    idController.dispose();
-    phoneController.dispose();
-    professionalCardController.dispose();
-    countryController.dispose();
-    cityController.dispose();
-    super.dispose();
+  bool _isValidPhone(String phone) {
+    // Basic phone validation (at least 10 digits)
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 10;
   }
 
   // Owner-specific state
   AccessMethod? _selectedAccessMethod;
+  String? _phoneErrorText;
+  String? _emailErrorText;
 
   // Cache for steps to avoid rebuilding on every setState
   List<Widget>? _cachedSteps;
   AccessMethod? _lastAccessMethod;
+  String? _lastPhoneErrorText;
+  String? _lastEmailErrorText;
 
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
     // Return cached steps if nothing changed
-    if (_cachedSteps != null && _lastAccessMethod == _selectedAccessMethod) {
+    if (_cachedSteps != null &&
+        _lastAccessMethod == _selectedAccessMethod &&
+        _lastPhoneErrorText == _phoneErrorText &&
+        _lastEmailErrorText == _emailErrorText) {
       return _cachedSteps!;
     }
 
     _lastAccessMethod = _selectedAccessMethod;
+    _lastPhoneErrorText = _phoneErrorText;
+    _lastEmailErrorText = _emailErrorText;
     final List<Widget> steps = [];
 
     // PROPIETARIO: First step is method selection
@@ -114,6 +110,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             idController: idController,
             showOptionalEmail: _selectedAccessMethod == AccessMethod.phone,
             showOptionalPhone: _selectedAccessMethod == AccessMethod.email,
+            phoneErrorText: _phoneErrorText,
+            emailErrorText: _emailErrorText,
           ),
         );
       }
@@ -165,23 +163,91 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return steps;
   }
 
-  // Helper to get readable role name
-  String get _roleName {
-    switch (widget.role) {
-      case 'VETERINARIO':
-        return 'Veterinario';
-      case 'PROPIETARIO_MASCOTA':
-        return 'Propietario';
-      case 'ESTUDIANTE':
-        return 'Estudiante';
-      case 'LABORATORIO':
-        return 'Laboratorio';
-      default:
-        return widget.role;
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners removed to prevent crash. Validation handled by ValueListenableBuilder.
+
+    // Add listener to phone controller for immediate feedback on error state
+    phoneController.addListener(_onPhoneChanged);
+    // Add listener for email controller
+    emailController.addListener(_onEmailChanged);
+  }
+
+  void _onPhoneChanged() {
+    // Only check if there is an error current displayed
+    if (_phoneErrorText != null) {
+      final text = phoneController.text;
+      // Clear error if empty or valid (>= 10 digits)
+      if (text.isEmpty || _isValidPhone(text)) {
+        setState(() {
+          _phoneErrorText = null;
+        });
+      }
     }
   }
 
+  void _onEmailChanged() {
+    if (_emailErrorText != null) {
+      final text = emailController.text;
+      if (text.isEmpty || _isValidEmail(text)) {
+        setState(() {
+          _emailErrorText = null;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // Remove listener before disposing
+    phoneController.removeListener(_onPhoneChanged);
+    emailController.removeListener(_onEmailChanged);
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    idController.dispose();
+    phoneController.dispose();
+    professionalCardController.dispose();
+    countryController.dispose();
+    cityController.dispose();
+    super.dispose();
+  }
+
   void _nextStep() {
+    // Validate inline errors for optional fields (specifically Phone/Email) on submit
+    if (widget.role == 'PROPIETARIO_MASCOTA' && _currentStep == 1) {
+      bool hasError = false;
+
+      if (_selectedAccessMethod == AccessMethod.email) {
+        // Validate optional phone if entered
+        if (phoneController.text.isNotEmpty &&
+            !_isValidPhone(phoneController.text)) {
+          setState(() {
+            _phoneErrorText =
+                'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+          });
+          hasError = true;
+        } else if (_phoneErrorText != null) {
+          setState(() => _phoneErrorText = null);
+        }
+      } else if (_selectedAccessMethod == AccessMethod.phone) {
+        // Validate optional email if entered
+        if (emailController.text.isNotEmpty &&
+            !_isValidEmail(emailController.text)) {
+          setState(() {
+            _emailErrorText =
+                'Introduzca una dirección de correo electrónico válida';
+          });
+          hasError = true;
+        } else if (_emailErrorText != null) {
+          setState(() => _emailErrorText = null);
+        }
+      }
+
+      if (hasError) return;
+    }
+
     // Validate current step before proceeding
     if (!_isStepValid()) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -205,6 +271,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
     } else {
       // En el último paso (verificación), verificar el código
       _verifyCode();
+    }
+  }
+
+  // Helper to get readable role name
+  String get _roleName {
+    switch (widget.role) {
+      case 'VETERINARIO':
+        return 'Veterinario';
+      case 'PROPIETARIO_MASCOTA':
+        return 'Propietario';
+      case 'ESTUDIANTE':
+        return 'Estudiante';
+      case 'LABORATORIO':
+        return 'Laboratorio';
+      default:
+        return widget.role;
     }
   }
 
@@ -249,9 +331,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return false;
       }
       if (step == 1) {
-        return nameController.text.isNotEmpty &&
+        bool isValid =
+            nameController.text.isNotEmpty &&
             idController.text.isNotEmpty &&
             countryController.text.isNotEmpty;
+
+        countryController.text.isNotEmpty;
+
+        // Optional Email/Phone validation removed here - handled inline on submit
+
+        return isValid;
       }
     }
 
@@ -289,12 +378,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
-
-  bool _isValidPhone(String phone) {
-    // Basic phone validation (at least 7 digits)
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 7;
   }
 
   void _submitRegistration() {
@@ -466,16 +549,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               child: BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
-                  final buttonText = _currentStep == steps.length - 1
-                      ? 'Verificar'
-                      : _currentStep == steps.length - 2
-                      ? 'Crear cuenta'
-                      : 'Continuar';
+                  return AnimatedBuilder(
+                    animation: Listenable.merge(_getStepListenables()),
+                    builder: (context, _) {
+                      final buttonText = _currentStep == steps.length - 1
+                          ? 'Verificar'
+                          : _currentStep == steps.length - 2
+                          ? 'Crear cuenta'
+                          : 'Continuar';
 
-                  return CustomButton(
-                    text: buttonText,
-                    isLoading: state is AuthLoading,
-                    onPressed: state is AuthLoading ? null : _nextStep,
+                      final isValid = _isStepValid();
+
+                      return CustomButton(
+                        text: buttonText,
+                        isLoading: state is AuthLoading,
+                        onPressed: state is AuthLoading || !isValid
+                            ? null
+                            : _nextStep,
+                      );
+                    },
                   );
                 },
               ),
@@ -484,5 +576,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  List<Listenable> _getStepListenables() {
+    final step = _currentStep;
+    final steps = _steps;
+
+    // Common listenables for all steps (if any global state affects validation)
+    // For now, we return specific controllers based on the step logic in _isStepValid
+
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      if (step == 0) {
+        // Method selection step: listen to email and phone controllers
+        // The validation depends on _selectedAccessMethod which is state,
+        // but the input content is in controllers.
+        // We also need to listen to the selection change, but that triggers setState,
+        // so the widget rebuilds anyway.
+        return [emailController, phoneController];
+      }
+      if (step == 1) {
+        // Personal data step
+        return [
+          nameController,
+          idController,
+          countryController,
+          emailController,
+          phoneController,
+        ];
+      }
+    }
+
+    if (widget.role == 'VETERINARIO') {
+      if (step == 0) {
+        // First step for Vet
+        return [
+          nameController,
+          emailController,
+          countryController,
+          idController,
+          phoneController,
+        ];
+      }
+      if (step == 1) {
+        // Professional data step
+        // These are more complex because they might not be just text controllers
+        // _animalTypes and _services are lists updated via setState, so build is triggered.
+        // professionalCardController is a text controller.
+        return [professionalCardController];
+      }
+    }
+
+    // Security step (penultimate)
+    if (step == steps.length - 2) {
+      return [passwordController];
+    }
+
+    // Verification step (last)
+    if (step == steps.length - 1) {
+      // Verification logic often resides in the widget state or internal controller
+      // If we need to disable the button based on code length, we'd need access to it.
+      // Currently _isStepValid returns true for verification step (logic in _verifyCode).
+      return [];
+    }
+
+    return [];
   }
 }

@@ -18,6 +18,7 @@ void main() {
     isHomeDelivery: true,
     roles: ['Veterinario'],
     authMethod: 'EMAIL',
+    countryId: 'CO',
   );
 
   group('UserModel', () {

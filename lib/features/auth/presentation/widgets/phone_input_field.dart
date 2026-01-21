@@ -15,6 +15,7 @@ class PhoneInputField extends StatelessWidget {
   final bool isOptional;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
+  final String? errorText;
 
   const PhoneInputField({
     super.key,
@@ -26,6 +27,7 @@ class PhoneInputField extends StatelessWidget {
     this.isOptional = false,
     this.maxLength,
     this.inputFormatters,
+    this.errorText,
   });
 
   @override
@@ -66,6 +68,7 @@ class PhoneInputField extends StatelessWidget {
                 keyboardType: TextInputType.phone,
                 maxLength: maxLength,
                 inputFormatters: inputFormatters,
+                errorText: errorText,
               ),
             ],
           ),
