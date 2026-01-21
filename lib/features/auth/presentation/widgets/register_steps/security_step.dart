@@ -7,8 +7,19 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 
 class SecurityStep extends StatefulWidget {
   final TextEditingController passwordController;
+  final TextEditingController confirmPasswordController;
+  final bool acceptTerms;
+  final ValueChanged<bool> onTermsChanged;
+  final String? confirmPasswordError;
 
-  const SecurityStep({super.key, required this.passwordController});
+  const SecurityStep({
+    super.key,
+    required this.passwordController,
+    required this.confirmPasswordController,
+    required this.acceptTerms,
+    required this.onTermsChanged,
+    this.confirmPasswordError,
+  });
 
   @override
   State<SecurityStep> createState() => _SecurityStepState();
@@ -17,25 +28,6 @@ class SecurityStep extends StatefulWidget {
 class _SecurityStepState extends State<SecurityStep> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
-  bool _acceptTerms = false;
-  final TextEditingController _confirmController = TextEditingController();
-
-  @override
-  void initState() {
-    super.initState();
-    widget.passwordController.addListener(_onPasswordChanged);
-  }
-
-  @override
-  void dispose() {
-    widget.passwordController.removeListener(_onPasswordChanged);
-    _confirmController.dispose();
-    super.dispose();
-  }
-
-  void _onPasswordChanged() {
-    setState(() {});
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -54,14 +46,20 @@ class _SecurityStepState extends State<SecurityStep> {
         const SizedBox(height: AppSpacing.l),
 
         // Using reusable PasswordRequirementsValidator component
-        PasswordRequirementsValidator(password: widget.passwordController.text),
+        ValueListenableBuilder<TextEditingValue>(
+          valueListenable: widget.passwordController,
+          builder: (context, value, child) {
+            return PasswordRequirementsValidator(password: value.text);
+          },
+        ),
 
         const SizedBox(height: AppSpacing.l),
         CustomTextField(
           label: 'Confirmar contraseña',
           isPassword: true,
           obscureText: _obscureConfirmPassword,
-          controller: _confirmController,
+          controller: widget.confirmPasswordController,
+          errorText: widget.confirmPasswordError,
           onToggleVisibility: () {
             setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
           },
@@ -74,9 +72,8 @@ class _SecurityStepState extends State<SecurityStep> {
               height: 24,
               width: 24,
               child: Checkbox(
-                value: _acceptTerms,
-                onChanged: (value) =>
-                    setState(() => _acceptTerms = value ?? false),
+                value: widget.acceptTerms,
+                onChanged: (value) => widget.onTermsChanged(value ?? false),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
                 ),

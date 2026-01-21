@@ -35,11 +35,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
   final idController = TextEditingController();
   final phoneController = TextEditingController();
   final professionalCardController = TextEditingController();
   final countryController = TextEditingController();
   final cityController = TextEditingController();
+
+  bool _acceptTerms = false;
+  String? _confirmPasswordError;
 
   // State for tag inputs
   List<String> _animalTypes = [];
@@ -72,16 +76,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
     // Return cached steps if nothing changed
-    if (_cachedSteps != null &&
-        _lastAccessMethod == _selectedAccessMethod &&
-        _lastPhoneErrorText == _phoneErrorText &&
-        _lastEmailErrorText == _emailErrorText) {
-      return _cachedSteps!;
-    }
+    // Note: For SecurityStep we manage state in the parent, so we might need to
+    // rebuild it more often or rely on its own state update from parent.
+    // However, the terms checkbox triggers setState in parent, which rebuilds _steps.
 
-    _lastAccessMethod = _selectedAccessMethod;
-    _lastPhoneErrorText = _phoneErrorText;
-    _lastEmailErrorText = _emailErrorText;
     final List<Widget> steps = [];
 
     // PROPIETARIO: First step is method selection
@@ -147,7 +145,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // All roles: Security/Password step
-    steps.add(SecurityStep(passwordController: passwordController));
+    steps.add(
+      SecurityStep(
+        passwordController: passwordController,
+        confirmPasswordController: confirmPasswordController,
+        acceptTerms: _acceptTerms,
+        confirmPasswordError: _confirmPasswordError,
+        onTermsChanged: (value) {
+          setState(() {
+            _acceptTerms = value;
+          });
+        },
+      ),
+    );
 
     // All roles: Verification step
     steps.add(
@@ -163,6 +173,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return steps;
   }
 
+  bool _isPasswordValid(String password) {
+    // 8+ chars, upper, lower, number, special
+    return password.length >= 8 &&
+        password.contains(RegExp(r'[a-z]')) &&
+        password.contains(RegExp(r'[A-Z]')) &&
+        password.contains(RegExp(r'[0-9]')) &&
+        password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+  }
+
+  void _onConfirmPasswordChanged() {
+    final confirm = confirmPasswordController.text;
+    final password = passwordController.text;
+
+    // Check mismatch: if confirm is not empty AND differs from password
+    // OR if we already have an error (to see if it's fixed)
+    if (confirm.isNotEmpty && confirm != password) {
+      if (_confirmPasswordError == null) {
+        setState(() {
+          _confirmPasswordError = 'Las contraseñas no coinciden';
+        });
+      }
+    } else {
+      if (_confirmPasswordError != null) {
+        setState(() {
+          _confirmPasswordError = null;
+        });
+      }
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -172,6 +212,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
     phoneController.addListener(_onPhoneChanged);
     // Add listener for email controller
     emailController.addListener(_onEmailChanged);
+    // Add listener for confirm password (inline validation)
+    confirmPasswordController.addListener(_onConfirmPasswordChanged);
+    // Add listener for password (to clear confirm error if password matches again)
+    passwordController.addListener(_onConfirmPasswordChanged);
   }
 
   void _onPhoneChanged() {
@@ -203,9 +247,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Remove listener before disposing
     phoneController.removeListener(_onPhoneChanged);
     emailController.removeListener(_onEmailChanged);
+    confirmPasswordController.removeListener(_onConfirmPasswordChanged);
+    passwordController.removeListener(_onConfirmPasswordChanged);
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     idController.dispose();
     phoneController.dispose();
     professionalCardController.dispose();
@@ -336,8 +383,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             idController.text.isNotEmpty &&
             countryController.text.isNotEmpty;
 
-        countryController.text.isNotEmpty;
-
         // Optional Email/Phone validation removed here - handled inline on submit
 
         return isValid;
@@ -363,7 +408,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Common steps (Security)
     if (step == steps.length - 2) {
-      return passwordController.text.length >= 8;
+      final isPasswordComplex = _isPasswordValid(passwordController.text);
+      final passwordsMatch =
+          passwordController.text == confirmPasswordController.text;
+      return isPasswordComplex && passwordsMatch && _acceptTerms;
     }
 
     // Verification step
@@ -628,7 +676,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Security step (penultimate)
     if (step == steps.length - 2) {
-      return [passwordController];
+      // Need to listen to both password fields. Terms checked via setState rebuild.
+      return [passwordController, confirmPasswordController];
     }
 
     // Verification step (last)
