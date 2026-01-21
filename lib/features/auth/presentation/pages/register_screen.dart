@@ -53,7 +53,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
 
   @override
+  void initState() {
+    super.initState();
+    // Add listeners to rebuild when input changes for validation
+    emailController.addListener(_onInputChanged);
+    phoneController.addListener(_onInputChanged);
+    nameController.addListener(_onInputChanged);
+    idController.addListener(_onInputChanged);
+    countryController.addListener(_onInputChanged);
+    cityController.addListener(_onInputChanged);
+    passwordController.addListener(_onInputChanged);
+    professionalCardController.addListener(_onInputChanged);
+  }
+
+  void _onInputChanged() {
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    emailController.removeListener(_onInputChanged);
+    phoneController.removeListener(_onInputChanged);
+    nameController.removeListener(_onInputChanged);
+    idController.removeListener(_onInputChanged);
+    countryController.removeListener(_onInputChanged);
+    cityController.removeListener(_onInputChanged);
+    passwordController.removeListener(_onInputChanged);
+    professionalCardController.removeListener(_onInputChanged);
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -106,7 +132,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phoneController: phoneController,
             countryController: countryController,
             idController: idController,
-            selectedMethod: _selectedAccessMethod!,
+            showOptionalEmail: _selectedAccessMethod == AccessMethod.phone,
+            showOptionalPhone: _selectedAccessMethod == AccessMethod.email,
           ),
         );
       }
@@ -216,6 +243,69 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  bool _isStepValid() {
+    final step = _currentStep;
+    final steps = _steps;
+
+    // Validation for Owner Method Selection
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      if (step == 0) {
+        if (_selectedAccessMethod == AccessMethod.email) {
+          return _isValidEmail(emailController.text);
+        } else if (_selectedAccessMethod == AccessMethod.phone) {
+          return _isValidPhone(phoneController.text);
+        }
+        return false;
+      }
+      if (step == 1) {
+        return nameController.text.isNotEmpty &&
+            idController.text.isNotEmpty &&
+            countryController.text.isNotEmpty;
+      }
+    }
+
+    // Validation for Veterinario/Other Roles
+    if (widget.role == 'VETERINARIO') {
+      if (step == 0) {
+        return nameController.text.isNotEmpty &&
+            emailController.text.isNotEmpty &&
+            _isValidEmail(emailController.text) &&
+            countryController.text.isNotEmpty &&
+            idController.text.isNotEmpty &&
+            phoneController.text.isNotEmpty;
+      }
+      if (step == 1) {
+        return professionalCardController.text.isNotEmpty &&
+            _animalTypes.isNotEmpty &&
+            _services.isNotEmpty;
+      }
+    }
+
+    // Common steps (Security)
+    if (step == steps.length - 2) {
+      return passwordController.text.length >= 8;
+    }
+
+    // Verification step
+    if (step == steps.length - 1) {
+      // The button itself shows "Verificar", which handles its own logic,
+      // but we can at least ensure something is entered.
+      return true; // Verification code validation is handled in _verifyCode
+    }
+
+    return true;
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  bool _isValidPhone(String phone) {
+    // Basic phone validation (at least 7 digits)
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 7;
+  }
+
   void _submitRegistration() {
     // Add any pending tags before submitting
     _animalTypesKey.currentState?.addPendingTag();
@@ -323,29 +413,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: AppTypography.heading1,
                     ),
                   ),
-                  SizedBox(
-                    height: AppSpacing.registerSubtitleHeight,
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text:
-                                widget.role == 'PROPIETARIO_MASCOTA' &&
-                                    _currentStep == 0
-                                ? 'Ingreso '
-                                : 'Datos personales ',
-                            style: AppTypography.body4,
-                          ),
-                          TextSpan(
-                            text: '- ${_currentStep + 1} de ${steps.length}',
-                            style: AppTypography.body4.copyWith(
-                              color: AppColors.greyMedio,
+                  if (_currentStep < steps.length - 1)
+                    SizedBox(
+                      height: AppSpacing.registerSubtitleHeight,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text:
+                                  widget.role == 'PROPIETARIO_MASCOTA' &&
+                                      _currentStep == 0
+                                  ? 'Ingreso '
+                                  : 'Datos personales ',
+                              style: AppTypography.body4,
                             ),
-                          ),
-                        ],
+                            TextSpan(
+                              text:
+                                  '- ${_currentStep + 1} de ${steps.length - 1}',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    )
+                  else
+                    SizedBox(
+                      height: AppSpacing.registerSubtitleHeight,
+                      child: Text('Verificación', style: AppTypography.body4),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -382,7 +479,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   return CustomButton(
                     text: buttonText,
                     isLoading: state is AuthLoading,
-                    onPressed: _nextStep,
+                    onPressed: _isStepValid() ? _nextStep : null,
                   );
                 },
               ),

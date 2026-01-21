@@ -1,19 +1,24 @@
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:flutter/services.dart';
 import 'country_dropdown.dart';
-import 'custom_text_field.dart';
 
 class PhoneInputField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
   final bool isOptional;
+  final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
 
   const PhoneInputField({
     super.key,
     required this.label,
     required this.controller,
     this.isOptional = false,
+    this.maxLength,
+    this.inputFormatters,
   });
 
   @override
@@ -51,6 +56,8 @@ class PhoneInputField extends StatelessWidget {
                 hint: '(+57) 310 123 45 67',
                 controller: controller,
                 keyboardType: TextInputType.phone,
+                maxLength: maxLength,
+                inputFormatters: inputFormatters,
               ),
             ],
           ),

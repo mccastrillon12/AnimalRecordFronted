@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -22,6 +23,9 @@ class CustomTextField extends StatelessWidget {
   final bool? obscureText;
   final VoidCallback? onToggleVisibility;
   final int? maxLength;
+  final List<TextInputFormatter>? inputFormatters;
+  final VoidCallback? onEditingComplete;
+  final TextInputAction? textInputAction;
 
   const CustomTextField({
     super.key,
@@ -42,6 +46,9 @@ class CustomTextField extends StatelessWidget {
     this.obscureText,
     this.onToggleVisibility,
     this.maxLength,
+    this.inputFormatters,
+    this.onEditingComplete,
+    this.textInputAction,
   });
 
   @override
@@ -82,6 +89,9 @@ class CustomTextField extends StatelessWidget {
               keyboardType: keyboardType,
               validator: validator,
               maxLength: maxLength,
+              inputFormatters: inputFormatters,
+              onEditingComplete: onEditingComplete,
+              textInputAction: textInputAction,
               textAlignVertical: TextAlignVertical.center,
               style: AppTypography.body4,
               decoration: InputDecoration(

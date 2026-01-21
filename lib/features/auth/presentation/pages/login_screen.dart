@@ -45,7 +45,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isValidEmail(String value) {
     if (value.isEmpty) return false;
-    // Regex básico para email
     final emailRegex = RegExp(
       r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
     );
@@ -54,7 +53,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isValidPhone(String value) {
     if (value.isEmpty) return false;
-    // Solo números, mínimo 10 dígitos
     final phoneRegex = RegExp(r'^[0-9]{10,}$');
     return phoneRegex.hasMatch(value);
   }
@@ -93,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: AppTypography.heading1,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.l),
               child: Row(
@@ -119,7 +116,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xxxl),
               child: Text(
@@ -128,7 +124,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: AppTypography.body4,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.m),
               child: CustomTextField(
@@ -144,7 +139,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 maxLength: 50,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xl),
               child: CustomButton(
@@ -152,7 +146,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 onPressed: _isValidInput ? _handleContinue : null,
               ),
             ),
-
             Center(child: _BiometricButton()),
             const SizedBox(height: AppSpacing.xl),
             Row(

@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
-import 'owner_method_selection_step.dart';
+import 'package:animal_record/core/utils/country_mapper.dart';
 import '../country_dropdown.dart';
 import '../id_selector.dart';
 import '../phone_input_field.dart';
+import 'package:flutter/services.dart';
 
+/// A reusable step widget for collecting personal data in registration flows.
+///
+/// This widget can be customized to show/hide optional fields (email or phone)
+/// based on the registration method chosen by the user.
 class OwnerPersonalDataStep extends StatefulWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
   final TextEditingController phoneController;
   final TextEditingController countryController;
   final TextEditingController idController;
-  final AccessMethod selectedMethod;
+
+  /// Whether to show the email field as optional (when phone is primary method)
+  final bool showOptionalEmail;
+
+  /// Whether to show the phone field as optional (when email is primary method)
+  final bool showOptionalPhone;
 
   const OwnerPersonalDataStep({
     super.key,
@@ -21,7 +31,8 @@ class OwnerPersonalDataStep extends StatefulWidget {
     required this.phoneController,
     required this.countryController,
     required this.idController,
-    required this.selectedMethod,
+    this.showOptionalEmail = false,
+    this.showOptionalPhone = false,
   });
 
   @override
@@ -34,7 +45,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
     super.initState();
     // Initialize country controller with default Colombia value
     if (widget.countryController.text.isEmpty) {
-      widget.countryController.text = 'Colombia';
+      widget.countryController.text = CountryMapper.getName('COP');
     }
   }
 
@@ -60,10 +71,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
           width: double.infinity, // Full width for this screen
           onChanged: (value) {
             if (value != null) {
-              final country = CountryOption.all.firstWhere(
-                (c) => c.code == value,
-              );
-              widget.countryController.text = _getCountryName(country.code);
+              widget.countryController.text = CountryMapper.getName(value);
             }
           },
         ),
@@ -76,47 +84,34 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
         const SizedBox(height: AppSpacing.m),
 
         // Email (condicional)
-        if (widget.selectedMethod == AccessMethod.phone) ...[
+        if (widget.showOptionalEmail) ...[
           CustomTextField(
             label: 'Correo electrónico (Opcional)',
             hint: 'ejemplo@correo.com',
             controller: widget.emailController,
             keyboardType: TextInputType.emailAddress,
+            maxLength: 50,
           ),
           const SizedBox(height: AppSpacing.m),
         ],
 
         // Teléfono (condicional)
-        if (widget.selectedMethod == AccessMethod.email) ...[
+        if (widget.showOptionalPhone) ...[
           PhoneInputField(
             label: 'Número de celular (Opcional)',
             controller: widget.phoneController,
+            maxLength: 15,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
         ],
       ],
     );
   }
 
-  // Helper to get country code from full name
+  /// Helper to get country code from controller text using CountryMapper
   String _getCountryCode() {
     final countryName = widget.countryController.text;
-    if (countryName == 'Colombia' || countryName.isEmpty) return 'COP';
-    if (countryName == 'Estados Unidos') return 'USA';
-    if (countryName == 'México') return 'MEX';
-    return 'COP'; // Default
-  }
-
-  // Helper to get country name from code
-  String _getCountryName(String code) {
-    switch (code) {
-      case 'COP':
-        return 'Colombia';
-      case 'USA':
-        return 'Estados Unidos';
-      case 'MEX':
-        return 'México';
-      default:
-        return 'Colombia';
-    }
+    if (countryName.isEmpty) return 'COP';
+    return CountryMapper.getCode(countryName);
   }
 }

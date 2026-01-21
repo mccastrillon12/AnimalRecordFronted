@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -66,6 +67,8 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           PhoneInputField(
             label: 'Número de celular',
             controller: widget.phoneController,
+            maxLength: 15,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
           ),
         ],
       ],
@@ -105,6 +108,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           hint: 'jhondoe@correo.com',
           controller: widget.emailController,
           keyboardType: TextInputType.emailAddress,
+          maxLength: 50,
         ),
       ],
     );
