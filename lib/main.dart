@@ -7,6 +7,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,8 +28,11 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocProvider(
-      create: (context) => di.sl<AuthBloc>(),
+    return MultiBlocProvider(
+      providers: [
+        BlocProvider(create: (context) => di.sl<AuthBloc>()),
+        BlocProvider(create: (context) => di.sl<LocationsCubit>()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'AnimalRecord',

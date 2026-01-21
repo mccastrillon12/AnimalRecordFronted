@@ -16,17 +16,48 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signUp(UserModel user) async {
     try {
-      final response = await dio.post('/users', data: user.toJson());
+      final jsonData = user.toJson();
+      print('=== SENDING TO BACKEND ===');
+      print('URL: /users');
+      print('Data: $jsonData');
+
+      final response = await dio.post('/users', data: jsonData);
 
       if (response.statusCode == 201 || response.statusCode == 200) {
+        print('=== BACKEND RESPONSE SUCCESS ===');
+        print('Response: ${response.data}');
         return UserModel.fromJson(response.data);
       } else {
         throw Exception('Error en el registro');
       }
     } on DioException catch (e) {
-      final errorMessage = e.response?.data['message'] ?? e.message;
+      // Extract detailed error message from backend
+      String errorMessage = 'Error del servidor';
+
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+
+        // Handle different error response formats
+        if (data is Map<String, dynamic>) {
+          if (data['message'] != null) {
+            errorMessage = data['message'].toString();
+          } else if (data['error'] != null) {
+            errorMessage = data['error'].toString();
+          } else if (data['errors'] != null) {
+            // Handle validation errors array
+            errorMessage = data['errors'].toString();
+          }
+        } else if (data is String) {
+          errorMessage = data;
+        }
+      } else if (e.message != null) {
+        errorMessage = e.message!;
+      }
+
+      print('SignUp Error Details: ${e.response?.data}');
       throw Exception('Error del servidor: $errorMessage');
     } catch (e) {
+      print('SignUp Unexpected Error: $e');
       throw Exception('Error inesperado: $e');
     }
   }

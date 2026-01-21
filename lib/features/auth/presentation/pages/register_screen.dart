@@ -55,31 +55,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Add listeners to rebuild when input changes for validation
-    emailController.addListener(_onInputChanged);
-    phoneController.addListener(_onInputChanged);
-    nameController.addListener(_onInputChanged);
-    idController.addListener(_onInputChanged);
-    countryController.addListener(_onInputChanged);
-    cityController.addListener(_onInputChanged);
-    passwordController.addListener(_onInputChanged);
-    professionalCardController.addListener(_onInputChanged);
-  }
-
-  void _onInputChanged() {
-    setState(() {});
+    // Add listeners removed to prevent crash. Validation handled by ValueListenableBuilder.
   }
 
   @override
   void dispose() {
-    emailController.removeListener(_onInputChanged);
-    phoneController.removeListener(_onInputChanged);
-    nameController.removeListener(_onInputChanged);
-    idController.removeListener(_onInputChanged);
-    countryController.removeListener(_onInputChanged);
-    cityController.removeListener(_onInputChanged);
-    passwordController.removeListener(_onInputChanged);
-    professionalCardController.removeListener(_onInputChanged);
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -202,6 +182,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _nextStep() {
+    // Validate current step before proceeding
+    if (!_isStepValid()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos requeridos'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
     // Si estamos en el penúltimo paso (SecurityStep), crear el usuario
     if (_currentStep == _steps.length - 2) {
       _submitRegistration();
@@ -331,7 +322,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : 'CC',
           identificationNumber: getFieldValue(idController),
           cellPhone: getFieldValue(phoneController),
-          country: getFieldValue(countryController),
+          country: '', // populated by backend based on countryId
+          countryId: getFieldValue(countryController), // stores country ID
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
@@ -342,6 +334,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           animalTypes: widget.role == 'VETERINARIO' ? _animalTypes : [],
           services: widget.role == 'VETERINARIO' ? _services : [],
           isHomeDelivery: widget.role == 'VETERINARIO' ? true : false,
+          authMethod: _selectedAccessMethod == AccessMethod.phone
+              ? 'PHONE'
+              : 'EMAIL',
         ),
       ),
     );
@@ -476,10 +471,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       : _currentStep == steps.length - 2
                       ? 'Crear cuenta'
                       : 'Continuar';
+
                   return CustomButton(
                     text: buttonText,
                     isLoading: state is AuthLoading,
-                    onPressed: _isStepValid() ? _nextStep : null,
+                    onPressed: state is AuthLoading ? null : _nextStep,
                   );
                 },
               ),

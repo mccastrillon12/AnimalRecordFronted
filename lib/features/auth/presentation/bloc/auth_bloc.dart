@@ -16,13 +16,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.verifyCodeUseCase,
   }) : super(AuthInitial()) {
     on<SignUpSubmitted>((event, emit) async {
+      print('=== SIGNUP STARTED ===');
+      print('User Data: ${event.userData}');
       emit(AuthLoading());
 
       final result = await registerUseCase(event.userData);
 
       result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (user) => emit(AuthSuccess(user)),
+        (failure) {
+          print('=== SIGNUP FAILED ===');
+          print('Error: ${failure.message}');
+          emit(AuthError(failure.message));
+        },
+        (user) {
+          print('=== SIGNUP SUCCESS ===');
+          print('User: $user');
+          emit(AuthSuccess(user));
+        },
       );
     });
 

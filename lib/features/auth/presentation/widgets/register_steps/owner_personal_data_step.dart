@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
-import 'package:animal_record/core/utils/country_mapper.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
 import '../country_dropdown.dart';
 import '../id_selector.dart';
 import '../phone_input_field.dart';
@@ -43,75 +45,87 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
   @override
   void initState() {
     super.initState();
-    // Initialize country controller with default Colombia value
-    if (widget.countryController.text.isEmpty) {
-      widget.countryController.text = CountryMapper.getName('COP');
-    }
+    // Fetch countries when the widget initializes
+    context.read<LocationsCubit>().fetchCountries();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Nombre completo
-        CustomTextField(
-          label: 'Nombre completo',
-          hint: 'Jhon Doe',
-          controller: widget.nameController,
-        ),
+    return BlocBuilder<LocationsCubit, LocationsState>(
+      builder: (context, state) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Nombre completo
+            CustomTextField(
+              label: 'Nombre completo',
+              hint: 'Jhon Doe',
+              controller: widget.nameController,
+            ),
 
-        const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: AppSpacing.m),
 
-        // País de residencia
-        CountryDropdown(
-          label: 'País de residencia',
-          value: _getCountryCode(),
-          countries: CountryOption.all,
-          width: double.infinity, // Full width for this screen
-          onChanged: (value) {
-            if (value != null) {
-              widget.countryController.text = CountryMapper.getName(value);
-            }
-          },
-        ),
+            // País de residencia
+            if (state is LocationsLoaded) ...[
+              CountryDropdown(
+                label: 'País de residencia',
+                value: widget.countryController.text.isEmpty
+                    ? (state.countries.isNotEmpty
+                          ? state.countries.first.id
+                          : null)
+                    : widget.countryController.text,
+                countries: state.countries,
+                width: double.infinity,
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() {
+                      widget.countryController.text = value;
+                    });
+                  }
+                },
+              ),
+            ] else if (state is LocationsLoading) ...[
+              const Center(child: CircularProgressIndicator()),
+            ] else if (state is LocationsError) ...[
+              Text('Error: ${state.message}'),
+            ],
 
-        const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: AppSpacing.m),
 
-        // Identificación
-        IdSelector(idController: widget.idController),
+            // Identificación
+            IdSelector(idController: widget.idController),
 
-        const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: AppSpacing.m),
 
-        // Email (condicional)
-        if (widget.showOptionalEmail) ...[
-          CustomTextField(
-            label: 'Correo electrónico (Opcional)',
-            hint: 'ejemplo@correo.com',
-            controller: widget.emailController,
-            keyboardType: TextInputType.emailAddress,
-            maxLength: 50,
-          ),
-          const SizedBox(height: AppSpacing.m),
-        ],
+            // Email (condicional)
+            if (widget.showOptionalEmail) ...[
+              CustomTextField(
+                label: 'Correo electrónico (Opcional)',
+                hint: 'ejemplo@correo.com',
+                controller: widget.emailController,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 50,
+              ),
+              const SizedBox(height: AppSpacing.m),
+            ],
 
-        // Teléfono (condicional)
-        if (widget.showOptionalPhone) ...[
-          PhoneInputField(
-            label: 'Número de celular (Opcional)',
-            controller: widget.phoneController,
-            maxLength: 15,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-          ),
-        ],
-      ],
+            // Teléfono (condicional)
+            if (widget.showOptionalPhone) ...[
+              if (state is LocationsLoaded)
+                PhoneInputField(
+                  label: 'Número de celular (Opcional)',
+                  controller: widget.phoneController,
+                  countries: state.countries,
+                  selectedCountryId: state.countries.isNotEmpty
+                      ? state.countries.first.id
+                      : null,
+                  maxLength: 15,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+            ],
+          ],
+        );
+      },
     );
-  }
-
-  /// Helper to get country code from controller text using CountryMapper
-  String _getCountryCode() {
-    final countryName = widget.countryController.text;
-    if (countryName.isEmpty) return 'COP';
-    return CountryMapper.getCode(countryName);
   }
 }

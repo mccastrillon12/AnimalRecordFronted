@@ -9,6 +9,7 @@ class UserModel extends UserEntity {
     required super.identificationType,
     required super.identificationNumber,
     required super.country,
+    required super.countryId,
     required super.city,
     required super.email,
     required super.cellPhone,
@@ -17,6 +18,7 @@ class UserModel extends UserEntity {
     required super.services,
     required super.isHomeDelivery,
     required super.roles,
+    required super.authMethod,
     this.password,
   });
 
@@ -27,6 +29,7 @@ class UserModel extends UserEntity {
       identificationType: json['identificationType'] ?? '',
       identificationNumber: json['identificationNumber'] ?? '',
       country: json['country'] ?? '',
+      countryId: json['countryId'] ?? '',
       city: json['city'] ?? '',
       email: json['email'] ?? '',
       cellPhone: json['cellPhone'] ?? '',
@@ -35,25 +38,47 @@ class UserModel extends UserEntity {
       services: List<String>.from(json['services'] ?? []),
       isHomeDelivery: json['isHomeDelivery'] ?? false,
       roles: List<String>.from(json['roles'] ?? []),
+      authMethod: json['authMethod'] ?? 'EMAIL',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {
+    final Map<String, dynamic> json = {
       'id': id,
       'name': name,
       'identificationType': identificationType,
       'identificationNumber': identificationNumber,
-      'country': country,
-      'city': city,
-      'email': email,
-      'cellPhone': cellPhone,
-      'professionalCard': professionalCard,
+      'countryId': countryId,
+      'roles': roles,
+      'authMethod': authMethod,
       'animalTypes': animalTypes,
       'services': services,
       'isHomeDelivery': isHomeDelivery,
-      'roles': roles,
-      if (password != null) 'password': password,
     };
+
+    // Only include email if not empty
+    if (email.isNotEmpty) {
+      json['email'] = email;
+    }
+
+    // Only include cellPhone if not empty
+    if (cellPhone.isNotEmpty) {
+      json['cellPhone'] = cellPhone;
+    }
+
+    // Only include optional fields if they are not empty
+    if (city.isNotEmpty) {
+      json['city'] = city;
+    }
+
+    if (professionalCard != null && professionalCard!.isNotEmpty) {
+      json['professionalCard'] = professionalCard;
+    }
+
+    if (password != null && password!.isNotEmpty) {
+      json['password'] = password;
+    }
+
+    return json;
   }
 }

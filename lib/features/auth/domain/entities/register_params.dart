@@ -8,6 +8,7 @@ class RegisterParams extends Equatable {
   final String identificationType;
   final String identificationNumber;
   final String country;
+  final String countryId;
   final String city;
   final String cellPhone;
   final String? professionalCard;
@@ -15,6 +16,7 @@ class RegisterParams extends Equatable {
   final List<String> animalTypes;
   final List<String> services;
   final bool isHomeDelivery;
+  final String authMethod;
 
   const RegisterParams({
     required this.id,
@@ -24,6 +26,7 @@ class RegisterParams extends Equatable {
     required this.identificationType,
     required this.identificationNumber,
     required this.country,
+    required this.countryId,
     required this.city,
     required this.cellPhone,
     this.professionalCard,
@@ -31,6 +34,7 @@ class RegisterParams extends Equatable {
     required this.animalTypes,
     required this.services,
     required this.isHomeDelivery,
+    required this.authMethod,
   });
 
   @override
@@ -42,6 +46,7 @@ class RegisterParams extends Equatable {
     identificationType,
     identificationNumber,
     country,
+    countryId,
     city,
     cellPhone,
     professionalCard,
@@ -49,5 +54,6 @@ class RegisterParams extends Equatable {
     animalTypes,
     services,
     isHomeDelivery,
+    authMethod,
   ];
 }

@@ -8,6 +8,13 @@ import 'package:animal_record/features/auth/domain/usecases/check_auth_status_us
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+
+import 'package:animal_record/features/locations/data/datasources/locations_remote_datasource.dart';
+import 'package:animal_record/features/locations/data/repositories/locations_repository_impl.dart';
+import 'package:animal_record/features/locations/domain/repositories/locations_repository.dart';
+import 'package:animal_record/features/locations/domain/usecases/get_countries_usecase.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
+
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/network/auth_interceptor.dart';
 import 'package:dio/dio.dart';
@@ -44,6 +51,24 @@ Future<void> init() async {
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
     () => AuthRemoteDataSourceImpl(dio: sl()),
+  );
+
+  //! Features - Locations
+
+  // Cubit
+  sl.registerFactory(() => LocationsCubit(getCountriesUseCase: sl()));
+
+  // Use cases
+  sl.registerLazySingleton(() => GetCountriesUseCase(repository: sl()));
+
+  // Repository
+  sl.registerLazySingleton<LocationsRepository>(
+    () => LocationsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  // Data sources
+  sl.registerLazySingleton<LocationsRemoteDataSource>(
+    () => LocationsRemoteDataSourceImpl(dio: sl()),
   );
 
   //! Core & External

@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
 import '../phone_input_field.dart';
 
 enum AccessMethod { email, phone }
@@ -28,6 +31,13 @@ class OwnerMethodSelectionStep extends StatefulWidget {
 
 class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
   AccessMethod? _selectedMethod;
+
+  @override
+  void initState() {
+    super.initState();
+    // Fetch countries when widget initializes
+    context.read<LocationsCubit>().fetchCountries();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,11 +74,26 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
         if (_selectedMethod == AccessMethod.email) ...[
           _buildEmailField(),
         ] else if (_selectedMethod == AccessMethod.phone) ...[
-          PhoneInputField(
-            label: 'Número de celular',
-            controller: widget.phoneController,
-            maxLength: 15,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+          BlocBuilder<LocationsCubit, LocationsState>(
+            builder: (context, state) {
+              if (state is LocationsLoaded) {
+                return PhoneInputField(
+                  label: 'Número de celular',
+                  controller: widget.phoneController,
+                  countries: state.countries,
+                  selectedCountryId: state.countries.isNotEmpty
+                      ? state.countries.first.id
+                      : null,
+                  maxLength: 15,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                );
+              } else if (state is LocationsLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is LocationsError) {
+                return Text('Error: ${state.message}');
+              }
+              return const SizedBox.shrink();
+            },
           ),
         ],
       ],

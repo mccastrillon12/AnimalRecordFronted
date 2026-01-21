@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 
 class CountryDropdown extends StatelessWidget {
   final String label;
-  final String value;
+  final String? value;
   final ValueChanged<String?>? onChanged;
-  final List<CountryOption> countries;
-  final double? width; // Optional width parameter
+  final List<CountryEntity> countries;
+  final double? width;
 
   const CountryDropdown({
     super.key,
@@ -16,7 +17,7 @@ class CountryDropdown extends StatelessWidget {
     required this.value,
     this.onChanged,
     required this.countries,
-    this.width, // Default to 116 if not provided
+    this.width,
   });
 
   @override
@@ -27,7 +28,6 @@ class CountryDropdown extends StatelessWidget {
         // Label
         SizedBox(
           height: 18,
-
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text(label, style: AppTypography.body6),
@@ -39,7 +39,7 @@ class CountryDropdown extends StatelessWidget {
         // Dropdown container
         Container(
           height: AppSpacing.inputHeight,
-          width: width ?? 116, // Use provided width or default to 116
+          width: width ?? 116,
           padding: const EdgeInsets.only(
             top: 8,
             bottom: 8,
@@ -57,12 +57,12 @@ class CountryDropdown extends StatelessWidget {
               icon: const Icon(Icons.arrow_drop_down),
               items: countries.map((country) {
                 return DropdownMenuItem<String>(
-                  value: country.code,
+                  value: country.id,
                   child: Row(
                     children: [
                       ClipOval(
                         child: Image.asset(
-                          country.imagePath,
+                          'assets/icons/${country.isoCode}.png',
                           width: 24,
                           height: 24,
                           fit: BoxFit.cover,
@@ -79,7 +79,13 @@ class CountryDropdown extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Text(country.name, style: AppTypography.body4),
+                      Expanded(
+                        child: Text(
+                          country.name,
+                          style: AppTypography.body4,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
                     ],
                   ),
                 );
@@ -91,41 +97,4 @@ class CountryDropdown extends StatelessWidget {
       ],
     );
   }
-}
-
-// Helper class for country options
-class CountryOption {
-  final String code;
-  final String name;
-  final String imagePath;
-
-  const CountryOption({
-    required this.code,
-    required this.name,
-    required this.imagePath,
-  });
-
-  // Predefined countries
-  static const colombia = CountryOption(
-    code: 'COP',
-    name: 'COP',
-    imagePath: 'assets/icons/Colombia.png',
-  );
-
-  static const usa = CountryOption(
-    code: 'USA',
-    name: 'USA',
-    imagePath: 'assets/icons/Colombia.png',
-  );
-
-  static const mexico = CountryOption(
-    code: 'MEX',
-    name: 'MEX',
-    imagePath: 'assets/icons/Colombia.png',
-  );
-
-  // List of available countries
-  static const List<CountryOption> all = [colombia, usa, mexico];
-
-  static const List<CountryOption> onlyColombia = [colombia];
 }

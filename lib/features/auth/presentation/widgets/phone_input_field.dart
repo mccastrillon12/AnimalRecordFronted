@@ -2,12 +2,16 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 import 'package:flutter/services.dart';
 import 'country_dropdown.dart';
 
 class PhoneInputField extends StatelessWidget {
   final String label;
   final TextEditingController controller;
+  final List<CountryEntity> countries;
+  final String? selectedCountryId;
+  final ValueChanged<String?>? onCountryChanged;
   final bool isOptional;
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
@@ -16,6 +20,9 @@ class PhoneInputField extends StatelessWidget {
     super.key,
     required this.label,
     required this.controller,
+    required this.countries,
+    this.selectedCountryId,
+    this.onCountryChanged,
     this.isOptional = false,
     this.maxLength,
     this.inputFormatters,
@@ -27,12 +34,13 @@ class PhoneInputField extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Country selector using reusable component
-        CountryDropdown(
-          label: 'País',
-          value: 'COP',
-          countries: CountryOption.onlyColombia,
-          onChanged: null, // Only Colombia for now
-        ),
+        if (countries.isNotEmpty)
+          CountryDropdown(
+            label: 'País',
+            value: selectedCountryId ?? countries.first.id,
+            countries: countries,
+            onChanged: onCountryChanged,
+          ),
 
         const SizedBox(width: AppSpacing.xs),
 

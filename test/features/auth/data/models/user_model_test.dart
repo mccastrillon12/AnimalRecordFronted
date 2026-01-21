@@ -17,6 +17,7 @@ void main() {
     services: ['Consulta'],
     isHomeDelivery: true,
     roles: ['Veterinario'],
+    authMethod: 'EMAIL',
   );
 
   group('UserModel', () {
@@ -41,6 +42,7 @@ void main() {
           'services': ['Consulta'],
           'isHomeDelivery': true,
           'roles': ['Veterinario'],
+          'authMethod': 'EMAIL',
         };
 
         final result = UserModel.fromJson(jsonMap);
@@ -66,6 +68,7 @@ void main() {
         'services': ['Consulta'],
         'isHomeDelivery': true,
         'roles': ['Veterinario'],
+        'authMethod': 'EMAIL',
       };
 
       expect(result, expectedMap);

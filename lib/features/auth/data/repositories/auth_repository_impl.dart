@@ -27,6 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
         identificationType: params.identificationType,
         identificationNumber: params.identificationNumber,
         country: params.country,
+        countryId: params.countryId,
         city: params.city,
         email: params.email,
         cellPhone: params.cellPhone,
@@ -35,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
         services: params.services,
         isHomeDelivery: params.isHomeDelivery,
         roles: params.roles,
+        authMethod: params.authMethod,
         password: params.password,
       );
 
