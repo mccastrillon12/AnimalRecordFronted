@@ -10,6 +10,7 @@ class CountryDropdown extends StatelessWidget {
   final ValueChanged<String?>? onChanged;
   final List<CountryEntity> countries;
   final double? width;
+  final bool enabled;
 
   const CountryDropdown({
     super.key,
@@ -18,6 +19,7 @@ class CountryDropdown extends StatelessWidget {
     this.onChanged,
     required this.countries,
     this.width,
+    this.enabled = true,
   });
 
   @override
@@ -51,46 +53,52 @@ class CountryDropdown extends StatelessWidget {
             borderRadius: BorderRadius.circular(4),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down),
-              items: countries.map((country) {
-                return DropdownMenuItem<String>(
-                  value: country.id,
-                  child: Row(
-                    children: [
-                      ClipOval(
-                        child: Image.asset(
-                          'assets/icons/${country.isoCode}.png',
-                          width: 24,
-                          height: 24,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              width: 24,
-                              height: 24,
-                              decoration: BoxDecoration(
-                                color: AppColors.greyMedio,
-                                shape: BoxShape.circle,
-                              ),
-                            );
-                          },
+            child: IgnorePointer(
+              ignoring: !enabled,
+              child: DropdownButton<String>(
+                value: value,
+                isExpanded: true,
+                icon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.greyMedio,
+                ),
+                items: countries.map((country) {
+                  return DropdownMenuItem<String>(
+                    value: country.id,
+                    child: Row(
+                      children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/icons/${country.isoCode}.png',
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: AppColors.greyMedio,
+                                  shape: BoxShape.circle,
+                                ),
+                              );
+                            },
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          country.name,
-                          style: AppTypography.body4,
-                          overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            country.name,
+                            style: AppTypography.body4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: onChanged,
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              ),
             ),
           ),
         ),

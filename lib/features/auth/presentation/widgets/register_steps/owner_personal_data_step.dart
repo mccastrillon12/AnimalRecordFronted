@@ -59,7 +59,14 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<LocationsCubit, LocationsState>(
+    return BlocConsumer<LocationsCubit, LocationsState>(
+      listener: (context, state) {
+        if (state is LocationsLoaded && state.countries.isNotEmpty) {
+          if (widget.countryController.text.isEmpty) {
+            widget.countryController.text = state.countries.first.id;
+          }
+        }
+      },
       builder: (context, state) {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -82,6 +89,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                           ? state.countries.first.id
                           : null)
                     : widget.countryController.text,
+                enabled: false,
                 countries: state.countries,
                 width: double.infinity,
                 onChanged: (value) {
