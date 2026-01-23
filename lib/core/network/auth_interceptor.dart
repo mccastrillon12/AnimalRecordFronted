@@ -114,7 +114,12 @@ class AuthInterceptor extends Interceptor {
   bool _isAuthEndpoint(String path) {
     return path.contains('/auth/login') ||
         path.contains('/auth/refresh') ||
-        path.contains('/users'); // signup endpoint
+        path.contains('/auth/verify') ||
+        path.contains(
+          '/users/identification/',
+        ) || // Check if identification exists (public)
+        (path.contains('/users') &&
+            !path.contains('/')); // POST /users signup (public)
   }
 
   /// Refresh the access token using refresh token

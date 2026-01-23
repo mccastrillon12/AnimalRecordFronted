@@ -27,6 +27,7 @@ class AuthRepositoryImpl implements AuthRepository {
         identificationType: params.identificationType,
         identificationNumber: params.identificationNumber,
         country: params.country,
+        countryId: params.countryId,
         city: params.city,
         email: params.email,
         cellPhone: params.cellPhone,
@@ -35,6 +36,7 @@ class AuthRepositoryImpl implements AuthRepository {
         services: params.services,
         isHomeDelivery: params.isHomeDelivery,
         roles: params.roles,
+        authMethod: params.authMethod,
         password: params.password,
       );
 
@@ -103,6 +105,20 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       await remoteDataSource.verifyCode(params.email, params.code);
       return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> checkIdentificationExists(
+    String identificationNumber,
+  ) async {
+    try {
+      final exists = await remoteDataSource.checkIdentificationExists(
+        identificationNumber,
+      );
+      return Right(exists);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

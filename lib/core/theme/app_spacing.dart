@@ -14,6 +14,17 @@ class AppSpacing {
   static const double registerTitleHeight = 30.0;
   static const double registerSubtitleHeight = 21.0;
 
+  // Icon sizes
+  static const double iconSizeSmall = 24.0;
+  static const double iconSizeMedium = 40.0;
+
+  // Container sizes
+  static const double socialButtonSize = 50.0;
+  static const double biometricIconPadding = 8.0;
+
+  // Gaps between elements
+  static const double socialButtonGap = 32.0;
+
   // Specific semantic spacings
   static const double formPadding = l;
   static const double verticalBetweenElements = l;

@@ -21,3 +21,11 @@ class AuthError extends AuthState {
 }
 
 class VerificationSuccess extends AuthState {}
+
+class IdentificationCheckResult extends AuthState {
+  final bool exists;
+  IdentificationCheckResult(this.exists);
+
+  @override
+  List<Object?> get props => [exists];
+}

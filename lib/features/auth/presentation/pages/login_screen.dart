@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/auth_form_container.dart';
-import '../widgets/custom_text_field.dart';
-import '../widgets/custom_button.dart';
-import '../pages/role_selection_screen.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,11 +21,40 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _identifierController = TextEditingController();
+  bool _isValidInput = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _identifierController.addListener(_validateInput);
+  }
 
   @override
   void dispose() {
+    _identifierController.removeListener(_validateInput);
     _identifierController.dispose();
     super.dispose();
+  }
+
+  void _validateInput() {
+    final value = _identifierController.text.trim();
+    setState(() {
+      _isValidInput = _isValidEmail(value) || _isValidPhone(value);
+    });
+  }
+
+  bool _isValidEmail(String value) {
+    if (value.isEmpty) return false;
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(value);
+  }
+
+  bool _isValidPhone(String value) {
+    if (value.isEmpty) return false;
+    final phoneRegex = RegExp(r'^[0-9]{10,}$');
+    return phoneRegex.hasMatch(value);
   }
 
   void _handleContinue() {
@@ -58,7 +91,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: AppTypography.heading1,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.l),
               child: Row(
@@ -70,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const RoleSelectionScreen(),
+                          builder: (context) =>
+                              const RegisterScreen(role: 'PROPIETARIO_MASCOTA'),
                         ),
                       );
                     },
@@ -84,7 +117,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xxxl),
               child: Text(
@@ -93,7 +125,6 @@ class _LoginScreenState extends State<LoginScreen> {
                 style: AppTypography.body4,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.m),
               child: CustomTextField(
@@ -105,35 +136,18 @@ class _LoginScreenState extends State<LoginScreen> {
                   color: AppColors.greyMedio,
                 ),
                 borderColor: AppColors.greyMedio,
+                keyboardType: TextInputType.emailAddress,
+                maxLength: 50,
               ),
             ),
-
             Padding(
               padding: const EdgeInsets.only(top: AppSpacing.xl),
               child: CustomButton(
                 text: 'Continuar',
-                onPressed: _handleContinue,
+                onPressed: _isValidInput ? _handleContinue : null,
               ),
             ),
-            const SizedBox(height: 36), // Diseñado específicamente a 36px
-            Center(
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.filter_center_focus_outlined,
-                    size: 40,
-                    color: AppColors.textSecondary,
-                  ),
-                  const SizedBox(height: AppSpacing.xs),
-                  Text(
-                    'Ingresa con FaceID',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            Center(child: _BiometricButton()),
             const SizedBox(height: AppSpacing.xl),
             Row(
               children: [
@@ -143,7 +157,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: Text(
                     'O ingresa con',
                     style: AppTypography.body4.copyWith(
-                      color: AppColors.textSecondary,
+                      color: AppColors.greyNegroV2,
+                      height: 1.49,
                     ),
                   ),
                 ),
@@ -152,11 +167,22 @@ class _LoginScreenState extends State<LoginScreen> {
             ),
             const SizedBox(height: AppSpacing.l),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _SocialButton(icon: Icons.g_mobiledata, label: 'Google'),
-                _SocialButton(icon: Icons.window, label: 'Microsoft'),
-                _SocialButton(icon: Icons.apple, label: 'Apple'),
+                _SocialButton(
+                  iconPath: 'assets/icons/Google_icon.svg',
+                  label: 'Google',
+                ),
+                const SizedBox(width: AppSpacing.socialButtonGap),
+                _SocialButton(
+                  iconPath: 'assets/icons/Microsoft_icon.svg',
+                  label: 'Microsoft',
+                ),
+                const SizedBox(width: AppSpacing.socialButtonGap),
+                _SocialButton(
+                  iconPath: 'assets/icons/Apple_icon.svg',
+                  label: 'Apple',
+                ),
               ],
             ),
           ],
@@ -166,23 +192,78 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
+class _BiometricButton extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
+    final String iconPath = isIOS
+        ? 'assets/icons/scan-face.svg'
+        : 'assets/icons/fingerprint.svg';
+    final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometria';
+
+    return GestureDetector(
+      onTap: () {
+        // TODO: Implementar autenticación biométrica
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(
+          top: AppSpacing.xxl,
+          bottom: AppSpacing.xl,
+        ),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.xs),
+              decoration: BoxDecoration(
+                color: AppColors.greyIconosBackground,
+                borderRadius: AppBorders.medium(),
+              ),
+              child: SvgPicture.asset(
+                iconPath,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
+                colorFilter: ColorFilter.mode(
+                  AppColors.textSecondary,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              label,
+              style: AppTypography.body6.copyWith(color: AppColors.greyNegroV2),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _SocialButton extends StatelessWidget {
-  final IconData icon;
+  final String iconPath;
   final String label;
 
-  const _SocialButton({required this.icon, required this.label});
+  const _SocialButton({required this.iconPath, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Container(
+          width: AppSpacing.socialButtonSize,
+          height: AppSpacing.socialButtonSize,
           padding: const EdgeInsets.all(AppSpacing.s),
           decoration: BoxDecoration(
+            color: AppColors.greyIconosBackground,
             border: Border.all(color: AppColors.border),
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: AppBorders.medium(),
           ),
-          child: Icon(icon, size: 24, color: AppColors.primaryDark),
+          child: SvgPicture.asset(
+            iconPath,
+            width: AppSpacing.iconSizeSmall,
+            height: AppSpacing.iconSizeSmall,
+          ),
         ),
         const SizedBox(height: AppSpacing.xs),
         Text(

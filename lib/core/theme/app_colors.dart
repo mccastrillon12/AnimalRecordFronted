@@ -34,8 +34,10 @@ class AppColors {
   static const Color greyDelineante = Color(0xFFE8E9EC);
   static const Color greyMedio = Color(0xFFA8AFBD);
   static const Color greyIconos = Color(0xFF59667A);
+  static const Color greyIconosBackground = Color(0xFFE8E9EC);
   static const Color greyTextos = Color(0xFF2E3949);
   static const Color greyNegro = Color(0xFF0F1925);
+  static const Color greyNegroV2 = Color(0xFF2E3949);
 
   // --- Legacy / Theme mappings ---
   static const Color primaryDark = primaryIndigo;

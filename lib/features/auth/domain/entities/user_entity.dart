@@ -6,6 +6,7 @@ class UserEntity extends Equatable {
   final String identificationType;
   final String identificationNumber;
   final String country;
+  final String countryId;
   final String city;
   final String email;
   final String cellPhone;
@@ -14,6 +15,7 @@ class UserEntity extends Equatable {
   final List<String> services;
   final bool isHomeDelivery;
   final List<String> roles;
+  final String authMethod;
 
   const UserEntity({
     required this.id,
@@ -21,6 +23,7 @@ class UserEntity extends Equatable {
     required this.identificationType,
     required this.identificationNumber,
     required this.country,
+    required this.countryId,
     required this.city,
     required this.email,
     required this.cellPhone,
@@ -29,6 +32,7 @@ class UserEntity extends Equatable {
     required this.services,
     required this.isHomeDelivery,
     required this.roles,
+    required this.authMethod,
   });
 
   @override
@@ -39,6 +43,7 @@ class UserEntity extends Equatable {
     name,
     identificationType,
     country,
+    countryId,
     city,
     cellPhone,
     professionalCard,
@@ -46,5 +51,6 @@ class UserEntity extends Equatable {
     services,
     isHomeDelivery,
     roles,
+    authMethod,
   ];
 }

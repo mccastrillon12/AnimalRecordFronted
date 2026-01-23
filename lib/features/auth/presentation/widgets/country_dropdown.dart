@@ -2,12 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 
 class CountryDropdown extends StatelessWidget {
   final String label;
-  final String value;
+  final String? value;
   final ValueChanged<String?>? onChanged;
-  final List<CountryOption> countries;
+  final List<CountryEntity> countries;
+  final double? width;
+  final bool enabled;
 
   const CountryDropdown({
     super.key,
@@ -15,6 +18,8 @@ class CountryDropdown extends StatelessWidget {
     required this.value,
     this.onChanged,
     required this.countries,
+    this.width,
+    this.enabled = true,
   });
 
   @override
@@ -23,65 +28,81 @@ class CountryDropdown extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Label
-        Text(label, style: AppTypography.body6),
+        SizedBox(
+          height: 18,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(label, style: AppTypography.body6),
+          ),
+        ),
 
         const SizedBox(height: AppSpacing.inputTopPadding),
 
         // Dropdown container
         Container(
           height: AppSpacing.inputHeight,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+          width: width ?? 116,
+          padding: const EdgeInsets.only(
+            top: 8,
+            bottom: 8,
+            right: 12,
+            left: 12,
+          ),
           decoration: BoxDecoration(
             border: Border.all(color: AppColors.greyMedio),
             borderRadius: BorderRadius.circular(4),
           ),
           child: DropdownButtonHideUnderline(
-            child: DropdownButton<String>(
-              value: value,
-              isExpanded: true,
-              icon: const Icon(Icons.arrow_drop_down),
-              items: countries.map((country) {
-                return DropdownMenuItem<String>(
-                  value: country.code,
-                  child: Row(
-                    children: [
-                      Text(country.flag, style: const TextStyle(fontSize: 20)),
-                      const SizedBox(width: 8),
-                      Text(country.name, style: AppTypography.body4),
-                    ],
-                  ),
-                );
-              }).toList(),
-              onChanged: onChanged,
+            child: IgnorePointer(
+              ignoring: !enabled,
+              child: DropdownButton<String>(
+                value: value,
+                isExpanded: true,
+                icon: const Icon(
+                  Icons.arrow_drop_down,
+                  color: AppColors.greyMedio,
+                ),
+                items: countries.map((country) {
+                  return DropdownMenuItem<String>(
+                    value: country.id,
+                    child: Row(
+                      children: [
+                        ClipOval(
+                          child: Image.asset(
+                            'assets/icons/${country.isoCode}.png',
+                            width: 24,
+                            height: 24,
+                            fit: BoxFit.cover,
+                            errorBuilder: (context, error, stackTrace) {
+                              return Container(
+                                width: 24,
+                                height: 24,
+                                decoration: BoxDecoration(
+                                  color: AppColors.greyMedio,
+                                  shape: BoxShape.circle,
+                                ),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            country.name,
+                            style: AppTypography.body4,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                onChanged: onChanged,
+              ),
             ),
           ),
         ),
       ],
     );
   }
-}
-
-// Helper class for country options
-class CountryOption {
-  final String code;
-  final String name;
-  final String flag;
-
-  const CountryOption({
-    required this.code,
-    required this.name,
-    required this.flag,
-  });
-
-  // Predefined countries
-  static const colombia = CountryOption(code: 'COP', name: 'COP', flag: '🇨🇴');
-
-  static const usa = CountryOption(code: 'USA', name: 'USA', flag: '🇺🇸');
-
-  static const mexico = CountryOption(code: 'MEX', name: 'MEX', flag: '🇲🇽');
-
-  // List of available countries
-  static const List<CountryOption> all = [colombia, usa, mexico];
-
-  static const List<CountryOption> onlyColombia = [colombia];
 }

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import '../tag_input_widget.dart';
 
 class ProfessionalDataStep extends StatelessWidget {

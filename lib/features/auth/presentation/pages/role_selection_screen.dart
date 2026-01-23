@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/widgets/cards/selectable_role_card.dart';
 import 'register_screen.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
@@ -13,42 +15,38 @@ class RoleSelectionScreen extends StatelessWidget {
       showLogo: false,
       onCancel: () => Navigator.pop(context),
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(32),
+        padding: const EdgeInsets.all(AppSpacing.xl),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Elige un perfil para comenzar',
               style: AppTypography.heading2.copyWith(
-                fontWeight: FontWeight.w500,
+                fontWeight: FontWeight.w400,
               ),
             ),
-            const SizedBox(height: 24),
-            _buildRoleCard(
-              context,
+            const SizedBox(height: AppSpacing.l),
+            SelectableRoleCard(
               title: 'Veterinario',
-              icon: Icons.medical_services_outlined,
+              imageAsset: 'assets/illustrations/Perfil_veterinario.png',
               onTap: () => _navigateToRegister(context, 'VETERINARIO'),
             ),
-            const SizedBox(height: 16),
-            _buildRoleCard(
-              context,
+            const SizedBox(height: AppSpacing.m),
+            SelectableRoleCard(
               title: 'Propietario',
-              icon: Icons.pets_outlined,
+              imageAsset: 'assets/illustrations/Perfil_tutor.png',
               onTap: () => _navigateToRegister(context, 'PROPIETARIO_MASCOTA'),
             ),
-            const SizedBox(height: 16),
-            _buildRoleCard(
-              context,
+            const SizedBox(height: AppSpacing.m),
+            SelectableRoleCard(
               title: 'Estudiante',
-              icon: Icons.school_outlined,
+              imageAsset: 'assets/illustrations/Perfil_estudiante.png',
               onTap: () => _showComingSoon(context, 'Estudiante'),
             ),
-            const SizedBox(height: 16),
-            _buildRoleCard(
-              context,
+            const SizedBox(height: AppSpacing.m),
+            SelectableRoleCard(
               title: 'Laboratorio',
-              icon: Icons.science_outlined,
+              imageAsset: 'assets/illustrations/Perfil_laboratorio.png',
               onTap: () => _showComingSoon(context, 'Laboratorio'),
             ),
           ],
@@ -70,38 +68,6 @@ class RoleSelectionScreen extends StatelessWidget {
         content: Text('El registro para $role estará disponible próximamente'),
         backgroundColor: AppColors.primaryFrances,
         duration: const Duration(seconds: 2),
-      ),
-    );
-  }
-
-  Widget _buildRoleCard(
-    BuildContext context, {
-    required String title,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        height: 110,
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-        decoration: BoxDecoration(
-          color: AppColors.bgHielo,
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Expanded(child: Text(title, style: AppTypography.heading2)),
-            // Placeholder para ilustración
-            Icon(
-              icon,
-              size: 60,
-              color: AppColors.secondaryCoral.withValues(alpha: 0.5),
-            ),
-          ],
-        ),
       ),
     );
   }

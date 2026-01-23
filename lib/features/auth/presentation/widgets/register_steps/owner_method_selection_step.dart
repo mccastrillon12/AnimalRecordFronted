@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import '../custom_text_field.dart';
-import '../country_dropdown.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
+import '../phone_input_field.dart';
 
 enum AccessMethod { email, phone }
 
@@ -28,6 +33,13 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
   AccessMethod? _selectedMethod;
 
   @override
+  void initState() {
+    super.initState();
+    // Fetch countries when widget initializes
+    context.read<LocationsCubit>().fetchCountries();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -47,7 +59,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           icon: Icons.email_outlined,
         ),
 
-        const SizedBox(height: AppSpacing.m),
+        const SizedBox(height: AppSpacing.l),
 
         // Phone option
         _buildMethodOption(
@@ -56,13 +68,33 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           icon: Icons.phone_android_outlined,
         ),
 
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: AppSpacing.l),
 
         // Conditional fields based on selection
         if (_selectedMethod == AccessMethod.email) ...[
           _buildEmailField(),
         ] else if (_selectedMethod == AccessMethod.phone) ...[
-          _buildPhoneFields(),
+          BlocBuilder<LocationsCubit, LocationsState>(
+            builder: (context, state) {
+              if (state is LocationsLoaded) {
+                return PhoneInputField(
+                  label: 'Número de celular',
+                  controller: widget.phoneController,
+                  countries: state.countries,
+                  selectedCountryId: state.countries.isNotEmpty
+                      ? state.countries.first.id
+                      : null,
+                  maxLength: 15,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                );
+              } else if (state is LocationsLoading) {
+                return const Center(child: CircularProgressIndicator());
+              } else if (state is LocationsError) {
+                return Text('Error: ${state.message}');
+              }
+              return const SizedBox.shrink();
+            },
+          ),
         ],
       ],
     );
@@ -73,56 +105,18 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
     required String title,
     required IconData icon,
   }) {
-    final isSelected = _selectedMethod == method;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedMethod = method;
-        });
-        widget.onMethodChanged(method);
+    return CustomRadioButton<AccessMethod>(
+      value: method,
+      groupValue: _selectedMethod,
+      label: title,
+      onChanged: (value) {
+        if (value != null) {
+          setState(() {
+            _selectedMethod = value;
+          });
+          widget.onMethodChanged(value);
+        }
       },
-      child: Container(
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.m,
-          vertical: AppSpacing.s,
-        ),
-        decoration: BoxDecoration(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            // Radio button
-            Container(
-              width: 24,
-              height: 24,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
-                  width: isSelected ? 7 : 2,
-                ),
-              ),
-            ),
-
-            const SizedBox(width: AppSpacing.m),
-
-            // Title
-            Expanded(
-              child: Text(
-                title,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.textPrimary,
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 
@@ -130,13 +124,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Correo electrónico',
-          style: AppTypography.body5.copyWith(
-            color: AppColors.textSecondary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
+        Text('Correo electrónico', style: AppTypography.body6),
 
         const SizedBox(height: AppSpacing.s),
 
@@ -145,52 +133,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           hint: 'jhondoe@correo.com',
           controller: widget.emailController,
           keyboardType: TextInputType.emailAddress,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildPhoneFields() {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Country selector using reusable component
-        Expanded(
-          flex: 2,
-          child: CountryDropdown(
-            label: 'País',
-            value: 'COP',
-            countries: CountryOption.onlyColombia,
-            onChanged: null, // Only Colombia for now
-          ),
-        ),
-
-        const SizedBox(width: AppSpacing.m),
-
-        // Phone number field
-        Expanded(
-          flex: 3,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Número de celular',
-                style: AppTypography.body5.copyWith(
-                  color: AppColors.textSecondary,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-
-              const SizedBox(height: AppSpacing.s),
-
-              CustomTextField(
-                label: '',
-                hint: '(+57) 310 123 45 67',
-                controller: widget.phoneController,
-                keyboardType: TextInputType.phone,
-              ),
-            ],
-          ),
+          maxLength: 50,
         ),
       ],
     );

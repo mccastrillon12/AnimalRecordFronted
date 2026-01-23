@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:flutter/services.dart';
 
 class PersonalDataStep extends StatelessWidget {
   final TextEditingController nameController;
@@ -33,6 +34,7 @@ class PersonalDataStep extends StatelessWidget {
           label: 'Correo electrónico',
           hint: 'ejemplo@correo.com',
           controller: emailController,
+          maxLength: 50,
         ),
         const SizedBox(height: 16),
         CustomTextField(
@@ -59,6 +61,8 @@ class PersonalDataStep extends StatelessWidget {
           hint: '3001234567',
           controller: phoneController,
           keyboardType: TextInputType.phone,
+          maxLength: 15,
+          inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         ),
       ],
     );

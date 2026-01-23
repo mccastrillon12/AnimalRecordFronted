@@ -4,61 +4,53 @@ import 'app_colors.dart';
 
 class AppTypography {
   // --- Titillium Web (Titles) ---
-  static TextStyle heading1 = GoogleFonts.titilliumWeb(
+  static final TextStyle heading1 = GoogleFonts.titilliumWeb(
     fontSize: 20,
     fontWeight: FontWeight.w700,
-    height: 1.25,
     color: AppColors.greyNegro,
     letterSpacing: 0,
-  );
+  ).copyWith(height: 1.25);
 
-  static TextStyle heading2 = GoogleFonts.titilliumWeb(
+  static final TextStyle heading2 = GoogleFonts.titilliumWeb(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    height: 1.0,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 1.0);
 
   // --- Noto Sans (Body) ---
-  static TextStyle body1 = GoogleFonts.notoSans(
+  static final TextStyle body1 = GoogleFonts.notoSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,
-    height: 1.0,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 1.0);
 
-  static TextStyle body2 = GoogleFonts.notoSans(
+  static final TextStyle body2 = GoogleFonts.notoSans(
     fontSize: 16,
     fontWeight: FontWeight.w400,
-    height: 1.0,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 1.0);
 
-  static TextStyle body3 = GoogleFonts.notoSans(
+  static final TextStyle body3 = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.w600,
-    height: 0.875,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 0.875);
 
-  static TextStyle body4 = GoogleFonts.notoSans(
+  static final TextStyle body4 = GoogleFonts.notoSans(
     fontSize: 14,
     fontWeight: FontWeight.w400,
-    height: 1.4,
     color: AppColors.greyNegro,
-  );
+  ).copyWith(height: 1.4);
 
-  static TextStyle body5 = GoogleFonts.notoSans(
+  static final TextStyle body5 = GoogleFonts.notoSans(
     fontSize: 12,
     fontWeight: FontWeight.w600,
-    height: 0.75,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 0.75);
 
-  static TextStyle body6 = GoogleFonts.notoSans(
+  static final TextStyle body6 = GoogleFonts.notoSans(
     fontSize: 12,
     fontWeight: FontWeight.w400,
-    height: 0.75,
     color: AppColors.greyTextos,
-  );
+  ).copyWith(height: 0.75);
 }

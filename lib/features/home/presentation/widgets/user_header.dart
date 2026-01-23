@@ -24,14 +24,11 @@ class UserHeader extends StatelessWidget {
               top: AppSpacing.l,
               bottom: AppSpacing.m,
             ),
-            child: Text(
-              '.AR',
-              style: AppTypography.heading1.copyWith(
-                color: AppColors.white,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+            child: Image.asset(
+              'assets/Logo/Imagotipo_blanco.png',
+              width: 40,
+              height: 28,
+              fit: BoxFit.contain,
             ),
           ),
 
@@ -86,8 +83,6 @@ class UserHeader extends StatelessWidget {
                         'Hola, John Doe', // TODO: Replace with actual user name
                         style: AppTypography.heading2.copyWith(
                           color: AppColors.white,
-                          fontWeight: FontWeight.w600,
-                          fontSize: 16,
                         ),
                       ),
 
@@ -96,9 +91,8 @@ class UserHeader extends StatelessWidget {
                       // User role
                       Text(
                         'Propietario', // TODO: Replace with actual user role
-                        style: AppTypography.body5.copyWith(
+                        style: AppTypography.body3.copyWith(
                           color: AppColors.white.withValues(alpha: 0.85),
-                          fontSize: 14,
                         ),
                       ),
                     ],

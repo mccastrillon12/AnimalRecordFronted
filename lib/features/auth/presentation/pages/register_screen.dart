@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
-import '../widgets/custom_button.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
 import '../widgets/register_steps/owner_method_selection_step.dart';
 import '../widgets/register_steps/owner_personal_data_step.dart';
-import '../widgets/register_steps/verification_step.dart';
+
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
@@ -15,7 +15,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
-import 'package:animal_record/features/auth/domain/entities/verify_code_params.dart';
+
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 
@@ -35,11 +35,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+  final confirmPasswordController = TextEditingController();
   final idController = TextEditingController();
   final phoneController = TextEditingController();
   final professionalCardController = TextEditingController();
   final countryController = TextEditingController();
   final cityController = TextEditingController();
+
+  bool _acceptTerms = false;
+  String? _confirmPasswordError;
 
   // State for tag inputs
   List<String> _animalTypes = [];
@@ -50,26 +54,32 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<TagInputWidgetState> _servicesKey = GlobalKey();
 
   // GlobalKey to access VerificationStep state
-  final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
 
-  @override
-  void dispose() {
-    nameController.dispose();
-    emailController.dispose();
-    passwordController.dispose();
-    idController.dispose();
-    phoneController.dispose();
-    professionalCardController.dispose();
-    countryController.dispose();
-    cityController.dispose();
-    super.dispose();
+  bool _isValidPhone(String phone) {
+    // Basic phone validation (at least 10 digits)
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 10;
   }
 
   // Owner-specific state
   AccessMethod? _selectedAccessMethod;
+  String? _phoneErrorText;
+  String? _emailErrorText;
+  String? _idErrorText;
+
+  // Cache for steps to avoid rebuilding on every setState
+  List<Widget>? _cachedSteps;
+  AccessMethod? _lastAccessMethod;
+  String? _lastPhoneErrorText;
+  String? _lastEmailErrorText;
 
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
+    // Return cached steps if nothing changed
+    // Note: For SecurityStep we manage state in the parent, so we might need to
+    // rebuild it more often or rely on its own state update from parent.
+    // However, the terms checkbox triggers setState in parent, which rebuilds _steps.
+
     final List<Widget> steps = [];
 
     // PROPIETARIO: First step is method selection
@@ -81,6 +91,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onMethodChanged: (method) {
             setState(() {
               _selectedAccessMethod = method;
+              _cachedSteps = null; // Invalidate cache when method changes
             });
           },
         ),
@@ -95,7 +106,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phoneController: phoneController,
             countryController: countryController,
             idController: idController,
-            selectedMethod: _selectedAccessMethod!,
+            showOptionalEmail: _selectedAccessMethod == AccessMethod.phone,
+            showOptionalPhone: _selectedAccessMethod == AccessMethod.email,
+            phoneErrorText: _phoneErrorText,
+            emailErrorText: _emailErrorText,
+            idErrorText: _idErrorText,
           ),
         );
       }
@@ -131,19 +146,189 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // All roles: Security/Password step
-    steps.add(SecurityStep(passwordController: passwordController));
-
-    // All roles: Verification step
     steps.add(
-      VerificationStep(
-        key: _verificationKey,
-        email: emailController.text,
-        phoneNumber: phoneController.text,
-        onResendCode: _resendVerificationCode,
+      SecurityStep(
+        passwordController: passwordController,
+        confirmPasswordController: confirmPasswordController,
+        acceptTerms: _acceptTerms,
+        confirmPasswordError: _confirmPasswordError,
+        onTermsChanged: (value) {
+          setState(() {
+            _acceptTerms = value;
+          });
+        },
       ),
     );
 
+    _cachedSteps = steps;
     return steps;
+  }
+
+  bool _isPasswordValid(String password) {
+    // 8+ chars, upper, lower, number, special
+    return password.length >= 8 &&
+        password.contains(RegExp(r'[a-z]')) &&
+        password.contains(RegExp(r'[A-Z]')) &&
+        password.contains(RegExp(r'[0-9]')) &&
+        password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+  }
+
+  void _onConfirmPasswordChanged() {
+    final confirm = confirmPasswordController.text;
+    final password = passwordController.text;
+
+    // Check mismatch: if confirm is not empty AND differs from password
+    // OR if we already have an error (to see if it's fixed)
+    if (confirm.isNotEmpty && confirm != password) {
+      if (_confirmPasswordError == null) {
+        setState(() {
+          _confirmPasswordError = 'Las contraseñas no coinciden';
+        });
+      }
+    } else {
+      if (_confirmPasswordError != null) {
+        setState(() {
+          _confirmPasswordError = null;
+        });
+      }
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    // Add listeners removed to prevent crash. Validation handled by ValueListenableBuilder.
+
+    // Add listener to phone controller for immediate feedback on error state
+    phoneController.addListener(_onPhoneChanged);
+    // Add listener for email controller
+    emailController.addListener(_onEmailChanged);
+    // Add listener for confirm password (inline validation)
+    confirmPasswordController.addListener(_onConfirmPasswordChanged);
+    // Add listener for password (to clear confirm error if password matches again)
+    passwordController.addListener(_onConfirmPasswordChanged);
+    // Add listener for ID controller
+    idController.addListener(_onIdChanged);
+  }
+
+  void _onIdChanged() {
+    if (_idErrorText != null) {
+      setState(() {
+        _idErrorText = null;
+      });
+    }
+  }
+
+  void _onPhoneChanged() {
+    // Only check if there is an error current displayed
+    if (_phoneErrorText != null) {
+      final text = phoneController.text;
+      // Clear error if empty or valid (>= 10 digits)
+      if (text.isEmpty || _isValidPhone(text)) {
+        setState(() {
+          _phoneErrorText = null;
+        });
+      }
+    }
+  }
+
+  void _onEmailChanged() {
+    if (_emailErrorText != null) {
+      final text = emailController.text;
+      if (text.isEmpty || _isValidEmail(text)) {
+        setState(() {
+          _emailErrorText = null;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    // Remove listener before disposing
+    phoneController.removeListener(_onPhoneChanged);
+    emailController.removeListener(_onEmailChanged);
+    confirmPasswordController.removeListener(_onConfirmPasswordChanged);
+    passwordController.removeListener(_onConfirmPasswordChanged);
+    idController.removeListener(_onIdChanged);
+    nameController.dispose();
+    emailController.dispose();
+    passwordController.dispose();
+    confirmPasswordController.dispose();
+    idController.dispose();
+    phoneController.dispose();
+    professionalCardController.dispose();
+    countryController.dispose();
+    cityController.dispose();
+    super.dispose();
+  }
+
+  void _nextStep() {
+    // Validate inline errors for optional fields (specifically Phone/Email) on submit
+    if (widget.role == 'PROPIETARIO_MASCOTA' && _currentStep == 1) {
+      bool hasError = false;
+
+      if (_selectedAccessMethod == AccessMethod.email) {
+        // Validate optional phone if entered
+        if (phoneController.text.isNotEmpty &&
+            !_isValidPhone(phoneController.text)) {
+          setState(() {
+            _phoneErrorText =
+                'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+          });
+          hasError = true;
+        } else if (_phoneErrorText != null) {
+          setState(() => _phoneErrorText = null);
+        }
+      } else if (_selectedAccessMethod == AccessMethod.phone) {
+        // Validate optional email if entered
+        if (emailController.text.isNotEmpty &&
+            !_isValidEmail(emailController.text)) {
+          setState(() {
+            _emailErrorText =
+                'Introduzca una dirección de correo electrónico válida';
+          });
+          hasError = true;
+        } else if (_emailErrorText != null) {
+          setState(() => _emailErrorText = null);
+        }
+      }
+
+      if (hasError) return;
+
+      // Check if identification number already exists
+      if (idController.text.isNotEmpty) {
+        context.read<AuthBloc>().add(
+          CheckIdentificationExists(idController.text),
+        );
+        // The result will be handled in BlocListener below
+        // If exists, we'll show error and return
+        // If doesn't exist, we'll proceed to next step
+        return;
+      }
+    }
+
+    // Validate current step before proceeding
+    if (!_isStepValid()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Por favor completa todos los campos requeridos'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
+
+    // Si estamos en el último paso (SecurityStep), crear el usuario
+    if (_currentStep == _steps.length - 1) {
+      _submitRegistration();
+    } else {
+      _pageController.nextPage(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+      setState(() => _currentStep++);
+    }
   }
 
   // Helper to get readable role name
@@ -162,46 +347,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  void _nextStep() {
-    // Si estamos en el penúltimo paso (SecurityStep), crear el usuario
-    if (_currentStep == _steps.length - 2) {
-      _submitRegistration();
-    } else if (_currentStep < _steps.length - 1) {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
-      setState(() => _currentStep++);
-    } else {
-      // En el último paso (verificación), verificar el código
-      _verifyCode();
-    }
-  }
+  bool _isStepValid() {
+    final step = _currentStep;
+    final steps = _steps;
 
-  void _verifyCode() {
-    final code = _verificationKey.currentState?.getCode() ?? '';
-    if (code.length != 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor ingresa el código completo de 5 dígitos'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
+    // Validation for Owner Method Selection
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      if (step == 0) {
+        if (_selectedAccessMethod == AccessMethod.email) {
+          return _isValidEmail(emailController.text);
+        } else if (_selectedAccessMethod == AccessMethod.phone) {
+          return _isValidPhone(phoneController.text);
+        }
+        return false;
+      }
+      if (step == 1) {
+        bool isValid =
+            nameController.text.isNotEmpty &&
+            idController.text.isNotEmpty &&
+            countryController.text.isNotEmpty;
+
+        // Optional Email/Phone validation removed here - handled inline on submit
+
+        return isValid;
+      }
     }
 
-    context.read<AuthBloc>().add(
-      VerifyCodeSubmitted(
-        VerifyCodeParams(email: emailController.text, code: code),
-      ),
-    );
+    // Validation for Veterinario/Other Roles
+    if (widget.role == 'VETERINARIO') {
+      if (step == 0) {
+        return nameController.text.isNotEmpty &&
+            emailController.text.isNotEmpty &&
+            _isValidEmail(emailController.text) &&
+            countryController.text.isNotEmpty &&
+            idController.text.isNotEmpty &&
+            phoneController.text.isNotEmpty;
+      }
+      if (step == 1) {
+        return professionalCardController.text.isNotEmpty &&
+            _animalTypes.isNotEmpty &&
+            _services.isNotEmpty;
+      }
+    }
+
+    // Common steps (Security)
+    if (step == steps.length - 1) {
+      final isPasswordComplex = _isPasswordValid(passwordController.text);
+      final passwordsMatch =
+          passwordController.text == confirmPasswordController.text;
+      return isPasswordComplex && passwordsMatch && _acceptTerms;
+    }
+
+    return true;
   }
 
-  void _resendVerificationCode() {
-    // TODO: Implementar reenvío de código si el backend lo soporta
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Código reenviado exitosamente')),
-    );
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
   void _submitRegistration() {
@@ -229,7 +430,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : 'CC',
           identificationNumber: getFieldValue(idController),
           cellPhone: getFieldValue(phoneController),
-          country: getFieldValue(countryController),
+          country: '', // populated by backend based on countryId
+          countryId: getFieldValue(countryController), // stores country ID
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
@@ -240,6 +442,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
           animalTypes: widget.role == 'VETERINARIO' ? _animalTypes : [],
           services: widget.role == 'VETERINARIO' ? _services : [],
           isHomeDelivery: widget.role == 'VETERINARIO' ? true : false,
+          authMethod: _selectedAccessMethod == AccessMethod.phone
+              ? 'PHONE'
+              : 'EMAIL',
         ),
       ),
     );
@@ -264,26 +469,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            // Usuario creado exitosamente, avanzar a verificación
+            // Usuario creado exitosamente
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  'Revisa tu correo para el código de verificación',
-                ),
+                content: Text('Registro exitoso. Por favor inicia sesión.'),
               ),
             );
-            // Avanzar a la pantalla de verificación
-            _pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-            setState(() => _currentStep++);
-          } else if (state is VerificationSuccess) {
-            // Código verificado exitosamente, registro completo
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('¡Registro exitoso!')));
-            Navigator.pushReplacementNamed(context, '/');
+            Navigator.pushReplacementNamed(context, '/'); // Go to login
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -291,6 +483,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 backgroundColor: AppColors.error,
               ),
             );
+          } else if (state is IdentificationCheckResult) {
+            if (state.exists) {
+              // El usuario ya está registrado
+              setState(() {
+                _idErrorText =
+                    'Este número de documento ya está registrado. Por favor inicia sesión.';
+              });
+            } else {
+              // El usuario no existe, proceder al siguiente paso
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+              setState(() => _currentStep++);
+            }
           }
         },
         child: Column(
@@ -311,29 +518,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       style: AppTypography.heading1,
                     ),
                   ),
-                  SizedBox(
-                    height: AppSpacing.registerSubtitleHeight,
-                    child: Text.rich(
-                      TextSpan(
-                        children: [
-                          TextSpan(
-                            text:
-                                widget.role == 'PROPIETARIO_MASCOTA' &&
-                                    _currentStep == 0
-                                ? 'Ingreso '
-                                : 'Datos personales ',
-                            style: AppTypography.body4,
-                          ),
-                          TextSpan(
-                            text: '- ${_currentStep + 1} de ${steps.length}',
-                            style: AppTypography.body4.copyWith(
-                              color: AppColors.greyMedio,
+                  if (_currentStep < steps.length - 1)
+                    SizedBox(
+                      height: AppSpacing.registerSubtitleHeight,
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text:
+                                  widget.role == 'PROPIETARIO_MASCOTA' &&
+                                      _currentStep == 0
+                                  ? 'Ingreso '
+                                  : 'Datos personales ',
+                              style: AppTypography.body4,
                             ),
-                          ),
-                        ],
+                            TextSpan(
+                              text:
+                                  '- ${_currentStep + 1} de ${steps.length - 1}',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
+                    )
+                  else
+                    SizedBox(
+                      height: AppSpacing.registerSubtitleHeight,
+                      child: Text('Seguridad', style: AppTypography.body4),
                     ),
-                  ),
                 ],
               ),
             ),
@@ -362,15 +576,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
               child: BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
-                  final buttonText = _currentStep == steps.length - 1
-                      ? 'Verificar'
-                      : _currentStep == steps.length - 2
-                      ? 'Crear cuenta'
-                      : 'Continuar';
-                  return CustomButton(
-                    text: buttonText,
-                    isLoading: state is AuthLoading,
-                    onPressed: _nextStep,
+                  return AnimatedBuilder(
+                    animation: Listenable.merge(_getStepListenables()),
+                    builder: (context, _) {
+                      final buttonText = _currentStep == steps.length - 1
+                          ? 'Crear cuenta'
+                          : 'Continuar';
+
+                      final isValid = _isStepValid();
+
+                      return CustomButton(
+                        text: buttonText,
+                        isLoading: state is AuthLoading,
+                        onPressed: state is AuthLoading || !isValid
+                            ? null
+                            : _nextStep,
+                      );
+                    },
                   );
                 },
               ),
@@ -379,5 +601,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       ),
     );
+  }
+
+  List<Listenable> _getStepListenables() {
+    final step = _currentStep;
+    final steps = _steps;
+
+    // Common listenables for all steps (if any global state affects validation)
+    // For now, we return specific controllers based on the step logic in _isStepValid
+
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      if (step == 0) {
+        // Method selection step: listen to email and phone controllers
+        // The validation depends on _selectedAccessMethod which is state,
+        // but the input content is in controllers.
+        // We also need to listen to the selection change, but that triggers setState,
+        // so the widget rebuilds anyway.
+        return [emailController, phoneController];
+      }
+      if (step == 1) {
+        // Personal data step
+        return [
+          nameController,
+          idController,
+          countryController,
+          emailController,
+          phoneController,
+        ];
+      }
+    }
+
+    if (widget.role == 'VETERINARIO') {
+      if (step == 0) {
+        // First step for Vet
+        return [
+          nameController,
+          emailController,
+          countryController,
+          idController,
+          phoneController,
+        ];
+      }
+      if (step == 1) {
+        // Professional data step
+        // These are more complex because they might not be just text controllers
+        // _animalTypes and _services are lists updated via setState, so build is triggered.
+        // professionalCardController is a text controller.
+        return [professionalCardController];
+      }
+    }
+
+    // Security step (last)
+    if (step == steps.length - 1) {
+      // Need to listen to both password fields. Terms checked via setState rebuild.
+      return [passwordController, confirmPasswordController];
+    }
+
+    return [];
   }
 }
