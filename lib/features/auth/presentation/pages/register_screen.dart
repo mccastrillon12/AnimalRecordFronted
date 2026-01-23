@@ -6,7 +6,7 @@ import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
 import '../widgets/register_steps/owner_method_selection_step.dart';
 import '../widgets/register_steps/owner_personal_data_step.dart';
-import '../widgets/register_steps/verification_step.dart';
+
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
@@ -15,7 +15,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
-import 'package:animal_record/features/auth/domain/entities/verify_code_params.dart';
+
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 
@@ -54,7 +54,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final GlobalKey<TagInputWidgetState> _servicesKey = GlobalKey();
 
   // GlobalKey to access VerificationStep state
-  final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
 
   bool _isValidPhone(String phone) {
     // Basic phone validation (at least 10 digits)
@@ -66,6 +65,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   AccessMethod? _selectedAccessMethod;
   String? _phoneErrorText;
   String? _emailErrorText;
+  String? _idErrorText;
 
   // Cache for steps to avoid rebuilding on every setState
   List<Widget>? _cachedSteps;
@@ -110,6 +110,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             showOptionalPhone: _selectedAccessMethod == AccessMethod.email,
             phoneErrorText: _phoneErrorText,
             emailErrorText: _emailErrorText,
+            idErrorText: _idErrorText,
           ),
         );
       }
@@ -156,16 +157,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             _acceptTerms = value;
           });
         },
-      ),
-    );
-
-    // All roles: Verification step
-    steps.add(
-      VerificationStep(
-        key: _verificationKey,
-        email: emailController.text,
-        phoneNumber: phoneController.text,
-        onResendCode: _resendVerificationCode,
       ),
     );
 
@@ -216,6 +207,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
     confirmPasswordController.addListener(_onConfirmPasswordChanged);
     // Add listener for password (to clear confirm error if password matches again)
     passwordController.addListener(_onConfirmPasswordChanged);
+    // Add listener for ID controller
+    idController.addListener(_onIdChanged);
+  }
+
+  void _onIdChanged() {
+    if (_idErrorText != null) {
+      setState(() {
+        _idErrorText = null;
+      });
+    }
   }
 
   void _onPhoneChanged() {
@@ -249,6 +250,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     emailController.removeListener(_onEmailChanged);
     confirmPasswordController.removeListener(_onConfirmPasswordChanged);
     passwordController.removeListener(_onConfirmPasswordChanged);
+    idController.removeListener(_onIdChanged);
     nameController.dispose();
     emailController.dispose();
     passwordController.dispose();
@@ -293,6 +295,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
 
       if (hasError) return;
+
+      // Check if identification number already exists
+      if (idController.text.isNotEmpty) {
+        context.read<AuthBloc>().add(
+          CheckIdentificationExists(idController.text),
+        );
+        // The result will be handled in BlocListener below
+        // If exists, we'll show error and return
+        // If doesn't exist, we'll proceed to next step
+        return;
+      }
     }
 
     // Validate current step before proceeding
@@ -306,18 +319,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Si estamos en el penúltimo paso (SecurityStep), crear el usuario
-    if (_currentStep == _steps.length - 2) {
+    // Si estamos en el último paso (SecurityStep), crear el usuario
+    if (_currentStep == _steps.length - 1) {
       _submitRegistration();
-    } else if (_currentStep < _steps.length - 1) {
+    } else {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
       );
       setState(() => _currentStep++);
-    } else {
-      // En el último paso (verificación), verificar el código
-      _verifyCode();
     }
   }
 
@@ -335,32 +345,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       default:
         return widget.role;
     }
-  }
-
-  void _verifyCode() {
-    final code = _verificationKey.currentState?.getCode() ?? '';
-    if (code.length != 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor ingresa el código completo de 5 dígitos'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-      return;
-    }
-
-    context.read<AuthBloc>().add(
-      VerifyCodeSubmitted(
-        VerifyCodeParams(email: emailController.text, code: code),
-      ),
-    );
-  }
-
-  void _resendVerificationCode() {
-    // TODO: Implementar reenvío de código si el backend lo soporta
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Código reenviado exitosamente')),
-    );
   }
 
   bool _isStepValid() {
@@ -407,18 +391,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     // Common steps (Security)
-    if (step == steps.length - 2) {
+    if (step == steps.length - 1) {
       final isPasswordComplex = _isPasswordValid(passwordController.text);
       final passwordsMatch =
           passwordController.text == confirmPasswordController.text;
       return isPasswordComplex && passwordsMatch && _acceptTerms;
-    }
-
-    // Verification step
-    if (step == steps.length - 1) {
-      // The button itself shows "Verificar", which handles its own logic,
-      // but we can at least ensure something is entered.
-      return true; // Verification code validation is handled in _verifyCode
     }
 
     return true;
@@ -492,26 +469,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            // Usuario creado exitosamente, avanzar a verificación
+            // Usuario creado exitosamente
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
-                content: Text(
-                  'Revisa tu correo para el código de verificación',
-                ),
+                content: Text('Registro exitoso. Por favor inicia sesión.'),
               ),
             );
-            // Avanzar a la pantalla de verificación
-            _pageController.nextPage(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-            );
-            setState(() => _currentStep++);
-          } else if (state is VerificationSuccess) {
-            // Código verificado exitosamente, registro completo
-            ScaffoldMessenger.of(
-              context,
-            ).showSnackBar(const SnackBar(content: Text('¡Registro exitoso!')));
-            Navigator.pushReplacementNamed(context, '/');
+            Navigator.pushReplacementNamed(context, '/'); // Go to login
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -519,6 +483,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 backgroundColor: AppColors.error,
               ),
             );
+          } else if (state is IdentificationCheckResult) {
+            if (state.exists) {
+              // El usuario ya está registrado
+              setState(() {
+                _idErrorText =
+                    'Este número de documento ya está registrado. Por favor inicia sesión.';
+              });
+            } else {
+              // El usuario no existe, proceder al siguiente paso
+              _pageController.nextPage(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+              );
+              setState(() => _currentStep++);
+            }
           }
         },
         child: Column(
@@ -567,7 +546,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   else
                     SizedBox(
                       height: AppSpacing.registerSubtitleHeight,
-                      child: Text('Verificación', style: AppTypography.body4),
+                      child: Text('Seguridad', style: AppTypography.body4),
                     ),
                 ],
               ),
@@ -601,8 +580,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     animation: Listenable.merge(_getStepListenables()),
                     builder: (context, _) {
                       final buttonText = _currentStep == steps.length - 1
-                          ? 'Verificar'
-                          : _currentStep == steps.length - 2
                           ? 'Crear cuenta'
                           : 'Continuar';
 
@@ -674,18 +651,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
 
-    // Security step (penultimate)
-    if (step == steps.length - 2) {
+    // Security step (last)
+    if (step == steps.length - 1) {
       // Need to listen to both password fields. Terms checked via setState rebuild.
       return [passwordController, confirmPasswordController];
-    }
-
-    // Verification step (last)
-    if (step == steps.length - 1) {
-      // Verification logic often resides in the widget state or internal controller
-      // If we need to disable the button based on code length, we'd need access to it.
-      // Currently _isStepValid returns true for verification step (logic in _verifyCode).
-      return [];
     }
 
     return [];

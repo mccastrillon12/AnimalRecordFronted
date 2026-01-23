@@ -109,4 +109,18 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, bool>> checkIdentificationExists(
+    String identificationNumber,
+  ) async {
+    try {
+      final exists = await remoteDataSource.checkIdentificationExists(
+        identificationNumber,
+      );
+      return Right(exists);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

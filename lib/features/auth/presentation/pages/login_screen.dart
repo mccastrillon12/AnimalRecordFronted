@@ -5,7 +5,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
-import '../pages/role_selection_screen.dart';
+import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -102,7 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const RoleSelectionScreen(),
+                          builder: (context) =>
+                              const RegisterScreen(role: 'PROPIETARIO_MASCOTA'),
                         ),
                       );
                     },

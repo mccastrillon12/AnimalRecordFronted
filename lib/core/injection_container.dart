@@ -6,6 +6,7 @@ import 'package:animal_record/features/auth/domain/usecases/login_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_auth_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -33,6 +34,7 @@ Future<void> init() async {
       registerUseCase: sl(),
       loginUseCase: sl(),
       verifyCodeUseCase: sl(),
+      checkIdentificationExistsUseCase: sl(),
     ),
   );
 
@@ -42,6 +44,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => VerifyCodeUseCase(sl()));
+  sl.registerLazySingleton(() => CheckIdentificationExistsUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

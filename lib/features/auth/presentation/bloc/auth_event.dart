@@ -34,3 +34,12 @@ class VerifyCodeSubmitted extends AuthEvent {
   @override
   List<Object?> get props => [params];
 }
+
+// Este evento se dispara para verificar si un número de identificación ya existe
+class CheckIdentificationExists extends AuthEvent {
+  final String identificationNumber;
+  CheckIdentificationExists(this.identificationNumber);
+
+  @override
+  List<Object?> get props => [identificationNumber];
+}
