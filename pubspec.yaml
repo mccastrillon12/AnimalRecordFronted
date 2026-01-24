@@ -47,6 +47,7 @@ dependencies:
   flutter_secure_storage: ^9.0.0  # Almacenamiento seguro de tokens
   jwt_decoder: ^2.0.1  # Validación de JWT
   flutter_svg: ^2.0.0  # Para renderizar SVGs
+  logger: ^2.0.0  # Logging mejorado
 
 dev_dependencies:
   flutter_test:

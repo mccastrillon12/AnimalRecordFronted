@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:animal_record/core/exceptions/user_not_verified_exception.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/services/token_storage.dart';
 import '../../domain/entities/register_params.dart';
@@ -69,6 +70,9 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       return Right(userModel);
+    } on UserNotVerifiedException catch (e) {
+      // Pass UserNotVerified as a specific failure with timeRemaining
+      return Left(ServerFailure('UserNotVerified:${e.timeRemaining ?? ""}'));
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

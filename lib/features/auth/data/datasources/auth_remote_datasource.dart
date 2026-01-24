@@ -1,4 +1,6 @@
 import 'package:dio/dio.dart';
+import 'package:animal_record/core/exceptions/user_not_verified_exception.dart';
+import 'package:animal_record/core/utils/error_mapper.dart';
 import '../models/user_model.dart';
 
 abstract class AuthRemoteDataSource {
@@ -27,30 +29,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('Error en el registro');
       }
     } on DioException catch (e) {
-      // Extract detailed error message from backend
-      String errorMessage = 'Error del servidor';
-
-      if (e.response?.data != null) {
-        final data = e.response!.data;
-
-        // Handle different error response formats
-        if (data is Map<String, dynamic>) {
-          if (data['message'] != null) {
-            errorMessage = data['message'].toString();
-          } else if (data['error'] != null) {
-            errorMessage = data['error'].toString();
-          } else if (data['errors'] != null) {
-            // Handle validation errors array
-            errorMessage = data['errors'].toString();
-          }
-        } else if (data is String) {
-          errorMessage = data;
-        }
-      } else if (e.message != null) {
-        errorMessage = e.message!;
-      }
-
-      throw Exception('Error del servidor: $errorMessage');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');
     }
@@ -75,12 +54,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         final timeRemaining = data is Map<String, dynamic>
             ? data['timeRemaining']
             : null;
-        throw Exception(
-          'UserNotVerified${timeRemaining != null ? ":$timeRemaining" : ""}',
-        );
+        throw UserNotVerifiedException(timeRemaining: timeRemaining);
       }
-      final errorMessage = e.response?.data['message'] ?? e.message;
-      throw Exception('Error del servidor: $errorMessage');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');
     }
@@ -112,8 +88,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         throw Exception('Código de verificación inválido o expirado');
       }
-      final errorMessage = e.response?.data['message'] ?? e.message;
-      throw Exception('Error del servidor: $errorMessage');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');
     }
@@ -137,8 +112,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return false;
       }
       // For other errors, throw exception
-      final errorMessage = e.response?.data['message'] ?? e.message;
-      throw Exception('Error del servidor: $errorMessage');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');
     }

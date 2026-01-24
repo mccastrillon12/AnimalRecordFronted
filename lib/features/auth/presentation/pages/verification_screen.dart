@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/auth/domain/entities/verify_code_params.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/register_steps/verification_step.dart';
 import '../widgets/auth_form_container.dart';
 
@@ -31,13 +31,19 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   void _verifyCode() {
     final code = _verificationKey.currentState?.getCode() ?? '';
+
+    // Validate length
     if (code.length != 5) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor ingresa el código completo de 5 dígitos'),
-          backgroundColor: AppColors.error,
-        ),
+      ErrorDisplay.showError(
+        context,
+        'Por favor ingresa el código completo de 5 dígitos',
       );
+      return;
+    }
+
+    // Validate numeric
+    if (!RegExp(r'^\d{5}$').hasMatch(code)) {
+      ErrorDisplay.showError(context, 'El código debe contener solo números');
       return;
     }
 
@@ -71,12 +77,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
               (route) => false,
             );
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ErrorDisplay.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(
