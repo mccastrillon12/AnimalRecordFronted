@@ -13,8 +13,14 @@ import '../widgets/auth_form_container.dart';
 class VerificationScreen extends StatefulWidget {
   final String email;
   final String? phoneNumber;
+  final int? timeRemaining;
 
-  const VerificationScreen({super.key, required this.email, this.phoneNumber});
+  const VerificationScreen({
+    super.key,
+    required this.email,
+    this.phoneNumber,
+    this.timeRemaining,
+  });
 
   @override
   State<VerificationScreen> createState() => _VerificationScreenState();
@@ -83,6 +89,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 email: widget.email,
                 phoneNumber: widget.phoneNumber,
                 onResendCode: _resendVerificationCode,
+                initialTimeRemaining: widget.timeRemaining,
               ),
               const SizedBox(height: AppSpacing.xxl),
               BlocBuilder<AuthBloc, AuthState>(

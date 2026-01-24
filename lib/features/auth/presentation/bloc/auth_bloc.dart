@@ -34,10 +34,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await loginUseCase(event.credentials);
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (user) => emit(AuthSuccess(user)),
-      );
+      result.fold((failure) {
+        if (failure.message.contains('UserNotVerified')) {
+          int? timeRemaining;
+          try {
+            final match = RegExp(
+              r'UserNotVerified:(\d+)',
+            ).firstMatch(failure.message);
+            if (match != null) {
+              timeRemaining = int.tryParse(match.group(1)!);
+            }
+          } catch (_) {}
+          emit(AuthUserNotVerified(timeRemaining: timeRemaining));
+        } else {
+          emit(AuthError(failure.message));
+        }
+      }, (user) => emit(AuthSuccess(user)));
     });
 
     on<VerifyCodeSubmitted>((event, emit) async {

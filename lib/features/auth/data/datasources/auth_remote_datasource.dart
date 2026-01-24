@@ -70,6 +70,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (e.response?.statusCode == 401) {
         throw Exception('Credenciales inválidas');
       }
+      if (e.response?.statusCode == 403) {
+        final data = e.response?.data;
+        final timeRemaining = data is Map<String, dynamic>
+            ? data['timeRemaining']
+            : null;
+        throw Exception(
+          'UserNotVerified${timeRemaining != null ? ":$timeRemaining" : ""}',
+        );
+      }
       final errorMessage = e.response?.data['message'] ?? e.message;
       throw Exception('Error del servidor: $errorMessage');
     } catch (e) {
