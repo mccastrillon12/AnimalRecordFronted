@@ -25,11 +25,25 @@ class PasswordScreen extends StatefulWidget {
 class _PasswordScreenState extends State<PasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _isValidPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _passwordController.addListener(_validatePassword);
+  }
 
   @override
   void dispose() {
+    _passwordController.removeListener(_validatePassword);
     _passwordController.dispose();
     super.dispose();
+  }
+
+  void _validatePassword() {
+    setState(() {
+      _isValidPassword = _passwordController.text.length >= 8;
+    });
   }
 
   void _handleLogin() {
@@ -45,8 +59,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
   Widget build(BuildContext context) {
     return AuthFormContainer(
       showLogo: true,
+      showCancelButton: false,
       onBack: () => Navigator.pop(context),
-      onCancel: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
@@ -84,34 +98,27 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.m),
+                padding: const EdgeInsets.only(top: AppSpacing.xs),
                 child: Text(
                   widget.identifier,
                   style: AppTypography.body4.copyWith(
-                    color: AppColors.textSecondary,
+                    color: AppColors.greyNegroV2,
                   ),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xxxl),
+                padding: const EdgeInsets.only(top: 94),
                 child: CustomTextField(
                   label: 'Contraseña',
                   hint: '',
                   controller: _passwordController,
+                  isPassword: true,
                   obscureText: _obscurePassword,
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_outlined
-                          : Icons.visibility_off_outlined,
-                      color: AppColors.textSecondary,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
-                  ),
+                  onToggleVisibility: () {
+                    setState(() {
+                      _obscurePassword = !_obscurePassword;
+                    });
+                  },
                   labelStyle: AppTypography.body6,
                   hintStyle: AppTypography.body4.copyWith(
                     color: AppColors.greyMedio,
@@ -120,19 +127,22 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xl),
+                padding: const EdgeInsets.only(top: AppSpacing.l),
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
+                    final isLoading = state is AuthLoading;
                     return CustomButton(
                       text: 'Ingresar',
-                      isLoading: state is AuthLoading,
-                      onPressed: _handleLogin,
+                      isLoading: isLoading,
+                      onPressed: _isValidPassword && !isLoading
+                          ? _handleLogin
+                          : null,
                     );
                   },
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.l),
+                padding: const EdgeInsets.only(top: AppSpacing.xxl),
                 child: GestureDetector(
                   onTap: () {
                     // TODO: Navigate to forgot password screen
