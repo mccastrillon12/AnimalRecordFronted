@@ -35,6 +35,15 @@ class VerifyCodeSubmitted extends AuthEvent {
   List<Object?> get props => [params];
 }
 
+// Este evento se dispara cuando el usuario solicita reenviar el código
+class ResendCodeSubmitted extends AuthEvent {
+  final String identifier; // Email or phone number
+  ResendCodeSubmitted(this.identifier);
+
+  @override
+  List<Object?> get props => [identifier];
+}
+
 // Este evento se dispara para verificar si un número de identificación ya existe
 class CheckIdentificationExists extends AuthEvent {
   final String identificationNumber;

@@ -9,6 +9,8 @@ class VerificationStep extends StatefulWidget {
   final String? phoneNumber;
   final VoidCallback onResendCode;
   final VoidCallback? onCodeChanged;
+  final VoidCallback? onTimerChanged;
+  final bool isResending;
   final int? initialTimeRemaining;
 
   const VerificationStep({
@@ -17,6 +19,8 @@ class VerificationStep extends StatefulWidget {
     this.phoneNumber,
     required this.onResendCode,
     this.onCodeChanged,
+    this.onTimerChanged,
+    this.isResending = false,
     this.initialTimeRemaining,
   });
 
@@ -57,6 +61,7 @@ class VerificationStepState extends State<VerificationStep> {
           _canResend = true;
         }
       });
+      widget.onTimerChanged?.call();
     });
   }
 
@@ -100,6 +105,15 @@ class VerificationStepState extends State<VerificationStep> {
     }
   }
 
+  void restartTimer(int milliseconds) {
+    _timer?.cancel();
+    _startTimer(milliseconds);
+  }
+
+  bool get canResend => _canResend;
+
+  String formatTimeRemaining() => _formatTime(_remainingSeconds);
+
   @override
   Widget build(BuildContext context) {
     final displayContact =
@@ -133,30 +147,6 @@ class VerificationStepState extends State<VerificationStep> {
               onBackspace: () => _onBackspace(index),
             );
           }),
-        ),
-        const SizedBox(height: 40),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              '¿No recibiste un código?  ',
-              style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
-            ),
-            GestureDetector(
-              onTap: _canResend ? widget.onResendCode : null,
-              child: Text(
-                _canResend
-                    ? 'Reenviar'
-                    : 'Reenviar (${_formatTime(_remainingSeconds)})',
-                style: AppTypography.body4.copyWith(
-                  color: _canResend
-                      ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ],
         ),
       ],
     );

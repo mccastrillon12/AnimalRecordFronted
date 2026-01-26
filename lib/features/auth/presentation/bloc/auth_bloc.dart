@@ -4,18 +4,21 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../domain/usecases/register_usecase.dart';
 import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/verify_code_usecase.dart';
+import '../../domain/usecases/resend_code_usecase.dart';
 import '../../domain/usecases/check_identification_exists_usecase.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
   final LoginUseCase loginUseCase;
   final VerifyCodeUseCase verifyCodeUseCase;
+  final ResendCodeUseCase resendCodeUseCase;
   final CheckIdentificationExistsUseCase checkIdentificationExistsUseCase;
 
   AuthBloc({
     required this.registerUseCase,
     required this.loginUseCase,
     required this.verifyCodeUseCase,
+    required this.resendCodeUseCase,
     required this.checkIdentificationExistsUseCase,
   }) : super(AuthInitial()) {
     on<SignUpSubmitted>((event, emit) async {
@@ -73,6 +76,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       result.fold(
         (failure) => emit(AuthError(failure.message)),
         (exists) => emit(IdentificationCheckResult(exists)),
+      );
+    });
+
+    on<ResendCodeSubmitted>((event, emit) async {
+      // Don't emit AuthLoading to avoid blocking the verify button
+      final result = await resendCodeUseCase(event.identifier);
+
+      result.fold(
+        (failure) => emit(AuthError(failure.message)),
+        (_) => emit(ResendCodeSuccess()),
       );
     });
   }

@@ -22,6 +22,8 @@ class AuthError extends AuthState {
 
 class VerificationSuccess extends AuthState {}
 
+class ResendCodeSuccess extends AuthState {}
+
 class IdentificationCheckResult extends AuthState {
   final bool exists;
   IdentificationCheckResult(this.exists);
