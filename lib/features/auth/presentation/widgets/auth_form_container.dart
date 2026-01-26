@@ -26,7 +26,7 @@ class AuthFormContainer extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header con flecha y Cancelar
+            // Header con flecha, logo y Cancelar
             Transform.translate(
               offset: const Offset(0, 40),
               child: Padding(
@@ -42,6 +42,20 @@ class AuthFormContainer extends StatelessWidget {
                       )
                     else
                       const SizedBox(width: 48),
+
+                    // Logo centrado cuando no hay botón cancelar
+                    if (!showCancelButton && showLogo)
+                      Expanded(
+                        child: Center(
+                          child: Image.asset(
+                            'assets/Logo/Imagotipo_blanco.png',
+                            width: 40,
+                            height: 28,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                      ),
+
                     if (showCancelButton)
                       GestureDetector(
                         onTap: onCancel ?? () => Navigator.pop(context),
@@ -60,15 +74,15 @@ class AuthFormContainer extends StatelessWidget {
                       )
                     else
                       const SizedBox(
-                        width: 100,
+                        width: 48,
                       ), // Espaciador para mantener equilibrio
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 56),
-            // Logo Placeholder
-            if (showLogo) ...[
+            // Logo Placeholder (solo cuando hay botón cancelar)
+            if (showLogo && showCancelButton) ...[
               Center(
                 child: Image.asset(
                   'assets/Logo/Imagotipo_blanco.png',

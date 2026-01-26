@@ -8,6 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> login(Map<String, dynamic> credentials);
   Future<void> logout();
   Future<void> verifyCode(String email, String code);
+  Future<void> resendVerificationCode(String identifier);
   Future<bool> checkIdentificationExists(String identificationNumber);
 }
 
@@ -112,6 +113,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return false;
       }
       // For other errors, throw exception
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> resendVerificationCode(String identifier) async {
+    try {
+      final response = await dio.post(
+        '/auth/resend-code',
+        data: {'identifier': identifier},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al reenviar el código');
+      }
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        throw Exception('Identificador inválido');
+      }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

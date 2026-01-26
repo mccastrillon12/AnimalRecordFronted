@@ -199,7 +199,9 @@ class _CountryDropdownState extends State<CountryDropdown> {
                       : AppColors.greyMedio,
                 ),
                 borderRadius: BorderRadius.circular(4),
-                color: widget.enabled ? Colors.white : const Color(0xFFF5F6FA),
+                color: widget.enabled
+                    ? Colors.white
+                    : AppColors.bgBlancoAntiFlash,
               ),
               child: Row(
                 children: [

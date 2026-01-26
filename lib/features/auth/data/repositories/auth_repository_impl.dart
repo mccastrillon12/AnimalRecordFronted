@@ -115,6 +115,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> resendVerificationCode(
+    String identifier,
+  ) async {
+    try {
+      await remoteDataSource.resendVerificationCode(identifier);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, bool>> checkIdentificationExists(
     String identificationNumber,
   ) async {
