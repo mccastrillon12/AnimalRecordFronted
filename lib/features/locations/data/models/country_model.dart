@@ -5,6 +5,7 @@ class CountryModel extends CountryEntity {
     required super.id,
     required super.name,
     required super.isoCode,
+    required super.dialCode,
   });
 
   factory CountryModel.fromJson(Map<String, dynamic> json) {
@@ -12,10 +13,11 @@ class CountryModel extends CountryEntity {
       id: json['id'] ?? '',
       name: json['name'] ?? '',
       isoCode: json['isoCode'] ?? '',
+      dialCode: json['dialCode'] ?? '',
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'id': id, 'name': name, 'isoCode': isoCode};
+    return {'id': id, 'name': name, 'isoCode': isoCode, 'dialCode': dialCode};
   }
 }

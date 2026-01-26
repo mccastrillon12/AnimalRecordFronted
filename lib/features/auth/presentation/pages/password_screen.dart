@@ -10,6 +10,8 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/login_params.dart';
+import 'package:animal_record/core/utils/error_display.dart';
+import 'verification_screen.dart';
 
 class PasswordScreen extends StatefulWidget {
   final String identifier; // Email or phone
@@ -53,13 +55,20 @@ class _PasswordScreenState extends State<PasswordScreen> {
               '/home',
               (route) => false,
             );
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
+          } else if (state is AuthUserNotVerified) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => VerificationScreen(
+                  email: widget.identifier,
+                  phoneNumber:
+                      null, // Assuming identifier is passed as email for now
+                  timeRemaining: state.timeRemaining,
+                ),
               ),
             );
+          } else if (state is AuthError) {
+            ErrorDisplay.showError(context, state.message);
           }
         },
         child: SingleChildScrollView(

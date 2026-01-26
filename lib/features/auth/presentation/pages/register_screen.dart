@@ -347,6 +347,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
+  // Helper to get total expected steps for this role
+  int get _totalSteps {
+    if (widget.role == 'PROPIETARIO_MASCOTA') {
+      return 3; // Method selection + Personal data + Security
+    } else if (widget.role == 'VETERINARIO') {
+      return 3; // Personal data + Professional data + Security
+    } else {
+      return 2; // Personal data + Security (default)
+    }
+  }
+
   bool _isStepValid() {
     final step = _currentStep;
     final steps = _steps;
@@ -533,8 +544,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               style: AppTypography.body4,
                             ),
                             TextSpan(
-                              text:
-                                  '- ${_currentStep + 1} de ${steps.length - 1}',
+                              text: '- ${_currentStep + 1} de $_totalSteps',
                               style: AppTypography.body4.copyWith(
                                 color: AppColors.greyMedio,
                               ),
@@ -546,7 +556,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   else
                     SizedBox(
                       height: AppSpacing.registerSubtitleHeight,
-                      child: Text('Seguridad', style: AppTypography.body4),
+                      child: Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Seguridad ',
+                              style: AppTypography.body4,
+                            ),
+                            TextSpan(
+                              text: '- ${_currentStep + 1} de $_totalSteps',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     ),
                 ],
               ),

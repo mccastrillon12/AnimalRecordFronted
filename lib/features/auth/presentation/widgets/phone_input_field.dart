@@ -1,4 +1,5 @@
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -42,6 +43,7 @@ class PhoneInputField extends StatelessWidget {
             value: selectedCountryId ?? countries.first.id,
             countries: countries,
             onChanged: onCountryChanged,
+            showIsoCodeAsValue: true,
           ),
 
         const SizedBox(width: AppSpacing.xs),
@@ -63,12 +65,21 @@ class PhoneInputField extends StatelessWidget {
 
               CustomTextField(
                 label: '',
-                hint: '(+57) 310 123 45 67',
+                hint: '310 123 45 67',
                 controller: controller,
                 keyboardType: TextInputType.phone,
                 maxLength: maxLength,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(left: 12, right: 4),
+                  child: Text(
+                    '(${countries.cast<CountryEntity>().firstWhere((c) => c.id == (selectedCountryId ?? countries.first.id), orElse: () => countries.first).dialCode})',
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyMedio,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

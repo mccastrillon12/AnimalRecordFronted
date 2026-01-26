@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -7,12 +8,14 @@ class VerificationStep extends StatefulWidget {
   final String email;
   final String? phoneNumber;
   final VoidCallback onResendCode;
+  final int? initialTimeRemaining;
 
   const VerificationStep({
     super.key,
     required this.email,
     this.phoneNumber,
     required this.onResendCode,
+    this.initialTimeRemaining,
   });
 
   @override
@@ -25,9 +28,45 @@ class VerificationStepState extends State<VerificationStep> {
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(5, (_) => FocusNode());
+  Timer? _timer;
+  int _remainingSeconds = 0;
+  bool _canResend = true;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.initialTimeRemaining != null) {
+      _startTimer(widget.initialTimeRemaining!);
+    }
+  }
+
+  void _startTimer(int milliseconds) {
+    setState(() {
+      _remainingSeconds = (milliseconds / 1000).round();
+      _canResend = false;
+    });
+
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+        } else {
+          _timer?.cancel();
+          _canResend = true;
+        }
+      });
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final int minutes = seconds ~/ 60;
+    final int remainingSeconds = seconds % 60;
+    return '${minutes.toString().padLeft(2, '0')}:${remainingSeconds.toString().padLeft(2, '0')}';
+  }
 
   @override
   void dispose() {
+    _timer?.cancel();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -103,11 +142,15 @@ class VerificationStepState extends State<VerificationStep> {
               style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
             ),
             GestureDetector(
-              onTap: widget.onResendCode,
+              onTap: _canResend ? widget.onResendCode : null,
               child: Text(
-                'Reenviar',
+                _canResend
+                    ? 'Reenviar'
+                    : 'Reenviar (${_formatTime(_remainingSeconds)})',
                 style: AppTypography.body4.copyWith(
-                  color: AppColors.primaryAzulClaro,
+                  color: _canResend
+                      ? AppColors.primaryAzulClaro
+                      : AppColors.greyMedio,
                   fontWeight: FontWeight.w600,
                 ),
               ),

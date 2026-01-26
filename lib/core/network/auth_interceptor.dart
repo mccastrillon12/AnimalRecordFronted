@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
+import 'package:logger/logger.dart';
 import '../services/token_storage.dart';
 
 /// Interceptor to automatically add auth tokens to requests and handle token refresh
@@ -13,6 +14,17 @@ class AuthInterceptor extends Interceptor {
   DateTime? _lastRefreshAttempt;
 
   AuthInterceptor({required this.tokenStorage, required this.dio});
+
+  // Logger instance for better logging
+  final Logger _logger = Logger(
+    printer: PrettyPrinter(
+      methodCount: 0,
+      errorMethodCount: 5,
+      lineLength: 50,
+      colors: true,
+      printEmojis: true,
+    ),
+  );
 
   @override
   Future<void> onRequest(
@@ -43,7 +55,7 @@ class AuthInterceptor extends Interceptor {
         !_isAuthEndpoint(err.requestOptions.path)) {
       // Check rate limiting
       if (_isRefreshRateLimited()) {
-        print('⚠️ Refresh rate limit exceeded, clearing tokens');
+        _logger.w('Refresh rate limit exceeded, clearing tokens');
         await tokenStorage.clearTokens();
         return handler.next(err);
       }
@@ -62,7 +74,7 @@ class AuthInterceptor extends Interceptor {
         }
       } catch (e) {
         // Refresh failed, clear tokens and let error propagate
-        print('❌ Token refresh failed: $e');
+        _logger.e('Token refresh failed', error: e);
         await tokenStorage.clearTokens();
       }
     }
@@ -79,14 +91,14 @@ class AuthInterceptor extends Interceptor {
 
       // Validate JWT is not expired
       if (JwtDecoder.isExpired(token)) {
-        print('⚠️ Access token expired, refreshing proactively');
+        _logger.w('Access token expired, refreshing proactively');
         return await _refreshToken();
       }
 
       return token;
     } catch (e) {
       // If JWT parsing fails, token is invalid
-      print('⚠️ Invalid JWT token: $e');
+      _logger.w('Invalid JWT token', error: e);
       return null;
     }
   }
@@ -135,8 +147,8 @@ class AuthInterceptor extends Interceptor {
         return null;
       }
 
-      print(
-        '🔄 Refreshing access token (attempt $_refreshAttempts/$_maxRefreshAttempts)',
+      _logger.i(
+        'Refreshing access token (attempt $_refreshAttempts/$_maxRefreshAttempts)',
       );
 
       final response = await dio.post(
@@ -160,14 +172,26 @@ class AuthInterceptor extends Interceptor {
           _refreshAttempts = 0;
           _lastRefreshAttempt = null;
 
-          print('✅ Token refreshed successfully');
+          _logger.i('Token refreshed successfully');
           return newAccessToken;
         }
       }
 
       return null;
+    } on DioException catch (e) {
+      // If refresh token is invalid (403) or expired (401), logout
+      if (e.response?.statusCode == 403 || e.response?.statusCode == 401) {
+        _logger.w(
+          'Refresh token invalid or expired (403/401), clearing session',
+        );
+        await tokenStorage.clearTokens();
+        return null;
+      }
+
+      _logger.e('Refresh token error (DioException)', error: e);
+      return null;
     } catch (e) {
-      print('❌ Refresh token error: $e');
+      _logger.e('Refresh token error', error: e);
       return null;
     }
   }

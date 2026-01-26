@@ -29,3 +29,11 @@ class IdentificationCheckResult extends AuthState {
   @override
   List<Object?> get props => [exists];
 }
+
+class AuthUserNotVerified extends AuthState {
+  final int? timeRemaining;
+  AuthUserNotVerified({this.timeRemaining});
+
+  @override
+  List<Object?> get props => [timeRemaining];
+}

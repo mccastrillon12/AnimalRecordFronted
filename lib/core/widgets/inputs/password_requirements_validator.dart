@@ -34,7 +34,7 @@ class PasswordRequirementsValidator extends StatelessWidget {
       children: [
         if (showTitle) ...[
           Text(
-            'Debe contener:',
+            'Usa al menos:',
             style: AppTypography.body6.copyWith(color: AppColors.greyNegro),
           ),
           const SizedBox(height: 12),
