@@ -134,12 +134,13 @@ class CustomTextField extends StatelessWidget {
                     suffixIcon ??
                     (isPassword
                         ? IconButton(
-                            icon: Icon(
+                            icon: Image.asset(
                               (obscureText ?? true)
-                                  ? Icons.visibility_outlined
-                                  : Icons.visibility_off_outlined,
+                                  ? 'assets/icons/vuesax-bold-eye.png'
+                                  : 'assets/icons/vuesax-bold-eye-slash.png',
+                              width: 20,
+                              height: 20,
                               color: AppColors.greyMedio,
-                              size: 20,
                             ),
                             onPressed: onToggleVisibility,
                           )

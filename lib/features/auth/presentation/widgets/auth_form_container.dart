@@ -27,42 +27,43 @@ class AuthFormContainer extends StatelessWidget {
         child: Column(
           children: [
             // Header con flecha y Cancelar
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: AppSpacing.m,
-                vertical: AppSpacing.xs,
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (onBack != null)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white),
-                      onPressed: onBack,
-                    )
-                  else
-                    const SizedBox(width: 48),
-                  if (showCancelButton)
-                    GestureDetector(
-                      onTap: onCancel ?? () => Navigator.pop(context),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Cancelar',
-                            style: AppTypography.body4.copyWith(
-                              color: Colors.white,
+            Transform.translate(
+              offset: const Offset(0, 40),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    if (onBack != null)
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        onPressed: onBack,
+                      )
+                    else
+                      const SizedBox(width: 48),
+                    if (showCancelButton)
+                      GestureDetector(
+                        onTap: onCancel ?? () => Navigator.pop(context),
+                        child: Row(
+                          children: [
+                            Text(
+                              'Cancelar',
+                              style: AppTypography.body4.copyWith(
+                                color: Colors.white,
+                              ),
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          const Icon(Icons.close, color: Colors.white),
-                        ],
-                      ),
-                    )
-                  else
-                    const SizedBox(
-                      width: 100,
-                    ), // Espaciador para mantener equilibrio
-                ],
+                            const SizedBox(width: AppSpacing.xs),
+                            const Icon(Icons.close, color: Colors.white),
+                          ],
+                        ),
+                      )
+                    else
+                      const SizedBox(
+                        width: 100,
+                      ), // Espaciador para mantener equilibrio
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 56),
