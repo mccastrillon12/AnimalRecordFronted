@@ -8,6 +8,7 @@ class VerificationStep extends StatefulWidget {
   final String email;
   final String? phoneNumber;
   final VoidCallback onResendCode;
+  final VoidCallback? onCodeChanged;
   final int? initialTimeRemaining;
 
   const VerificationStep({
@@ -15,6 +16,7 @@ class VerificationStep extends StatefulWidget {
     required this.email,
     this.phoneNumber,
     required this.onResendCode,
+    this.onCodeChanged,
     this.initialTimeRemaining,
   });
 
@@ -89,6 +91,7 @@ class VerificationStepState extends State<VerificationStep> {
       _focusNodes[index + 1].requestFocus();
     }
     setState(() {});
+    widget.onCodeChanged?.call();
   }
 
   void _onBackspace(int index) {
@@ -109,37 +112,35 @@ class VerificationStepState extends State<VerificationStep> {
       children: [
         Text(
           'Verifica tu ${widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty ? "número celular" : "correo"}',
-          style: AppTypography.heading2,
+          style: AppTypography.heading1,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         Text(
           'Ingresa el código de verificación que\nhemos enviado a $displayContact',
-          style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
+          style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 40),
+        const SizedBox(height: 80),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(5, (index) {
-            return Container(
-              margin: EdgeInsets.only(right: index < 4 ? 12 : 0),
-              child: _CodeInputField(
-                controller: _controllers[index],
-                focusNode: _focusNodes[index],
-                onChanged: (value) => _onCodeChanged(index, value),
-                onBackspace: () => _onBackspace(index),
-              ),
+            return _CodeInputField(
+              index: index,
+              controller: _controllers[index],
+              focusNode: _focusNodes[index],
+              onChanged: (value) => _onCodeChanged(index, value),
+              onBackspace: () => _onBackspace(index),
             );
           }),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 40),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               '¿No recibiste un código?  ',
-              style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
+              style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
             ),
             GestureDetector(
               onTap: _canResend ? widget.onResendCode : null,
@@ -149,7 +150,7 @@ class VerificationStepState extends State<VerificationStep> {
                     : 'Reenviar (${_formatTime(_remainingSeconds)})',
                 style: AppTypography.body4.copyWith(
                   color: _canResend
-                      ? AppColors.primaryAzulClaro
+                      ? AppColors.primaryFrances
                       : AppColors.greyMedio,
                   fontWeight: FontWeight.w600,
                 ),
@@ -163,23 +164,39 @@ class VerificationStepState extends State<VerificationStep> {
 }
 
 class _CodeInputField extends StatelessWidget {
+  final int index;
   final TextEditingController controller;
   final FocusNode focusNode;
   final Function(String) onChanged;
   final VoidCallback onBackspace;
 
   const _CodeInputField({
+    required this.index,
     required this.controller,
     required this.focusNode,
     required this.onChanged,
     required this.onBackspace,
   });
 
+  BorderRadius _getBorderRadius() {
+    const radius = Radius.circular(8);
+    if (index == 0) {
+      // First field: round left corners only
+      return const BorderRadius.only(topLeft: radius, bottomLeft: radius);
+    } else if (index == 4) {
+      // Last field: round right corners only
+      return const BorderRadius.only(topRight: radius, bottomRight: radius);
+    } else {
+      // Middle fields: no rounded corners
+      return BorderRadius.zero;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 48,
-      height: 56,
+      width: 40,
+      height: 40,
       child: TextField(
         controller: controller,
         focusNode: focusNode,
@@ -191,22 +208,22 @@ class _CodeInputField extends StatelessWidget {
           counterText: '',
           contentPadding: EdgeInsets.zero,
           enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
-            borderSide: const BorderSide(color: AppColors.greyClaro, width: 1),
+            borderRadius: _getBorderRadius(),
+            borderSide: const BorderSide(color: AppColors.greyMedio, width: 1),
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: _getBorderRadius(),
             borderSide: const BorderSide(
               color: AppColors.primaryAzulClaro,
               width: 2,
             ),
           ),
           errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: _getBorderRadius(),
             borderSide: const BorderSide(color: AppColors.error, width: 1),
           ),
           focusedErrorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: _getBorderRadius(),
             borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
         ),

@@ -28,6 +28,14 @@ class VerificationScreen extends StatefulWidget {
 
 class _VerificationScreenState extends State<VerificationScreen> {
   final GlobalKey<VerificationStepState> _verificationKey = GlobalKey();
+  bool _isCodeComplete = false;
+
+  void _onCodeChanged() {
+    setState(() {
+      _isCodeComplete =
+          _verificationKey.currentState?.isCodeComplete() ?? false;
+    });
+  }
 
   void _verifyCode() {
     final code = _verificationKey.currentState?.getCode() ?? '';
@@ -63,8 +71,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
   Widget build(BuildContext context) {
     return AuthFormContainer(
       showLogo: true,
+      showCancelButton: false,
       onBack: () => Navigator.pop(context),
-      onCancel: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is VerificationSuccess) {
@@ -91,14 +99,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
                 phoneNumber: widget.phoneNumber,
                 onResendCode: _resendVerificationCode,
                 initialTimeRemaining: widget.timeRemaining,
+                onCodeChanged: _onCodeChanged,
               ),
               const SizedBox(height: AppSpacing.xxl),
               BlocBuilder<AuthBloc, AuthState>(
                 builder: (context, state) {
+                  final isLoading = state is AuthLoading;
                   return CustomButton(
                     text: 'Verificar',
-                    isLoading: state is AuthLoading,
-                    onPressed: _verifyCode,
+                    isLoading: isLoading,
+                    onPressed: _isCodeComplete && !isLoading
+                        ? _verifyCode
+                        : null,
                   );
                 },
               ),
