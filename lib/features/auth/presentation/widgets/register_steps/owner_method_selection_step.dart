@@ -31,6 +31,7 @@ class OwnerMethodSelectionStep extends StatefulWidget {
 
 class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
   AccessMethod? _selectedMethod;
+  String? _selectedPhoneCountryId;
 
   @override
   void initState() {
@@ -81,9 +82,16 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                   label: 'Número de celular',
                   controller: widget.phoneController,
                   countries: state.countries,
-                  selectedCountryId: state.countries.isNotEmpty
-                      ? state.countries.first.id
-                      : null,
+                  selectedCountryId:
+                      _selectedPhoneCountryId ??
+                      (state.countries.isNotEmpty
+                          ? state.countries.first.id
+                          : null),
+                  onCountryChanged: (value) {
+                    setState(() {
+                      _selectedPhoneCountryId = value;
+                    });
+                  },
                   maxLength: 15,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 );

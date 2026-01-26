@@ -178,6 +178,18 @@ class AuthInterceptor extends Interceptor {
       }
 
       return null;
+    } on DioException catch (e) {
+      // If refresh token is invalid (403) or expired (401), logout
+      if (e.response?.statusCode == 403 || e.response?.statusCode == 401) {
+        _logger.w(
+          'Refresh token invalid or expired (403/401), clearing session',
+        );
+        await tokenStorage.clearTokens();
+        return null;
+      }
+
+      _logger.e('Refresh token error (DioException)', error: e);
+      return null;
     } catch (e) {
       _logger.e('Refresh token error', error: e);
       return null;

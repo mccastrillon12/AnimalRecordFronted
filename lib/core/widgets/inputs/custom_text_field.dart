@@ -14,6 +14,7 @@ class CustomTextField extends StatelessWidget {
   final String? Function(String?)? validator;
   final Widget? suffixIcon;
   final Widget? prefixIcon;
+  final String? prefixText;
   final TextStyle? labelStyle;
   final TextStyle? hintStyle;
   final InputBorder? border;
@@ -38,6 +39,7 @@ class CustomTextField extends StatelessWidget {
     this.validator,
     this.suffixIcon,
     this.prefixIcon,
+    this.prefixText,
     this.labelStyle,
     this.hintStyle,
     this.border,
@@ -108,6 +110,10 @@ class CustomTextField extends StatelessWidget {
                   horizontal: 12,
                 ),
                 counterText: '', // Ocultar contador de caracteres
+                prefixIconConstraints: const BoxConstraints(
+                  minWidth: 0,
+                  minHeight: 0,
+                ),
                 hintText: hint,
                 // Hide internal error text to use external custom error
                 errorText: null,
@@ -115,6 +121,15 @@ class CustomTextField extends StatelessWidget {
                     hintStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyMedio),
                 prefixIcon: prefixIcon,
+                // Use prefix widget instead of prefixText to ensure visibility
+                prefix: prefixText != null
+                    ? Text(
+                        '$prefixText ',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyMedio,
+                        ),
+                      )
+                    : null,
                 suffixIcon:
                     suffixIcon ??
                     (isPassword

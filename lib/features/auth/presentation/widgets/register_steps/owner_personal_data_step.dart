@@ -61,6 +61,8 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
     context.read<LocationsCubit>().fetchCountries();
   }
 
+  String? _selectedPhoneCountryId;
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<LocationsCubit, LocationsState>(
@@ -140,9 +142,16 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                   label: 'Número de celular (Opcional)',
                   controller: widget.phoneController,
                   countries: state.countries,
-                  selectedCountryId: state.countries.isNotEmpty
-                      ? state.countries.first.id
-                      : null,
+                  selectedCountryId:
+                      _selectedPhoneCountryId ??
+                      (state.countries.isNotEmpty
+                          ? state.countries.first.id
+                          : null),
+                  onCountryChanged: (value) {
+                    setState(() {
+                      _selectedPhoneCountryId = value;
+                    });
+                  },
                   maxLength: 15,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   errorText: widget.phoneErrorText,
