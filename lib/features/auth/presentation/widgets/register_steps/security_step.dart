@@ -43,7 +43,7 @@ class _SecurityStepState extends State<SecurityStep> {
             setState(() => _obscurePassword = !_obscurePassword);
           },
         ),
-        const SizedBox(height: AppSpacing.l),
+        const SizedBox(height: AppSpacing.m),
 
         // Using reusable PasswordRequirementsValidator component
         ValueListenableBuilder<TextEditingValue>(
@@ -53,7 +53,7 @@ class _SecurityStepState extends State<SecurityStep> {
           },
         ),
 
-        const SizedBox(height: AppSpacing.l),
+        const SizedBox(height: AppSpacing.m),
         CustomTextField(
           label: 'Confirmar contraseña',
           isPassword: true,
@@ -64,13 +64,13 @@ class _SecurityStepState extends State<SecurityStep> {
             setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
           },
         ),
-        const SizedBox(height: AppSpacing.l),
+        const SizedBox(height: AppSpacing.m),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             SizedBox(
-              height: 24,
-              width: 24,
+              height: 22,
+              width: 22,
               child: Checkbox(
                 value: widget.acceptTerms,
                 onChanged: (value) => widget.onTermsChanged(value ?? false),
@@ -86,13 +86,15 @@ class _SecurityStepState extends State<SecurityStep> {
                 TextSpan(
                   text: 'Acepto los ',
                   style: AppTypography.body4.copyWith(
-                    color: AppColors.greyNegro,
+                    color: AppColors.greyNegroV2,
                   ),
                   children: [
                     TextSpan(
                       text: 'Términos de servicio',
                       style: AppTypography.body4.copyWith(
                         color: AppColors.primaryAzulClaro,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primaryAzulClaro,
                       ),
                     ),
                     const TextSpan(text: ' y la '),
@@ -100,6 +102,8 @@ class _SecurityStepState extends State<SecurityStep> {
                       text: 'Política de privacidad',
                       style: AppTypography.body4.copyWith(
                         color: AppColors.primaryAzulClaro,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.primaryAzulClaro,
                       ),
                     ),
                     const TextSpan(text: ' de Animal Record.'),
