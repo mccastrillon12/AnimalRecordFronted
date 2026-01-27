@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:uuid/uuid.dart';
 import 'package:flutter/services.dart';
 
 import '../widgets/auth_form_container.dart';
@@ -17,17 +16,18 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
-import '../../domain/entities/register_params.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
   final String email;
+  final String preAuthToken;
   final String providerName; // e.g., 'Google'
 
   const SocialRegisterCompletionScreen({
     super.key,
     required this.name,
     required this.email,
+    required this.preAuthToken,
     this.providerName = 'Google',
   });
 
@@ -47,6 +47,7 @@ class _SocialRegisterCompletionScreenState
   late final TextEditingController _emailController;
 
   String? _selectedPhoneCountryId;
+  String _selectedIdType = 'C.C.';
   String? _idErrorText;
   String? _phoneErrorText;
 
@@ -78,24 +79,15 @@ class _SocialRegisterCompletionScreenState
     });
 
     if (_countryController.text.isEmpty) {
-      // Visual feedback handled by dropdown validation if added,
-      // or simple check here
       isValid = false;
     }
 
-    if (_idController.text.isEmpty) {
+    if (_idController.text.trim().isEmpty) {
       setState(() => _idErrorText = 'Campo requerido');
       isValid = false;
     }
 
-    // Optional phone check (if desired) or Mandatory?
-    // Screenshot says "Opcional" in the placeholder label,
-    // but usually in "Complete profile" it might be desired.
-    // The previous implementation had optional logic.
-    // The screenshot in the user request shows "Número de celular (Opcional)".
-    // So we don't strictly require it, BUT if entered it must be valid.
     if (_phoneController.text.isNotEmpty) {
-      // Basic len check
       final digits = _phoneController.text.replaceAll(RegExp(r'\D'), '');
       if (digits.length < 7) {
         setState(() => _phoneErrorText = 'Número inválido');
@@ -109,42 +101,41 @@ class _SocialRegisterCompletionScreenState
   void _onSubmit() {
     if (!_validateInternal()) return;
 
-    final uuid = const Uuid();
-    final String newUserId = uuid.v4();
+    // Find the dial code for the selected phone country
+    String phoneWithDialCode = _phoneController.text.trim();
+    if (_phoneController.text.isNotEmpty) {
+      final locationsState = context.read<LocationsCubit>().state;
+      if (locationsState is LocationsLoaded) {
+        final country = locationsState.countries.firstWhere(
+          (c) =>
+              c.id ==
+              (_selectedPhoneCountryId ?? locationsState.countries.first.id),
+        );
+        // Ensure dialCode starts with +
+        String prefix = country.dialCode;
+        if (!prefix.startsWith('+')) prefix = '+$prefix';
+        phoneWithDialCode = '$prefix$phoneWithDialCode';
+      }
+    }
 
-    // The user role is fixed to 'PROPIETARIO_MASCOTA' as per "Finaliza tu registro - Propietario"
-    // If dynamic role needed, we'd pass it in constructor.
+    // Mapping display type to backend code
+    String idType = 'CC';
+    if (_selectedIdType == 'C.E.') idType = 'CE';
+    if (_selectedIdType == 'Pasaporte') idType = 'PAS';
 
-    context.read<AuthBloc>().add(
-      SignUpSubmitted(
-        RegisterParams(
-          id: newUserId,
-          name: widget.name,
-          email: widget.email,
-          password: '', // No password for social login
-          identificationType:
-              'CC', // Default or selector? IdSelector provides type?
-          // IdSelector usually binds to a controller.
-          // If IdSelector handles both type and number, we need to extracting them.
-          // Looking at IdSelector usage in OwnerPersonalDataStep, it only takes idController.
-          // It seems IdSelector might be internalizing the type or just taking the number.
-          // Wait, IdSelector source code was not fully read but it takes idController.
-          // I will assume for now it's just number and type is default CC or managed elsewhere?
-          // In RegisterScreen: identificationType: widget.role == 'PROPIETARIO_MASCOTA' ? 'CC' : 'CC'
-          // So it seems hardcoded or simple.
-          identificationNumber: _idController.text.trim(),
-          country: '', // populated backend
-          countryId: _countryController.text,
-          city: '', // Owner doesn't strictly need city in this flow?
-          cellPhone: _phoneController.text.trim(),
-          authMethod: 'GOOGLE', // or 'SOCIAL'
-          roles: ['PROPIETARIO_MASCOTA'],
-          animalTypes: [],
-          services: [],
-          isHomeDelivery: false,
-        ),
-      ),
-    );
+    final data = {
+      'preAuthToken': widget.preAuthToken,
+      'identificationNumber': _idController.text.trim(),
+      'identificationType': idType,
+      'cellPhone': _phoneController.text.trim().isEmpty
+          ? ""
+          : phoneWithDialCode,
+      'country': _countryController.text,
+      'city': '',
+      'roles': ['PROPIETARIO_MASCOTA'],
+    };
+
+    context.read<AuthBloc>().add(SocialRegisterSubmitted(data));
   }
 
   @override
@@ -156,8 +147,7 @@ class _SocialRegisterCompletionScreenState
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Registro vía Google exitoso.')),
             );
-            // Navigate to home/dashboard
-            Navigator.pushReplacementNamed(context, '/home'); // Adjust route
+            Navigator.pushReplacementNamed(context, '/home');
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
@@ -178,7 +168,6 @@ class _SocialRegisterCompletionScreenState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // Header
                     Text(
                       'Finaliza tu registro - Propietario',
                       style: AppTypography.heading2,
@@ -192,7 +181,6 @@ class _SocialRegisterCompletionScreenState
                     ),
                     const SizedBox(height: AppSpacing.xl),
 
-                    // Fields
                     CustomTextField(
                       label: 'Nombre completo',
                       controller: _nameController,
@@ -207,11 +195,9 @@ class _SocialRegisterCompletionScreenState
                     ),
                     const SizedBox(height: AppSpacing.m),
 
-                    // Dynamic Countries
                     BlocBuilder<LocationsCubit, LocationsState>(
                       builder: (context, state) {
                         if (state is LocationsLoaded) {
-                          // Pre-select the first country (Colombia) if text is empty
                           if (_countryController.text.isEmpty &&
                               state.countries.isNotEmpty) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -248,6 +234,10 @@ class _SocialRegisterCompletionScreenState
 
                               IdSelector(
                                 idController: _idController,
+                                initialIdType: _selectedIdType,
+                                onIdTypeChanged: (val) {
+                                  setState(() => _selectedIdType = val);
+                                },
                                 errorText: _idErrorText,
                               ),
                               const SizedBox(height: AppSpacing.m),
@@ -285,7 +275,6 @@ class _SocialRegisterCompletionScreenState
                 ),
               ),
             ),
-            // Persistent bottom button
             Padding(
               padding: const EdgeInsets.fromLTRB(
                 AppSpacing.l,
@@ -298,7 +287,6 @@ class _SocialRegisterCompletionScreenState
                   return ValueListenableBuilder<TextEditingValue>(
                     valueListenable: _idController,
                     builder: (context, value, _) {
-                      // Button only active when Identification is filled
                       final bool isIdFilled = value.text.trim().isNotEmpty;
 
                       return CustomButton(

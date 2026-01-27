@@ -13,11 +13,17 @@ class AuthLoading extends AuthState {} // Para mostrar el círculo de carga
 class AuthSuccess extends AuthState {
   final UserEntity user;
   AuthSuccess(this.user);
+
+  @override
+  List<Object?> get props => [user];
 }
 
 class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
+
+  @override
+  List<Object?> get props => [message];
 }
 
 class VerificationSuccess extends AuthState {}
@@ -38,4 +44,13 @@ class AuthUserNotVerified extends AuthState {
 
   @override
   List<Object?> get props => [timeRemaining];
+}
+
+class SocialAuthNeedRegister extends AuthState {
+  final Map<String, dynamic> response;
+
+  SocialAuthNeedRegister(this.response);
+
+  @override
+  List<Object?> get props => [response];
 }

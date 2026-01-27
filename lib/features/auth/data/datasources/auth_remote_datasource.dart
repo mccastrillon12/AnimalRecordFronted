@@ -10,6 +10,8 @@ abstract class AuthRemoteDataSource {
   Future<void> verifyCode(String email, String code);
   Future<void> resendVerificationCode(String identifier);
   Future<bool> checkIdentificationExists(String identificationNumber);
+  Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
+  Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -134,6 +136,62 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (e.response?.statusCode == 400) {
         throw Exception('Identificador inválido');
       }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> checkSocialToken(
+    String provider,
+    String token,
+  ) async {
+    try {
+      print('--- DEBUG SOCIAL CHECK ---');
+      print('Payload: {"provider": "$provider", "token": "$token"}');
+      print('---------------------------');
+
+      final response = await dio.post(
+        '/auth/social/check',
+        data: {'provider': provider, 'token': token},
+      );
+
+      print('--- SOCIAL CHECK SUCCESS ---');
+      print('Response: ${response.data}');
+      print('----------------------------');
+
+      return response.data;
+    } on DioException catch (e) {
+      print('--- SOCIAL CHECK ERROR ---');
+      print('Status: ${e.response?.statusCode}');
+      print('Data: ${e.response?.data}');
+      print('--------------------------');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data) async {
+    try {
+      print('--- DEBUG SOCIAL REGISTER ---');
+      print('Payload: $data');
+      print('------------------------------');
+
+      final response = await dio.post('/auth/social/register', data: data);
+
+      print('--- SOCIAL REGISTER SUCCESS ---');
+      print('Response: ${response.data}');
+      print('-------------------------------');
+
+      return response.data;
+    } on DioException catch (e) {
+      print('--- SOCIAL REGISTER ERROR ---');
+      print('Status: ${e.response?.statusCode}');
+      print('Data: ${e.response?.data}');
+      print('------------------------------');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

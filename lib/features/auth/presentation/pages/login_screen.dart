@@ -3,6 +3,8 @@ import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -13,6 +15,9 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
+import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
+import '../bloc/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -77,36 +82,23 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  // ... (inside class)
-
-  final google_sign_in.GoogleSignIn _googleSignIn =
-      google_sign_in.GoogleSignIn();
+  final google_sign_in.GoogleSignIn _googleSignIn = google_sign_in.GoogleSignIn(
+    serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
+  );
 
   Future<void> _handleGoogleSignIn() async {
-    // Note: un-focusing can cause a layout shift that contributes to blinking
-    // when native dialogs open. Skipping for now as per user report.
-
     try {
       final google_sign_in.GoogleSignInAccount? googleUser = await _googleSignIn
           .signIn();
 
       if (googleUser != null) {
-        print('Signed in as: ${googleUser.email}');
+        final google_sign_in.GoogleSignInAuthentication googleAuth =
+            await googleUser.authentication;
+        final String? idToken = googleAuth.idToken;
 
-        if (mounted) {
-          // Use PageRouteBuilder for an instant transition, avoiding the
-          // Flutter "slide" animation that can overlap with the Android resume.
-          Navigator.push(
-            context,
-            PageRouteBuilder(
-              pageBuilder: (context, animation, secondaryAnimation) =>
-                  SocialRegisterCompletionScreen(
-                    name: googleUser.displayName ?? '',
-                    email: googleUser.email,
-                  ),
-              transitionDuration: Duration.zero,
-              reverseTransitionDuration: Duration.zero,
-            ),
+        if (idToken != null && mounted) {
+          context.read<AuthBloc>().add(
+            SocialAuthChecked(provider: 'GOOGLE', token: idToken),
           );
         }
       }
@@ -120,118 +112,158 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  void _navigateToRegistrationCompletion(Map<String, dynamic> response) {
+    if (!mounted) return;
+
+    final profile = response['profile'] as Map<String, dynamic>?;
+    final preAuthToken = response['preAuthToken'] as String?;
+
+    Navigator.push(
+      context,
+      PageRouteBuilder(
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            SocialRegisterCompletionScreen(
+              name: profile?['firstName'] ?? '',
+              email: profile?['email'] ?? '',
+              preAuthToken: preAuthToken ?? '',
+            ),
+        transitionDuration: Duration.zero,
+        reverseTransitionDuration: Duration.zero,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AuthFormContainer(
-      showCancelButton: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xxl),
-              child: Text(
-                'Bienvenido a AnimalRecord',
-                style: AppTypography.heading1,
-              ),
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is SocialAuthNeedRegister) {
+          _navigateToRegistrationCompletion(state.response);
+        } else if (state is AuthSuccess) {
+          Navigator.pushReplacementNamed(context, '/home');
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
             ),
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.l),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text('¿No tienes una cuenta? ', style: AppTypography.body4),
-                  GestureDetector(
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) =>
-                              const RegisterScreen(role: 'PROPIETARIO_MASCOTA'),
+          );
+        }
+      },
+      child: AuthFormContainer(
+        showCancelButton: false,
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxl),
+                child: Text(
+                  'Bienvenido a AnimalRecord',
+                  style: AppTypography.heading1,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.l),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('¿No tienes una cuenta? ', style: AppTypography.body4),
+                    GestureDetector(
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterScreen(
+                              role: 'PROPIETARIO_MASCOTA',
+                            ),
+                          ),
+                        );
+                      },
+                      child: Text(
+                        'Crear cuenta',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.primaryFrances,
                         ),
-                      );
-                    },
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxxl),
+                child: Text(
+                  'Inicia con el correo o celular que definiste como método de ingreso en el momento del registro.',
+                  textAlign: TextAlign.start,
+                  style: AppTypography.body4,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.m),
+                child: CustomTextField(
+                  label: 'Correo electrónico o celular',
+                  hint: 'Correo / Celular',
+                  controller: _identifierController,
+                  labelStyle: AppTypography.body6,
+                  hintStyle: AppTypography.body4.copyWith(
+                    color: AppColors.greyMedio,
+                  ),
+                  borderColor: AppColors.greyMedio,
+                  keyboardType: TextInputType.emailAddress,
+                  maxLength: 50,
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xl),
+                child: CustomButton(
+                  text: 'Continuar',
+                  onPressed: _isValidInput ? _handleContinue : null,
+                ),
+              ),
+              Center(child: _BiometricButton()),
+              const SizedBox(height: AppSpacing.xl),
+              Row(
+                children: [
+                  const Expanded(child: Divider()),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.m,
+                    ),
                     child: Text(
-                      'Crear cuenta',
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.primaryFrances,
+                      'O ingresa con',
+                      style: AppTypography.body4.copyWith(
+                        color: AppColors.greyNegroV2,
+                        height: 1.49,
                       ),
                     ),
                   ),
+                  const Expanded(child: Divider()),
                 ],
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xxxl),
-              child: Text(
-                'Inicia con el correo o celular que definiste como método de ingreso en el momento del registro.',
-                textAlign: TextAlign.start,
-                style: AppTypography.body4,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.m),
-              child: CustomTextField(
-                label: 'Correo electrónico o celular',
-                hint: 'Correo / Celular',
-                controller: _identifierController,
-                labelStyle: AppTypography.body6,
-                hintStyle: AppTypography.body4.copyWith(
-                  color: AppColors.greyMedio,
-                ),
-                borderColor: AppColors.greyMedio,
-                keyboardType: TextInputType.emailAddress,
-                maxLength: 50,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(top: AppSpacing.xl),
-              child: CustomButton(
-                text: 'Continuar',
-                onPressed: _isValidInput ? _handleContinue : null,
-              ),
-            ),
-            Center(child: _BiometricButton()),
-            const SizedBox(height: AppSpacing.xl),
-            Row(
-              children: [
-                const Expanded(child: Divider()),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                  child: Text(
-                    'O ingresa con',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyNegroV2,
-                      height: 1.49,
-                    ),
+              const SizedBox(height: AppSpacing.l),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _SocialButton(
+                    iconPath: 'assets/icons/Google_icon.svg',
+                    label: 'Google',
+                    onTap: _handleGoogleSignIn,
                   ),
-                ),
-                const Expanded(child: Divider()),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.l),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _SocialButton(
-                  iconPath: 'assets/icons/Google_icon.svg',
-                  label: 'Google',
-                  onTap: _handleGoogleSignIn,
-                ),
-                const SizedBox(width: AppSpacing.socialButtonGap),
-                _SocialButton(
-                  iconPath: 'assets/icons/Microsoft_icon.svg',
-                  label: 'Microsoft',
-                ),
-                const SizedBox(width: AppSpacing.socialButtonGap),
-                _SocialButton(
-                  iconPath: 'assets/icons/Apple_icon.svg',
-                  label: 'Apple',
-                ),
-              ],
-            ),
-          ],
+                  const SizedBox(width: AppSpacing.socialButtonGap),
+                  _SocialButton(
+                    iconPath: 'assets/icons/Microsoft_icon.svg',
+                    label: 'Microsoft',
+                  ),
+                  const SizedBox(width: AppSpacing.socialButtonGap),
+                  _SocialButton(
+                    iconPath: 'assets/icons/Apple_icon.svg',
+                    label: 'Apple',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       ),
     );

@@ -6,6 +6,8 @@ import '../../domain/usecases/login_usecase.dart';
 import '../../domain/usecases/verify_code_usecase.dart';
 import '../../domain/usecases/resend_code_usecase.dart';
 import '../../domain/usecases/check_identification_exists_usecase.dart';
+import '../../domain/usecases/check_social_auth_usecase.dart';
+import '../../domain/usecases/register_social_usecase.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -13,6 +15,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final VerifyCodeUseCase verifyCodeUseCase;
   final ResendCodeUseCase resendCodeUseCase;
   final CheckIdentificationExistsUseCase checkIdentificationExistsUseCase;
+  final CheckSocialAuthUseCase checkSocialAuthUseCase;
+  final RegisterSocialUseCase registerSocialUseCase;
 
   AuthBloc({
     required this.registerUseCase,
@@ -20,6 +24,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.verifyCodeUseCase,
     required this.resendCodeUseCase,
     required this.checkIdentificationExistsUseCase,
+    required this.checkSocialAuthUseCase,
+    required this.registerSocialUseCase,
   }) : super(AuthInitial()) {
     on<SignUpSubmitted>((event, emit) async {
       emit(AuthLoading());
@@ -86,6 +92,36 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       result.fold(
         (failure) => emit(AuthError(failure.message)),
         (_) => emit(ResendCodeSuccess()),
+      );
+    });
+
+    on<SocialAuthChecked>((event, emit) async {
+      emit(AuthLoading());
+
+      final result = await checkSocialAuthUseCase(
+        provider: event.provider,
+        token: event.token,
+      );
+
+      result.fold((failure) => emit(AuthError(failure.message)), (response) {
+        if (response['status'] == 'NEED_REGISTER') {
+          emit(SocialAuthNeedRegister(response));
+        } else if (response['status'] == 'SUCCESS') {
+          emit(AuthSuccess(response['user']));
+        } else {
+          emit(AuthError('Respuesta inesperada del servidor'));
+        }
+      });
+    });
+
+    on<SocialRegisterSubmitted>((event, emit) async {
+      emit(AuthLoading());
+
+      final result = await registerSocialUseCase(event.data);
+
+      result.fold(
+        (failure) => emit(AuthError(failure.message)),
+        (user) => emit(AuthSuccess(user)),
       );
     });
   }
