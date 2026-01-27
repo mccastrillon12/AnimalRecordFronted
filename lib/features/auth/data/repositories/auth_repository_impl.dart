@@ -148,7 +148,8 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final response = await remoteDataSource.checkSocialToken(provider, token);
 
-      if (response['status'] == 'SUCCESS') {
+      if (response['status'] == 'SUCCESS' ||
+          response['status'] == 'LOGIN_SUCCESS') {
         final userData = response['user'] ?? response;
         final userModel = UserModel.fromJson(userData);
 
