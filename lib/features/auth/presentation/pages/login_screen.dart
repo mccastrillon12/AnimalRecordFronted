@@ -2,11 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
+import 'social_register_completion_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -73,6 +75,49 @@ class _LoginScreenState extends State<LoginScreen> {
         builder: (context) => PasswordScreen(identifier: identifier),
       ),
     );
+  }
+
+  // ... (inside class)
+
+  final google_sign_in.GoogleSignIn _googleSignIn =
+      google_sign_in.GoogleSignIn();
+
+  Future<void> _handleGoogleSignIn() async {
+    // Note: un-focusing can cause a layout shift that contributes to blinking
+    // when native dialogs open. Skipping for now as per user report.
+
+    try {
+      final google_sign_in.GoogleSignInAccount? googleUser = await _googleSignIn
+          .signIn();
+
+      if (googleUser != null) {
+        print('Signed in as: ${googleUser.email}');
+
+        if (mounted) {
+          // Use PageRouteBuilder for an instant transition, avoiding the
+          // Flutter "slide" animation that can overlap with the Android resume.
+          Navigator.push(
+            context,
+            PageRouteBuilder(
+              pageBuilder: (context, animation, secondaryAnimation) =>
+                  SocialRegisterCompletionScreen(
+                    name: googleUser.displayName ?? '',
+                    email: googleUser.email,
+                  ),
+              transitionDuration: Duration.zero,
+              reverseTransitionDuration: Duration.zero,
+            ),
+          );
+        }
+      }
+    } catch (error) {
+      print('Google Sign-In failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error al iniciar sesión con Google: $error')),
+        );
+      }
+    }
   }
 
   @override
@@ -172,6 +217,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 _SocialButton(
                   iconPath: 'assets/icons/Google_icon.svg',
                   label: 'Google',
+                  onTap: _handleGoogleSignIn,
                 ),
                 const SizedBox(width: AppSpacing.socialButtonGap),
                 _SocialButton(
@@ -243,34 +289,42 @@ class _BiometricButton extends StatelessWidget {
 class _SocialButton extends StatelessWidget {
   final String iconPath;
   final String label;
+  final VoidCallback? onTap;
 
-  const _SocialButton({required this.iconPath, required this.label});
+  const _SocialButton({
+    required this.iconPath,
+    required this.label,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          width: AppSpacing.socialButtonSize,
-          height: AppSpacing.socialButtonSize,
-          padding: const EdgeInsets.all(AppSpacing.s),
-          decoration: BoxDecoration(
-            color: AppColors.greyIconosBackground,
-            border: Border.all(color: AppColors.border),
-            borderRadius: AppBorders.medium(),
+    return GestureDetector(
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: AppSpacing.socialButtonSize,
+            height: AppSpacing.socialButtonSize,
+            padding: const EdgeInsets.all(AppSpacing.s),
+            decoration: BoxDecoration(
+              color: AppColors.greyIconosBackground,
+              border: Border.all(color: AppColors.border),
+              borderRadius: AppBorders.medium(),
+            ),
+            child: SvgPicture.asset(
+              iconPath,
+              width: AppSpacing.iconSizeSmall,
+              height: AppSpacing.iconSizeSmall,
+            ),
           ),
-          child: SvgPicture.asset(
-            iconPath,
-            width: AppSpacing.iconSizeSmall,
-            height: AppSpacing.iconSizeSmall,
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            label,
+            style: AppTypography.body6.copyWith(color: AppColors.textSecondary),
           ),
-        ),
-        const SizedBox(height: AppSpacing.xs),
-        Text(
-          label,
-          style: AppTypography.body6.copyWith(color: AppColors.textSecondary),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

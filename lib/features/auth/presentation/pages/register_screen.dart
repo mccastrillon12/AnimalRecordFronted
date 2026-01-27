@@ -373,14 +373,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return false;
       }
       if (step == 1) {
-        bool isValid =
+        // As per user request: "el button solo se debe activar cuando el campo identificacion este lleno"
+        // and "el pais debe ir deshabilitado" (already handled in step widget).
+        // Standard personal data fields (Name/Country) might still be required for a valid user,
+        // but the button's activation is primarily driven by ID in this specific request.
+        return idController.text.isNotEmpty &&
             nameController.text.isNotEmpty &&
-            idController.text.isNotEmpty &&
             countryController.text.isNotEmpty;
-
-        // Optional Email/Phone validation removed here - handled inline on submit
-
-        return isValid;
       }
     }
 

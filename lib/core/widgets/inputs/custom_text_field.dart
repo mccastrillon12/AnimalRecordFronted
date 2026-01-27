@@ -28,6 +28,7 @@ class CustomTextField extends StatelessWidget {
   final VoidCallback? onEditingComplete;
   final TextInputAction? textInputAction;
   final String? errorText;
+  final bool? enabled;
 
   const CustomTextField({
     super.key,
@@ -53,6 +54,7 @@ class CustomTextField extends StatelessWidget {
     this.onEditingComplete,
     this.textInputAction,
     this.errorText,
+    this.enabled,
   });
 
   @override
@@ -94,6 +96,7 @@ class CustomTextField extends StatelessWidget {
             height: AppSpacing.inputHeight,
             child: TextFormField(
               controller: controller,
+              enabled: enabled,
               obscureText: obscureText ?? isPassword,
               keyboardType: keyboardType,
               validator: validator,
