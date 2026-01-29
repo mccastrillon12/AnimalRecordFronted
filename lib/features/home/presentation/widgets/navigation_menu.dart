@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 
 class NavigationMenu extends StatefulWidget {
@@ -10,6 +11,7 @@ class NavigationMenu extends StatefulWidget {
 }
 
 class _NavigationMenuState extends State<NavigationMenu> {
+  bool _isExpanded = true;
   int _selectedIndex = 4; // Default to 'Inicio' (index 4)
 
   void _onItemTapped(int index) {
@@ -20,75 +22,110 @@ class _NavigationMenuState extends State<NavigationMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F1925).withOpacity(0.08),
-            offset: const Offset(0, 4),
-            blurRadius: 8,
-            spreadRadius: 0,
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 16),
-      child: Column(
-        children: [
-          // First row: Mapa, +Animal, Agenda
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: [
-              _NavItem(
-                svgPath: 'assets/icons/mapa.svg',
-                label: 'Mapa',
-                isActive: _selectedIndex == 0,
-                onTap: () => _onItemTapped(0),
-              ),
-              _NavItem(
-                svgPath: 'assets/icons/+animal.svg',
-                label: '+ Animal',
-                isActive: _selectedIndex == 1,
-                onTap: () => _onItemTapped(1),
-              ),
-              _NavItem(
-                svgPath: 'assets/icons/agenda.svg',
-                label: 'Agenda',
-                isActive: _selectedIndex == 2,
-                onTap: () => _onItemTapped(2),
+    return Column(
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(16),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF0F1925).withOpacity(0.08),
+                offset: const Offset(0, 4),
+                blurRadius: 8,
+                spreadRadius: 0,
               ),
             ],
           ),
-
-          const SizedBox(height: 24),
-
-          // Second row: Mis animales, Inicio, Carné vacunas
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 16),
+          child: Column(
             children: [
-              _NavItem(
-                svgPath: 'assets/icons/animales.svg',
-                label: 'Mis animales',
-                isActive: _selectedIndex == 3,
-                onTap: () => _onItemTapped(3),
+              // First row: Mapa, +Animal, Agenda (Collapsible)
+              AnimatedSize(
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeInOut,
+                child: _isExpanded
+                    ? Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _NavItem(
+                                svgPath: 'assets/icons/mapa.svg',
+                                label: 'Mapa',
+                                isActive: _selectedIndex == 0,
+                                onTap: () => _onItemTapped(0),
+                              ),
+                              _NavItem(
+                                svgPath: 'assets/icons/+animal.svg',
+                                label: '+ Animal',
+                                isActive: _selectedIndex == 1,
+                                onTap: () => _onItemTapped(1),
+                              ),
+                              _NavItem(
+                                svgPath: 'assets/icons/agenda.svg',
+                                label: 'Agenda',
+                                isActive: _selectedIndex == 2,
+                                onTap: () => _onItemTapped(2),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+                      )
+                    : const SizedBox.shrink(),
               ),
-              _NavItem(
-                svgPath: 'assets/icons/inicio.svg',
-                label: 'Inicio',
-                isActive: _selectedIndex == 4,
-                onTap: () => _onItemTapped(4),
-              ),
-              _NavItem(
-                svgPath: 'assets/icons/vacunas.svg',
-                label: 'Carné vacunas',
-                isActive: _selectedIndex == 5,
-                onTap: () => _onItemTapped(5),
+
+              // Second row: Mis animales, Inicio, Carné vacunas
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _NavItem(
+                    svgPath: 'assets/icons/animales.svg',
+                    label: 'Mis animales',
+                    isActive: _selectedIndex == 3,
+                    onTap: () => _onItemTapped(3),
+                  ),
+                  _NavItem(
+                    svgPath: 'assets/icons/inicio.svg',
+                    label: 'Inicio',
+                    isActive: _selectedIndex == 4,
+                    onTap: () => _onItemTapped(4),
+                  ),
+                  _NavItem(
+                    svgPath: 'assets/icons/vacunas.svg',
+                    label: 'Carné vacunas',
+                    isActive: _selectedIndex == 5,
+                    onTap: () => _onItemTapped(5),
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Toggle Expand/Collapse Arrow
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              _isExpanded = !_isExpanded;
+            });
+          },
+          child: SvgPicture.asset(
+            _isExpanded ? 'assets/icons/Up.svg' : 'assets/icons/Down.svg',
+            width: 24,
+            height: 16,
+            colorFilter: const ColorFilter.mode(
+              AppColors.greyMedio,
+              BlendMode.srcIn,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

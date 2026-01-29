@@ -59,9 +59,7 @@ class AnimalsSection extends StatelessWidget {
             Text(
               'No tienes ningún animal registrado todavía.',
               textAlign: TextAlign.center,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
 
             const SizedBox(height: 4),
@@ -69,9 +67,7 @@ class AnimalsSection extends StatelessWidget {
             Text(
               'Empieza agregando uno desde',
               textAlign: TextAlign.center,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
 
             const SizedBox(height: 24),
