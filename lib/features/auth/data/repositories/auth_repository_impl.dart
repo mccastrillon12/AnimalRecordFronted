@@ -67,6 +67,7 @@ class AuthRepositoryImpl implements AuthRepository {
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
+        await tokenStorage.saveUserId(userModel.id);
       }
 
       return Right(userModel);
@@ -161,6 +162,7 @@ class AuthRepositoryImpl implements AuthRepository {
             accessToken: accessToken,
             refreshToken: refreshToken,
           );
+          await tokenStorage.saveUserId(userModel.id);
         }
         return Right({'status': 'SUCCESS', 'user': userModel});
       }
@@ -189,9 +191,19 @@ class AuthRepositoryImpl implements AuthRepository {
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
+        await tokenStorage.saveUserId(userModel.id);
       }
-
       return Right(userModel);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> getUserProfile(String id) async {
+    try {
+      final user = await remoteDataSource.getUserProfile(id);
+      return Right(user);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

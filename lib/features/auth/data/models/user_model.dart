@@ -71,6 +71,10 @@ class UserModel extends UserEntity {
       json['city'] = city;
     }
 
+    if (country.isNotEmpty) {
+      json['country'] = country;
+    }
+
     if (professionalCard != null && professionalCard!.isNotEmpty) {
       json['professionalCard'] = professionalCard;
     }

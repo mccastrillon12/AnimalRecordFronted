@@ -51,6 +51,7 @@ class _SocialRegisterCompletionScreenState
   String _selectedIdType = 'C.C.';
   String? _idErrorText;
   String? _phoneErrorText;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -110,7 +111,7 @@ class _SocialRegisterCompletionScreenState
     if (_selectedIdType == 'C.E.') idType = 'CE';
     if (_selectedIdType == 'Pasaporte') idType = 'PAS';
 
-    final data = {
+    final Map<String, dynamic> data = {
       'preAuthToken': widget.preAuthToken,
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
@@ -130,7 +131,8 @@ class _SocialRegisterCompletionScreenState
     return AuthFormContainer(
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
+          if (state is AuthSuccess && !_isNavigating) {
+            _isNavigating = true;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Registro vía Google exitoso.')),
             );

@@ -10,6 +10,7 @@ import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -25,6 +26,7 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:logger/logger.dart';
 
 final sl = GetIt.instance;
 
@@ -41,6 +43,8 @@ Future<void> init() async {
       checkIdentificationExistsUseCase: sl(),
       checkSocialAuthUseCase: sl(),
       registerSocialUseCase: sl(),
+      getUserProfileUseCase: sl(),
+      tokenStorage: sl(),
     ),
   );
 
@@ -54,6 +58,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CheckIdentificationExistsUseCase(sl()));
   sl.registerLazySingleton(() => CheckSocialAuthUseCase(sl()));
   sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
@@ -112,4 +117,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton(() => dio);
+
+  // Logger
+  sl.registerLazySingleton(() => Logger());
 }

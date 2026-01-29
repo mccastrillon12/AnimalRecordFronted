@@ -71,3 +71,5 @@ class SocialRegisterSubmitted extends AuthEvent {
   @override
   List<Object?> get props => [data];
 }
+
+class FetchUserRequested extends AuthEvent {}

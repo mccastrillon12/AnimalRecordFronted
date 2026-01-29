@@ -1,13 +1,17 @@
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../domain/usecases/register_usecase.dart';
-import '../../domain/usecases/login_usecase.dart';
-import '../../domain/usecases/verify_code_usecase.dart';
-import '../../domain/usecases/resend_code_usecase.dart';
-import '../../domain/usecases/check_identification_exists_usecase.dart';
-import '../../domain/usecases/check_social_auth_usecase.dart';
-import '../../domain/usecases/register_social_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/register_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/login_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
+import 'package:animal_record/core/services/token_storage.dart';
+import 'dart:convert';
+import 'package:animal_record/features/auth/data/models/user_model.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -17,6 +21,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckIdentificationExistsUseCase checkIdentificationExistsUseCase;
   final CheckSocialAuthUseCase checkSocialAuthUseCase;
   final RegisterSocialUseCase registerSocialUseCase;
+  final GetUserProfileUseCase getUserProfileUseCase;
+  final TokenStorage tokenStorage;
 
   AuthBloc({
     required this.registerUseCase,
@@ -26,7 +32,55 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.checkIdentificationExistsUseCase,
     required this.checkSocialAuthUseCase,
     required this.registerSocialUseCase,
+    required this.getUserProfileUseCase,
+    required this.tokenStorage,
   }) : super(AuthInitial()) {
+    on<FetchUserRequested>((event, emit) async {
+      // 1. Try to load from cache
+      final cachedUser = await tokenStorage.getUserData();
+      if (cachedUser != null) {
+        try {
+          final userMap = json.decode(cachedUser);
+          final user = UserModel.fromJson(userMap);
+
+          // Only emit if we are not already in AuthSuccess with the same user
+          final currentState = state;
+          if (currentState is! AuthSuccess || currentState.user != user) {
+            emit(AuthSuccess(user));
+          }
+        } catch (e) {
+          // If decoding fails, ignore and fetch from API
+        }
+      }
+
+      // 2. Fetch from API using stored ID
+      final userId = await tokenStorage.getUserId();
+      if (userId != null) {
+        final result = await getUserProfileUseCase(userId);
+
+        await result.fold(
+          (failure) async {
+            // Only show error if we don't have cached data
+            if (state is! AuthSuccess) {
+              emit(AuthError(failure.message));
+            }
+          },
+          (user) async {
+            // Update cache
+            if (user is UserModel) {
+              await tokenStorage.saveUserData(json.encode(user.toJson()));
+            }
+
+            // Only emit if the user data is actually different from what we have
+            final currentState = state;
+            if (currentState is! AuthSuccess || currentState.user != user) {
+              emit(AuthSuccess(user));
+            }
+          },
+        );
+      }
+    });
+
     on<SignUpSubmitted>((event, emit) async {
       emit(AuthLoading());
 

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
+import 'package:logger/logger.dart';
+import 'package:animal_record/core/injection_container.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -29,6 +31,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _identifierController = TextEditingController();
   bool _isValidInput = false;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -103,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       }
     } catch (error) {
-      print('Google Sign-In failed: $error');
+      sl<Logger>().e('Google Sign-In failed: $error');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al iniciar sesión con Google: $error')),
@@ -139,7 +142,8 @@ class _LoginScreenState extends State<LoginScreen> {
       listener: (context, state) {
         if (state is SocialAuthNeedRegister) {
           _navigateToRegistrationCompletion(state.response);
-        } else if (state is AuthSuccess) {
+        } else if (state is AuthSuccess && !_isNavigating) {
+          _isNavigating = true;
           Navigator.pushReplacementNamed(context, '/home');
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(

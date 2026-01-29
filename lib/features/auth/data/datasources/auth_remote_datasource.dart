@@ -12,6 +12,7 @@ abstract class AuthRemoteDataSource {
   Future<bool> checkIdentificationExists(String identificationNumber);
   Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data);
+  Future<UserModel> getUserProfile(String id);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -210,6 +211,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       print('Status: ${e.response?.statusCode}');
       print('Data: ${e.response?.data}');
       print('------------------------------');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    }
+  }
+
+  @override
+  Future<UserModel> getUserProfile(String id) async {
+    try {
+      final response = await dio.get('/users/$id');
+
+      if (response.statusCode == 200) {
+        return UserModel.fromJson(response.data);
+      } else {
+        throw Exception('Error al obtener el perfil del usuario');
+      }
+    } on DioException catch (e) {
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

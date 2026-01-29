@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import '../../../../features/auth/presentation/bloc/auth_bloc.dart';
+import '../../../../features/auth/presentation/bloc/auth_state.dart';
 
 class UserHeader extends StatelessWidget {
   const UserHeader({super.key});
@@ -74,28 +77,52 @@ class UserHeader extends StatelessWidget {
 
                 // User info
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      // Greeting
-                      Text(
-                        'Hola, John Doe', // TODO: Replace with actual user name
-                        style: AppTypography.heading2.copyWith(
-                          color: AppColors.white,
-                        ),
-                      ),
+                  child: BlocBuilder<AuthBloc, AuthState>(
+                    buildWhen: (previous, current) {
+                      // Only rebuild if it's a success state or if transitioning out of success
+                      if (current is AuthSuccess || previous is AuthSuccess) {
+                        return true;
+                      }
+                      return false;
+                    },
+                    builder: (context, state) {
+                      String name = 'Usuario';
+                      String role = 'Propietario';
 
-                      const SizedBox(height: 4),
+                      if (state is AuthSuccess) {
+                        name = state.user.name;
+                        if (state.user.roles.isNotEmpty) {
+                          role = state.user.roles.first == 'PROPIETARIO_MASCOTA'
+                              ? 'Propietario'
+                              : state.user.roles.first;
+                        }
+                      }
 
-                      // User role
-                      Text(
-                        'Propietario', // TODO: Replace with actual user role
-                        style: AppTypography.body3.copyWith(
-                          color: AppColors.white.withValues(alpha: 0.85),
-                        ),
-                      ),
-                    ],
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Greeting
+                          Text(
+                            'Hola, $name',
+                            style: AppTypography.heading2.copyWith(
+                              color: AppColors.white,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          // User role
+                          Text(
+                            role,
+                            style: AppTypography.body3.copyWith(
+                              color: AppColors.white.withValues(alpha: 0.85),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
 
