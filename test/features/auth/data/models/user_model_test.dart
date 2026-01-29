@@ -19,6 +19,7 @@ void main() {
     roles: ['Veterinario'],
     authMethod: 'EMAIL',
     countryId: 'CO',
+    isVerified: true,
   );
 
   group('UserModel', () {
@@ -44,6 +45,8 @@ void main() {
           'isHomeDelivery': true,
           'roles': ['Veterinario'],
           'authMethod': 'EMAIL',
+          'countryId': 'CO',
+          'isVerified': true,
         };
 
         final result = UserModel.fromJson(jsonMap);
@@ -60,6 +63,7 @@ void main() {
         'name': 'Test User',
         'identificationType': 'CC',
         'identificationNumber': '12345',
+        'countryId': 'CO',
         'country': 'Colombia',
         'city': 'Bogota',
         'email': 'test@test.com',
@@ -70,6 +74,7 @@ void main() {
         'isHomeDelivery': true,
         'roles': ['Veterinario'],
         'authMethod': 'EMAIL',
+        'isVerified': true,
       };
 
       expect(result, expectedMap);

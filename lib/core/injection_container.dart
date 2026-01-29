@@ -44,6 +44,7 @@ Future<void> init() async {
       checkSocialAuthUseCase: sl(),
       registerSocialUseCase: sl(),
       getUserProfileUseCase: sl(),
+      logoutUseCase: sl(),
       tokenStorage: sl(),
     ),
   );

@@ -9,6 +9,7 @@ import 'package:animal_record/features/auth/domain/usecases/check_identification
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -22,6 +23,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckSocialAuthUseCase checkSocialAuthUseCase;
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
+  final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
   AuthBloc({
@@ -33,6 +35,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.checkSocialAuthUseCase,
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
+    required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
     on<FetchUserRequested>((event, emit) async {
@@ -86,9 +89,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await registerUseCase(event.userData);
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (user) => emit(AuthSuccess(user)),
+      await result.fold(
+        (failure) async => emit(AuthError(failure.message)),
+        (user) async => emit(AuthSuccess(user)),
       );
     });
 
@@ -97,22 +100,31 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await loginUseCase(event.credentials);
 
-      result.fold((failure) {
-        if (failure.message.contains('UserNotVerified')) {
-          int? timeRemaining;
-          try {
-            final match = RegExp(
-              r'UserNotVerified:(\d+)',
-            ).firstMatch(failure.message);
-            if (match != null) {
-              timeRemaining = int.tryParse(match.group(1)!);
-            }
-          } catch (_) {}
-          emit(AuthUserNotVerified(timeRemaining: timeRemaining));
-        } else {
-          emit(AuthError(failure.message));
-        }
-      }, (user) => emit(AuthSuccess(user)));
+      await result.fold(
+        (failure) async {
+          if (failure.message.contains('UserNotVerified')) {
+            int? timeRemaining;
+            try {
+              final match = RegExp(
+                r'UserNotVerified:(\d+)',
+              ).firstMatch(failure.message);
+              if (match != null) {
+                timeRemaining = int.tryParse(match.group(1)!);
+              }
+            } catch (_) {}
+            emit(AuthUserNotVerified(timeRemaining: timeRemaining));
+          } else {
+            emit(AuthError(failure.message));
+          }
+        },
+        (user) async {
+          // Cache full user profile
+          if (user is UserModel) {
+            await tokenStorage.saveUserData(json.encode(user.toJson()));
+          }
+          emit(AuthSuccess(user));
+        },
+      );
     });
 
     on<VerifyCodeSubmitted>((event, emit) async {
@@ -120,9 +132,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await verifyCodeUseCase(event.params);
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (_) => emit(VerificationSuccess()),
+      await result.fold(
+        (failure) async => emit(AuthError(failure.message)),
+        (_) async => emit(VerificationSuccess()),
       );
     });
 
@@ -133,9 +145,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         event.identificationNumber,
       );
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (exists) => emit(IdentificationCheckResult(exists)),
+      await result.fold(
+        (failure) async => emit(AuthError(failure.message)),
+        (exists) async => emit(IdentificationCheckResult(exists)),
       );
     });
 
@@ -143,9 +155,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       // Don't emit AuthLoading to avoid blocking the verify button
       final result = await resendCodeUseCase(event.identifier);
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (_) => emit(ResendCodeSuccess()),
+      await result.fold(
+        (failure) async => emit(AuthError(failure.message)),
+        (_) async => emit(ResendCodeSuccess()),
       );
     });
 
@@ -157,11 +169,18 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         token: event.token,
       );
 
-      result.fold((failure) => emit(AuthError(failure.message)), (response) {
+      await result.fold((failure) async => emit(AuthError(failure.message)), (
+        response,
+      ) async {
         if (response['status'] == 'NEED_REGISTER') {
           emit(SocialAuthNeedRegister(response));
         } else if (response['status'] == 'SUCCESS') {
-          emit(AuthSuccess(response['user']));
+          final user = response['user'];
+          // Cache full user profile
+          if (user is UserModel) {
+            await tokenStorage.saveUserData(json.encode(user.toJson()));
+          }
+          emit(AuthSuccess(user));
         } else {
           emit(AuthError('Respuesta inesperada del servidor'));
         }
@@ -173,10 +192,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await registerSocialUseCase(event.data);
 
-      result.fold(
-        (failure) => emit(AuthError(failure.message)),
-        (user) => emit(AuthSuccess(user)),
-      );
+      await result.fold((failure) async => emit(AuthError(failure.message)), (
+        user,
+      ) async {
+        // Cache full user profile
+        if (user is UserModel) {
+          await tokenStorage.saveUserData(json.encode(user.toJson()));
+        }
+        emit(AuthSuccess(user));
+      });
+    });
+
+    on<LogoutRequested>((event, emit) async {
+      emit(AuthLoading());
+      await logoutUseCase();
+      emit(AuthInitial());
     });
   }
 }

@@ -39,6 +39,7 @@ class AuthRepositoryImpl implements AuthRepository {
         roles: params.roles,
         authMethod: params.authMethod,
         password: params.password,
+        isVerified: false, // Initial registration state
       );
 
       final result = await remoteDataSource.signUp(userModel);
@@ -54,9 +55,17 @@ class AuthRepositoryImpl implements AuthRepository {
       final credentials = params.toJson();
       final response = await remoteDataSource.login(credentials);
 
-      // Parse user data from response
+      // Parse user data from response to get the ID
+      print('--- DEBUG LOGIN RESPONSE ---');
+      print('Response: $response');
+      print('----------------------------');
+
       final userData = response['user'] ?? response;
-      final userModel = UserModel.fromJson(userData);
+      final userId = (userData['id'] ?? '').toString();
+
+      if (userId.isEmpty) {
+        print('WARNING: User ID is empty in login response');
+      }
 
       // Store tokens securely
       final accessToken = response['accessToken'] as String?;
@@ -67,10 +76,13 @@ class AuthRepositoryImpl implements AuthRepository {
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
-        await tokenStorage.saveUserId(userModel.id);
+        await tokenStorage.saveUserId(userId);
       }
 
-      return Right(userModel);
+      // Fetch FULL profile to ensure we have the correct name and other fields
+      final fullProfile = await remoteDataSource.getUserProfile(userId);
+
+      return Right(fullProfile);
     } on UserNotVerifiedException catch (e) {
       // Pass UserNotVerified as a specific failure with timeRemaining
       return Left(ServerFailure('UserNotVerified:${e.timeRemaining ?? ""}'));
@@ -152,7 +164,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (response['status'] == 'SUCCESS' ||
           response['status'] == 'LOGIN_SUCCESS') {
         final userData = response['user'] ?? response;
-        final userModel = UserModel.fromJson(userData);
+        final userId = (userData['id'] ?? '').toString();
 
         final accessToken = response['accessToken'] as String?;
         final refreshToken = response['refreshToken'] as String?;
@@ -162,9 +174,13 @@ class AuthRepositoryImpl implements AuthRepository {
             accessToken: accessToken,
             refreshToken: refreshToken,
           );
-          await tokenStorage.saveUserId(userModel.id);
+          await tokenStorage.saveUserId(userId);
         }
-        return Right({'status': 'SUCCESS', 'user': userModel});
+
+        // Fetch FULL profile
+        final fullProfile = await remoteDataSource.getUserProfile(userId);
+
+        return Right({'status': 'SUCCESS', 'user': fullProfile});
       }
 
       return Right(response);
@@ -181,7 +197,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await remoteDataSource.registerSocial(data);
 
       final userData = response['user'] ?? response;
-      final userModel = UserModel.fromJson(userData);
+      final userId = (userData['id'] ?? '').toString();
 
       final accessToken = response['accessToken'] as String?;
       final refreshToken = response['refreshToken'] as String?;
@@ -191,9 +207,13 @@ class AuthRepositoryImpl implements AuthRepository {
           accessToken: accessToken,
           refreshToken: refreshToken,
         );
-        await tokenStorage.saveUserId(userModel.id);
+        await tokenStorage.saveUserId(userId);
       }
-      return Right(userModel);
+
+      // Fetch FULL profile
+      final fullProfile = await remoteDataSource.getUserProfile(userId);
+
+      return Right(fullProfile);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }

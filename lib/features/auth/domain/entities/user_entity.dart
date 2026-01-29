@@ -17,6 +17,8 @@ class UserEntity extends Equatable {
   final List<String> roles;
   final String authMethod;
 
+  final bool isVerified;
+
   const UserEntity({
     required this.id,
     required this.name,
@@ -33,6 +35,7 @@ class UserEntity extends Equatable {
     required this.isHomeDelivery,
     required this.roles,
     required this.authMethod,
+    required this.isVerified,
   });
 
   @override
@@ -52,5 +55,6 @@ class UserEntity extends Equatable {
     isHomeDelivery,
     roles,
     authMethod,
+    isVerified,
   ];
 }

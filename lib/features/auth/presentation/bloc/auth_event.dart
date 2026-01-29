@@ -73,3 +73,5 @@ class SocialRegisterSubmitted extends AuthEvent {
 }
 
 class FetchUserRequested extends AuthEvent {}
+
+class LogoutRequested extends AuthEvent {}

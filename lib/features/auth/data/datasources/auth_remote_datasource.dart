@@ -62,8 +62,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.post('/auth/login', data: credentials);
 
+      print('--- DEBUG LOGIN ---');
+      print('Status: ${response.statusCode}');
+      print('Data: ${response.data}');
+      print('Data Type: ${response.data.runtimeType}');
+      print('-------------------');
+
       if (response.statusCode == 200) {
-        return response.data;
+        if (response.data is List && (response.data as List).isNotEmpty) {
+          return response.data[0] as Map<String, dynamic>;
+        }
+        return response.data as Map<String, dynamic>;
       } else {
         throw Exception('Error en el login');
       }
@@ -178,9 +187,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       print('--- SOCIAL CHECK SUCCESS ---');
       print('Response: ${response.data}');
+      print('Data Type: ${response.data.runtimeType}');
       print('----------------------------');
 
-      return response.data;
+      if (response.data is List && (response.data as List).isNotEmpty) {
+        return response.data[0] as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       print('--- SOCIAL CHECK ERROR ---');
       print('Status: ${e.response?.statusCode}');
@@ -203,9 +216,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       print('--- SOCIAL REGISTER SUCCESS ---');
       print('Response: ${response.data}');
+      print('Data Type: ${response.data.runtimeType}');
       print('-------------------------------');
 
-      return response.data;
+      if (response.data is List && (response.data as List).isNotEmpty) {
+        return response.data[0] as Map<String, dynamic>;
+      }
+      return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       print('--- SOCIAL REGISTER ERROR ---');
       print('Status: ${e.response?.statusCode}');
@@ -220,8 +237,19 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.get('/users/$id');
 
+      print('--- DEBUG GET USER PROFILE ---');
+      print('ID: $id');
+      print('Status: ${response.statusCode}');
+      print('Data: ${response.data}');
+      print('Data Type: ${response.data.runtimeType}');
+      print('------------------------------');
+
       if (response.statusCode == 200) {
-        return UserModel.fromJson(response.data);
+        final dynamic data = response.data;
+        if (data is List && data.isNotEmpty) {
+          return UserModel.fromJson(data[0] as Map<String, dynamic>);
+        }
+        return UserModel.fromJson(data as Map<String, dynamic>);
       } else {
         throw Exception('Error al obtener el perfil del usuario');
       }

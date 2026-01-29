@@ -5,6 +5,8 @@ import 'package:animal_record/features/auth/presentation/pages/login_screen.dart
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 
+import 'package:animal_record/features/auth/presentation/pages/profile_screen.dart';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
@@ -41,6 +43,7 @@ class MyApp extends StatelessWidget {
         routes: {
           '/': (context) => const LoginScreen(),
           '/home': (context) => const HomeScreen(),
+          '/profile': (context) => const ProfileScreen(),
         },
       ),
     );

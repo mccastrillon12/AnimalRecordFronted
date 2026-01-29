@@ -43,32 +43,34 @@ class UserHeader extends StatelessWidget {
             ),
             child: Row(
               children: [
-                // Profile image
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: AppColors.white.withValues(alpha: 0.3),
-                      width: 2,
+                GestureDetector(
+                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: AppColors.white.withValues(alpha: 0.3),
+                        width: 2,
+                      ),
                     ),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.asset(
-                      'assets/images/default_avatar.png',
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          color: AppColors.primaryIndigo,
-                          child: const Icon(
-                            Icons.person,
-                            color: AppColors.white,
-                            size: 32,
-                          ),
-                        );
-                      },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/images/default_avatar.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            color: AppColors.primaryIndigo,
+                            child: const Icon(
+                              Icons.person,
+                              color: AppColors.white,
+                              size: 32,
+                            ),
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ),

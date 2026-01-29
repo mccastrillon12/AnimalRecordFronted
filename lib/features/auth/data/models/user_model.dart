@@ -19,6 +19,7 @@ class UserModel extends UserEntity {
     required super.isHomeDelivery,
     required super.roles,
     required super.authMethod,
+    required super.isVerified,
     this.password,
   });
 
@@ -39,6 +40,7 @@ class UserModel extends UserEntity {
       isHomeDelivery: json['isHomeDelivery'] ?? false,
       roles: List<String>.from(json['roles'] ?? []),
       authMethod: json['authMethod'] ?? 'EMAIL',
+      isVerified: json['isVerified'] ?? false,
     );
   }
 
@@ -54,6 +56,7 @@ class UserModel extends UserEntity {
       'animalTypes': animalTypes,
       'services': services,
       'isHomeDelivery': isHomeDelivery,
+      'isVerified': isVerified,
     };
 
     // Only include email if not empty
