@@ -16,6 +16,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
+import '../../../locations/domain/entities/country_entity.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
@@ -101,22 +102,8 @@ class _SocialRegisterCompletionScreenState
   void _onSubmit() {
     if (!_validateInternal()) return;
 
-    // Find the dial code for the selected phone country
+    // Use phone number from controller directly
     String phoneWithDialCode = _phoneController.text.trim();
-    if (_phoneController.text.isNotEmpty) {
-      final locationsState = context.read<LocationsCubit>().state;
-      if (locationsState is LocationsLoaded) {
-        final country = locationsState.countries.firstWhere(
-          (c) =>
-              c.id ==
-              (_selectedPhoneCountryId ?? locationsState.countries.first.id),
-        );
-        // Ensure dialCode starts with +
-        String prefix = country.dialCode;
-        if (!prefix.startsWith('+')) prefix = '+$prefix';
-        phoneWithDialCode = '$prefix$phoneWithDialCode';
-      }
-    }
 
     // Mapping display type to backend code
     String idType = 'CC';
@@ -202,9 +189,17 @@ class _SocialRegisterCompletionScreenState
                               state.countries.isNotEmpty) {
                             WidgetsBinding.instance.addPostFrameCallback((_) {
                               if (mounted) {
+                                final colombia = state.countries
+                                    .cast<CountryEntity>()
+                                    .firstWhere(
+                                      (c) => c.name.toLowerCase().contains(
+                                        'colombia',
+                                      ),
+                                      orElse: () => state.countries.first,
+                                    );
                                 setState(() {
-                                  _countryController.text =
-                                      state.countries.first.id;
+                                  _countryController.text = colombia.id;
+                                  _selectedPhoneCountryId = colombia.id;
                                 });
                               }
                             });

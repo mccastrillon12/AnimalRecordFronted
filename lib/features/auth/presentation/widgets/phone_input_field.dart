@@ -40,10 +40,13 @@ class PhoneInputField extends StatelessWidget {
         if (countries.isNotEmpty)
           CountryDropdown(
             label: 'País',
-            value: selectedCountryId ?? countries.first.id,
+            value:
+                selectedCountryId ??
+                (countries.isNotEmpty ? countries.first.id : ''),
             countries: countries,
             onChanged: onCountryChanged,
             showIsoCodeAsValue: true,
+            enabled: true,
           ),
 
         const SizedBox(width: AppSpacing.xs),
