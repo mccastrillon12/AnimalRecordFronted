@@ -24,7 +24,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final jsonData = user.toJson();
 
+      print('--- DEBUG SIGN UP ---');
+      print('URL: /users');
+      print('Payload: $jsonData');
+      print('----------------------');
+
       final response = await dio.post('/users', data: jsonData);
+
+      print('--- SIGN UP SUCCESS ---');
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.data}');
+      print('------------------------');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return UserModel.fromJson(response.data);
@@ -32,8 +42,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('Error en el registro');
       }
     } on DioException catch (e) {
+      print('--- SIGN UP DIO ERROR ---');
+      print('Status: ${e.response?.statusCode}');
+      print('Data: ${e.response?.data}');
+      print('Message: ${e.message}');
+      print('-------------------------');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
+      print('--- SIGN UP UNEXPECTED ERROR ---');
+      print('Error: $e');
+      print('--------------------------------');
       throw Exception('Error inesperado: $e');
     }
   }

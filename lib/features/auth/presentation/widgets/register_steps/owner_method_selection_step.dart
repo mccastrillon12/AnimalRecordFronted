@@ -15,12 +15,14 @@ enum AccessMethod { email, phone }
 class OwnerMethodSelectionStep extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
+  final TextEditingController countryController;
   final ValueChanged<AccessMethod> onMethodChanged;
 
   const OwnerMethodSelectionStep({
     super.key,
     required this.emailController,
     required this.phoneController,
+    required this.countryController,
     required this.onMethodChanged,
   });
 
@@ -90,6 +92,9 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                   onCountryChanged: (value) {
                     setState(() {
                       _selectedPhoneCountryId = value;
+                      if (value != null) {
+                        widget.countryController.text = value;
+                      }
                     });
                   },
                   maxLength: 15,

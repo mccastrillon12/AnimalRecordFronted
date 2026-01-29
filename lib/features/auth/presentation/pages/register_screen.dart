@@ -88,6 +88,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         OwnerMethodSelectionStep(
           emailController: emailController,
           phoneController: phoneController,
+          countryController: countryController,
           onMethodChanged: (method) {
             setState(() {
               _selectedAccessMethod = method;
@@ -428,6 +429,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return controller.text.trim();
     }
 
+    String cellPhone = getFieldValue(phoneController);
+
     context.read<AuthBloc>().add(
       SignUpSubmitted(
         RegisterParams(
@@ -439,7 +442,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ? 'CC'
               : 'CC',
           identificationNumber: getFieldValue(idController),
-          cellPhone: getFieldValue(phoneController),
+          cellPhone: cellPhone,
           country: '', // populated by backend based on countryId
           countryId: getFieldValue(countryController), // stores country ID
           city: widget.role == 'PROPIETARIO_MASCOTA'
