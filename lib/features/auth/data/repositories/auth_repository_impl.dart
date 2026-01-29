@@ -139,4 +139,61 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> checkSocialToken(
+    String provider,
+    String token,
+  ) async {
+    try {
+      final response = await remoteDataSource.checkSocialToken(provider, token);
+
+      if (response['status'] == 'SUCCESS' ||
+          response['status'] == 'LOGIN_SUCCESS') {
+        final userData = response['user'] ?? response;
+        final userModel = UserModel.fromJson(userData);
+
+        final accessToken = response['accessToken'] as String?;
+        final refreshToken = response['refreshToken'] as String?;
+
+        if (accessToken != null && refreshToken != null) {
+          await tokenStorage.saveTokens(
+            accessToken: accessToken,
+            refreshToken: refreshToken,
+          );
+        }
+        return Right({'status': 'SUCCESS', 'user': userModel});
+      }
+
+      return Right(response);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> registerSocial(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final response = await remoteDataSource.registerSocial(data);
+
+      final userData = response['user'] ?? response;
+      final userModel = UserModel.fromJson(userData);
+
+      final accessToken = response['accessToken'] as String?;
+      final refreshToken = response['refreshToken'] as String?;
+
+      if (accessToken != null && refreshToken != null) {
+        await tokenStorage.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+
+      return Right(userModel);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
 }

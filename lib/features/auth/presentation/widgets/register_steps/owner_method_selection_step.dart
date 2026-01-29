@@ -8,6 +8,7 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 import '../phone_input_field.dart';
 
 enum AccessMethod { email, phone }
@@ -15,12 +16,14 @@ enum AccessMethod { email, phone }
 class OwnerMethodSelectionStep extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
+  final TextEditingController countryController;
   final ValueChanged<AccessMethod> onMethodChanged;
 
   const OwnerMethodSelectionStep({
     super.key,
     required this.emailController,
     required this.phoneController,
+    required this.countryController,
     required this.onMethodChanged,
   });
 
@@ -78,15 +81,29 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
           BlocBuilder<LocationsCubit, LocationsState>(
             builder: (context, state) {
               if (state is LocationsLoaded) {
+                if (_selectedPhoneCountryId == null &&
+                    state.countries.isNotEmpty) {
+                  final colombia = state.countries
+                      .cast<CountryEntity>()
+                      .firstWhere(
+                        (c) => c.name.toLowerCase().contains('colombia'),
+                        orElse: () => state.countries.first,
+                      );
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _selectedPhoneCountryId = colombia.id;
+                        widget.countryController.text = colombia.id;
+                      });
+                    }
+                  });
+                }
+
                 return PhoneInputField(
                   label: 'Número de celular',
                   controller: widget.phoneController,
                   countries: state.countries,
-                  selectedCountryId:
-                      _selectedPhoneCountryId ??
-                      (state.countries.isNotEmpty
-                          ? state.countries.first.id
-                          : null),
+                  selectedCountryId: _selectedPhoneCountryId,
                   onCountryChanged: (value) {
                     setState(() {
                       _selectedPhoneCountryId = value;

@@ -48,6 +48,9 @@ dependencies:
   jwt_decoder: ^2.0.1  # Validación de JWT
   flutter_svg: ^2.0.0  # Para renderizar SVGs
   logger: ^2.0.0  # Logging mejorado
+  google_sign_in: ^6.2.2  # Google Sign-In (Downgraded for stability)
+  firebase_core: ^4.4.0
+  firebase_auth: ^6.1.4
 
 dev_dependencies:
   flutter_test:

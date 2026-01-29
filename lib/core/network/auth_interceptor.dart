@@ -127,6 +127,7 @@ class AuthInterceptor extends Interceptor {
     return path.contains('/auth/login') ||
         path.contains('/auth/refresh') ||
         path.contains('/auth/verify') ||
+        path.contains('/auth/social/') ||
         path.contains(
           '/users/identification/',
         ) || // Check if identification exists (public)

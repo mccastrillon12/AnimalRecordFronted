@@ -8,6 +8,8 @@ import 'package:animal_record/features/auth/domain/usecases/check_auth_status_us
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -37,6 +39,8 @@ Future<void> init() async {
       verifyCodeUseCase: sl(),
       resendCodeUseCase: sl(),
       checkIdentificationExistsUseCase: sl(),
+      checkSocialAuthUseCase: sl(),
+      registerSocialUseCase: sl(),
     ),
   );
 
@@ -48,6 +52,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => VerifyCodeUseCase(sl()));
   sl.registerLazySingleton(() => ResendCodeUseCase(sl()));
   sl.registerLazySingleton(() => CheckIdentificationExistsUseCase(sl()));
+  sl.registerLazySingleton(() => CheckSocialAuthUseCase(sl()));
+  sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

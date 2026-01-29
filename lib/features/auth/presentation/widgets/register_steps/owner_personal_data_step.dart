@@ -4,6 +4,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 import '../country_dropdown.dart';
 import '../id_selector.dart';
 import '../phone_input_field.dart';
@@ -69,7 +70,14 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
       listener: (context, state) {
         if (state is LocationsLoaded && state.countries.isNotEmpty) {
           if (widget.countryController.text.isEmpty) {
-            widget.countryController.text = state.countries.first.id;
+            final colombia = state.countries.cast<CountryEntity>().firstWhere(
+              (c) => c.name.toLowerCase().contains('colombia'),
+              orElse: () => state.countries.first,
+            );
+            widget.countryController.text = colombia.id;
+            setState(() {
+              _selectedPhoneCountryId = colombia.id;
+            });
           }
         }
       },

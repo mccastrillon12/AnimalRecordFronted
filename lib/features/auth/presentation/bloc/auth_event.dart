@@ -52,3 +52,22 @@ class CheckIdentificationExists extends AuthEvent {
   @override
   List<Object?> get props => [identificationNumber];
 }
+
+class SocialAuthChecked extends AuthEvent {
+  final String provider;
+  final String token;
+
+  SocialAuthChecked({required this.provider, required this.token});
+
+  @override
+  List<Object?> get props => [provider, token];
+}
+
+class SocialRegisterSubmitted extends AuthEvent {
+  final Map<String, dynamic> data;
+
+  SocialRegisterSubmitted(this.data);
+
+  @override
+  List<Object?> get props => [data];
+}
