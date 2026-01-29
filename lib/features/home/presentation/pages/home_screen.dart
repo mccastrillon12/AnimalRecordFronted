@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import '../widgets/user_header.dart';
@@ -39,11 +38,8 @@ class _HomeScreenState extends State<HomeScreen> {
             const NavigationMenu(),
 
             // Separator
-            Container(
-              height: 1,
-              color: AppColors.greyClaro,
-              margin: const EdgeInsets.symmetric(vertical: AppSpacing.m),
-            ),
+            // Separator
+            const SizedBox(height: 52),
 
             // Animals section (scrollable content)
             const Expanded(child: AnimalsSection()),

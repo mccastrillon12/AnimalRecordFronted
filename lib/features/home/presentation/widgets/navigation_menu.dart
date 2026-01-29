@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
-import 'package:animal_record/core/theme/app_spacing.dart';
 
 class NavigationMenu extends StatefulWidget {
   const NavigationMenu({super.key});
@@ -23,15 +21,24 @@ class _NavigationMenuState extends State<NavigationMenu> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.l,
-        vertical: AppSpacing.m,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(16)),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F1925).withOpacity(0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 8,
+            spreadRadius: 0,
+          ),
+        ],
       ),
+      padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 16),
       child: Column(
         children: [
           // First row: Mapa, +Animal, Agenda
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NavItem(
                 svgPath: 'assets/icons/mapa.svg',
@@ -54,11 +61,11 @@ class _NavigationMenuState extends State<NavigationMenu> {
             ],
           ),
 
-          const SizedBox(height: AppSpacing.l),
+          const SizedBox(height: 24),
 
           // Second row: Mis animales, Inicio, Carné vacunas
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               _NavItem(
                 svgPath: 'assets/icons/animales.svg',
@@ -101,39 +108,45 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive ? const Color(0xFF0072BB) : const Color(0xFF59667A);
+    final iconColor = isActive
+        ? const Color(0xFF0072BB)
+        : const Color(0xFF59667A);
+    final textColor = isActive
+        ? const Color(0xFF2E3949)
+        : const Color(0xFF59667A);
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Icon
-          Container(
-            width: 56,
-            height: 56,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: AppColors.greyClaro.withValues(alpha: 0.5),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: SvgPicture.asset(
+      child: SizedBox(
+        width: 80,
+        height: 46,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Icon
+            SvgPicture.asset(
               svgPath,
-              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
-          ),
 
-          const SizedBox(height: 4),
+            const SizedBox(height: 2),
 
-          // Label
-          Text(
-            label,
-            style: AppTypography.body6.copyWith(
-              color: color,
-              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            // Label
+            Text(
+              label,
+              style: AppTypography.body6.copyWith(
+                color: textColor,
+                fontSize: 10,
+                fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

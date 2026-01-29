@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -12,21 +13,13 @@ class UserHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
-        color: AppColors.primaryIndigo,
-        borderRadius: const BorderRadius.only(
-          bottomLeft: Radius.circular(24),
-          bottomRight: Radius.circular(24),
-        ),
-      ),
+      height: 168,
+      decoration: const BoxDecoration(color: AppColors.bgOxford),
       child: Column(
         children: [
           // Logo section
           Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.l,
-              bottom: AppSpacing.m,
-            ),
+            padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: 0),
             child: Image.asset(
               'assets/Logo/Imagotipo_blanco.png',
               width: 40,
@@ -46,36 +39,32 @@ class UserHeader extends StatelessWidget {
                 GestureDetector(
                   onTap: () => Navigator.pushNamed(context, '/profile'),
                   child: Container(
-                    width: 56,
-                    height: 56,
+                    width: 52,
+                    height: 52,
                     decoration: BoxDecoration(
+                      color: AppColors.primaryIndigo,
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                        color: AppColors.white.withValues(alpha: 0.3),
-                        width: 2,
-                      ),
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.asset(
-                        'assets/images/default_avatar.png',
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return Container(
-                            color: AppColors.primaryIndigo,
-                            child: const Icon(
-                              Icons.person,
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        String name = '';
+                        if (state is AuthSuccess) {
+                          name = state.user.name;
+                        }
+                        return Center(
+                          child: Text(
+                            _getInitials(name),
+                            style: AppTypography.heading1.copyWith(
                               color: AppColors.white,
-                              size: 32,
                             ),
-                          );
-                        },
-                      ),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
 
-                const SizedBox(width: AppSpacing.m),
+                const SizedBox(width: 8),
 
                 // User info
                 Expanded(
@@ -105,21 +94,50 @@ class UserHeader extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Greeting
-                          Text(
-                            'Hola, $name',
-                            style: AppTypography.heading2.copyWith(
-                              color: AppColors.white,
+                          SizedBox(
+                            height: 21,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: RichText(
+                                text: TextSpan(
+                                  children: [
+                                    TextSpan(
+                                      text: 'Hola, ',
+                                      style: AppTypography.heading2.copyWith(
+                                        color: AppColors.white.withOpacity(
+                                          0.54,
+                                        ),
+                                        fontWeight: FontWeight.normal,
+                                      ),
+                                    ),
+                                    TextSpan(
+                                      text: _formatName(name),
+                                      style: AppTypography.heading2.copyWith(
+                                        color: AppColors.white,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                                maxLines: 1,
+                              ),
                             ),
-                            overflow: TextOverflow.ellipsis,
                           ),
 
                           const SizedBox(height: 4),
 
                           // User role
-                          Text(
-                            role,
-                            style: AppTypography.body3.copyWith(
-                              color: AppColors.white.withValues(alpha: 0.85),
+                          Container(
+                            height: 21,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              role,
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.primaryAzulClaro,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
                             ),
                           ),
                         ],
@@ -130,15 +148,19 @@ class UserHeader extends StatelessWidget {
 
                 // Notification bell
                 Container(
-                  decoration: BoxDecoration(
-                    color: AppColors.white.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
+                  width: 42,
+                  height: 42,
                   child: IconButton(
-                    icon: const Icon(
-                      Icons.notifications_outlined,
-                      color: AppColors.white,
-                      size: 24,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    icon: SvgPicture.asset(
+                      'assets/icons/notification.svg',
+                      width: 24,
+                      height: 24,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.white,
+                        BlendMode.srcIn,
+                      ),
                     ),
                     onPressed: () {
                       // TODO: Navigate to notifications
@@ -148,10 +170,33 @@ class UserHeader extends StatelessWidget {
               ],
             ),
           ),
-
-          const SizedBox(height: AppSpacing.s),
         ],
       ),
     );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return 'U';
+
+    if (parts.length == 1) {
+      return parts.first[0].toUpperCase();
+    }
+
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
+  String _formatName(String name) {
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final limitedParts = parts.take(3);
+
+    final formattedParts = limitedParts.map((part) {
+      if (part.isEmpty) return '';
+      return part[0].toUpperCase() + part.substring(1).toLowerCase();
+    });
+
+    return formattedParts.join(' ');
   }
 }
