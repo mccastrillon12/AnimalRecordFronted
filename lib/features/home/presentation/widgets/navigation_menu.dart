@@ -1,10 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 
-class NavigationMenu extends StatelessWidget {
+class NavigationMenu extends StatefulWidget {
   const NavigationMenu({super.key});
+
+  @override
+  State<NavigationMenu> createState() => _NavigationMenuState();
+}
+
+class _NavigationMenuState extends State<NavigationMenu> {
+  int _selectedIndex = 4; // Default to 'Inicio' (index 4)
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,26 +34,22 @@ class NavigationMenu extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.map_outlined,
+                svgPath: 'assets/icons/mapa.svg',
                 label: 'Mapa',
-                onTap: () {
-                  // TODO: Navigate to map
-                },
+                isActive: _selectedIndex == 0,
+                onTap: () => _onItemTapped(0),
               ),
               _NavItem(
-                icon: Icons.add_circle,
+                svgPath: 'assets/icons/+animal.svg',
                 label: '+ Animal',
-                isPrimary: true,
-                onTap: () {
-                  // TODO: Navigate to add animal
-                },
+                isActive: _selectedIndex == 1,
+                onTap: () => _onItemTapped(1),
               ),
               _NavItem(
-                icon: Icons.calendar_today_outlined,
+                svgPath: 'assets/icons/agenda.svg',
                 label: 'Agenda',
-                onTap: () {
-                  // TODO: Navigate to agenda
-                },
+                isActive: _selectedIndex == 2,
+                onTap: () => _onItemTapped(2),
               ),
             ],
           ),
@@ -51,26 +61,22 @@ class NavigationMenu extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
               _NavItem(
-                icon: Icons.pets_outlined,
+                svgPath: 'assets/icons/animales.svg',
                 label: 'Mis animales',
-                onTap: () {
-                  // Already on home, maybe scroll to animals section
-                },
+                isActive: _selectedIndex == 3,
+                onTap: () => _onItemTapped(3),
               ),
               _NavItem(
-                icon: Icons.home,
+                svgPath: 'assets/icons/inicio.svg',
                 label: 'Inicio',
-                isActive: true,
-                onTap: () {
-                  // Already on home
-                },
+                isActive: _selectedIndex == 4,
+                onTap: () => _onItemTapped(4),
               ),
               _NavItem(
-                icon: Icons.badge_outlined,
+                svgPath: 'assets/icons/vacunas.svg',
                 label: 'Carné vacunas',
-                onTap: () {
-                  // TODO: Navigate to vaccination card
-                },
+                isActive: _selectedIndex == 5,
+                onTap: () => _onItemTapped(5),
               ),
             ],
           ),
@@ -81,27 +87,21 @@ class NavigationMenu extends StatelessWidget {
 }
 
 class _NavItem extends StatelessWidget {
-  final IconData icon;
+  final String svgPath;
   final String label;
   final bool isActive;
-  final bool isPrimary;
   final VoidCallback onTap;
 
   const _NavItem({
-    required this.icon,
+    required this.svgPath,
     required this.label,
     required this.onTap,
     this.isActive = false,
-    this.isPrimary = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = isActive
-        ? AppColors.primaryFrances
-        : isPrimary
-        ? AppColors.primaryFrances
-        : AppColors.textSecondary;
+    final color = isActive ? const Color(0xFF0072BB) : const Color(0xFF59667A);
 
     return GestureDetector(
       onTap: onTap,
@@ -112,16 +112,15 @@ class _NavItem extends StatelessWidget {
           Container(
             width: 56,
             height: 56,
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: isPrimary
-                  ? AppColors.white
-                  : AppColors.greyClaro.withValues(alpha: 0.5),
+              color: AppColors.greyClaro.withValues(alpha: 0.5),
               borderRadius: BorderRadius.circular(12),
-              border: isPrimary
-                  ? Border.all(color: AppColors.greyMedio, width: 1)
-                  : null,
             ),
-            child: Icon(icon, color: color, size: 28),
+            child: SvgPicture.asset(
+              svgPath,
+              colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
+            ),
           ),
 
           const SizedBox(height: 4),
