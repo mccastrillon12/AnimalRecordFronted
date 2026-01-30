@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -32,116 +33,117 @@ class ProfileScreen extends StatelessWidget {
 
           return SafeArea(
             bottom: false,
-            child: Column(
-              children: [
-                // Custom Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-                  child: Row(
+            child: SingleChildScrollView(
+              child: Column(
+                children: [
+                  // Custom Header
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 12, 0, 0),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                          icon: const Icon(
+                            Icons.arrow_back,
+                            color: Colors.white,
+                          ),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Profile Section
+                  Column(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                      const Spacer(),
                       Text(
                         role,
                         style: AppTypography.body3.copyWith(
                           color: Colors.white,
                         ),
                       ),
-                      const Spacer(),
-                      const SizedBox(width: 48), // Balancing back button
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: AppSpacing.l),
-
-                // Profile Section
-                Column(
-                  children: [
-                    // Avatar
-                    Container(
-                      width: 100,
-                      height: 100,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.2),
-                          width: 2,
+                      const SizedBox(height: 24),
+                      // Avatar
+                      Container(
+                        width: 100,
+                        height: 100,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryIndigo,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(18),
-                        child: Image.asset(
-                          'assets/images/default_avatar.png',
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return const Icon(
-                              Icons.person,
+                        child: Center(
+                          child: Text(
+                            _getInitials(name),
+                            style: AppTypography.heading1.copyWith(
                               color: Colors.white,
-                              size: 60,
-                            );
-                          },
+                              fontSize: 32,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    Text(
-                      name,
-                      style: AppTypography.heading1.copyWith(
-                        color: Colors.white,
+                      const SizedBox(height: AppSpacing.m),
+                      Container(
+                        height: 30,
+                        alignment: Alignment.center,
+                        child: Text(
+                          _formatName(name),
+                          style: AppTypography.heading1.copyWith(
+                            color: Colors.white,
+                          ),
+                        ),
                       ),
-                    ),
-                    Text(
-                      email,
-                      style: AppTypography.body4.copyWith(
-                        color: Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSpacing.xl),
-
-                // Action Buttons
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSpacing.xl,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      _buildActionButton(
-                        icon: Icons.groups_outlined,
-                        label: 'Cambiar perfil',
-                        onTap: () {},
-                      ),
-                      _buildActionButton(
-                        icon: Icons.edit_outlined,
-                        label: 'Editar perfil',
-                        onTap: () {},
+                      Container(
+                        height: 21,
+                        alignment: Alignment.center,
+                        child: Text(
+                          email,
+                          style: AppTypography.body4.copyWith(
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                ),
 
-                const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: AppSpacing.xl),
 
-                // Options Card
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
-                      ),
+                  // Action Buttons
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xl,
                     ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(AppSpacing.l),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        _buildActionButton(
+                          icon: Icons.groups_outlined,
+                          label: 'Cambiar perfil',
+                          onTap: () {},
+                        ),
+                        _buildActionButton(
+                          icon: 'assets/icons/Edit.svg',
+                          label: 'Editar perfil',
+                          onTap: () {},
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // Options Card
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.l,
+                    ),
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 8),
                       child: Column(
                         children: [
                           _buildOptionTile(
@@ -149,36 +151,38 @@ class ProfileScreen extends StatelessWidget {
                             label: 'Mi cuenta',
                             onTap: () {},
                           ),
+                          Divider(color: AppColors.greyClaro, height: 1),
                           _buildOptionTile(
-                            icon: Icons.notifications_none_outlined,
+                            icon: 'assets/icons/notification.svg',
                             label: 'Notificaciones',
                             onTap: () {},
                           ),
                           _buildOptionTile(
-                            icon: Icons.translate_outlined,
+                            icon: 'assets/icons/Language.svg',
                             label: 'Idiomas',
                             onTap: () {},
                           ),
                           _buildOptionTile(
-                            icon: Icons.fingerprint_outlined,
+                            icon: 'assets/icons/scan-eye.svg',
                             label: 'Ingreso con biometría',
                             onTap: () {},
                           ),
+                          Divider(color: AppColors.greyClaro, height: 1),
                           _buildOptionTile(
-                            icon: Icons.help_outline,
+                            icon: 'assets/icons/Help.svg',
                             label: 'Centro de ayuda',
                             onTap: () {},
                           ),
                           _buildOptionTile(
-                            icon: Icons.gavel_outlined,
+                            icon: 'assets/icons/Terms.svg',
                             label: 'Términos y Políticas',
                             onTap: () {},
                           ),
-                          const SizedBox(height: AppSpacing.m),
+
                           _buildOptionTile(
-                            icon: Icons.logout,
+                            icon: 'assets/icons/logout.svg',
                             label: 'Cerrar sesión',
-                            color: AppColors.secondaryCoral,
+                            color: const Color(0xFFF26F49),
                             onTap: () {
                               context.read<AuthBloc>().add(LogoutRequested());
                               Navigator.pushNamedAndRemoveUntil(
@@ -188,28 +192,28 @@ class ProfileScreen extends StatelessWidget {
                               );
                             },
                           ),
-                          const SizedBox(height: AppSpacing.xl),
-                          // Bottom Logo/Text as seen in images
-                          Image.asset(
-                            'assets/Logo/Imagotipo_azul.png',
-                            height: 24,
-                            errorBuilder: (_, __, ___) => const SizedBox(),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            'ANIMAL RECORD',
-                            style: AppTypography.body3.copyWith(
-                              color: AppColors.primaryIndigo,
-                              letterSpacing: 2,
-                            ),
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
                         ],
                       ),
                     ),
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppSpacing.xl),
+                  // Bottom Logo/Text
+                  Image.asset(
+                    'assets/Logo/Imagotipo_blanco.png',
+                    height: 24,
+                    errorBuilder: (_, __, ___) => const SizedBox(),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'ANIMAL RECORD',
+                    style: AppTypography.body3.copyWith(
+                      color: Colors.white,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 40),
+                ],
+              ),
             ),
           );
         },
@@ -218,7 +222,7 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildActionButton({
-    required IconData icon,
+    required dynamic icon,
     required String label,
     required VoidCallback onTap,
   }) {
@@ -232,7 +236,17 @@ class ProfileScreen extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: Colors.white),
+            child: icon is String
+                ? SvgPicture.asset(
+                    icon,
+                    width: 24,
+                    height: 24,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.white,
+                      BlendMode.srcIn,
+                    ),
+                  )
+                : Icon(icon, color: Colors.white),
           ),
           const SizedBox(height: 8),
           Text(label, style: AppTypography.body6.copyWith(color: Colors.white)),
@@ -242,29 +256,79 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildOptionTile({
-    required IconData icon,
+    required dynamic icon,
     required String label,
     required VoidCallback onTap,
     Color? color,
   }) {
-    final textColor = color ?? AppColors.greyTextos;
-    return Column(
-      children: [
-        ListTile(
-          onTap: onTap,
-          leading: Icon(icon, color: textColor),
-          title: Text(
-            label,
-            style: AppTypography.body1.copyWith(color: textColor),
+    final textColor = color ?? const Color(0xFF59667A);
+    return SizedBox(
+      height: 56,
+      child: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: ListTile(
+                onTap: onTap,
+                leading: icon is String
+                    ? SvgPicture.asset(
+                        icon,
+                        width: 24,
+                        height: 24,
+                        colorFilter: ColorFilter.mode(
+                          textColor,
+                          BlendMode.srcIn,
+                        ),
+                      )
+                    : Icon(icon, color: textColor),
+                title: Text(
+                  label,
+                  style: AppTypography.body3.copyWith(
+                    color: color ?? const Color(0xFF2E3949),
+                  ),
+                ),
+                trailing: SvgPicture.asset(
+                  'assets/icons/arrow-right.svg',
+                  width: 24,
+                  height: 24,
+                  colorFilter: ColorFilter.mode(
+                    color ?? const Color(0xFF0072BB),
+                    BlendMode.srcIn,
+                  ),
+                ),
+                contentPadding: const EdgeInsets.only(left: 15, right: 24),
+                dense: true,
+                visualDensity: const VisualDensity(vertical: -4),
+              ),
+            ),
           ),
-          trailing: Icon(
-            Icons.chevron_right,
-            color: color ?? AppColors.primaryFrances,
-          ),
-          contentPadding: EdgeInsets.zero,
-        ),
-        Divider(color: AppColors.greyClaro, height: 1),
-      ],
+        ],
+      ),
     );
+  }
+
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return 'U';
+
+    if (parts.length == 1) {
+      return parts.first[0].toUpperCase();
+    }
+
+    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+  }
+
+  String _formatName(String name) {
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final limitedParts = parts.take(3);
+
+    final formattedParts = limitedParts.map((part) {
+      if (part.isEmpty) return '';
+      return part[0].toUpperCase() + part.substring(1).toLowerCase();
+    });
+
+    return formattedParts.join(' ');
   }
 }
