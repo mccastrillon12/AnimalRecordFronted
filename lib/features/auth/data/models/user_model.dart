@@ -57,14 +57,11 @@ class UserModel extends UserEntity {
       'identificationType': identificationType,
       'identificationNumber': identificationNumber,
       'countryId': countryId,
-      'departmentId': departmentId,
-      'cityId': cityId,
       'roles': roles,
       'authMethod': authMethod,
       'animalTypes': animalTypes,
       'services': services,
       'isHomeDelivery': isHomeDelivery,
-      'isVerified': isVerified,
     };
 
     // Only include email if not empty
@@ -89,6 +86,14 @@ class UserModel extends UserEntity {
 
     if (country.isNotEmpty) {
       json['country'] = country;
+    }
+
+    if (departmentId.isNotEmpty) {
+      json['departmentId'] = departmentId;
+    }
+
+    if (cityId.isNotEmpty) {
+      json['cityId'] = cityId;
     }
 
     if (professionalCard != null && professionalCard!.isNotEmpty) {
