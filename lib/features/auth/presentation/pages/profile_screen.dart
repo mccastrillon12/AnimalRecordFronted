@@ -124,7 +124,9 @@ class ProfileScreen extends StatelessWidget {
                         _buildActionButton(
                           icon: 'assets/icons/Edit.svg',
                           label: 'Editar perfil',
-                          onTap: () {},
+                          onTap: () {
+                            Navigator.pushNamed(context, '/edit-profile');
+                          },
                         ),
                       ],
                     ),

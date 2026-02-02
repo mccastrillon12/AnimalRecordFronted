@@ -18,6 +18,8 @@ import 'package:animal_record/features/locations/data/datasources/locations_remo
 import 'package:animal_record/features/locations/data/repositories/locations_repository_impl.dart';
 import 'package:animal_record/features/locations/domain/repositories/locations_repository.dart';
 import 'package:animal_record/features/locations/domain/usecases/get_countries_usecase.dart';
+import 'package:animal_record/features/locations/domain/usecases/get_departments_usecase.dart';
+import 'package:animal_record/features/locations/domain/usecases/get_cities_usecase.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
@@ -74,10 +76,22 @@ Future<void> init() async {
   //! Features - Locations
 
   // Cubit
-  sl.registerFactory(() => LocationsCubit(getCountriesUseCase: sl()));
+  sl.registerFactory(
+    () => LocationsCubit(
+      getCountriesUseCase: sl(),
+      getDepartmentsByCountryUseCase: sl(),
+      getCitiesByDepartmentUseCase: sl(),
+    ),
+  );
 
   // Use cases
   sl.registerLazySingleton(() => GetCountriesUseCase(repository: sl()));
+  sl.registerLazySingleton(
+    () => GetDepartmentsByCountryUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetCitiesByDepartmentUseCase(repository: sl()),
+  );
 
   // Repository
   sl.registerLazySingleton<LocationsRepository>(

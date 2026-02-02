@@ -1,36 +1,34 @@
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
-import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
+import 'package:animal_record/features/locations/domain/entities/department_entity.dart';
 import 'package:flutter/material.dart';
 
-class CountryDropdown extends StatefulWidget {
+class DepartmentDropdown extends StatefulWidget {
   final String label;
   final String? value;
   final ValueChanged<String?>? onChanged;
-  final List<CountryEntity> countries;
+  final List<DepartmentEntity> departments;
   final double? width;
   final bool enabled;
-  final bool showIsoCodeAsValue;
   final TextStyle? labelStyle;
 
-  const CountryDropdown({
+  const DepartmentDropdown({
     super.key,
     required this.label,
     required this.value,
     this.onChanged,
-    required this.countries,
+    required this.departments,
     this.width,
     this.enabled = true,
-    this.showIsoCodeAsValue = false,
     this.labelStyle,
   });
 
   @override
-  State<CountryDropdown> createState() => _CountryDropdownState();
+  State<DepartmentDropdown> createState() => _DepartmentDropdownState();
 }
 
-class _CountryDropdownState extends State<CountryDropdown> {
+class _DepartmentDropdownState extends State<DepartmentDropdown> {
   final LayerLink _layerLink = LayerLink();
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
@@ -59,8 +57,8 @@ class _CountryDropdownState extends State<CountryDropdown> {
   OverlayEntry _createOverlayEntry() {
     RenderBox renderBox = context.findRenderObject() as RenderBox;
     var size = renderBox.size;
-    final validCountries = widget.countries
-        .where((c) => c.name.trim().isNotEmpty)
+    final validDepartments = widget.departments
+        .where((d) => d.name.trim().isNotEmpty)
         .toList();
 
     return OverlayEntry(
@@ -94,15 +92,39 @@ class _CountryDropdownState extends State<CountryDropdown> {
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
-                    itemCount: validCountries.length,
+                    itemCount:
+                        validDepartments.length + 1, // +1 for blank option
                     itemBuilder: (context, index) {
-                      final country = validCountries[index];
-                      // Flag logic based on standard country codes or API response
+                      // First item is blank option
+                      if (index == 0) {
+                        return InkWell(
+                          onTap: () {
+                            if (widget.onChanged != null) {
+                              widget.onChanged!(null);
+                            }
+                            _closeDropdown();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 8,
+                            ),
+                            child: Text(
+                              '-- Seleccionar --',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        );
+                      }
 
+                      final department = validDepartments[index - 1];
                       return InkWell(
                         onTap: () {
                           if (widget.onChanged != null) {
-                            widget.onChanged!(country.id);
+                            widget.onChanged!(department.id);
                           }
                           _closeDropdown();
                         },
@@ -111,36 +133,10 @@ class _CountryDropdownState extends State<CountryDropdown> {
                             horizontal: 12,
                             vertical: 8,
                           ),
-                          child: Row(
-                            children: [
-                              ClipOval(
-                                child: Image.asset(
-                                  'assets/icons/${country.isoCode}.png',
-                                  width: 24,
-                                  height: 24,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) =>
-                                      Container(
-                                        width: 24,
-                                        height: 24,
-                                        decoration: const BoxDecoration(
-                                          color: AppColors.greyMedio,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  widget.showIsoCodeAsValue
-                                      ? country.isoCode
-                                      : country.name,
-                                  style: AppTypography.body4,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                            ],
+                          child: Text(
+                            department.name,
+                            style: AppTypography.body4,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       );
@@ -157,22 +153,17 @@ class _CountryDropdownState extends State<CountryDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    // Find selected country
-    // Find selected country
-    final CountryEntity selectedCountry = widget.countries
-        .cast<CountryEntity>()
-        .firstWhere(
-          (c) => c.id == widget.value,
-          orElse: () => widget.countries.isNotEmpty
-              ? widget.countries.first
-              : const CountryEntity(
-                  id: '',
-                  name: '',
-                  isoCode: '',
-                  dialCode: '',
-                ),
-        );
-
+    // Find selected department
+    DepartmentEntity? selectedDepartment;
+    if (widget.value != null) {
+      try {
+        selectedDepartment = widget.departments
+            .cast<DepartmentEntity>()
+            .firstWhere((d) => d.id == widget.value);
+      } catch (e) {
+        selectedDepartment = null;
+      }
+    }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -197,7 +188,7 @@ class _CountryDropdownState extends State<CountryDropdown> {
             onTap: _toggleDropdown,
             child: Container(
               height: AppSpacing.inputHeight,
-              width: widget.width ?? 116,
+              width: widget.width ?? double.infinity,
               padding: const EdgeInsets.only(left: 12, right: 8),
               decoration: BoxDecoration(
                 border: Border.all(
@@ -212,34 +203,17 @@ class _CountryDropdownState extends State<CountryDropdown> {
               ),
               child: Row(
                 children: [
-                  if (widget.countries.isNotEmpty) ...[
-                    ClipOval(
-                      child: Image.asset(
-                        'assets/icons/${selectedCountry.isoCode}.png',
-                        width: 24,
-                        height: 24,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            color: AppColors.greyMedio,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
+                  Expanded(
+                    child: Text(
+                      selectedDepartment?.name ?? 'Selecciona un departamento',
+                      style: AppTypography.body4.copyWith(
+                        color: selectedDepartment == null
+                            ? AppColors.greyMedio
+                            : AppColors.greyTextos,
                       ),
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.showIsoCodeAsValue
-                            ? selectedCountry.isoCode
-                            : selectedCountry.name,
-                        style: AppTypography.body4,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                  ],
+                  ),
                   // Custom arrow icon to match design
                   Icon(
                     _isOpen
