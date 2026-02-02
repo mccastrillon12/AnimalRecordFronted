@@ -6,6 +6,7 @@ import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
+import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import '../widgets/country_dropdown.dart';
 import '../widgets/department_dropdown.dart';
@@ -14,6 +15,7 @@ import '../widgets/phone_input_field.dart';
 import '../../../../features/locations/presentation/cubit/locations_cubit.dart';
 import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../features/locations/domain/entities/country_entity.dart';
+import '../../../../core/widgets/buttons/custom_button.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -59,14 +61,31 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameController.text = _formatName(user.name);
       _idNumberController.text = user.identificationNumber;
       _phoneController.text = user.cellPhone;
+      _addressController.text = user.address;
 
-      // Set default phone country
+      // Set default location values from user profile
       if (_selectedPhoneCountryId == null) {
         _selectedPhoneCountryId = user.countryId;
-        // Fetch departments for user's country
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          context.read<LocationsCubit>().fetchDepartments(user.countryId);
-        });
+
+        // 1. Fetch departments if we have country
+        if (user.countryId.isNotEmpty) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.read<LocationsCubit>().fetchDepartments(user.countryId);
+          });
+        }
+
+        // 2. Set Department and fetch cities if we have departmentId
+        if (user.departmentId.isNotEmpty) {
+          _selectedDepartmentId = user.departmentId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            context.read<LocationsCubit>().fetchCities(user.departmentId);
+          });
+        }
+
+        // 3. Set City if we have cityId
+        if (user.cityId.isNotEmpty) {
+          _selectedCityId = user.cityId;
+        }
       }
     }
   }
@@ -321,8 +340,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         },
                                         departments: locationsState.departments,
                                         enabled: true,
-                                        labelStyle: AppTypography.body6
-                                            .copyWith(color: AppColors.error),
                                       ),
                                     const SizedBox(height: 16),
 
@@ -338,8 +355,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                         },
                                         cities: locationsState.cities,
                                         enabled: _selectedDepartmentId != null,
-                                        labelStyle: AppTypography.body6
-                                            .copyWith(color: AppColors.error),
                                       ),
                                     const SizedBox(height: 16),
 
@@ -350,7 +365,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           'Dirección de residencia (Opcional)',
                                       hint: 'Calle 123 # 45-67',
                                     ),
-                                    const SizedBox(height: 24),
+                                    const SizedBox(height: 90),
+                                    CustomButton(
+                                      text: 'Guardar cambios',
+                                      onPressed: () {
+                                        if (_formKey.currentState!.validate()) {
+                                          final updatedData = <String, dynamic>{
+                                            'name': _nameController.text,
+                                            'address': _addressController.text,
+                                            if (showEmailField)
+                                              'email': _emailController.text,
+                                            if (showPhoneField)
+                                              'cellPhone':
+                                                  _phoneController.text,
+                                            // Include location data if selected
+                                            if (_selectedCityId != null)
+                                              'cityId': _selectedCityId,
+                                            if (_selectedDepartmentId != null)
+                                              'departmentId':
+                                                  _selectedDepartmentId,
+                                            // Keep other fields if necessary or let backend handle partial updates
+                                          };
+
+                                          context.read<AuthBloc>().add(
+                                            UpdateProfileRequested(
+                                              userId: user.id,
+                                              data: updatedData,
+                                            ),
+                                          );
+
+                                          // Optional: Show feedback or navigate back handled by listener usually
+                                          // For now just fire the event
+                                        }
+                                      },
+                                    ),
+                                    const SizedBox(height: 40),
                                   ],
                                 );
                               },

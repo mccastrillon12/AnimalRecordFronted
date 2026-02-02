@@ -75,3 +75,13 @@ class SocialRegisterSubmitted extends AuthEvent {
 class FetchUserRequested extends AuthEvent {}
 
 class LogoutRequested extends AuthEvent {}
+
+class UpdateProfileRequested extends AuthEvent {
+  final String userId;
+  final Map<String, dynamic> data;
+
+  UpdateProfileRequested({required this.userId, required this.data});
+
+  @override
+  List<Object?> get props => [userId, data];
+}

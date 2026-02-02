@@ -21,4 +21,8 @@ abstract class AuthRepository {
   );
   Future<Either<Failure, UserEntity>> registerSocial(Map<String, dynamic> data);
   Future<Either<Failure, UserEntity>> getUserProfile(String id);
+  Future<Either<Failure, UserEntity>> updateUser(
+    String id,
+    Map<String, dynamic> data,
+  );
 }

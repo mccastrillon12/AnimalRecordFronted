@@ -13,6 +13,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data);
   Future<UserModel> getUserProfile(String id);
+  Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -254,6 +255,44 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('Error al obtener el perfil del usuario');
       }
     } on DioException catch (e) {
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<UserModel> updateProfile(String id, Map<String, dynamic> data) async {
+    try {
+      print('--- DEBUG UPDATE PROFILE ---');
+      print('ID: $id');
+      print('Payload: $data');
+      print('----------------------------');
+
+      final response = await dio.put('/users/$id', data: data);
+
+      print('--- UPDATE PROFILE SUCCESS ---');
+      print('Status: ${response.statusCode}');
+      print('Response: ${response.data}');
+      print('----------------------------');
+
+      if (response.statusCode == 200) {
+        final dynamic responseData = response.data;
+        if (responseData is Map<String, dynamic>) {
+          return UserModel.fromJson(responseData);
+        } else {
+          // Fallback if structure is different
+          // For now assume standard user return
+          return await getUserProfile(id);
+        }
+      } else {
+        throw Exception('Error al actualizar el perfil');
+      }
+    } on DioException catch (e) {
+      print('--- UPDATE PROFILE ERROR ---');
+      print('Status: ${e.response?.statusCode}');
+      print('Data: ${e.response?.data}');
+      print('--------------------------');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

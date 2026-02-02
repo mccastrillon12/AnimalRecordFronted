@@ -448,6 +448,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
+          address:
+              '', // Address is optional and not collected during registration
           roles: [widget.role],
           professionalCard: widget.role == 'VETERINARIO'
               ? getFieldValue(professionalCardController)

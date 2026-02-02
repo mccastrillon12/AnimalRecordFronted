@@ -9,8 +9,11 @@ class RegisterParams extends Equatable {
   final String identificationNumber;
   final String country;
   final String countryId;
+  final String departmentId; // Added
   final String city;
+  final String cityId; // Added
   final String cellPhone;
+  final String? address;
   final String? professionalCard;
   final List<String> roles;
   final List<String> animalTypes;
@@ -27,8 +30,11 @@ class RegisterParams extends Equatable {
     required this.identificationNumber,
     required this.country,
     required this.countryId,
-    required this.city,
+    this.departmentId = '', // Default
+    this.city = '', // Changed to optional with default
+    this.cityId = '', // Default
     required this.cellPhone,
+    this.address,
     this.professionalCard,
     required this.roles,
     required this.animalTypes,
@@ -47,8 +53,11 @@ class RegisterParams extends Equatable {
     identificationNumber,
     country,
     countryId,
+    departmentId, // Added
     city,
+    cityId, // Added
     cellPhone,
+    address,
     professionalCard,
     roles,
     animalTypes,

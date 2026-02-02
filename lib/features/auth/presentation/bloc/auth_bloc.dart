@@ -10,6 +10,7 @@ import 'package:animal_record/features/auth/domain/usecases/check_social_auth_us
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -23,6 +24,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final CheckSocialAuthUseCase checkSocialAuthUseCase;
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
+  final UpdateProfileUseCase updateProfileUseCase;
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -35,6 +37,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.checkSocialAuthUseCase,
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
+    required this.updateProfileUseCase,
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -207,6 +210,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       emit(AuthLoading());
       await logoutUseCase();
       emit(AuthInitial());
+    });
+
+    on<UpdateProfileRequested>((event, emit) async {
+      emit(AuthLoading());
+      final result = await updateProfileUseCase(
+        id: event.userId,
+        data: event.data,
+      );
+
+      await result.fold(
+        (failure) async => emit(AuthError(failure.message)),
+        (user) async => emit(AuthSuccess(user)),
+      );
     });
   }
 }
