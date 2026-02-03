@@ -7,6 +7,8 @@ class TokenStorage {
   // Keys for secure storage
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
+  static const String _userIdKey = 'user_id';
+  static const String _userDataKey = 'user_data';
 
   TokenStorage(this._secureStorage);
 
@@ -53,7 +55,29 @@ class TokenStorage {
     await Future.wait([
       _secureStorage.delete(key: _accessTokenKey),
       _secureStorage.delete(key: _refreshTokenKey),
+      _secureStorage.delete(key: _userIdKey),
+      _secureStorage.delete(key: _userDataKey),
     ]);
+  }
+
+  /// Save user data as JSON string
+  Future<void> saveUserData(String userDataJson) async {
+    await _secureStorage.write(key: _userDataKey, value: userDataJson);
+  }
+
+  /// Get user data JSON string
+  Future<String?> getUserData() async {
+    return await _secureStorage.read(key: _userDataKey);
+  }
+
+  /// Save user ID
+  Future<void> saveUserId(String id) async {
+    await _secureStorage.write(key: _userIdKey, value: id);
+  }
+
+  /// Get user ID
+  Future<String?> getUserId() async {
+    return await _secureStorage.read(key: _userIdKey);
   }
 
   /// Clear all secure storage

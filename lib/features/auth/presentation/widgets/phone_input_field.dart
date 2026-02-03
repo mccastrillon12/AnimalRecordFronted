@@ -17,6 +17,7 @@ class PhoneInputField extends StatelessWidget {
   final int? maxLength;
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
+  final TextStyle? labelStyle;
 
   const PhoneInputField({
     super.key,
@@ -29,6 +30,7 @@ class PhoneInputField extends StatelessWidget {
     this.maxLength,
     this.inputFormatters,
     this.errorText,
+    this.labelStyle,
   });
 
   @override
@@ -40,6 +42,7 @@ class PhoneInputField extends StatelessWidget {
         if (countries.isNotEmpty)
           CountryDropdown(
             label: 'País',
+            labelStyle: labelStyle,
             value:
                 selectedCountryId ??
                 (countries.isNotEmpty ? countries.first.id : ''),
@@ -60,7 +63,12 @@ class PhoneInputField extends StatelessWidget {
                 height: 18,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(label, style: AppTypography.body6),
+                  child: Text(
+                    label,
+                    style: (labelStyle ?? AppTypography.body6).copyWith(
+                      color: labelStyle?.color ?? AppColors.greyNegroV2,
+                    ),
+                  ),
                 ),
               ),
 

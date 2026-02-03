@@ -81,7 +81,7 @@ class CustomTextField extends StatelessWidget {
               child: Text(
                 label,
                 style: (labelStyle ?? AppTypography.body6).copyWith(
-                  color: AppColors.greyNegroV2,
+                  color: labelStyle?.color ?? AppColors.greyNegroV2,
                 ),
               ),
             ),

@@ -9,7 +9,9 @@ void main() {
     identificationType: 'CC',
     identificationNumber: '12345',
     country: 'Colombia',
+    departmentId: '11',
     city: 'Bogota',
+    cityId: '11001',
     email: 'test@test.com',
     cellPhone: '3001234567',
     professionalCard: 'TP123',
@@ -19,6 +21,7 @@ void main() {
     roles: ['Veterinario'],
     authMethod: 'EMAIL',
     countryId: 'CO',
+    isVerified: true,
   );
 
   group('UserModel', () {
@@ -35,7 +38,9 @@ void main() {
           'identificationType': 'CC',
           'identificationNumber': '12345',
           'country': 'Colombia',
+          'departmentId': '11',
           'city': 'Bogota',
+          'cityId': '11001',
           'email': 'test@test.com',
           'cellPhone': '3001234567',
           'professionalCard': 'TP123',
@@ -44,6 +49,8 @@ void main() {
           'isHomeDelivery': true,
           'roles': ['Veterinario'],
           'authMethod': 'EMAIL',
+          'countryId': 'CO',
+          'isVerified': true,
         };
 
         final result = UserModel.fromJson(jsonMap);
@@ -61,7 +68,9 @@ void main() {
         'identificationType': 'CC',
         'identificationNumber': '12345',
         'country': 'Colombia',
+        'departmentId': '11',
         'city': 'Bogota',
+        'cityId': '11001',
         'email': 'test@test.com',
         'cellPhone': '3001234567',
         'professionalCard': 'TP123',
@@ -70,6 +79,7 @@ void main() {
         'isHomeDelivery': true,
         'roles': ['Veterinario'],
         'authMethod': 'EMAIL',
+        'isVerified': true,
       };
 
       expect(result, expectedMap);

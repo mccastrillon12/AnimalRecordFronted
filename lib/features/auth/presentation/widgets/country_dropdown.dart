@@ -12,6 +12,7 @@ class CountryDropdown extends StatefulWidget {
   final double? width;
   final bool enabled;
   final bool showIsoCodeAsValue;
+  final TextStyle? labelStyle;
 
   const CountryDropdown({
     super.key,
@@ -22,6 +23,7 @@ class CountryDropdown extends StatefulWidget {
     this.width,
     this.enabled = true,
     this.showIsoCodeAsValue = false,
+    this.labelStyle,
   });
 
   @override
@@ -179,7 +181,12 @@ class _CountryDropdownState extends State<CountryDropdown> {
           height: 18,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(widget.label, style: AppTypography.body6),
+            child: Text(
+              widget.label,
+              style: (widget.labelStyle ?? AppTypography.body6).copyWith(
+                color: widget.labelStyle?.color ?? AppColors.greyNegroV2,
+              ),
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.inputTopPadding),

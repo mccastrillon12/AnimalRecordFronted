@@ -72,6 +72,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   AccessMethod? _lastAccessMethod;
   String? _lastPhoneErrorText;
   String? _lastEmailErrorText;
+  String _selectedIdType = 'C.C.';
 
   // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
@@ -112,6 +113,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phoneErrorText: _phoneErrorText,
             emailErrorText: _emailErrorText,
             idErrorText: _idErrorText,
+            initialIdType: _selectedIdType,
+            onIdTypeChanged: (type) {
+              _selectedIdType = type;
+            },
           ),
         );
       }
@@ -439,7 +444,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: getFieldValue(emailController),
           password: getFieldValue(passwordController),
           identificationType: widget.role == 'PROPIETARIO_MASCOTA'
-              ? 'CC'
+              ? _selectedIdType.replaceAll('.', '').toUpperCase()
               : 'CC',
           identificationNumber: getFieldValue(idController),
           cellPhone: cellPhone,
@@ -448,6 +453,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
+          address:
+              '', // Address is optional and not collected during registration
           roles: [widget.role],
           professionalCard: widget.role == 'VETERINARIO'
               ? getFieldValue(professionalCardController)

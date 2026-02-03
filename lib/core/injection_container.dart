@@ -10,6 +10,8 @@ import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -17,6 +19,8 @@ import 'package:animal_record/features/locations/data/datasources/locations_remo
 import 'package:animal_record/features/locations/data/repositories/locations_repository_impl.dart';
 import 'package:animal_record/features/locations/domain/repositories/locations_repository.dart';
 import 'package:animal_record/features/locations/domain/usecases/get_countries_usecase.dart';
+import 'package:animal_record/features/locations/domain/usecases/get_departments_usecase.dart';
+import 'package:animal_record/features/locations/domain/usecases/get_cities_usecase.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
@@ -25,6 +29,7 @@ import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:logger/logger.dart';
 
 final sl = GetIt.instance;
 
@@ -41,6 +46,10 @@ Future<void> init() async {
       checkIdentificationExistsUseCase: sl(),
       checkSocialAuthUseCase: sl(),
       registerSocialUseCase: sl(),
+      getUserProfileUseCase: sl(),
+      updateProfileUseCase: sl(), // Added
+      logoutUseCase: sl(),
+      tokenStorage: sl(),
     ),
   );
 
@@ -54,6 +63,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CheckIdentificationExistsUseCase(sl()));
   sl.registerLazySingleton(() => CheckSocialAuthUseCase(sl()));
   sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
+  sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateProfileUseCase(sl())); // Added
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(
@@ -62,16 +73,28 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(dio: sl()),
+    () => AuthRemoteDataSourceImpl(dio: sl(), logger: sl()),
   );
 
   //! Features - Locations
 
   // Cubit
-  sl.registerFactory(() => LocationsCubit(getCountriesUseCase: sl()));
+  sl.registerFactory(
+    () => LocationsCubit(
+      getCountriesUseCase: sl(),
+      getDepartmentsByCountryUseCase: sl(),
+      getCitiesByDepartmentUseCase: sl(),
+    ),
+  );
 
   // Use cases
   sl.registerLazySingleton(() => GetCountriesUseCase(repository: sl()));
+  sl.registerLazySingleton(
+    () => GetDepartmentsByCountryUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetCitiesByDepartmentUseCase(repository: sl()),
+  );
 
   // Repository
   sl.registerLazySingleton<LocationsRepository>(
@@ -112,4 +135,7 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton(() => dio);
+
+  // Logger
+  sl.registerLazySingleton(() => Logger());
 }

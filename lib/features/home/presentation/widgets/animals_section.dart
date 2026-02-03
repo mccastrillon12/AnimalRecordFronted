@@ -24,11 +24,21 @@ class AnimalsSection extends StatelessWidget {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              // TODO: Add 'Ver todos' button when hasAnimals is true
+              GestureDetector(
+                onTap: () {
+                  // TODO: Navigate to full list
+                },
+                child: Text(
+                  'Ver todos',
+                  style: AppTypography.body3.copyWith(
+                    color: AppColors.primaryFrances.withOpacity(0.6),
+                  ),
+                ),
+              ),
             ],
           ),
 
-          const SizedBox(height: AppSpacing.l),
+          const SizedBox(height: 64),
 
           // Animals list or empty state
           // TODO: When implementing BLoC, replace with conditional based on actual data
@@ -41,7 +51,7 @@ class AnimalsSection extends StatelessWidget {
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.xxxl),
+        padding: const EdgeInsets.only(bottom: AppSpacing.xxxl),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -49,9 +59,7 @@ class AnimalsSection extends StatelessWidget {
             Text(
               'No tienes ningún animal registrado todavía.',
               textAlign: TextAlign.center,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
 
             const SizedBox(height: 4),
@@ -59,34 +67,33 @@ class AnimalsSection extends StatelessWidget {
             Text(
               'Empieza agregando uno desde',
               textAlign: TextAlign.center,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textSecondary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
 
-            const SizedBox(height: AppSpacing.xl),
+            const SizedBox(height: 24),
 
             // Add animal button
-            ElevatedButton(
-              onPressed: () {
-                // TODO: Navigate to add animal screen
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryOrange,
-                foregroundColor: AppColors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxl,
-                  vertical: AppSpacing.m,
+            SizedBox(
+              width: 128,
+              height: 39,
+              child: ElevatedButton(
+                onPressed: () {
+                  // TODO: Navigate to add animal screen
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primaryOrange,
+                  foregroundColor: AppColors.white,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: Text(
-                '+ Animal',
-                style: AppTypography.body3.copyWith(
-                  color: AppColors.white,
-                  fontWeight: FontWeight.w600,
+                child: Text(
+                  '+ Animal',
+                  style: AppTypography.body3.copyWith(
+                    color: AppColors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ),

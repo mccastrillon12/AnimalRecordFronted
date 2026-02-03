@@ -23,7 +23,11 @@ class IdSelector extends StatefulWidget {
 }
 
 class _IdSelectorState extends State<IdSelector> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
   late String _selectedIdType;
+  final List<String> _idTypes = ['C.C.', 'C.E.', 'Pasaporte'];
 
   @override
   void initState() {
@@ -31,12 +35,106 @@ class _IdSelectorState extends State<IdSelector> {
     _selectedIdType = widget.initialIdType ?? 'C.C.';
   }
 
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    setState(() => _isOpen = false);
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    // We want the dropdown to match the width of the trigger widget (the ID type container)
+    // However, findRenderObject returns the size of the whole IdSelector (Row).
+    // We need the size of the trigger container.
+    // Since width is fixed to 100, we can use that.
+
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeDropdown,
+              behavior: HitTestBehavior.translucent,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          Positioned(
+            width: _selectedIdType == 'Pasaporte' ? 140 : 100,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0.0, AppSpacing.inputHeight),
+              child: Material(
+                elevation: 4.0,
+                borderRadius: BorderRadius.circular(4),
+                color: Colors.white,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.greyDelineante),
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                  ),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: _idTypes.length,
+                    itemBuilder: (context, index) {
+                      final type = _idTypes[index];
+                      // Highlight selected item style if needed
+                      final isSelected = type == _selectedIdType;
+
+                      return InkWell(
+                        onTap: () {
+                          setState(() {
+                            _selectedIdType = type;
+                          });
+                          widget.onIdTypeChanged?.call(type);
+                          _closeDropdown();
+                        },
+                        child: Container(
+                          color: isSelected ? AppColors.greyClaro : null,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          child: Text(
+                            type,
+                            style: AppTypography.body4.copyWith(
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Common label for the row
         SizedBox(
           height: 18,
           child: Align(
@@ -44,107 +142,101 @@ class _IdSelectorState extends State<IdSelector> {
             child: Text('Identificación', style: AppTypography.body6),
           ),
         ),
-
         const SizedBox(height: AppSpacing.inputTopPadding),
-
-        // Row with type dropdown and number input
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ID Type selector
-            Container(
-              height: AppSpacing.inputHeight,
-              width: 100, // Fixed width
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: widget.errorText != null
-                      ? AppColors.error
-                      : AppColors.greyMedio,
-                ),
-                borderRadius: BorderRadius.circular(4),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _selectedIdType,
-                  isExpanded: true,
-                  icon: const Icon(Icons.arrow_drop_down),
-                  items: const [
-                    DropdownMenuItem(value: 'C.C.', child: Text('C.C.')),
-                    DropdownMenuItem(value: 'C.E.', child: Text('C.E.')),
-                    DropdownMenuItem(
-                      value: 'Pasaporte',
-                      child: Text('Pasaporte'),
+            CompositedTransformTarget(
+              link: _layerLink,
+              child: InkWell(
+                onTap: _toggleDropdown,
+                child: Container(
+                  height: AppSpacing.inputHeight,
+                  width: _selectedIdType == 'Pasaporte' ? 140 : 100,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  decoration: BoxDecoration(
+                    border: Border.all(
+                      color: _isOpen
+                          ? AppColors.primaryFrances
+                          : (widget.errorText != null
+                                ? AppColors.error
+                                : AppColors.greyMedio),
                     ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) {
-                      setState(() {
-                        _selectedIdType = value;
-                      });
-                      widget.onIdTypeChanged?.call(value);
-                    }
-                  },
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(_selectedIdType, style: AppTypography.body4),
+                      Icon(
+                        _isOpen
+                            ? Icons.keyboard_arrow_up
+                            : Icons.keyboard_arrow_down,
+                        color: AppColors.greyMedio,
+                        size: 20,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-
-            const SizedBox(width: AppSpacing.xs), // 8px spacing
+            const SizedBox(width: AppSpacing.xs),
             // ID Number input
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                  height: AppSpacing.inputHeight,
-                  width: 270, // Fixed width
-                  child: TextFormField(
-                    controller: widget.idController,
-                    keyboardType: TextInputType.number,
-                    style: AppTypography.body4, // Force normal weight style
-                    decoration: InputDecoration(
-                      hintText: '1234567890',
-                      hintStyle: AppTypography.body4.copyWith(
-                        color: AppColors.textSecondary.withValues(alpha: 0.5),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.m,
-                        vertical: AppSpacing.s,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide(
-                          color: widget.errorText != null
-                              ? AppColors.error
-                              : AppColors.greyMedio,
-                          width: 1.0,
+            Expanded(
+              // Use Expanded to take remaining space instead of fixed width column
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: AppSpacing.inputHeight,
+                    child: TextFormField(
+                      controller: widget.idController,
+                      keyboardType: TextInputType.number,
+                      style: AppTypography.body4,
+                      decoration: InputDecoration(
+                        hintText: '1234567890',
+                        hintStyle: AppTypography.body4.copyWith(
+                          color: AppColors.textSecondary.withValues(alpha: 0.5),
                         ),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide(
-                          color: widget.errorText != null
-                              ? AppColors.error
-                              : AppColors.greyMedio,
-                          width: 1.0,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.m,
+                          vertical: AppSpacing.s,
                         ),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(4),
-                        borderSide: BorderSide(
-                          color: widget.errorText != null
-                              ? AppColors.error
-                              : AppColors.primaryFrances,
-                          width: 2.0,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: BorderSide(
+                            color: widget.errorText != null
+                                ? AppColors.error
+                                : AppColors.greyMedio,
+                            width: 1.0,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: BorderSide(
+                            color: widget.errorText != null
+                                ? AppColors.error
+                                : AppColors.greyMedio,
+                            width: 1.0,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(4),
+                          borderSide: BorderSide(
+                            color: widget.errorText != null
+                                ? AppColors.error
+                                : AppColors.primaryFrances,
+                            width: 2.0,
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-                if (widget.errorText != null) ...[
-                  const SizedBox(height: 4),
-                  SizedBox(
-                    width: 270,
-                    child: Text(
+                  if (widget.errorText != null) ...[
+                    const SizedBox(height: 4),
+                    Text(
                       widget.errorText!,
                       style: AppTypography.body6.copyWith(
                         color: AppColors.error,
@@ -153,9 +245,9 @@ class _IdSelectorState extends State<IdSelector> {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                  ),
+                  ],
                 ],
-              ],
+              ),
             ),
           ],
         ),

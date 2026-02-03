@@ -36,6 +36,12 @@ class OwnerPersonalDataStep extends StatefulWidget {
   /// Error text to display for the id field
   final String? idErrorText;
 
+  /// Callback when ID type changes
+  final ValueChanged<String>? onIdTypeChanged;
+
+  /// Initial ID type
+  final String? initialIdType;
+
   const OwnerPersonalDataStep({
     super.key,
     required this.nameController,
@@ -48,6 +54,8 @@ class OwnerPersonalDataStep extends StatefulWidget {
     this.phoneErrorText,
     this.emailErrorText,
     this.idErrorText,
+    this.onIdTypeChanged,
+    this.initialIdType,
   });
 
   @override
@@ -126,6 +134,8 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
             IdSelector(
               idController: widget.idController,
               errorText: widget.idErrorText,
+              onIdTypeChanged: widget.onIdTypeChanged,
+              initialIdType: widget.initialIdType,
             ),
 
             const SizedBox(height: AppSpacing.m),

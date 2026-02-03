@@ -26,6 +26,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
   final TextEditingController _passwordController = TextEditingController();
   bool _obscurePassword = true;
   bool _isValidPassword = false;
+  bool _isNavigating = false;
 
   @override
   void initState() {
@@ -63,7 +64,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
       onBack: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess) {
+          if (state is AuthSuccess && !_isNavigating) {
+            _isNavigating = true;
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/home',

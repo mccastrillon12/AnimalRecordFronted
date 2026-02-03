@@ -10,7 +10,10 @@ class UserModel extends UserEntity {
     required super.identificationNumber,
     required super.country,
     required super.countryId,
+    required super.departmentId,
     required super.city,
+    required super.cityId,
+    super.address,
     required super.email,
     required super.cellPhone,
     super.professionalCard,
@@ -19,6 +22,7 @@ class UserModel extends UserEntity {
     required super.isHomeDelivery,
     required super.roles,
     required super.authMethod,
+    required super.isVerified,
     this.password,
   });
 
@@ -30,7 +34,10 @@ class UserModel extends UserEntity {
       identificationNumber: json['identificationNumber'] ?? '',
       country: json['country'] ?? '',
       countryId: json['countryId'] ?? '',
+      departmentId: json['departmentId'] ?? '',
       city: json['city'] ?? '',
+      cityId: json['cityId'] ?? '',
+      address: json['address'] ?? '',
       email: json['email'] ?? '',
       cellPhone: json['cellPhone'] ?? '',
       professionalCard: json['professionalCard'],
@@ -39,6 +46,7 @@ class UserModel extends UserEntity {
       isHomeDelivery: json['isHomeDelivery'] ?? false,
       roles: List<String>.from(json['roles'] ?? []),
       authMethod: json['authMethod'] ?? 'EMAIL',
+      isVerified: json['isVerified'] ?? false,
     );
   }
 
@@ -67,8 +75,25 @@ class UserModel extends UserEntity {
     }
 
     // Only include optional fields if they are not empty
+    // city name is technically redundant if we have cityId but keeping for symmetry with entity
     if (city.isNotEmpty) {
       json['city'] = city;
+    }
+
+    if (address.isNotEmpty) {
+      json['address'] = address;
+    }
+
+    if (country.isNotEmpty) {
+      json['country'] = country;
+    }
+
+    if (departmentId.isNotEmpty) {
+      json['departmentId'] = departmentId;
+    }
+
+    if (cityId.isNotEmpty) {
+      json['cityId'] = cityId;
     }
 
     if (professionalCard != null && professionalCard!.isNotEmpty) {
