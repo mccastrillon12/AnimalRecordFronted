@@ -1,4 +1,5 @@
 import 'package:dartz/dartz.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:animal_record/core/exceptions/user_not_verified_exception.dart';
 import '../../../../core/errors/failure.dart';
 import '../../../../core/services/token_storage.dart';
@@ -63,10 +64,40 @@ class AuthRepositoryImpl implements AuthRepository {
       print('----------------------------');
 
       final userData = response['user'] ?? response;
-      final userId = (userData['id'] ?? '').toString();
+      String userId = (userData['id'] ?? '').toString();
 
-      if (userId.isEmpty) {
-        print('WARNING: User ID is empty in login response');
+      // Fallback: Try to get ID from Access Token if not found in response
+      if (userId.isEmpty || userId == 'null') {
+        final accessToken = response['accessToken'] as String?;
+        if (accessToken != null) {
+          try {
+            print(
+              '⚠️ WARNING: User ID not found in body, trying to decode token...',
+            );
+            Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
+            print('--- DECODED TOKEN ---');
+            print(decodedToken);
+            print('---------------------');
+
+            // Try common ID fields
+            if (decodedToken.containsKey('id')) {
+              userId = decodedToken['id'].toString();
+            } else if (decodedToken.containsKey('sub')) {
+              userId = decodedToken['sub'].toString();
+            } else if (decodedToken.containsKey('userId')) {
+              userId = decodedToken['userId'].toString();
+            }
+          } catch (e) {
+            print('Error decoding token: $e');
+          }
+        }
+      }
+
+      if (userId.isEmpty || userId == 'null') {
+        print('❌ ERROR: User ID is empty or null in login response');
+        throw Exception(
+          'Error del servidor: No se pudo identificar al usuario',
+        );
       }
 
       // Store tokens securely
@@ -82,6 +113,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       // Fetch FULL profile to ensure we have the correct name and other fields
+      // This will now only be called if we have a valid userId
       final fullProfile = await remoteDataSource.getUserProfile(userId);
 
       return Right(fullProfile);

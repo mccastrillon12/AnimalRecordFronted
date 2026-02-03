@@ -12,10 +12,13 @@ class AuthLoading extends AuthState {} // Para mostrar el círculo de carga
 
 class AuthSuccess extends AuthState {
   final UserEntity user;
-  AuthSuccess(this.user);
+  final bool isUpdating;
+  final String? updateError;
+
+  AuthSuccess(this.user, {this.isUpdating = false, this.updateError});
 
   @override
-  List<Object?> get props => [user];
+  List<Object?> get props => [user, isUpdating, updateError];
 }
 
 class AuthError extends AuthState {

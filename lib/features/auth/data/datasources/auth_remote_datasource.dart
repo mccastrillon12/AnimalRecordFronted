@@ -65,14 +65,23 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       print('--- DEBUG LOGIN ---');
       print('Status: ${response.statusCode}');
-      print('Data: ${response.data}');
       print('Data Type: ${response.data.runtimeType}');
+      print('Data: ${response.data}');
       print('-------------------');
 
       if (response.statusCode == 200) {
-        if (response.data is List && (response.data as List).isNotEmpty) {
-          return response.data[0] as Map<String, dynamic>;
+        // Validate response is an object, not an array
+        if (response.data is List) {
+          print(
+            '❌ ERROR: Backend returning array for login instead of single object',
+          );
+          throw Exception('Error del servidor: formato de respuesta inválido');
         }
+
+        if (response.data is! Map<String, dynamic>) {
+          throw Exception('Error del servidor: formato de respuesta inválido');
+        }
+
         return response.data as Map<String, dynamic>;
       } else {
         throw Exception('Error en el login');
@@ -187,13 +196,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       );
 
       print('--- SOCIAL CHECK SUCCESS ---');
-      print('Response: ${response.data}');
       print('Data Type: ${response.data.runtimeType}');
+      print('Response: ${response.data}');
       print('----------------------------');
 
-      if (response.data is List && (response.data as List).isNotEmpty) {
-        return response.data[0] as Map<String, dynamic>;
+      // Validate response is an object, not an array
+      if (response.data is List) {
+        print(
+          '❌ ERROR: Backend returning array for social check instead of single object',
+        );
+        throw Exception('Error del servidor: formato de respuesta inválido');
       }
+
+      if (response.data is! Map<String, dynamic>) {
+        throw Exception('Error del servidor: formato de respuesta inválido');
+      }
+
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       print('--- SOCIAL CHECK ERROR ---');
@@ -216,13 +234,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       final response = await dio.post('/auth/social/register', data: data);
 
       print('--- SOCIAL REGISTER SUCCESS ---');
-      print('Response: ${response.data}');
       print('Data Type: ${response.data.runtimeType}');
+      print('Response: ${response.data}');
       print('-------------------------------');
 
-      if (response.data is List && (response.data as List).isNotEmpty) {
-        return response.data[0] as Map<String, dynamic>;
+      // Validate response is an object, not an array
+      if (response.data is List) {
+        print(
+          '❌ ERROR: Backend returning array for social register instead of single object',
+        );
+        throw Exception('Error del servidor: formato de respuesta inválido');
       }
+
+      if (response.data is! Map<String, dynamic>) {
+        throw Exception('Error del servidor: formato de respuesta inválido');
+      }
+
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       print('--- SOCIAL REGISTER ERROR ---');
@@ -236,25 +263,53 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> getUserProfile(String id) async {
     try {
+      if (id.trim().isEmpty) {
+        throw Exception('Error interno: El ID del usuario está vacío');
+      }
+
       final response = await dio.get('/users/$id');
 
       print('--- DEBUG GET USER PROFILE ---');
-      print('ID: $id');
+      print('Requested User ID: $id');
       print('Status: ${response.statusCode}');
-      print('Data: ${response.data}');
       print('Data Type: ${response.data.runtimeType}');
+      print('Data: ${response.data}');
       print('------------------------------');
 
       if (response.statusCode == 200) {
         final dynamic data = response.data;
-        if (data is List && data.isNotEmpty) {
-          return UserModel.fromJson(data[0] as Map<String, dynamic>);
+
+        // Validate that backend returns a single object, not an array
+        if (data is List) {
+          print(
+            '❌ ERROR: Backend still returning array instead of single user object',
+          );
+          throw Exception(
+            'Error del servidor: se esperaba un usuario único pero se recibió un array',
+          );
         }
-        return UserModel.fromJson(data as Map<String, dynamic>);
+
+        if (data is! Map<String, dynamic>) {
+          throw Exception('Error del servidor: formato de respuesta inválido');
+        }
+
+        // Validate that the returned user ID matches the requested ID
+        final returnedId = data['id']?.toString() ?? '';
+        if (returnedId != id) {
+          print(
+            '⚠️ WARNING: Returned user ID ($returnedId) does not match requested ID ($id)',
+          );
+        }
+
+        print('✓ Successfully retrieved user profile for ID: $returnedId');
+        return UserModel.fromJson(data);
       } else {
         throw Exception('Error al obtener el perfil del usuario');
       }
     } on DioException catch (e) {
+      if (e.response?.statusCode == 404) {
+        throw Exception('Usuario no encontrado');
+      }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

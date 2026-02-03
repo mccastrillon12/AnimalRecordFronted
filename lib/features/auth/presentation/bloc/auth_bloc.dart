@@ -1,3 +1,4 @@
+import 'package:animal_record/features/auth/domain/entities/user_entity.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -213,15 +214,44 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<UpdateProfileRequested>((event, emit) async {
-      emit(AuthLoading());
+      // Check current state to preserve user data
+      final currentState = state;
+      UserEntity? currentUser;
+
+      if (currentState is AuthSuccess) {
+        currentUser = currentState.user;
+        emit(AuthSuccess(currentUser, isUpdating: true));
+      } else {
+        // Fallback if somehow called when not success (shouldn't happen in profile)
+        emit(AuthLoading());
+      }
+
       final result = await updateProfileUseCase(
         id: event.userId,
         data: event.data,
       );
 
       await result.fold(
-        (failure) async => emit(AuthError(failure.message)),
-        (user) async => emit(AuthSuccess(user)),
+        (failure) async {
+          if (currentUser != null) {
+            emit(
+              AuthSuccess(
+                currentUser,
+                isUpdating: false,
+                updateError: failure.message,
+              ),
+            );
+          } else {
+            emit(AuthError(failure.message));
+          }
+        },
+        (user) async {
+          // Update cache with new user data
+          if (user is UserModel) {
+            await tokenStorage.saveUserData(json.encode(user.toJson()));
+          }
+          emit(AuthSuccess(user, isUpdating: false));
+        },
       );
     });
   }
