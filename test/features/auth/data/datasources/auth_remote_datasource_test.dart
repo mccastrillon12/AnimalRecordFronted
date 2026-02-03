@@ -3,16 +3,21 @@ import 'package:animal_record/features/auth/data/models/user_model.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import 'package:logger/logger.dart';
 
 class MockDio extends Mock implements Dio {}
+
+class MockLogger extends Mock implements Logger {}
 
 void main() {
   late AuthRemoteDataSourceImpl dataSource;
   late MockDio mockDio;
+  late MockLogger mockLogger;
 
   setUp(() {
     mockDio = MockDio();
-    dataSource = AuthRemoteDataSourceImpl(dio: mockDio);
+    mockLogger = MockLogger();
+    dataSource = AuthRemoteDataSourceImpl(dio: mockDio, logger: mockLogger);
   });
 
   group('signUp', () {
@@ -23,7 +28,10 @@ void main() {
       'identificationType': 'CC',
       'identificationNumber': '123',
       'country': 'Col',
+      'countryId': 'CO',
+      'departmentId': '11',
       'city': 'Bog',
+      'cityId': '11001',
       'cellPhone': '123',
       'animalTypes': [],
       'services': [],
@@ -42,7 +50,10 @@ void main() {
             'identificationType': 'CC',
             'identificationNumber': '123',
             'country': 'Col',
+            'countryId': 'CO',
+            'departmentId': '11',
             'city': 'Bog',
+            'cityId': '11001',
             'cellPhone': '123',
             'animalTypes': [],
             'services': [],

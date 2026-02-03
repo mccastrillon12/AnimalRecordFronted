@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
 import 'package:animal_record/core/exceptions/user_not_verified_exception.dart';
 import 'package:animal_record/core/utils/error_mapper.dart';
 import '../models/user_model.dart';
@@ -18,25 +19,30 @@ abstract class AuthRemoteDataSource {
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   final Dio dio;
+  final Logger logger;
 
-  AuthRemoteDataSourceImpl({required this.dio});
+  AuthRemoteDataSourceImpl({required this.dio, required this.logger});
 
   @override
   Future<UserModel> signUp(UserModel user) async {
     try {
       final jsonData = user.toJson();
 
-      print('--- DEBUG SIGN UP ---');
-      print('URL: /users');
-      print('Payload: $jsonData');
-      print('----------------------');
+      logger.d('''
+--- DEBUG SIGN UP ---
+URL: /users
+Payload: $jsonData
+----------------------
+''');
 
       final response = await dio.post('/users', data: jsonData);
 
-      print('--- SIGN UP SUCCESS ---');
-      print('Status: ${response.statusCode}');
-      print('Response: ${response.data}');
-      print('------------------------');
+      logger.i('''
+--- SIGN UP SUCCESS ---
+Status: ${response.statusCode}
+Response: ${response.data}
+------------------------
+''');
 
       if (response.statusCode == 201 || response.statusCode == 200) {
         return UserModel.fromJson(response.data);
@@ -44,16 +50,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('Error en el registro');
       }
     } on DioException catch (e) {
-      print('--- SIGN UP DIO ERROR ---');
-      print('Status: ${e.response?.statusCode}');
-      print('Data: ${e.response?.data}');
-      print('Message: ${e.message}');
-      print('-------------------------');
+      logger.e('''
+--- SIGN UP DIO ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+Message: ${e.message}
+-------------------------
+''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
-      print('--- SIGN UP UNEXPECTED ERROR ---');
-      print('Error: $e');
-      print('--------------------------------');
+      logger.e('''
+--- SIGN UP UNEXPECTED ERROR ---
+Error: $e
+--------------------------------
+''');
       throw Exception('Error inesperado: $e');
     }
   }
@@ -63,16 +73,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await dio.post('/auth/login', data: credentials);
 
-      print('--- DEBUG LOGIN ---');
-      print('Status: ${response.statusCode}');
-      print('Data Type: ${response.data.runtimeType}');
-      print('Data: ${response.data}');
-      print('-------------------');
+      logger.d('''
+--- DEBUG LOGIN ---
+Status: ${response.statusCode}
+Data Type: ${response.data.runtimeType}
+Data: ${response.data}
+-------------------
+''');
 
       if (response.statusCode == 200) {
         // Validate response is an object, not an array
         if (response.data is List) {
-          print(
+          logger.e(
             '❌ ERROR: Backend returning array for login instead of single object',
           );
           throw Exception('Error del servidor: formato de respuesta inválido');
@@ -186,23 +198,27 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     String token,
   ) async {
     try {
-      print('--- DEBUG SOCIAL CHECK ---');
-      print('Payload: {"provider": "$provider", "token": "$token"}');
-      print('---------------------------');
+      logger.d('''
+--- DEBUG SOCIAL CHECK ---
+Payload: {"provider": "$provider", "token": "$token"}
+---------------------------
+''');
 
       final response = await dio.post(
         '/auth/social/check',
         data: {'provider': provider, 'token': token},
       );
 
-      print('--- SOCIAL CHECK SUCCESS ---');
-      print('Data Type: ${response.data.runtimeType}');
-      print('Response: ${response.data}');
-      print('----------------------------');
+      logger.i('''
+--- SOCIAL CHECK SUCCESS ---
+Data Type: ${response.data.runtimeType}
+Response: ${response.data}
+----------------------------
+''');
 
       // Validate response is an object, not an array
       if (response.data is List) {
-        print(
+        logger.e(
           '❌ ERROR: Backend returning array for social check instead of single object',
         );
         throw Exception('Error del servidor: formato de respuesta inválido');
@@ -214,10 +230,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      print('--- SOCIAL CHECK ERROR ---');
-      print('Status: ${e.response?.statusCode}');
-      print('Data: ${e.response?.data}');
-      print('--------------------------');
+      logger.e('''
+--- SOCIAL CHECK ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+--------------------------
+''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');
@@ -227,20 +245,24 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data) async {
     try {
-      print('--- DEBUG SOCIAL REGISTER ---');
-      print('Payload: $data');
-      print('------------------------------');
+      logger.d('''
+--- DEBUG SOCIAL REGISTER ---
+Payload: $data
+------------------------------
+''');
 
       final response = await dio.post('/auth/social/register', data: data);
 
-      print('--- SOCIAL REGISTER SUCCESS ---');
-      print('Data Type: ${response.data.runtimeType}');
-      print('Response: ${response.data}');
-      print('-------------------------------');
+      logger.i('''
+--- SOCIAL REGISTER SUCCESS ---
+Data Type: ${response.data.runtimeType}
+Response: ${response.data}
+-------------------------------
+''');
 
       // Validate response is an object, not an array
       if (response.data is List) {
-        print(
+        logger.e(
           '❌ ERROR: Backend returning array for social register instead of single object',
         );
         throw Exception('Error del servidor: formato de respuesta inválido');
@@ -252,10 +274,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      print('--- SOCIAL REGISTER ERROR ---');
-      print('Status: ${e.response?.statusCode}');
-      print('Data: ${e.response?.data}');
-      print('------------------------------');
+      logger.e('''
+--- SOCIAL REGISTER ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------------
+''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     }
   }
@@ -269,19 +293,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final response = await dio.get('/users/$id');
 
-      print('--- DEBUG GET USER PROFILE ---');
-      print('Requested User ID: $id');
-      print('Status: ${response.statusCode}');
-      print('Data Type: ${response.data.runtimeType}');
-      print('Data: ${response.data}');
-      print('------------------------------');
+      logger.d('''
+--- DEBUG GET USER PROFILE ---
+Requested User ID: $id
+Status: ${response.statusCode}
+Data Type: ${response.data.runtimeType}
+Data: ${response.data}
+------------------------------
+''');
 
       if (response.statusCode == 200) {
         final dynamic data = response.data;
 
         // Validate that backend returns a single object, not an array
         if (data is List) {
-          print(
+          logger.e(
             '❌ ERROR: Backend still returning array instead of single user object',
           );
           throw Exception(
@@ -296,12 +322,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         // Validate that the returned user ID matches the requested ID
         final returnedId = data['id']?.toString() ?? '';
         if (returnedId != id) {
-          print(
+          logger.w(
             '⚠️ WARNING: Returned user ID ($returnedId) does not match requested ID ($id)',
           );
         }
 
-        print('✓ Successfully retrieved user profile for ID: $returnedId');
+        logger.i('✓ Successfully retrieved user profile for ID: $returnedId');
         return UserModel.fromJson(data);
       } else {
         throw Exception('Error al obtener el perfil del usuario');
@@ -319,17 +345,21 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data) async {
     try {
-      print('--- DEBUG UPDATE PROFILE ---');
-      print('ID: $id');
-      print('Payload: $data');
-      print('----------------------------');
+      logger.d('''
+--- DEBUG UPDATE PROFILE ---
+ID: $id
+Payload: $data
+----------------------------
+''');
 
       final response = await dio.put('/users/$id', data: data);
 
-      print('--- UPDATE PROFILE SUCCESS ---');
-      print('Status: ${response.statusCode}');
-      print('Response: ${response.data}');
-      print('----------------------------');
+      logger.i('''
+--- UPDATE PROFILE SUCCESS ---
+Status: ${response.statusCode}
+Response: ${response.data}
+----------------------------
+''');
 
       if (response.statusCode == 200) {
         final dynamic responseData = response.data;
@@ -344,10 +374,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw Exception('Error al actualizar el perfil');
       }
     } on DioException catch (e) {
-      print('--- UPDATE PROFILE ERROR ---');
-      print('Status: ${e.response?.statusCode}');
-      print('Data: ${e.response?.data}');
-      print('--------------------------');
+      logger.e('''
+--- UPDATE PROFILE ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+--------------------------
+''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

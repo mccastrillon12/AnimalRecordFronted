@@ -147,7 +147,7 @@ class UserHeader extends StatelessWidget {
                 ),
 
                 // Notification bell
-                Container(
+                SizedBox(
                   width: 42,
                   height: 42,
                   child: IconButton(

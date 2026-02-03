@@ -59,9 +59,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final response = await remoteDataSource.login(credentials);
 
       // Parse user data from response to get the ID
-      print('--- DEBUG LOGIN RESPONSE ---');
-      print('Response: $response');
-      print('----------------------------');
+      // Parse user data from response to get the ID
 
       final userData = response['user'] ?? response;
       String userId = (userData['id'] ?? '').toString();
@@ -71,13 +69,7 @@ class AuthRepositoryImpl implements AuthRepository {
         final accessToken = response['accessToken'] as String?;
         if (accessToken != null) {
           try {
-            print(
-              '⚠️ WARNING: User ID not found in body, trying to decode token...',
-            );
             Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
-            print('--- DECODED TOKEN ---');
-            print(decodedToken);
-            print('---------------------');
 
             // Try common ID fields
             if (decodedToken.containsKey('id')) {
@@ -88,13 +80,12 @@ class AuthRepositoryImpl implements AuthRepository {
               userId = decodedToken['userId'].toString();
             }
           } catch (e) {
-            print('Error decoding token: $e');
+            // Ignore decoding error
           }
         }
       }
 
       if (userId.isEmpty || userId == 'null') {
-        print('❌ ERROR: User ID is empty or null in login response');
         throw Exception(
           'Error del servidor: No se pudo identificar al usuario',
         );
@@ -272,11 +263,9 @@ class AuthRepositoryImpl implements AuthRepository {
       final user = await remoteDataSource.updateProfile(id, data);
 
       // Update local storage with new data
-      if (user is UserModel) {
-        // Using json.encode needs dart:convert
-        // But let's assume imports are handled or will be.
-        // Actually, let's just return Right(user) for now to fix the interface implementation
-      }
+      // Using json.encode needs dart:convert
+      // But let's assume imports are handled or will be.
+      // Actually, let's just return Right(user) for now to fix the interface implementation
       return Right(user);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
