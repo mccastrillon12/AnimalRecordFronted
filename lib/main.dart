@@ -7,6 +7,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 
 import 'package:animal_record/features/auth/presentation/pages/profile_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/edit_profile_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/my_account_screen.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -46,6 +47,7 @@ class MyApp extends StatelessWidget {
           '/home': (context) => const HomeScreen(),
           '/profile': (context) => const ProfileScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
+          '/my-account': (context) => const MyAccountScreen(),
         },
       ),
     );

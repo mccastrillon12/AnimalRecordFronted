@@ -83,5 +83,19 @@ class UpdateProfileRequested extends AuthEvent {
   UpdateProfileRequested({required this.userId, required this.data});
 
   @override
+  @override
   List<Object?> get props => [userId, data];
+}
+
+class ChangePasswordRequested extends AuthEvent {
+  final String oldPassword;
+  final String newPassword;
+
+  ChangePasswordRequested({
+    required this.oldPassword,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object?> get props => [oldPassword, newPassword];
 }

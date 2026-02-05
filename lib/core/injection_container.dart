@@ -12,6 +12,7 @@ import 'package:animal_record/features/auth/domain/usecases/check_social_auth_us
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart'; // Added
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -47,7 +48,8 @@ Future<void> init() async {
       checkSocialAuthUseCase: sl(),
       registerSocialUseCase: sl(),
       getUserProfileUseCase: sl(),
-      updateProfileUseCase: sl(), // Added
+      updateProfileUseCase: sl(),
+      changePasswordUseCase: sl(), // Added
       logoutUseCase: sl(),
       tokenStorage: sl(),
     ),
@@ -64,7 +66,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => CheckSocialAuthUseCase(sl()));
   sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
-  sl.registerLazySingleton(() => UpdateProfileUseCase(sl())); // Added
+  sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl())); // Added
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

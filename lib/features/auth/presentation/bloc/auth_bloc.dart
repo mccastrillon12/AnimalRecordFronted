@@ -12,6 +12,7 @@ import 'package:animal_record/features/auth/domain/usecases/register_social_usec
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart'; // Added
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -26,6 +27,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
+  final ChangePasswordUseCase changePasswordUseCase; // Added
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -39,6 +41,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
     required this.updateProfileUseCase,
+    required this.changePasswordUseCase, // Added
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -251,6 +254,52 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
           emit(AuthSuccess(user, isUpdating: false));
+        },
+      );
+    });
+
+    on<ChangePasswordRequested>((event, emit) async {
+      final currentState = state;
+      UserEntity? currentUser;
+
+      if (currentState is AuthSuccess) {
+        currentUser = currentState.user;
+        // Emit update state to show loading on button, but keep MyAccountScreen visible
+        emit(AuthSuccess(currentUser, isUpdating: true));
+      } else {
+        // Fallback if somehow called without AuthSuccess (should not happen in this flow)
+        emit(AuthLoading());
+      }
+
+      final result = await changePasswordUseCase(
+        event.oldPassword,
+        event.newPassword,
+      );
+
+      await result.fold(
+        (failure) async {
+          if (currentUser != null) {
+            emit(
+              AuthSuccess(
+                currentUser,
+                isUpdating: false,
+                updateError: failure.message,
+              ),
+            );
+          } else {
+            emit(AuthError(failure.message));
+          }
+        },
+        (_) async {
+          if (currentUser != null) {
+            emit(PasswordChangeSuccess(currentUser));
+            // Immediately revert to normal AuthSuccess to clear "Success" event if needed,
+            // but PasswordChangeSuccess IS AuthSuccess so MyAccountScreen will stay visible.
+            // MyAccountScreen might re-render, but it's fine.
+          } else {
+            // Should not happen, but fallback
+            emit(PasswordChangeSuccess(UserModel.empty()));
+          }
         },
       );
     });

@@ -82,15 +82,17 @@ class PhoneInputField extends StatelessWidget {
                 maxLength: maxLength,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(left: 12, right: 4),
-                  child: Text(
-                    '(${countries.cast<CountryEntity>().firstWhere((c) => c.id == (selectedCountryId ?? countries.first.id), orElse: () => countries.first).dialCode})',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyMedio,
-                    ),
-                  ),
-                ),
+                prefixIcon: countries.isNotEmpty
+                    ? Padding(
+                        padding: const EdgeInsets.only(left: 12, right: 4),
+                        child: Text(
+                          '(${countries.cast<CountryEntity>().firstWhere((c) => c.id == selectedCountryId, orElse: () => countries.first).dialCode})',
+                          style: AppTypography.body4.copyWith(
+                            color: AppColors.greyMedio,
+                          ),
+                        ),
+                      )
+                    : null,
               ),
             ],
           ),

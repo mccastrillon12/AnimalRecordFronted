@@ -57,3 +57,7 @@ class SocialAuthNeedRegister extends AuthState {
   @override
   List<Object?> get props => [response];
 }
+
+class PasswordChangeSuccess extends AuthSuccess {
+  PasswordChangeSuccess(super.user);
+}

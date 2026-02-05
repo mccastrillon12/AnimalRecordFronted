@@ -15,6 +15,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data);
   Future<UserModel> getUserProfile(String id);
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
+  Future<void> changePassword(String oldPassword, String newPassword);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -379,6 +380,36 @@ Response: ${response.data}
 Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 --------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> changePassword(String oldPassword, String newPassword) async {
+    try {
+      logger.d('''
+--- DEBUG CHANGE PASSWORD ---
+URL: /auth/change-password
+-----------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/change-password',
+        data: {'oldPassword': oldPassword, 'newPassword': newPassword},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al cambiar la contraseña');
+      }
+    } on DioException catch (e) {
+      logger.e('''
+--- CHANGE PASSWORD ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+-----------------------------
 ''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
