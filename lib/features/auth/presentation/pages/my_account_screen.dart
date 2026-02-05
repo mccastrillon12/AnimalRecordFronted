@@ -12,6 +12,8 @@ import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import '../bloc/auth_event.dart';
 import 'change_password_screen.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
+import '../../../../core/widgets/display/data_value_box.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -118,352 +120,242 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           final bool isUpdating = state.isUpdating;
           final bool isPhoneLogin = user.authMethod == 'PHONE';
 
-          return Scaffold(
-            backgroundColor: AppColors.bgOxford,
-            body: SafeArea(
-              child: Stack(
-                children: [
-                  SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: 24),
-                        // The White Card
-                        Container(
-                          width: double.infinity,
-                          constraints: BoxConstraints(
-                            minHeight: MediaQuery.of(context).size.height - 100,
+          return ModalPageLayout(
+            title: 'Mi cuenta',
+            child: Form(
+              key: _formKey,
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Section 1 Header
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      color: const Color(0xFFF4F6F9), // Light grey section bg
+                      child: Text(
+                        'Información de la cuenta',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Section 1 Content
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          CustomTextField(
+                            controller: _nameController,
+                            label: 'Nombre completo',
                           ),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.only(
-                              topLeft: Radius.circular(32),
-                              topRight: Radius.circular(32),
+                          const SizedBox(height: 24),
+
+                          if (isPhoneLogin) ...[
+                            // Phone Login Logic
+                            Text(
+                              'Celular',
+                              style: AppTypography.body5.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
                             ),
-                          ),
-                          child: Form(
-                            key: _formKey,
-                            child: IntrinsicHeight(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            const SizedBox(height: 8),
+                            DataValueBox(
+                              value: user.cellPhone.isNotEmpty
+                                  ? user.cellPhone
+                                  : 'No registrado',
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.textSecondary,
+                                fontSize: 13,
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            CustomTextField(
+                              controller: _emailController,
+                              label: 'Correo electrónico',
+                            ),
+                          ] else ...[
+                            // Email Login Logic
+                            Text(
+                              'Correo electrónico',
+                              style: AppTypography.body5.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            DataValueBox(
+                              value: user.email.isNotEmpty
+                                  ? user.email
+                                  : 'No registrado',
+                            ),
+                            const SizedBox(height: 12),
+                            RichText(
+                              text: TextSpan(
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 13,
+                                ),
                                 children: [
-                                  // Header Area
-                                  Stack(
-                                    children: [
-                                      Padding(
-                                        padding: const EdgeInsets.only(
-                                          top: 80,
-                                          bottom: 24,
-                                        ),
-                                        child: Center(
-                                          child: Text(
-                                            'Mi cuenta',
-                                            style: AppTypography.heading2
-                                                .copyWith(
-                                                  color: AppColors.textPrimary,
-                                                ),
-                                          ),
-                                        ),
-                                      ),
-                                      Positioned(
-                                        top: 32,
-                                        right: 32,
-                                        child: IconButton(
-                                          onPressed: () =>
-                                              Navigator.pop(context),
-                                          icon: const Icon(Icons.close),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(),
-                                        ),
-                                      ),
-                                    ],
+                                  const TextSpan(
+                                    text:
+                                        'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
                                   ),
-
-                                  // Section 1 Header
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                      vertical: 12,
-                                    ),
-                                    color: const Color(
-                                      0xFFF4F6F9,
-                                    ), // Light grey section bg
-                                    child: Text(
-                                      'Información de la cuenta',
-                                      style: AppTypography.body3.copyWith(
-                                        color: AppColors.textPrimary,
-                                        fontWeight: FontWeight.w600,
-                                      ),
+                                  TextSpan(
+                                    text: 'support@animalrecord.com',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.primaryFrances,
+                                      decoration: TextDecoration.underline,
                                     ),
                                   ),
-                                  const SizedBox(height: 24),
-
-                                  // Section 1 Content
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        CustomTextField(
-                                          controller: _nameController,
-                                          label: 'Nombre completo',
-                                        ),
-                                        const SizedBox(height: 24),
-
-                                        if (isPhoneLogin) ...[
-                                          // Phone Login Logic
-                                          Text(
-                                            'Celular',
-                                            style: AppTypography.body5.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          _buildDatavalueBox(
-                                            user.cellPhone.isNotEmpty
-                                                ? user.cellPhone
-                                                : 'No registrado',
-                                          ),
-                                          const SizedBox(height: 12),
-                                          Text(
-                                            'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
-                                            style: AppTypography.body4.copyWith(
-                                              color: AppColors.textSecondary,
-                                              fontSize: 13,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 24),
-                                          CustomTextField(
-                                            controller: _emailController,
-                                            label: 'Correo electrónico',
-                                          ),
-                                        ] else ...[
-                                          // Email Login Logic
-                                          Text(
-                                            'Correo electrónico',
-                                            style: AppTypography.body5.copyWith(
-                                              color: AppColors.textSecondary,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 8),
-                                          _buildDatavalueBox(
-                                            user.email.isNotEmpty
-                                                ? user.email
-                                                : 'No registrado',
-                                          ),
-                                          const SizedBox(height: 12),
-                                          RichText(
-                                            text: TextSpan(
-                                              style: AppTypography.body4
-                                                  .copyWith(
-                                                    color:
-                                                        AppColors.textSecondary,
-                                                    fontSize: 13,
-                                                  ),
-                                              children: [
-                                                const TextSpan(
-                                                  text:
-                                                      'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
-                                                ),
-                                                TextSpan(
-                                                  text:
-                                                      'support@animalrecord.com',
-                                                  style: AppTypography.body4
-                                                      .copyWith(
-                                                        color: AppColors
-                                                            .primaryFrances,
-                                                        decoration:
-                                                            TextDecoration
-                                                                .underline,
-                                                      ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          const SizedBox(height: 24),
-                                          BlocBuilder<
-                                            LocationsCubit,
-                                            LocationsState
-                                          >(
-                                            builder: (context, locationState) {
-                                              return PhoneInputField(
-                                                label:
-                                                    'Número celular (Opcional)',
-                                                controller: _phoneController,
-                                                countries:
-                                                    locationState
-                                                        is LocationsLoaded
-                                                    ? locationState.countries
-                                                    : [],
-                                                selectedCountryId:
-                                                    _selectedPhoneCountryId,
-                                                onCountryChanged: (id) => setState(
-                                                  () =>
-                                                      _selectedPhoneCountryId =
-                                                          id,
-                                                ),
-                                                isOptional: true,
-                                              );
-                                            },
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 32),
-
-                                  if (![
-                                    'google',
-                                    'microsoft',
-                                    'apple',
-                                  ].contains(user.authMethod.toLowerCase()))
-                                    Column(
-                                      children: [
-                                        // Section 2 Header: Password
-                                        Container(
-                                          width: double.infinity,
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 12,
-                                          ),
-                                          color: const Color(0xFFF4F6F9),
-                                          child: Text(
-                                            'Contraseña',
-                                            style: AppTypography.body3.copyWith(
-                                              color: AppColors.textPrimary,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 24,
-                                            vertical: 24,
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Row(
-                                                mainAxisAlignment:
-                                                    MainAxisAlignment
-                                                        .spaceBetween,
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.center,
-                                                children: [
-                                                  Text(
-                                                    '• • • • • • • •',
-                                                    style: AppTypography.body3
-                                                        .copyWith(
-                                                          color: AppColors
-                                                              .textPrimary,
-                                                          letterSpacing: 1,
-                                                        ),
-                                                  ),
-                                                  TextButton(
-                                                    onPressed: () {
-                                                      Navigator.push(
-                                                        context,
-                                                        MaterialPageRoute(
-                                                          builder: (context) =>
-                                                              const ChangePasswordScreen(),
-                                                        ),
-                                                      );
-                                                    },
-                                                    child: Text(
-                                                      'Cambiar',
-                                                      style: AppTypography.body3
-                                                          .copyWith(
-                                                            color: AppColors
-                                                                .primaryFrances,
-                                                            fontWeight:
-                                                                FontWeight.bold,
-                                                          ),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                              const SizedBox(height: 8),
-                                              Text(
-                                                'Última modificación: month, dd, yyyy', // Placeholder
-                                                style: AppTypography.body4
-                                                    .copyWith(
-                                                      color:
-                                                          AppColors.greyMedio,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-
-                                  const Spacer(),
-
-                                  // Submit Button
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                    ),
-                                    child: CustomButton(
-                                      text: 'Guardar cambios',
-                                      isLoading: isUpdating,
-                                      onPressed: () {
-                                        if (_formKey.currentState!.validate()) {
-                                          final updatedData = <String, dynamic>{
-                                            'name': _nameController.text,
-                                            if (isPhoneLogin)
-                                              'email': _emailController.text,
-                                            if (!isPhoneLogin)
-                                              'cellPhone':
-                                                  _phoneController.text,
-                                            'countryId': user
-                                                .countryId, // Keep existing country
-                                          };
-                                          context.read<AuthBloc>().add(
-                                            UpdateProfileRequested(
-                                              userId: user.id,
-                                              data: updatedData,
-                                            ),
-                                          );
-                                        }
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(height: 40),
                                 ],
                               ),
                             ),
-                          ),
-                        ),
-                      ],
+                            const SizedBox(height: 24),
+                            BlocBuilder<LocationsCubit, LocationsState>(
+                              builder: (context, locationState) {
+                                return PhoneInputField(
+                                  label: 'Número celular (Opcional)',
+                                  controller: _phoneController,
+                                  countries: locationState is LocationsLoaded
+                                      ? locationState.countries
+                                      : [],
+                                  selectedCountryId: _selectedPhoneCountryId,
+                                  onCountryChanged: (id) => setState(
+                                    () => _selectedPhoneCountryId = id,
+                                  ),
+                                  isOptional: true,
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 32),
+
+                    if (![
+                      'google',
+                      'microsoft',
+                      'apple',
+                    ].contains(user.authMethod.toLowerCase()))
+                      Column(
+                        children: [
+                          // Section 2 Header: Password
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            color: const Color(0xFFF4F6F9),
+                            child: Text(
+                              'Contraseña',
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 24,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '• • • • • • • •',
+                                      style: AppTypography.body3.copyWith(
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ChangePasswordScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Cambiar',
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Última modificación: month, dd, yyyy', // Placeholder
+                                  style: AppTypography.body4.copyWith(
+                                    color: AppColors.greyMedio,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                    const Spacer(),
+
+                    // Submit Button
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: CustomButton(
+                        text: 'Guardar cambios',
+                        isLoading: isUpdating,
+                        onPressed: () {
+                          if (_formKey.currentState!.validate()) {
+                            final updatedData = <String, dynamic>{
+                              'name': _nameController.text,
+                              if (isPhoneLogin) 'email': _emailController.text,
+                              if (!isPhoneLogin)
+                                'cellPhone': _phoneController.text,
+                              'countryId':
+                                  user.countryId, // Keep existing country
+                            };
+                            context.read<AuthBloc>().add(
+                              UpdateProfileRequested(
+                                userId: user.id,
+                                data: updatedData,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
+                ),
               ),
             ),
           );
         },
-      ),
-    );
-  }
-
-  Widget _buildDatavalueBox(String value) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF4F6F9),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.greyClaro),
-      ),
-      child: Text(
-        value,
-        style: AppTypography.body2.copyWith(color: AppColors.textSecondary),
       ),
     );
   }
