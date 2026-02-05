@@ -8,7 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> signUp(UserModel user);
   Future<Map<String, dynamic>> login(Map<String, dynamic> credentials);
   Future<void> logout();
-  Future<void> verifyCode(String email, String code);
+  Future<Map<String, dynamic>> verifyCode(String email, String code);
   Future<void> resendVerificationCode(String identifier);
   Future<bool> checkIdentificationExists(String identificationNumber);
   Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
@@ -128,14 +128,25 @@ Data: ${response.data}
   }
 
   @override
-  Future<void> verifyCode(String email, String code) async {
+  Future<Map<String, dynamic>> verifyCode(String email, String code) async {
     try {
       final response = await dio.post(
         '/auth/verify',
         data: {'email': email, 'code': code},
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is! Map<String, dynamic>) {
+          // If backend returns just "OK" string or something else, we can't extract tokens.
+          // But let's assume it returns JSON.
+          // If it returns empty body but 200 OK, we have a problem (no tokens).
+          // Let's return the data as is.
+          return response.data is Map<String, dynamic>
+              ? response.data
+              : <String, dynamic>{};
+        }
+        return response.data as Map<String, dynamic>;
+      } else {
         throw Exception('Código de verificación inválido');
       }
     } on DioException catch (e) {

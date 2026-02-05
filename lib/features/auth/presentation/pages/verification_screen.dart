@@ -101,12 +101,16 @@ class _VerificationScreenState extends State<VerificationScreen> {
       onBack: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is VerificationSuccess && !_isNavigating) {
+          if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('¡Verificación exitosa!')),
             );
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/home',
+              (route) => false,
+            );
           } else if (state is ResendCodeSuccess) {
             // First restart timer to ensure VerificationStep state is updated
             _verificationKey.currentState?.restartTimer(180000);

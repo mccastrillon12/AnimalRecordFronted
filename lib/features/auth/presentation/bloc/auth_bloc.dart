@@ -145,10 +145,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await verifyCodeUseCase(event.params);
 
-      await result.fold(
-        (failure) async => emit(AuthError(failure.message)),
-        (_) async => emit(VerificationSuccess()),
-      );
+      await result.fold((failure) async => emit(AuthError(failure.message)), (
+        user,
+      ) async {
+        if (user is UserModel) {
+          await tokenStorage.saveUserData(json.encode(user.toJson()));
+        }
+        emit(AuthSuccess(user));
+      });
     });
 
     on<CheckIdentificationExists>((event, emit) async {

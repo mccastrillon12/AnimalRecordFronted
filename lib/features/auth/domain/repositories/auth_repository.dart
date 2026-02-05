@@ -10,7 +10,7 @@ abstract class AuthRepository {
   Future<Either<Failure, UserEntity>> login(LoginParams params);
   Future<Either<Failure, void>> logout();
   Future<bool> isAuthenticated();
-  Future<Either<Failure, void>> verifyCode(VerifyCodeParams params);
+  Future<Either<Failure, UserEntity>> verifyCode(VerifyCodeParams params);
   Future<Either<Failure, void>> resendVerificationCode(String identifier);
   Future<Either<Failure, bool>> checkIdentificationExists(
     String identificationNumber,
