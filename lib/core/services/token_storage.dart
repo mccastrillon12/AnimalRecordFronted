@@ -9,6 +9,7 @@ class TokenStorage {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userIdKey = 'user_id';
   static const String _userDataKey = 'user_data';
+  static const String _biometricsEnabledKey = 'biometrics_enabled';
 
   TokenStorage(this._secureStorage);
 
@@ -78,6 +79,37 @@ class TokenStorage {
   /// Get user ID
   Future<String?> getUserId() async {
     return await _secureStorage.read(key: _userIdKey);
+  }
+
+  static const String _biometricPendingKey = 'biometric_pending';
+
+  /// Save biometric preference for specific user
+  Future<void> saveBiometricsEnabledForUser(String userId, bool enabled) async {
+    await _secureStorage.write(
+      key: '${_biometricsEnabledKey}_$userId',
+      value: enabled.toString(),
+    );
+  }
+
+  /// Get biometric preference for specific user
+  Future<bool> getBiometricsEnabledForUser(String userId) async {
+    final value = await _secureStorage.read(
+      key: '${_biometricsEnabledKey}_$userId',
+    );
+    return value == 'true';
+  }
+
+  /// Set pending biometric activation (used when activating before login)
+  Future<void> setBiometricActivationPending(bool pending) async {
+    await _secureStorage.write(
+      key: _biometricPendingKey,
+      value: pending.toString(),
+    );
+  }
+
+  Future<bool> isBiometricActivationPending() async {
+    final value = await _secureStorage.read(key: _biometricPendingKey);
+    return value == 'true';
   }
 
   /// Clear all secure storage

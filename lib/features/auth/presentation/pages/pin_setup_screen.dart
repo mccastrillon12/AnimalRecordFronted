@@ -1,0 +1,223 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import '../widgets/auth_form_container.dart';
+
+class PinSetupScreen extends StatefulWidget {
+  const PinSetupScreen({super.key});
+
+  @override
+  State<PinSetupScreen> createState() => _PinSetupScreenState();
+}
+
+class _PinSetupScreenState extends State<PinSetupScreen> {
+  int _currentStep = 1; // 1: Crear, 2: Confirmar
+  final List<TextEditingController> _controllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+
+  String _firstPin = '';
+  String _currentPin = '';
+  String? _errorMessage;
+
+  @override
+  void dispose() {
+    for (var controller in _controllers) {
+      controller.dispose();
+    }
+    for (var node in _focusNodes) {
+      node.dispose();
+    }
+    super.dispose();
+  }
+
+  void _onCodeChanged(int index, String value) {
+    if (value.isNotEmpty && index < 3) {
+      _focusNodes[index + 1].requestFocus();
+    }
+
+    // Rebuild current PIN string
+    final pin = _controllers.map((c) => c.text).join();
+
+    setState(() {
+      _currentPin = pin;
+      _errorMessage = null; // Clear error on typing
+    });
+
+    // Auto-advance if logic desires, but user has a button
+  }
+
+  void _onBackspace(int index) {
+    if (index > 0) {
+      _focusNodes[index - 1].requestFocus();
+    }
+  }
+
+  void _handleContinue() {
+    if (_currentPin.length != 4) return;
+
+    if (_currentStep == 1) {
+      // Move to step 2
+      setState(() {
+        _firstPin = _currentPin;
+        _currentStep = 2;
+        _currentPin = '';
+        _errorMessage = null;
+        // Clear fields for next step
+        for (var c in _controllers) {
+          c.clear();
+        }
+        // Focus first field again
+        _focusNodes[0].requestFocus();
+      });
+    } else {
+      // Step 2: Verify
+      if (_currentPin == _firstPin) {
+        // Success
+        // TODO: Save PIN securely
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('PIN configurado correctamente')),
+        );
+        Navigator.pushReplacementNamed(context, '/home');
+      } else {
+        setState(() {
+          _errorMessage = 'Los PIN no coinciden. Inténtalo de nuevo.';
+          // Optionally clear fields or keep them? Usually clear.
+          // Let's clear to force retry
+          for (var c in _controllers) {
+            c.clear();
+          }
+          _currentPin = '';
+          _focusNodes[0].requestFocus();
+          // Reset to step 1 often? Or simply retry confirmation?
+          // Design says "Ingresa nuevamente". Usually if mismatch, we retry confirmation.
+          // But if user forgot first PIN, they are stuck.
+          // Usually we might just clear fields and let them try matching again.
+          // If they fail too many times, maybe reset to step 1.
+          // For now, retry confirmation step.
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isStep1 = _currentStep == 1;
+
+    return AuthFormContainer(
+      showLogo:
+          false, // Header title replaces logo usually in this design? Or keeping logo? Image shows text only.
+      // Based on AuthFormContainer, it has a white card. The image shows title inside the card.
+      showCancelButton: false, // Back button handles it
+      onBack: () {
+        if (_currentStep == 2) {
+          setState(() {
+            _currentStep = 1;
+            _currentPin = '';
+            for (var c in _controllers) {
+              c.clear();
+            }
+          });
+        } else {
+          Navigator.pop(context);
+        }
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+        child: Column(
+          children: [
+            const SizedBox(height: AppSpacing.xxl),
+            Text(
+              isStep1 ? 'Crear PIN' : 'Confirmar PIN',
+              style: AppTypography.heading2,
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              '$_currentStep de 2',
+              style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
+            ),
+            const SizedBox(height: AppSpacing.l),
+            Text(
+              isStep1
+                  ? 'Hemos detectado que haz iniciado sesión con redes sociales, por lo que necesitaremos que crees un PIN de 4 números que servirá de respaldo en caso de no funcionar la biometría.'
+                  : 'Ingresa nuevamente los 4 números de tu PIN para confirmar.',
+              textAlign: TextAlign.center,
+              style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
+            ),
+            const SizedBox(height: AppSpacing.xxxl),
+
+            // PIN Input
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(4, (index) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                  child: SizedBox(
+                    width: 50,
+                    height: 50,
+                    child: TextField(
+                      controller: _controllers[index],
+                      focusNode: _focusNodes[index],
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      maxLength: 1,
+                      style: AppTypography.heading2,
+                      decoration: InputDecoration(
+                        counterText: '',
+                        contentPadding: EdgeInsets.zero,
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.greyMedio,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryFrances,
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      onChanged: (value) {
+                        if (value.isEmpty) {
+                          _onBackspace(index);
+                        } else {
+                          _onCodeChanged(index, value);
+                        }
+                        setState(() {}); // refresh for button state
+                      },
+                    ),
+                  ),
+                );
+              }),
+            ),
+
+            if (_errorMessage != null) ...[
+              const SizedBox(height: AppSpacing.m),
+              Text(
+                _errorMessage!,
+                style: AppTypography.body4.copyWith(color: AppColors.error),
+                textAlign: TextAlign.center,
+              ),
+            ],
+
+            const Spacer(),
+
+            CustomButton(
+              text: isStep1 ? 'Continuar' : 'Verificar',
+              onPressed: _currentPin.length == 4 ? _handleContinue : null,
+            ),
+            const SizedBox(height: AppSpacing.xxl),
+          ],
+        ),
+      ),
+    );
+  }
+}

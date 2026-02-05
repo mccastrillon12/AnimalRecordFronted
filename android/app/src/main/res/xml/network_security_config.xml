@@ -57,5 +57,6 @@
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">10.0.2.2</domain>  <!-- Emulador Android -->
         <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">192.168.40.59</domain>
     </domain-config>
 </network-security-config>

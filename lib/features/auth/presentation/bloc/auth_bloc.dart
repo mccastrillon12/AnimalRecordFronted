@@ -48,6 +48,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<FetchUserRequested>((event, emit) async {
       // 1. Try to load from cache
       final cachedUser = await tokenStorage.getUserData();
+      bool loadedFromCache = false;
+
       if (cachedUser != null) {
         try {
           final userMap = json.decode(cachedUser);
@@ -58,6 +60,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (currentState is! AuthSuccess || currentState.user != user) {
             emit(AuthSuccess(user));
           }
+          loadedFromCache = true;
         } catch (e) {
           // If decoding fails, ignore and fetch from API
         }
@@ -72,7 +75,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           (failure) async {
             // Only show error if we don't have cached data
             if (state is! AuthSuccess) {
-              emit(AuthError(failure.message));
+              emit(AuthError('Session expired or invalid'));
             }
           },
           (user) async {
@@ -88,6 +91,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             }
           },
         );
+      } else if (!loadedFromCache) {
+        // No cache and no userId -> No active session
+        emit(AuthError('No active session'));
       }
     });
 

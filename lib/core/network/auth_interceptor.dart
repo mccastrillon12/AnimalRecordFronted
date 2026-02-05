@@ -53,7 +53,10 @@ class AuthInterceptor extends Interceptor {
     // Handle 401 Unauthorized - token expired
     // Skip retry for change-password to avoid infinite loop if 401 is used for "Wrong Password"
     final path = err.requestOptions.path;
-    _logger.d('AuthInterceptor Error: ${err.response?.statusCode} at $path');
+    _logger.e('AuthInterceptor Error: ${err.type} - ${err.message} at $path');
+    if (err.response != null) {
+      _logger.e('Response data: ${err.response?.data}');
+    }
 
     if (err.response?.statusCode == 401 &&
         !_isAuthEndpoint(path) &&

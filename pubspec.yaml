@@ -49,6 +49,7 @@ dependencies:
   flutter_svg: ^2.0.0  # Para renderizar SVGs
   logger: ^2.0.0  # Logging mejorado
   google_sign_in: ^6.2.2  # Google Sign-In (Downgraded for stability)
+  local_auth: ^2.1.6
   firebase_core: ^4.4.0
   firebase_auth: ^6.1.4
 
