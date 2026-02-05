@@ -8,24 +8,25 @@ import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 
-class PinSetupScreen extends StatefulWidget {
-  const PinSetupScreen({super.key});
+class PinEntryScreen extends StatefulWidget {
+  final String identifier; // Email to display
+
+  const PinEntryScreen({super.key, required this.identifier});
 
   @override
-  State<PinSetupScreen> createState() => _PinSetupScreenState();
+  State<PinEntryScreen> createState() => _PinEntryScreenState();
 }
 
-class _PinSetupScreenState extends State<PinSetupScreen> {
-  int _currentStep = 1; // 1: Crear, 2: Confirmar
+class _PinEntryScreenState extends State<PinEntryScreen> {
   final List<TextEditingController> _controllers = List.generate(
     4,
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
-  String _firstPin = '';
   String _currentPin = '';
   String? _errorMessage;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -43,15 +44,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       _focusNodes[index + 1].requestFocus();
     }
 
-    // Rebuild current PIN string
     final pin = _controllers.map((c) => c.text).join();
 
     setState(() {
       _currentPin = pin;
-      _errorMessage = null; // Clear error on typing
+      _errorMessage = null;
     });
-
-    // Auto-advance if logic desires, but user has a button
   }
 
   void _onBackspace(int index) {
@@ -60,118 +58,74 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     }
   }
 
-  void _handleContinue() {
+  Future<void> _handleVerify() async {
     if (_currentPin.length != 4) return;
 
-    if (_currentStep == 1) {
-      // Move to step 2
-      setState(() {
-        _firstPin = _currentPin;
-        _currentStep = 2;
-        _currentPin = '';
-        _errorMessage = null;
-        // Clear fields for next step
-        for (var c in _controllers) {
-          c.clear();
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final userId = await sl<TokenStorage>().getUserId();
+      if (userId != null) {
+        final isValid = await sl<TokenStorage>().validateUserPin(
+          userId,
+          _currentPin,
+        );
+
+        if (!mounted) return;
+
+        if (isValid) {
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
+        } else {
+          setState(() {
+            _errorMessage = 'PIN incorrecto. Inténtalo de nuevo.';
+            // Clear fields validation failed
+            for (var c in _controllers) {
+              c.clear();
+            }
+            _currentPin = '';
+            _focusNodes[0].requestFocus();
+          });
         }
-        // Focus first field again
-        _focusNodes[0].requestFocus();
-      });
-    } else {
-      if (_currentPin == _firstPin) {
-        // Success
-        _savePinAndContinue();
       } else {
         setState(() {
-          _errorMessage = 'Los PIN no coinciden. Inténtalo de nuevo.';
-          // Optionally clear fields or keep them? Usually clear.
-          // Let's clear to force retry
-          for (var c in _controllers) {
-            c.clear();
-          }
-          _currentPin = '';
-          _focusNodes[0].requestFocus();
-          // Reset to step 1 often? Or simply retry confirmation?
-          // Design says "Ingresa nuevamente". Usually if mismatch, we retry confirmation.
-          // But if user forgot first PIN, they are stuck.
-          // Usually we might just clear fields and let them try matching again.
-          // If they fail too many times, maybe reset to step 1.
-          // For now, retry confirmation step.
+          _errorMessage =
+              'Error de sesión. Por favor inicia sesión nuevamente.';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Error al validar PIN';
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
         });
       }
     }
   }
 
-  Future<void> _savePinAndContinue() async {
-    try {
-      final userId = await sl<TokenStorage>().getUserId();
-      if (userId != null) {
-        await sl<TokenStorage>().saveUserPin(userId, _currentPin);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN configurado correctamente')),
-          );
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        // Fallback if no user id (shouldn't happen in setup flow usually)
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: No se pudo identificar al usuario'),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error saving PIN: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isStep1 = _currentStep == 1;
-
     return AuthFormContainer(
-      showLogo:
-          false, // Header title replaces logo usually in this design? Or keeping logo? Image shows text only.
-      // Based on AuthFormContainer, it has a white card. The image shows title inside the card.
-      showCancelButton: false, // Back button handles it
-      onBack: () {
-        if (_currentStep == 2) {
-          setState(() {
-            _currentStep = 1;
-            _currentPin = '';
-            for (var c in _controllers) {
-              c.clear();
-            }
-          });
-        } else {
-          Navigator.pop(context);
-        }
-      },
+      showLogo: true, // As per image background, keeping style consistent
+      showCancelButton: false,
+      onBack: () => Navigator.pop(context),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
         child: Column(
           children: [
             const SizedBox(height: AppSpacing.xxl),
-            Text(
-              isStep1 ? 'Crear PIN' : 'Confirmar PIN',
-              style: AppTypography.heading2,
-            ),
+            Text('Ingresa tu PIN', style: AppTypography.heading2),
             const SizedBox(height: AppSpacing.xs),
             Text(
-              '$_currentStep de 2',
-              style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
-            ),
-            const SizedBox(height: AppSpacing.l),
-            Text(
-              isStep1
-                  ? 'Hemos detectado que haz iniciado sesión con redes sociales, por lo que necesitaremos que crees un PIN de 4 números que servirá de respaldo en caso de no funcionar la biometría.'
-                  : 'Ingresa nuevamente los 4 números de tu PIN para confirmar.',
-              textAlign: TextAlign.center,
+              widget.identifier,
               style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
             ),
+
             const SizedBox(height: AppSpacing.xxxl),
 
             // PIN Input
@@ -214,7 +168,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         } else {
                           _onCodeChanged(index, value);
                         }
-                        setState(() {}); // refresh for button state
+                        setState(() {});
                       },
                     ),
                   ),
@@ -234,9 +188,30 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             const Spacer(),
 
             CustomButton(
-              text: isStep1 ? 'Continuar' : 'Verificar',
-              onPressed: _currentPin.length == 4 ? _handleContinue : null,
+              text: 'Ingresar',
+              isLoading: _isLoading,
+              onPressed: _currentPin.length == 4 ? _handleVerify : null,
             ),
+
+            const SizedBox(height: AppSpacing.l),
+
+            TextButton(
+              onPressed: () {
+                // Logic for forgotten PIN? Maybe logout?
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/login',
+                  (route) => false,
+                );
+              },
+              child: Text(
+                '¿Olvidaste el PIN?',
+                style: AppTypography.body3.copyWith(
+                  color: AppColors.primaryFrances,
+                ),
+              ),
+            ),
+
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),

@@ -12,6 +12,8 @@ import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'dart:convert';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/password_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   const BiometricLockScreen({super.key});
@@ -45,6 +47,9 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
     super.dispose();
   }
 
+  String _authMethod = 'EMAIL';
+  String _userIdentifier = '';
+
   Future<void> _loadUserName() async {
     final userData = await sl<TokenStorage>().getUserData();
     if (userData != null) {
@@ -52,6 +57,9 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
         final Map<String, dynamic> userMap = json.decode(userData);
         setState(() {
           _userName = userMap['name'] ?? '';
+          _authMethod = userMap['authMethod'] ?? 'EMAIL';
+          // Use email as identifier, or phone if email is missing (though model prioritizes email usually)
+          _userIdentifier = userMap['email'] ?? userMap['cellPhone'] ?? '';
         });
       } catch (_) {}
     }
@@ -83,12 +91,23 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
   }
 
   void _goToLogin() {
-    // Navigate to Login (clearing history to prevent back to lock screen)
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const LoginScreen()),
-      (route) => false,
-    );
+    // If standard auth (Email/Phone), go to Password Screen
+    if (_authMethod == 'EMAIL' || _authMethod == 'PHONE') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PasswordScreen(identifier: _userIdentifier),
+        ),
+      );
+    } else {
+      // If Social Auth (Google, etc.), go to PIN Entry Screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => PinEntryScreen(identifier: _userIdentifier),
+        ),
+      );
+    }
   }
 
   @override

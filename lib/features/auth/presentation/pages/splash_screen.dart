@@ -68,14 +68,7 @@ class _SplashScreenState extends State<SplashScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              SvgPicture.asset(
-                'assets/Logo/Imagotipo_blanco.png',
-                height: 80,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
-                ),
-              ),
+              Image.asset('assets/Logo/Logotipo_blanco.png', height: 80),
               const SizedBox(height: 16),
               // We could add a loading indicator here if needed
               // const CircularProgressIndicator(color: Colors.white),
