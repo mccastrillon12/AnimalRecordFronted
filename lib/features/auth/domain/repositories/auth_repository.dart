@@ -25,4 +25,8 @@ abstract class AuthRepository {
     String id,
     Map<String, dynamic> data,
   );
+  Future<Either<Failure, void>> changePassword(
+    String oldPassword,
+    String newPassword,
+  );
 }

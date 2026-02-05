@@ -51,8 +51,14 @@ class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     // Handle 401 Unauthorized - token expired
+    // Skip retry for change-password to avoid infinite loop if 401 is used for "Wrong Password"
+    final path = err.requestOptions.path;
+    _logger.d('AuthInterceptor Error: ${err.response?.statusCode} at $path');
+
     if (err.response?.statusCode == 401 &&
-        !_isAuthEndpoint(err.requestOptions.path)) {
+        !_isAuthEndpoint(path) &&
+        !path.contains('change-password')) {
+      // Broadened check
       // Check rate limiting
       if (_isRefreshRateLimited()) {
         _logger.w('Refresh rate limit exceeded, clearing tokens');

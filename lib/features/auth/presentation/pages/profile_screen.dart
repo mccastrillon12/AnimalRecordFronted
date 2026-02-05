@@ -151,7 +151,9 @@ class ProfileScreen extends StatelessWidget {
                           _buildOptionTile(
                             icon: Icons.person_outline,
                             label: 'Mi cuenta',
-                            onTap: () {},
+                            onTap: () {
+                              Navigator.pushNamed(context, '/my-account');
+                            },
                           ),
                           Divider(color: AppColors.greyClaro, height: 1),
                           _buildOptionTile(

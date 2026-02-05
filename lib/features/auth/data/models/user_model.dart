@@ -50,6 +50,28 @@ class UserModel extends UserEntity {
     );
   }
 
+  factory UserModel.empty() {
+    return const UserModel(
+      id: '',
+      name: '',
+      identificationType: '',
+      identificationNumber: '',
+      country: '',
+      countryId: '',
+      departmentId: '',
+      city: '',
+      cityId: '',
+      email: '',
+      cellPhone: '',
+      animalTypes: [],
+      services: [],
+      isHomeDelivery: false,
+      roles: [],
+      authMethod: '',
+      isVerified: false,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     final Map<String, dynamic> json = {
       'id': id,
