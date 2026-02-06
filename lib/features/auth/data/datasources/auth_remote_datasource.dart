@@ -19,6 +19,8 @@ abstract class AuthRemoteDataSource {
   Future<void> savePin(String pin);
   Future<void> verifyPin(String pin);
   Future<void> changePin(String oldPin, String newPin);
+  Future<void> updateBiometricStatus(bool enabled);
+  Future<Map<String, dynamic>> getBiometricStatus();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -536,6 +538,59 @@ Data: ${e.response?.data}
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         throw Exception('PIN actual incorrecto. Inténtalo de nuevo.');
       }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> updateBiometricStatus(bool enabled) async {
+    try {
+      logger.i('--- UPDATE BIOMETRIC STATUS ---');
+      logger.i('Enabling: $enabled');
+
+      await dio.patch('/auth/biometric/status', data: {'enable': enabled});
+
+      logger.i('✅ Biometric status updated successfully');
+    } on DioException catch (e) {
+      logger.e('''
+--- UPDATE BIOMETRIC ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+---------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBiometricStatus() async {
+    try {
+      logger.i('--- GET BIOMETRIC STATUS ---');
+
+      final response = await dio.get('/auth/biometric/status');
+
+      print("🔍 [DEBUG] RAW GET RESPONSE: ${response.data}");
+      print(
+        "🔍🔍🔍 [RAW BACKEND RESPONSE] GET /auth/biometric/status: ${response.data}",
+      );
+      logger.i('''
+--- BIOMETRIC STATUS RESPONSE ---
+Data: ${response.data}
+Type: ${response.data.runtimeType}
+---------------------------------
+''');
+      return response.data;
+    } on DioException catch (e) {
+      logger.e('''
+--- GET BIOMETRIC ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
+''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

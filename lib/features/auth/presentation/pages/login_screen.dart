@@ -158,15 +158,31 @@ class _LoginScreenState extends State<LoginScreen> {
             final storage = sl<TokenStorage>();
             storage.isBiometricActivationPending().then((isPending) async {
               if (isPending) {
-                await storage.saveBiometricsEnabledForUser(state.user.id, true);
+                final isEmailUser =
+                    state.user.authMethod.toLowerCase() == 'email';
+
+                if (isEmailUser) {
+                  // Email/Phone user ends here
+                  if (mounted) {
+                    context.read<AuthBloc>().add(
+                      UpdateBiometricStatusRequested(true),
+                    );
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                } else {
+                  // Social user continues to PIN setup
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PinSetupScreen(),
+                      ),
+                    );
+                  }
+                }
                 await storage.setBiometricActivationPending(false);
               }
             });
-
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(builder: (context) => const PinSetupScreen()),
-            );
           } else {
             // Standard Login success -> Go to Home
             Navigator.pushReplacementNamed(context, '/home');

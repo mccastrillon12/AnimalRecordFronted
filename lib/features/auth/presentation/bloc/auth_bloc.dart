@@ -16,6 +16,8 @@ import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.d
 import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -34,6 +36,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final SavePinUseCase savePinUseCase;
   final VerifyPinUseCase verifyPinUseCase; // Added
   final ChangePinUseCase changePinUseCase; // Added
+  final UpdateBiometricStatusUseCase updateBiometricStatusUseCase; // Added
+  final GetBiometricStatusUseCase getBiometricStatusUseCase; // Added
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -51,6 +55,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.savePinUseCase,
     required this.verifyPinUseCase, // Added
     required this.changePinUseCase, // Added
+    required this.updateBiometricStatusUseCase, // Added
+    required this.getBiometricStatusUseCase, // Added
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -96,6 +102,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             // Only emit if the user data is actually different from what we have
             final currentState = state;
             if (currentState is! AuthSuccess || currentState.user != user) {
+              await _syncBiometricStatus(user.id);
               emit(AuthSuccess(user));
             }
           },
@@ -144,6 +151,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
+          await _syncBiometricStatus(user.id);
           emit(AuthSuccess(user));
         },
       );
@@ -160,6 +168,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
+        await _syncBiometricStatus(user.id);
         emit(AuthSuccess(user));
       });
     });
@@ -206,6 +215,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
+          await _syncBiometricStatus(user.id);
           emit(AuthSuccess(user));
         } else {
           emit(AuthError('Respuesta inesperada del servidor'));
@@ -225,6 +235,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
+        await _syncBiometricStatus(user.id);
         emit(AuthSuccess(user));
       });
     });
@@ -459,5 +470,56 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
       );
     });
+
+    on<UpdateBiometricStatusRequested>((event, emit) async {
+      print(
+        "🚨🚨🚨 [BLOC] UpdateBiometricStatusRequested LLAMADO CON VALOR: ${event.enabled}",
+      );
+      final result = await updateBiometricStatusUseCase(event.enabled);
+
+      await result.fold(
+        (failure) async => print(
+          "❌🚨 [BLOC] Error al actualizar biometría: ${failure.message}",
+        ),
+        (_) async {
+          print(
+            "✅🚨 [BLOC] Biometría actualizada exitosamente en backend a: ${event.enabled}",
+          );
+          // Update local cache
+          final userId = await tokenStorage.getUserId();
+          if (userId != null) {
+            await tokenStorage.saveBiometricsEnabledForUser(
+              userId,
+              event.enabled,
+            );
+          }
+        },
+      );
+    });
+
+    on<SyncBiometricStatusRequested>((event, emit) async {
+      print("🚀🚨 [BLOC] SyncBiometricStatusRequested LLAMADO");
+      final userId = await tokenStorage.getUserId();
+      if (userId != null) {
+        await _syncBiometricStatus(userId);
+      }
+    });
+  }
+
+  Future<void> _syncBiometricStatus(String userId) async {
+    print("🔄🚨 [BLOC] Ejecutando _syncBiometricStatus para: $userId");
+    final result = await getBiometricStatusUseCase();
+
+    await result.fold(
+      (failure) async =>
+          print("❌🚨 [BLOC] Falló sincronización: ${failure.message}"),
+      (isEnabled) async {
+        print(
+          "✅🚨 [BLOC] Sincronización exitosa. Backend devolvió enable=$isEnabled",
+        );
+        await tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
+        print("💾🚨 [BLOC] Caché local actualizado para $userId a: $isEnabled");
+      },
+    );
   }
 }

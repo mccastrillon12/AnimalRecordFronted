@@ -381,4 +381,26 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(errorMsg));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> updateBiometricStatus(bool enabled) async {
+    try {
+      await remoteDataSource.updateBiometricStatus(enabled);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> getBiometricStatus() async {
+    try {
+      final data = await remoteDataSource.getBiometricStatus();
+      return Right(data['isBiometricEnabled'] ?? false);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

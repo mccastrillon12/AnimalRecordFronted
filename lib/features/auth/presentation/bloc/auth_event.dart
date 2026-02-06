@@ -125,3 +125,13 @@ class ChangePinRequested extends AuthEvent {
   @override
   List<Object?> get props => [oldPin, newPin];
 }
+
+class UpdateBiometricStatusRequested extends AuthEvent {
+  final bool enabled;
+  UpdateBiometricStatusRequested(this.enabled);
+
+  @override
+  List<Object?> get props => [enabled];
+}
+
+class SyncBiometricStatusRequested extends AuthEvent {}

@@ -144,6 +144,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('PIN configurado correctamente')),
           );
+
+          // Al finalizar la creación del PIN, activar biometría en el backend
+          if (mounted) {
+            context.read<AuthBloc>().add(UpdateBiometricStatusRequested(true));
+          }
+
           Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       },

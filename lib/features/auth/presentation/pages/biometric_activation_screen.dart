@@ -52,7 +52,8 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
 
       if (didAuthenticate && mounted) {
         _showSnackBar('Biometría activada correctamente');
-        // Marcar biometría como pendiente de asociación al usuario (se confirmará al hacer login)
+
+        // Marcar bianmetría como pendiente de asociación al usuario (se confirmará al terminar el flujo PIN/Login)
         await sl<TokenStorage>().setBiometricActivationPending(true);
 
         Navigator.pushReplacement(
