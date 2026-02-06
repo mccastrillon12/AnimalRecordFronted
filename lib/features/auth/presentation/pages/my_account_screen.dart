@@ -6,12 +6,13 @@ import '../../../../core/widgets/inputs/custom_text_field.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_state.dart';
+import '../bloc/auth_event.dart';
 import '../widgets/phone_input_field.dart';
 import '../../../../features/locations/presentation/cubit/locations_cubit.dart';
 import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
-import '../bloc/auth_event.dart';
 import 'change_password_screen.dart';
+import 'change_pin_screen.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
 
@@ -244,11 +245,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                     ),
                     const SizedBox(height: 32),
 
-                    if (![
-                      'google',
-                      'microsoft',
-                      'apple',
-                    ].contains(user.authMethod.toLowerCase()))
+                    if (user.authMethod.toLowerCase() == 'email')
                       Column(
                         children: [
                           // Section 2 Header: Password
@@ -296,6 +293,82 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             builder: (context) =>
                                                 const ChangePasswordScreen(),
                                           ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Cambiar',
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Última modificación: month, dd, yyyy', // Placeholder
+                                  style: AppTypography.body4.copyWith(
+                                    color: AppColors.greyMedio,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    else if ([
+                      'google',
+                      'microsoft',
+                      'apple',
+                    ].contains(user.authMethod.toLowerCase()))
+                      Column(
+                        children: [
+                          // Section 2 Header: PIN
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            color: const Color(0xFFF4F6F9),
+                            child: Text(
+                              'PIN',
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 24,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '• • • •',
+                                      style: AppTypography.body3.copyWith(
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        showModalBottomSheet(
+                                          context: context,
+                                          isScrollControlled: true,
+                                          backgroundColor: Colors.transparent,
+                                          builder: (context) =>
+                                              const ChangePinScreen(),
                                         );
                                       },
                                       child: Text(

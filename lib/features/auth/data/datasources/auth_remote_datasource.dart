@@ -18,6 +18,7 @@ abstract class AuthRemoteDataSource {
   Future<void> changePassword(String oldPassword, String newPassword);
   Future<void> savePin(String pin);
   Future<void> verifyPin(String pin);
+  Future<void> changePin(String oldPin, String newPin);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -494,6 +495,46 @@ Data: ${e.response?.data}
 ''');
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         throw Exception('PIN incorrecto. Inténtalo de nuevo.');
+      }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> changePin(String oldPin, String newPin) async {
+    try {
+      logger.d('''
+--- DEBUG CHANGE PIN ---
+URL: /auth/pin
+Payload: {"oldPin": "$oldPin", "newPin": "$newPin"}
+------------------------
+''');
+
+      final response = await dio.put(
+        '/auth/pin',
+        data: {'oldPin': oldPin, 'newPin': newPin},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al cambiar PIN');
+      }
+
+      logger.i('''
+--- CHANGE PIN SUCCESS ---
+Status: ${response.statusCode}
+--------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- CHANGE PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        throw Exception('PIN actual incorrecto. Inténtalo de nuevo.');
       }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {

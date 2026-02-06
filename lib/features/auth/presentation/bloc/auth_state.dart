@@ -16,6 +16,7 @@ class AuthSuccess extends AuthState {
   final String? updateError;
   final bool pinSaveSuccess;
   final bool pinVerifiedSuccess; // Added
+  final bool pinChangeSuccess; // Added
 
   AuthSuccess(
     this.user, {
@@ -23,6 +24,7 @@ class AuthSuccess extends AuthState {
     this.updateError,
     this.pinSaveSuccess = false,
     this.pinVerifiedSuccess = false, // Added
+    this.pinChangeSuccess = false, // Added
   });
 
   @override
@@ -32,6 +34,7 @@ class AuthSuccess extends AuthState {
     updateError,
     pinSaveSuccess,
     pinVerifiedSuccess,
+    pinChangeSuccess,
   ];
 }
 

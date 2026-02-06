@@ -15,6 +15,7 @@ import 'package:animal_record/features/auth/domain/usecases/update_profile_useca
 import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -54,6 +55,7 @@ Future<void> init() async {
       changePasswordUseCase: sl(),
       savePinUseCase: sl(),
       verifyPinUseCase: sl(), // Added
+      changePinUseCase: sl(), // Added
       logoutUseCase: sl(),
       tokenStorage: sl(),
     ),
@@ -74,6 +76,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
   sl.registerLazySingleton(() => SavePinUseCase(sl()));
   sl.registerLazySingleton(() => VerifyPinUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ChangePinUseCase(sl())); // Added
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

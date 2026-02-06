@@ -15,6 +15,7 @@ import 'package:animal_record/features/auth/domain/usecases/update_profile_useca
 import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -32,6 +33,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ChangePasswordUseCase changePasswordUseCase;
   final SavePinUseCase savePinUseCase;
   final VerifyPinUseCase verifyPinUseCase; // Added
+  final ChangePinUseCase changePinUseCase; // Added
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -48,6 +50,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.changePasswordUseCase,
     required this.savePinUseCase,
     required this.verifyPinUseCase, // Added
+    required this.changePinUseCase, // Added
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -412,6 +415,47 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             ); // LOG
             add(FetchUserRequested());
           }
+        },
+      );
+    });
+
+    on<ChangePinRequested>((event, emit) async {
+      print(
+        "🚀 ChangePinRequested event: oldPin=${event.oldPin}, newPin=${event.newPin}",
+      ); // LOG
+
+      final currentState = state;
+      if (currentState is! AuthSuccess) {
+        emit(AuthError('Debe estar autenticado para cambiar el PIN'));
+        return;
+      }
+
+      emit(AuthSuccess(currentState.user, isUpdating: true));
+
+      final result = await changePinUseCase(event.oldPin, event.newPin);
+
+      await result.fold(
+        (failure) async {
+          print("❌ ChangePin Failed: ${failure.message}"); // LOG
+          emit(
+            AuthSuccess(
+              currentState.user,
+              isUpdating: false,
+              updateError: failure.message,
+            ),
+          );
+          // Also emit error for immediate feedback
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ ChangePin Success"); // LOG
+          emit(
+            AuthSuccess(
+              currentState.user,
+              isUpdating: false,
+              pinChangeSuccess: true,
+            ),
+          );
         },
       );
     });

@@ -31,4 +31,5 @@ abstract class AuthRepository {
   );
   Future<Either<Failure, void>> savePin(String pin);
   Future<Either<Failure, void>> verifyPin(String pin);
+  Future<Either<Failure, void>> changePin(String oldPin, String newPin);
 }

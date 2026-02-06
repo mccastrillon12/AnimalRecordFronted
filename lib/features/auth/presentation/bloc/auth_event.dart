@@ -115,3 +115,13 @@ class VerifyPinSubmitted extends AuthEvent {
   @override
   List<Object?> get props => [pin];
 }
+
+class ChangePinRequested extends AuthEvent {
+  final String oldPin;
+  final String newPin;
+
+  ChangePinRequested({required this.oldPin, required this.newPin});
+
+  @override
+  List<Object?> get props => [oldPin, newPin];
+}
