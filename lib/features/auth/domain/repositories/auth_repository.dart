@@ -29,4 +29,6 @@ abstract class AuthRepository {
     String oldPassword,
     String newPassword,
   );
+  Future<Either<Failure, void>> savePin(String pin);
+  Future<Either<Failure, void>> verifyPin(String pin);
 }

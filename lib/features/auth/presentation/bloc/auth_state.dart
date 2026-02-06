@@ -14,11 +14,25 @@ class AuthSuccess extends AuthState {
   final UserEntity user;
   final bool isUpdating;
   final String? updateError;
+  final bool pinSaveSuccess;
+  final bool pinVerifiedSuccess; // Added
 
-  AuthSuccess(this.user, {this.isUpdating = false, this.updateError});
+  AuthSuccess(
+    this.user, {
+    this.isUpdating = false,
+    this.updateError,
+    this.pinSaveSuccess = false,
+    this.pinVerifiedSuccess = false, // Added
+  });
 
   @override
-  List<Object?> get props => [user, isUpdating, updateError];
+  List<Object?> get props => [
+    user,
+    isUpdating,
+    updateError,
+    pinSaveSuccess,
+    pinVerifiedSuccess,
+  ];
 }
 
 class AuthError extends AuthState {

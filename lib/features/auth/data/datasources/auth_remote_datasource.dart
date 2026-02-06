@@ -16,6 +16,8 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getUserProfile(String id);
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
   Future<void> changePassword(String oldPassword, String newPassword);
+  Future<void> savePin(String pin);
+  Future<void> verifyPin(String pin);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -422,6 +424,77 @@ Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 -----------------------------
 ''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> savePin(String pin) async {
+    try {
+      logger.d('''
+--- DEBUG SAVE PIN ---
+URL: /auth/pin
+Payload: {"pin": "$pin"}
+----------------------
+''');
+
+      final response = await dio.post('/auth/pin', data: {'pin': pin});
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al guardar el PIN');
+      }
+
+      logger.i('''
+--- SAVE PIN SUCCESS ---
+Status: ${response.statusCode}
+------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- SAVE PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+----------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> verifyPin(String pin) async {
+    try {
+      logger.d('''
+--- DEBUG VERIFY PIN ---
+URL: /auth/pin/verify
+Payload: {"pin": "$pin"}
+------------------------
+''');
+
+      final response = await dio.post('/auth/pin/verify', data: {'pin': pin});
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('PIN incorrecto');
+      }
+
+      logger.i('''
+--- VERIFY PIN SUCCESS ---
+Status: ${response.statusCode}
+--------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- VERIFY PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        throw Exception('PIN incorrecto. Inténtalo de nuevo.');
+      }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

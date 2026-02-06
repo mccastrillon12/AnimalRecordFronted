@@ -99,3 +99,19 @@ class ChangePasswordRequested extends AuthEvent {
   @override
   List<Object?> get props => [oldPassword, newPassword];
 }
+
+class SavePinSubmitted extends AuthEvent {
+  final String pin;
+  SavePinSubmitted(this.pin);
+
+  @override
+  List<Object?> get props => [pin];
+}
+
+class VerifyPinSubmitted extends AuthEvent {
+  final String pin;
+  VerifyPinSubmitted(this.pin);
+
+  @override
+  List<Object?> get props => [pin];
+}

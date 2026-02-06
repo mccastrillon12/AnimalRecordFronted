@@ -345,4 +345,27 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> savePin(String pin) async {
+    try {
+      await remoteDataSource.savePin(pin);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> verifyPin(String pin) async {
+    try {
+      await remoteDataSource.verifyPin(pin);
+      return const Right(null);
+    } catch (e) {
+      print("🔴 Repository verifyPin error: $e"); // LOG
+      // Clean up "Exception: " prefix if present
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

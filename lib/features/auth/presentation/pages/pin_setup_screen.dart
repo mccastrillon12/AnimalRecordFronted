@@ -7,6 +7,10 @@ import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
@@ -58,6 +62,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     if (index > 0) {
       _focusNodes[index - 1].requestFocus();
     }
+
+    // Update current PIN to reflect the deletion
+    final pin = _controllers.map((c) => c.text).join();
+    setState(() {
+      _currentPin = pin;
+    });
   }
 
   void _handleContinue() {
@@ -80,7 +90,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     } else {
       if (_currentPin == _firstPin) {
         // Success
-        _savePinAndContinue();
+        // Dispatch event to save PIN to API
+        context.read<AuthBloc>().add(SavePinSubmitted(_currentPin));
       } else {
         setState(() {
           _errorMessage = 'Los PIN no coinciden. Inténtalo de nuevo.';
@@ -102,144 +113,164 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     }
   }
 
-  Future<void> _savePinAndContinue() async {
-    try {
-      final userId = await sl<TokenStorage>().getUserId();
-      if (userId != null) {
-        await sl<TokenStorage>().saveUserPin(userId, _currentPin);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN configurado correctamente')),
-          );
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        // Fallback if no user id (shouldn't happen in setup flow usually)
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error: No se pudo identificar al usuario'),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('Error saving PIN: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final isStep1 = _currentStep == 1;
 
-    return AuthFormContainer(
-      showLogo:
-          false, // Header title replaces logo usually in this design? Or keeping logo? Image shows text only.
-      // Based on AuthFormContainer, it has a white card. The image shows title inside the card.
-      showCancelButton: false, // Back button handles it
-      onBack: () {
-        if (_currentStep == 2) {
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) async {
+        debugPrint("📌 PinSetupScreen Listener: $state"); // LOG
+        if (state is AuthError) {
           setState(() {
-            _currentStep = 1;
-            _currentPin = '';
-            for (var c in _controllers) {
-              c.clear();
-            }
+            _errorMessage = state.message;
           });
-        } else {
-          Navigator.pop(context);
+        }
+        if (state is AuthSuccess && state.pinSaveSuccess) {
+          debugPrint(
+            "📌 AuthSuccess with pinSaveSuccess=true. Saving locally...",
+          ); // LOG
+          // Also save locally for offline support / fallback
+          final userId = await sl<TokenStorage>().getUserId();
+          if (userId != null) {
+            await sl<TokenStorage>().saveUserPin(userId, _currentPin);
+          }
+
+          if (!mounted) {
+            debugPrint("📌 Not mounted after save, aborting nav"); // LOG
+            return;
+          }
+
+          debugPrint("📌 Navigating to /home"); // LOG
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('PIN configurado correctamente')),
+          );
+          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          children: [
-            const SizedBox(height: AppSpacing.xxl),
-            Text(
-              isStep1 ? 'Crear PIN' : 'Confirmar PIN',
-              style: AppTypography.heading2,
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            Text(
-              '$_currentStep de 2',
-              style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
-            ),
-            const SizedBox(height: AppSpacing.l),
-            Text(
-              isStep1
-                  ? 'Hemos detectado que haz iniciado sesión con redes sociales, por lo que necesitaremos que crees un PIN de 4 números que servirá de respaldo en caso de no funcionar la biometría.'
-                  : 'Ingresa nuevamente los 4 números de tu PIN para confirmar.',
-              textAlign: TextAlign.center,
-              style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
-            ),
-            const SizedBox(height: AppSpacing.xxxl),
+      child: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          final isLoading = state is AuthLoading;
 
-            // PIN Input
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(4, (index) {
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                  child: SizedBox(
-                    width: 50,
-                    height: 50,
-                    child: TextField(
-                      controller: _controllers[index],
-                      focusNode: _focusNodes[index],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      style: AppTypography.heading2,
-                      decoration: InputDecoration(
-                        counterText: '',
-                        contentPadding: EdgeInsets.zero,
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.greyMedio,
-                          ),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(
-                            color: AppColors.primaryFrances,
-                            width: 2,
-                          ),
-                        ),
-                      ),
-                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                      onChanged: (value) {
-                        if (value.isEmpty) {
-                          _onBackspace(index);
-                        } else {
-                          _onCodeChanged(index, value);
-                        }
-                        setState(() {}); // refresh for button state
-                      },
+          return AuthFormContainer(
+            showLogo: false,
+            showCancelButton: false,
+            onBack: () {
+              if (_currentStep == 2) {
+                setState(() {
+                  _currentStep = 1;
+                  _currentPin = '';
+                  for (var c in _controllers) {
+                    c.clear();
+                  }
+                });
+              } else {
+                Navigator.pop(context);
+              }
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+              child: Column(
+                children: [
+                  const SizedBox(height: AppSpacing.xxl),
+                  Text(
+                    isStep1 ? 'Crear PIN' : 'Confirmar PIN',
+                    style: AppTypography.heading2,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Text(
+                    '$_currentStep de 2',
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyMedio,
                     ),
                   ),
-                );
-              }),
-            ),
+                  const SizedBox(height: AppSpacing.l),
+                  Text(
+                    isStep1
+                        ? 'Hemos detectado que haz iniciado sesión con redes sociales, por lo que necesitaremos que crees un PIN de 4 números que servirá de respaldo en caso de no funcionar la biometría.'
+                        : 'Ingresa nuevamente los 4 números de tu PIN para confirmar.',
+                    textAlign: TextAlign.center,
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyNegroV2,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xxxl),
 
-            if (_errorMessage != null) ...[
-              const SizedBox(height: AppSpacing.m),
-              Text(
-                _errorMessage!,
-                style: AppTypography.body4.copyWith(color: AppColors.error),
-                textAlign: TextAlign.center,
+                  // PIN Input
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (index) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: SizedBox(
+                          width: 50,
+                          height: 50,
+                          child: TextField(
+                            controller: _controllers[index],
+                            focusNode: _focusNodes[index],
+                            textAlign: TextAlign.center,
+                            keyboardType: TextInputType.number,
+                            maxLength: 1,
+                            style: AppTypography.heading2,
+                            decoration: InputDecoration(
+                              counterText: '',
+                              contentPadding: EdgeInsets.zero,
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppColors.greyMedio,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(8),
+                                borderSide: const BorderSide(
+                                  color: AppColors.primaryFrances,
+                                  width: 2,
+                                ),
+                              ),
+                            ),
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            onChanged: (value) {
+                              if (value.isEmpty) {
+                                _onBackspace(index);
+                              } else {
+                                _onCodeChanged(index, value);
+                              }
+                              setState(() {}); // refresh for button state
+                            },
+                          ),
+                        ),
+                      );
+                    }),
+                  ),
+
+                  if (_errorMessage != null) ...[
+                    const SizedBox(height: AppSpacing.m),
+                    Text(
+                      _errorMessage!,
+                      style: AppTypography.body4.copyWith(
+                        color: AppColors.error,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+
+                  const Spacer(),
+
+                  CustomButton(
+                    text: isStep1 ? 'Continuar' : 'Verificar',
+                    isLoading: isLoading,
+                    onPressed: isLoading || _currentPin.length != 4
+                        ? null
+                        : _handleContinue,
+                  ),
+                  const SizedBox(height: AppSpacing.xxl),
+                ],
               ),
-            ],
-
-            const Spacer(),
-
-            CustomButton(
-              text: isStep1 ? 'Continuar' : 'Verificar',
-              onPressed: _currentPin.length == 4 ? _handleContinue : null,
             ),
-            const SizedBox(height: AppSpacing.xxl),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

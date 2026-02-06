@@ -12,7 +12,9 @@ import 'package:animal_record/features/auth/domain/usecases/register_social_usec
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart'; // Added
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -27,7 +29,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
-  final ChangePasswordUseCase changePasswordUseCase; // Added
+  final ChangePasswordUseCase changePasswordUseCase;
+  final SavePinUseCase savePinUseCase;
+  final VerifyPinUseCase verifyPinUseCase; // Added
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -41,7 +45,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
     required this.updateProfileUseCase,
-    required this.changePasswordUseCase, // Added
+    required this.changePasswordUseCase,
+    required this.savePinUseCase,
+    required this.verifyPinUseCase, // Added
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -309,6 +315,102 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           } else {
             // Should not happen, but fallback
             emit(PasswordChangeSuccess(UserModel.empty()));
+          }
+        },
+      );
+    });
+
+    on<SavePinSubmitted>((event, emit) async {
+      print("🚀 SavePinSubmitted event received with PIN: ${event.pin}"); // LOG
+
+      final currentState = state;
+      UserEntity? currentUser;
+
+      if (currentState is AuthSuccess) {
+        currentUser = currentState.user;
+      }
+
+      emit(AuthLoading());
+      print("🚀 Emitted AuthLoading"); // LOG
+
+      final result = await savePinUseCase(event.pin);
+
+      await result.fold(
+        (failure) async {
+          print("❌ SavePin Failed: ${failure.message}"); // LOG
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ SavePin Success. Restoring user: $currentUser"); // LOG
+          // If we had a user, restore success state
+          if (currentUser != null) {
+            emit(AuthSuccess(currentUser, pinSaveSuccess: true));
+          } else {
+            print("⚠️ CurrentUser is null, requesting fetch"); // LOG
+            // If we fetch user, we can't easily set pinSaveSuccess unless we pass it or chain state.
+            // But FetchUserRequested emits AuthSuccess(user).
+            // We might need to handle this case carefully if user is null.
+            // Assuming user is usually not null here.
+            add(FetchUserRequested());
+            // Note: FetchUserRequested will NOT have pinSaveSuccess: true by default.
+            // Ideally we should wait for fetch then emit, but that is complex.
+            // For now, let's hope currentUser is not null.
+            // If it IS null, user might be stuck but won't loop.
+          }
+        },
+      );
+    });
+
+    on<VerifyPinSubmitted>((event, emit) async {
+      print("🚀 VerifyPinSubmitted event: ${event.pin}"); // LOG
+      emit(AuthLoading());
+
+      print("🔄 Calling verifyPinUseCase..."); // LOG
+      final result = await verifyPinUseCase(event.pin);
+      print("🔄 verifyPinUseCase returned"); // LOG
+
+      await result.fold(
+        (failure) async {
+          print("❌ VerifyPin Failed: ${failure.message}"); // LOG
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ VerifyPin Success"); // LOG
+          // Pin is valid, fetch user to log them in fully or set session
+          // We need to ensure we have the user ID from token storage first
+          // which logic inside FetchUserRequested handles.
+
+          // Instead of calling FetchUserRequested which emits generic AuthSuccess,
+          // We should ideally fetch locally or just trigger the fetch but manually emit success if possible?
+          // If we add(FetchUserRequested()), the BLOCK handler for FetchUserRequested will run.
+          // That handler emits AuthSuccess(user). It does NOT know about pinVerifiedSuccess = true.
+
+          // So we should try to fetch user here manually or modify fetch handler.
+          // Let's try to fetch user manually here to control the emission.
+
+          final userId = await tokenStorage.getUserId();
+          if (userId != null) {
+            print("📌 Fetching user profile for userId: $userId"); // LOG
+            final userResult = await getUserProfileUseCase(userId);
+            await userResult.fold(
+              (failure) async {
+                print("❌ Failed to fetch user: ${failure.message}"); // LOG
+                add(FetchUserRequested());
+              }, // Fallback
+              (user) async {
+                print("✅ User fetched successfully"); // LOG
+                if (user is UserModel) {
+                  await tokenStorage.saveUserData(json.encode(user.toJson()));
+                }
+                // Emit specific success state
+                emit(AuthSuccess(user, pinVerifiedSuccess: true));
+              },
+            );
+          } else {
+            print(
+              "⚠️ No userId found, falling back to FetchUserRequested",
+            ); // LOG
+            add(FetchUserRequested());
           }
         },
       );
