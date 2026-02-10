@@ -13,6 +13,10 @@ import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'social_register_completion_screen.dart';
+import 'biometric_activation_screen.dart';
+import 'package:animal_record/core/services/token_storage.dart';
+import 'pin_setup_screen.dart';
+import 'biometric_lock_screen.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -22,7 +26,9 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool hideBiometrics;
+
+  const LoginScreen({super.key, this.hideBiometrics = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -144,7 +150,43 @@ class _LoginScreenState extends State<LoginScreen> {
           _navigateToRegistrationCompletion(state.response);
         } else if (state is AuthSuccess && !_isNavigating) {
           _isNavigating = true;
-          Navigator.pushReplacementNamed(context, '/home');
+
+          if (widget.hideBiometrics) {
+            // Returning from enrollment - go to PIN setup
+
+            // Check if we need to link biometrics to this user
+            final storage = sl<TokenStorage>();
+            storage.isBiometricActivationPending().then((isPending) async {
+              if (isPending) {
+                final isEmailUser =
+                    state.user.authMethod.toLowerCase() == 'email';
+
+                if (isEmailUser) {
+                  // Email/Phone user ends here
+                  if (mounted) {
+                    context.read<AuthBloc>().add(
+                      UpdateBiometricStatusRequested(true),
+                    );
+                    Navigator.pushReplacementNamed(context, '/home');
+                  }
+                } else {
+                  // Social user continues to PIN setup
+                  if (mounted) {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const PinSetupScreen(),
+                      ),
+                    );
+                  }
+                }
+                await storage.setBiometricActivationPending(false);
+              }
+            });
+          } else {
+            // Standard Login success -> Go to Home
+            Navigator.pushReplacementNamed(context, '/home');
+          }
         } else if (state is AuthError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -225,7 +267,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: _isValidInput ? _handleContinue : null,
                 ),
               ),
-              Center(child: _BiometricButton()),
+              if (!widget.hideBiometrics) ...[
+                Center(child: _BiometricButton()),
+                const SizedBox(height: AppSpacing.xl),
+              ],
               const SizedBox(height: AppSpacing.xl),
               Row(
                 children: [
@@ -285,7 +330,12 @@ class _BiometricButton extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        // TODO: Implementar autenticación biométrica
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const BiometricActivationScreen(),
+          ),
+        );
       },
       child: Padding(
         padding: const EdgeInsets.only(

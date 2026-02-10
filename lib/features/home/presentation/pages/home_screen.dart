@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
@@ -28,23 +29,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // User header (profile info and notifications)
-            const UserHeader(),
+      body: BlocBuilder<AuthBloc, AuthState>(
+        builder: (context, state) {
+          if (state is! AuthSuccess) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            // Navigation menu (Mapa, +Animal, Agenda, etc.)
-            const NavigationMenu(),
+          return SafeArea(
+            child: Column(
+              children: [
+                const UserHeader(),
 
-            // Separator
-            // Separator
-            const SizedBox(height: 52),
+                // Navigation menu (Mapa, +Animal, Agenda, etc.)
+                const NavigationMenu(),
 
-            // Animals section (scrollable content)
-            const Expanded(child: AnimalsSection()),
-          ],
-        ),
+                // Separator
+                const SizedBox(height: 52),
+
+                // Animals section (scrollable content)
+                const Expanded(child: AnimalsSection()),
+              ],
+            ),
+          );
+        },
       ),
     );
   }

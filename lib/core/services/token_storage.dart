@@ -9,6 +9,7 @@ class TokenStorage {
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userIdKey = 'user_id';
   static const String _userDataKey = 'user_data';
+  static const String _biometricsEnabledKey = 'biometrics_enabled';
 
   TokenStorage(this._secureStorage);
 
@@ -78,6 +79,55 @@ class TokenStorage {
   /// Get user ID
   Future<String?> getUserId() async {
     return await _secureStorage.read(key: _userIdKey);
+  }
+
+  static const String _biometricPendingKey = 'biometric_pending';
+
+  /// Save biometric preference for specific user
+  Future<void> saveBiometricsEnabledForUser(String userId, bool enabled) async {
+    await _secureStorage.write(
+      key: '${_biometricsEnabledKey}_$userId',
+      value: enabled.toString(),
+    );
+  }
+
+  /// Get biometric preference for specific user
+  Future<bool> getBiometricsEnabledForUser(String userId) async {
+    final value = await _secureStorage.read(
+      key: '${_biometricsEnabledKey}_$userId',
+    );
+    return value == 'true';
+  }
+
+  /// Set pending biometric activation (used when activating before login)
+  Future<void> setBiometricActivationPending(bool pending) async {
+    await _secureStorage.write(
+      key: _biometricPendingKey,
+      value: pending.toString(),
+    );
+  }
+
+  Future<bool> isBiometricActivationPending() async {
+    final value = await _secureStorage.read(key: _biometricPendingKey);
+    return value == 'true';
+  }
+
+  static const String _userPinKey = 'user_pin';
+
+  /// Save PIN for specific user
+  Future<void> saveUserPin(String userId, String pin) async {
+    await _secureStorage.write(key: '${_userPinKey}_$userId', value: pin);
+  }
+
+  /// Get PIN for specific user (returns null if not set)
+  Future<String?> getUserPin(String userId) async {
+    return await _secureStorage.read(key: '${_userPinKey}_$userId');
+  }
+
+  /// Validate PIN
+  Future<bool> validateUserPin(String userId, String inputPin) async {
+    final storedPin = await getUserPin(userId);
+    return storedPin == inputPin;
   }
 
   /// Clear all secure storage

@@ -99,3 +99,39 @@ class ChangePasswordRequested extends AuthEvent {
   @override
   List<Object?> get props => [oldPassword, newPassword];
 }
+
+class SavePinSubmitted extends AuthEvent {
+  final String pin;
+  SavePinSubmitted(this.pin);
+
+  @override
+  List<Object?> get props => [pin];
+}
+
+class VerifyPinSubmitted extends AuthEvent {
+  final String pin;
+  VerifyPinSubmitted(this.pin);
+
+  @override
+  List<Object?> get props => [pin];
+}
+
+class ChangePinRequested extends AuthEvent {
+  final String oldPin;
+  final String newPin;
+
+  ChangePinRequested({required this.oldPin, required this.newPin});
+
+  @override
+  List<Object?> get props => [oldPin, newPin];
+}
+
+class UpdateBiometricStatusRequested extends AuthEvent {
+  final bool enabled;
+  UpdateBiometricStatusRequested(this.enabled);
+
+  @override
+  List<Object?> get props => [enabled];
+}
+
+class SyncBiometricStatusRequested extends AuthEvent {}

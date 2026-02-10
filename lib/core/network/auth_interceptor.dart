@@ -52,12 +52,17 @@ class AuthInterceptor extends Interceptor {
   ) async {
     // Handle 401 Unauthorized - token expired
     // Skip retry for change-password to avoid infinite loop if 401 is used for "Wrong Password"
+    // Skip retry for /auth/pin/verify to avoid infinite loop if 401 is used for "Wrong PIN"
     final path = err.requestOptions.path;
-    _logger.d('AuthInterceptor Error: ${err.response?.statusCode} at $path');
+    _logger.e('AuthInterceptor Error: ${err.type} - ${err.message} at $path');
+    if (err.response != null) {
+      _logger.e('Response data: ${err.response?.data}');
+    }
 
     if (err.response?.statusCode == 401 &&
         !_isAuthEndpoint(path) &&
-        !path.contains('change-password')) {
+        !path.contains('change-password') &&
+        !path.contains('/auth/pin/verify')) {
       // Broadened check
       // Check rate limiting
       if (_isRefreshRateLimited()) {
@@ -92,19 +97,24 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _getValidAccessToken() async {
     try {
       final token = await tokenStorage.getAccessToken();
+      _logger.d('🔑 Getting access token: ${token?.substring(0, 20)}...');
 
-      if (token == null) return null;
+      if (token == null) {
+        _logger.w('❌ No access token found in storage');
+        return null;
+      }
 
       // Validate JWT is not expired
       if (JwtDecoder.isExpired(token)) {
-        _logger.w('Access token expired, refreshing proactively');
+        _logger.w('⏰ Access token expired, refreshing proactively');
         return await _refreshToken();
       }
 
+      _logger.d('✅ Access token valid');
       return token;
     } catch (e) {
       // If JWT parsing fails, token is invalid
-      _logger.w('Invalid JWT token', error: e);
+      _logger.w('⚠️ Invalid JWT token', error: e);
       return null;
     }
   }

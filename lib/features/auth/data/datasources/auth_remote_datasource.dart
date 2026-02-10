@@ -8,7 +8,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> signUp(UserModel user);
   Future<Map<String, dynamic>> login(Map<String, dynamic> credentials);
   Future<void> logout();
-  Future<void> verifyCode(String email, String code);
+  Future<Map<String, dynamic>> verifyCode(String email, String code);
   Future<void> resendVerificationCode(String identifier);
   Future<bool> checkIdentificationExists(String identificationNumber);
   Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
@@ -16,6 +16,11 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getUserProfile(String id);
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
   Future<void> changePassword(String oldPassword, String newPassword);
+  Future<void> savePin(String pin);
+  Future<void> verifyPin(String pin);
+  Future<void> changePin(String oldPin, String newPin);
+  Future<void> updateBiometricStatus(bool enabled);
+  Future<Map<String, dynamic>> getBiometricStatus();
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -128,14 +133,25 @@ Data: ${response.data}
   }
 
   @override
-  Future<void> verifyCode(String email, String code) async {
+  Future<Map<String, dynamic>> verifyCode(String email, String code) async {
     try {
       final response = await dio.post(
         '/auth/verify',
         data: {'email': email, 'code': code},
       );
 
-      if (response.statusCode != 200) {
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        if (response.data is! Map<String, dynamic>) {
+          // If backend returns just "OK" string or something else, we can't extract tokens.
+          // But let's assume it returns JSON.
+          // If it returns empty body but 200 OK, we have a problem (no tokens).
+          // Let's return the data as is.
+          return response.data is Map<String, dynamic>
+              ? response.data
+              : <String, dynamic>{};
+        }
+        return response.data as Map<String, dynamic>;
+      } else {
         throw Exception('Código de verificación inválido');
       }
     } on DioException catch (e) {
@@ -410,6 +426,170 @@ URL: /auth/change-password
 Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 -----------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> savePin(String pin) async {
+    try {
+      logger.d('''
+--- DEBUG SAVE PIN ---
+URL: /auth/pin
+Payload: {"pin": "$pin"}
+----------------------
+''');
+
+      final response = await dio.post('/auth/pin', data: {'pin': pin});
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al guardar el PIN');
+      }
+
+      logger.i('''
+--- SAVE PIN SUCCESS ---
+Status: ${response.statusCode}
+------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- SAVE PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+----------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> verifyPin(String pin) async {
+    try {
+      logger.d('''
+--- DEBUG VERIFY PIN ---
+URL: /auth/pin/verify
+Payload: {"pin": "$pin"}
+------------------------
+''');
+
+      final response = await dio.post('/auth/pin/verify', data: {'pin': pin});
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('PIN incorrecto');
+      }
+
+      logger.i('''
+--- VERIFY PIN SUCCESS ---
+Status: ${response.statusCode}
+--------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- VERIFY PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        throw Exception('PIN incorrecto. Inténtalo de nuevo.');
+      }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> changePin(String oldPin, String newPin) async {
+    try {
+      logger.d('''
+--- DEBUG CHANGE PIN ---
+URL: /auth/pin
+Payload: {"oldPin": "$oldPin", "newPin": "$newPin"}
+------------------------
+''');
+
+      final response = await dio.put(
+        '/auth/pin',
+        data: {'oldPin': oldPin, 'newPin': newPin},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al cambiar PIN');
+      }
+
+      logger.i('''
+--- CHANGE PIN SUCCESS ---
+Status: ${response.statusCode}
+--------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- CHANGE PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        throw Exception('PIN actual incorrecto. Inténtalo de nuevo.');
+      }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> updateBiometricStatus(bool enabled) async {
+    try {
+      logger.i('--- UPDATE BIOMETRIC STATUS ---');
+      logger.i('Enabling: $enabled');
+
+      await dio.patch('/auth/biometric/status', data: {'enable': enabled});
+
+      logger.i('✅ Biometric status updated successfully');
+    } on DioException catch (e) {
+      logger.e('''
+--- UPDATE BIOMETRIC ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+---------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> getBiometricStatus() async {
+    try {
+      logger.i('--- GET BIOMETRIC STATUS ---');
+
+      final response = await dio.get('/auth/biometric/status');
+
+      print("🔍 [DEBUG] RAW GET RESPONSE: ${response.data}");
+      print(
+        "🔍🔍🔍 [RAW BACKEND RESPONSE] GET /auth/biometric/status: ${response.data}",
+      );
+      logger.i('''
+--- BIOMETRIC STATUS RESPONSE ---
+Data: ${response.data}
+Type: ${response.data.runtimeType}
+---------------------------------
+''');
+      return response.data;
+    } on DioException catch (e) {
+      logger.e('''
+--- GET BIOMETRIC ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+------------------------
 ''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {

@@ -143,10 +143,71 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
-  Future<Either<Failure, void>> verifyCode(VerifyCodeParams params) async {
+  Future<Either<Failure, UserEntity>> verifyCode(
+    VerifyCodeParams params,
+  ) async {
     try {
-      await remoteDataSource.verifyCode(params.email, params.code);
-      return const Right(null);
+      final response = await remoteDataSource.verifyCode(
+        params.email,
+        params.code,
+      );
+
+      final userData = response['user'] ?? response;
+      String userId = (userData['id'] ?? '').toString();
+
+      // Fallback: Try to get ID from Access Token if not found in response
+      if (userId.isEmpty || userId == 'null') {
+        final accessToken = response['accessToken'] as String?;
+        if (accessToken != null) {
+          try {
+            Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
+
+            if (decodedToken.containsKey('id')) {
+              userId = decodedToken['id'].toString();
+            } else if (decodedToken.containsKey('sub')) {
+              userId = decodedToken['sub'].toString();
+            } else if (decodedToken.containsKey('userId')) {
+              userId = decodedToken['userId'].toString();
+            }
+          } catch (e) {
+            // Ignore decoding error
+          }
+        }
+      }
+
+      final accessToken = response['accessToken'] as String?;
+      final refreshToken = response['refreshToken'] as String?;
+
+      if (accessToken != null && refreshToken != null) {
+        await tokenStorage.saveTokens(
+          accessToken: accessToken,
+          refreshToken: refreshToken,
+        );
+      }
+
+      if (userId.isNotEmpty && userId != 'null') {
+        await tokenStorage.saveUserId(userId);
+        final fullProfile = await remoteDataSource.getUserProfile(userId);
+        return Right(fullProfile);
+      }
+
+      // If we are here, we might have verified but not got a full session or ID.
+      // If we have tokens but no ID, we are in a weird state.
+      // If we have nothing, maybe the backend doesn't support auto-login on verify.
+
+      if (accessToken != null) {
+        // We have token but no ID? Try to fetch profile?
+        // But we need ID for getUserProfile?
+        // Actually getUserProfile takes ID.
+        // If we can't find ID, we fail.
+        return Left(ServerFailure('No se pudo obtener el ID del usuario'));
+      }
+
+      return Left(
+        ServerFailure(
+          'Verificación exitosa, pero no se recibieron credenciales.',
+        ),
+      );
     } catch (e) {
       return Left(ServerFailure(e.toString()));
     }
@@ -282,6 +343,64 @@ class AuthRepositoryImpl implements AuthRepository {
       return const Right(null);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> savePin(String pin) async {
+    try {
+      await remoteDataSource.savePin(pin);
+      return const Right(null);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> verifyPin(String pin) async {
+    try {
+      await remoteDataSource.verifyPin(pin);
+      return const Right(null);
+    } catch (e) {
+      print("🔴 Repository verifyPin error: $e"); // LOG
+      // Clean up "Exception: " prefix if present
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> changePin(String oldPin, String newPin) async {
+    try {
+      await remoteDataSource.changePin(oldPin, newPin);
+      return const Right(null);
+    } catch (e) {
+      print("🔴 Repository changePin error: $e"); // LOG
+      // Clean up "Exception: " prefix if present
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> updateBiometricStatus(bool enabled) async {
+    try {
+      await remoteDataSource.updateBiometricStatus(enabled);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> getBiometricStatus() async {
+    try {
+      final data = await remoteDataSource.getBiometricStatus();
+      return Right(data['isBiometricEnabled'] ?? false);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
     }
   }
 }

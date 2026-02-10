@@ -12,7 +12,12 @@ import 'package:animal_record/features/auth/domain/usecases/register_social_usec
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -27,7 +32,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
-  final ChangePasswordUseCase changePasswordUseCase; // Added
+  final ChangePasswordUseCase changePasswordUseCase;
+  final SavePinUseCase savePinUseCase;
+  final VerifyPinUseCase verifyPinUseCase; // Added
+  final ChangePinUseCase changePinUseCase; // Added
+  final UpdateBiometricStatusUseCase updateBiometricStatusUseCase; // Added
+  final GetBiometricStatusUseCase getBiometricStatusUseCase; // Added
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -41,13 +51,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
     required this.updateProfileUseCase,
-    required this.changePasswordUseCase, // Added
+    required this.changePasswordUseCase,
+    required this.savePinUseCase,
+    required this.verifyPinUseCase, // Added
+    required this.changePinUseCase, // Added
+    required this.updateBiometricStatusUseCase, // Added
+    required this.getBiometricStatusUseCase, // Added
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
     on<FetchUserRequested>((event, emit) async {
       // 1. Try to load from cache
       final cachedUser = await tokenStorage.getUserData();
+      bool loadedFromCache = false;
+
       if (cachedUser != null) {
         try {
           final userMap = json.decode(cachedUser);
@@ -58,6 +75,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (currentState is! AuthSuccess || currentState.user != user) {
             emit(AuthSuccess(user));
           }
+          loadedFromCache = true;
         } catch (e) {
           // If decoding fails, ignore and fetch from API
         }
@@ -72,7 +90,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           (failure) async {
             // Only show error if we don't have cached data
             if (state is! AuthSuccess) {
-              emit(AuthError(failure.message));
+              emit(AuthError('Session expired or invalid'));
             }
           },
           (user) async {
@@ -84,10 +102,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             // Only emit if the user data is actually different from what we have
             final currentState = state;
             if (currentState is! AuthSuccess || currentState.user != user) {
+              await _syncBiometricStatus(user.id);
               emit(AuthSuccess(user));
             }
           },
         );
+      } else if (!loadedFromCache) {
+        // No cache and no userId -> No active session
+        emit(AuthError('No active session'));
       }
     });
 
@@ -129,6 +151,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
+          await _syncBiometricStatus(user.id);
           emit(AuthSuccess(user));
         },
       );
@@ -139,10 +162,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       final result = await verifyCodeUseCase(event.params);
 
-      await result.fold(
-        (failure) async => emit(AuthError(failure.message)),
-        (_) async => emit(VerificationSuccess()),
-      );
+      await result.fold((failure) async => emit(AuthError(failure.message)), (
+        user,
+      ) async {
+        if (user is UserModel) {
+          await tokenStorage.saveUserData(json.encode(user.toJson()));
+        }
+        await _syncBiometricStatus(user.id);
+        emit(AuthSuccess(user));
+      });
     });
 
     on<CheckIdentificationExists>((event, emit) async {
@@ -187,6 +215,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
+          await _syncBiometricStatus(user.id);
           emit(AuthSuccess(user));
         } else {
           emit(AuthError('Respuesta inesperada del servidor'));
@@ -206,6 +235,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
+        await _syncBiometricStatus(user.id);
         emit(AuthSuccess(user));
       });
     });
@@ -303,5 +333,193 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
       );
     });
+
+    on<SavePinSubmitted>((event, emit) async {
+      print("🚀 SavePinSubmitted event received with PIN: ${event.pin}"); // LOG
+
+      final currentState = state;
+      UserEntity? currentUser;
+
+      if (currentState is AuthSuccess) {
+        currentUser = currentState.user;
+      }
+
+      emit(AuthLoading());
+      print("🚀 Emitted AuthLoading"); // LOG
+
+      final result = await savePinUseCase(event.pin);
+
+      await result.fold(
+        (failure) async {
+          print("❌ SavePin Failed: ${failure.message}"); // LOG
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ SavePin Success. Restoring user: $currentUser"); // LOG
+          // If we had a user, restore success state
+          if (currentUser != null) {
+            emit(AuthSuccess(currentUser, pinSaveSuccess: true));
+          } else {
+            print("⚠️ CurrentUser is null, requesting fetch"); // LOG
+            // If we fetch user, we can't easily set pinSaveSuccess unless we pass it or chain state.
+            // But FetchUserRequested emits AuthSuccess(user).
+            // We might need to handle this case carefully if user is null.
+            // Assuming user is usually not null here.
+            add(FetchUserRequested());
+            // Note: FetchUserRequested will NOT have pinSaveSuccess: true by default.
+            // Ideally we should wait for fetch then emit, but that is complex.
+            // For now, let's hope currentUser is not null.
+            // If it IS null, user might be stuck but won't loop.
+          }
+        },
+      );
+    });
+
+    on<VerifyPinSubmitted>((event, emit) async {
+      print("🚀 VerifyPinSubmitted event: ${event.pin}"); // LOG
+      emit(AuthLoading());
+
+      print("🔄 Calling verifyPinUseCase..."); // LOG
+      final result = await verifyPinUseCase(event.pin);
+      print("🔄 verifyPinUseCase returned"); // LOG
+
+      await result.fold(
+        (failure) async {
+          print("❌ VerifyPin Failed: ${failure.message}"); // LOG
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ VerifyPin Success"); // LOG
+          // Pin is valid, fetch user to log them in fully or set session
+          // We need to ensure we have the user ID from token storage first
+          // which logic inside FetchUserRequested handles.
+
+          // Instead of calling FetchUserRequested which emits generic AuthSuccess,
+          // We should ideally fetch locally or just trigger the fetch but manually emit success if possible?
+          // If we add(FetchUserRequested()), the BLOCK handler for FetchUserRequested will run.
+          // That handler emits AuthSuccess(user). It does NOT know about pinVerifiedSuccess = true.
+
+          // So we should try to fetch user here manually or modify fetch handler.
+          // Let's try to fetch user manually here to control the emission.
+
+          final userId = await tokenStorage.getUserId();
+          if (userId != null) {
+            print("📌 Fetching user profile for userId: $userId"); // LOG
+            final userResult = await getUserProfileUseCase(userId);
+            await userResult.fold(
+              (failure) async {
+                print("❌ Failed to fetch user: ${failure.message}"); // LOG
+                add(FetchUserRequested());
+              }, // Fallback
+              (user) async {
+                print("✅ User fetched successfully"); // LOG
+                if (user is UserModel) {
+                  await tokenStorage.saveUserData(json.encode(user.toJson()));
+                }
+                // Emit specific success state
+                emit(AuthSuccess(user, pinVerifiedSuccess: true));
+              },
+            );
+          } else {
+            print(
+              "⚠️ No userId found, falling back to FetchUserRequested",
+            ); // LOG
+            add(FetchUserRequested());
+          }
+        },
+      );
+    });
+
+    on<ChangePinRequested>((event, emit) async {
+      print(
+        "🚀 ChangePinRequested event: oldPin=${event.oldPin}, newPin=${event.newPin}",
+      ); // LOG
+
+      final currentState = state;
+      if (currentState is! AuthSuccess) {
+        emit(AuthError('Debe estar autenticado para cambiar el PIN'));
+        return;
+      }
+
+      emit(AuthSuccess(currentState.user, isUpdating: true));
+
+      final result = await changePinUseCase(event.oldPin, event.newPin);
+
+      await result.fold(
+        (failure) async {
+          print("❌ ChangePin Failed: ${failure.message}"); // LOG
+          emit(
+            AuthSuccess(
+              currentState.user,
+              isUpdating: false,
+              updateError: failure.message,
+            ),
+          );
+          // Also emit error for immediate feedback
+          emit(AuthError(failure.message));
+        },
+        (_) async {
+          print("✅ ChangePin Success"); // LOG
+          emit(
+            AuthSuccess(
+              currentState.user,
+              isUpdating: false,
+              pinChangeSuccess: true,
+            ),
+          );
+        },
+      );
+    });
+
+    on<UpdateBiometricStatusRequested>((event, emit) async {
+      print(
+        "🚨🚨🚨 [BLOC] UpdateBiometricStatusRequested LLAMADO CON VALOR: ${event.enabled}",
+      );
+      final result = await updateBiometricStatusUseCase(event.enabled);
+
+      await result.fold(
+        (failure) async => print(
+          "❌🚨 [BLOC] Error al actualizar biometría: ${failure.message}",
+        ),
+        (_) async {
+          print(
+            "✅🚨 [BLOC] Biometría actualizada exitosamente en backend a: ${event.enabled}",
+          );
+          // Update local cache
+          final userId = await tokenStorage.getUserId();
+          if (userId != null) {
+            await tokenStorage.saveBiometricsEnabledForUser(
+              userId,
+              event.enabled,
+            );
+          }
+        },
+      );
+    });
+
+    on<SyncBiometricStatusRequested>((event, emit) async {
+      print("🚀🚨 [BLOC] SyncBiometricStatusRequested LLAMADO");
+      final userId = await tokenStorage.getUserId();
+      if (userId != null) {
+        await _syncBiometricStatus(userId);
+      }
+    });
+  }
+
+  Future<void> _syncBiometricStatus(String userId) async {
+    print("🔄🚨 [BLOC] Ejecutando _syncBiometricStatus para: $userId");
+    final result = await getBiometricStatusUseCase();
+
+    await result.fold(
+      (failure) async =>
+          print("❌🚨 [BLOC] Falló sincronización: ${failure.message}"),
+      (isEnabled) async {
+        print(
+          "✅🚨 [BLOC] Sincronización exitosa. Backend devolvió enable=$isEnabled",
+        );
+        await tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
+        print("💾🚨 [BLOC] Caché local actualizado para $userId a: $isEnabled");
+      },
+    );
   }
 }

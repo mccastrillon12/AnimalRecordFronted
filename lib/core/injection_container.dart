@@ -12,7 +12,12 @@ import 'package:animal_record/features/auth/domain/usecases/check_social_auth_us
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -49,7 +54,12 @@ Future<void> init() async {
       registerSocialUseCase: sl(),
       getUserProfileUseCase: sl(),
       updateProfileUseCase: sl(),
-      changePasswordUseCase: sl(), // Added
+      changePasswordUseCase: sl(),
+      savePinUseCase: sl(),
+      verifyPinUseCase: sl(), // Added
+      changePinUseCase: sl(), // Added
+      updateBiometricStatusUseCase: sl(), // Added
+      getBiometricStatusUseCase: sl(), // Added
       logoutUseCase: sl(),
       tokenStorage: sl(),
     ),
@@ -67,7 +77,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
-  sl.registerLazySingleton(() => ChangePasswordUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => SavePinUseCase(sl()));
+  sl.registerLazySingleton(() => VerifyPinUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ChangePinUseCase(sl())); // Added
+  sl.registerLazySingleton(() => UpdateBiometricStatusUseCase(sl())); // Added
+  sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl())); // Added
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

@@ -10,7 +10,7 @@ abstract class AuthRepository {
   Future<Either<Failure, UserEntity>> login(LoginParams params);
   Future<Either<Failure, void>> logout();
   Future<bool> isAuthenticated();
-  Future<Either<Failure, void>> verifyCode(VerifyCodeParams params);
+  Future<Either<Failure, UserEntity>> verifyCode(VerifyCodeParams params);
   Future<Either<Failure, void>> resendVerificationCode(String identifier);
   Future<Either<Failure, bool>> checkIdentificationExists(
     String identificationNumber,
@@ -29,4 +29,9 @@ abstract class AuthRepository {
     String oldPassword,
     String newPassword,
   );
+  Future<Either<Failure, void>> savePin(String pin);
+  Future<Either<Failure, void>> verifyPin(String pin);
+  Future<Either<Failure, void>> changePin(String oldPin, String newPin);
+  Future<Either<Failure, void>> updateBiometricStatus(bool enabled);
+  Future<Either<Failure, bool>> getBiometricStatus();
 }
