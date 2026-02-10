@@ -16,7 +16,7 @@ import 'social_register_completion_screen.dart';
 import 'biometric_activation_screen.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'pin_setup_screen.dart';
-import 'biometric_lock_screen.dart';
+
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -24,6 +24,7 @@ import 'package:animal_record/core/theme/app_borders.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool hideBiometrics;
@@ -116,6 +117,29 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al iniciar sesión con Google: $error')),
+        );
+      }
+    }
+  }
+
+  Future<void> _handleMicrosoftSignIn() async {
+    try {
+      final microsoftAuth = sl<MicrosoftAuthService>();
+      final token = await microsoftAuth.signIn();
+
+      if (token != null && mounted) {
+        context.read<AuthBloc>().add(
+          SocialAuthChecked(provider: 'MICROSOFT', token: token),
+        );
+      }
+    } catch (error) {
+      sl<Logger>().e('Microsoft Sign-In failed: $error');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al iniciar sesión con Microsoft'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -303,6 +327,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   _SocialButton(
                     iconPath: 'assets/icons/Microsoft_icon.svg',
                     label: 'Microsoft',
+                    onTap: _handleMicrosoftSignIn,
                   ),
                   const SizedBox(width: AppSpacing.socialButtonGap),
                   _SocialButton(

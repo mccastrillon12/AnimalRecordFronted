@@ -1,0 +1,16 @@
+{
+    "client_id": "91b57fa9-3b6e-450a-beb8-86303c7b6cd0",
+    "authorization_user_agent": "DEFAULT",
+    "redirect_uri": "msauth://com.animalRecord.animal_record/2ebQI5bRT%2FNwWP926aXx82ZpYvA%3D",
+    "account_mode": "SINGLE",
+    "broker_redirect_uri_registered": true,
+    "authorities": [
+        {
+            "type": "AAD",
+            "audience": {
+                "type": "AzureADandPersonalMicrosoftAccount",
+                "tenant_id": "common"
+            }
+        }
+    ]
+}

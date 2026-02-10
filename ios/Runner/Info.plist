@@ -55,8 +55,14 @@
 			<key>CFBundleURLSchemes</key>
 			<array>
 				<string>com.googleusercontent.apps.506720941479-6md47nvgueco84t1dek9burt9gd6s8hi</string>
+				<string>msauth.com.animalRecord.animalRecord</string>
 			</array>
 		</dict>
+	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>msauthv2</string>
+		<string>msauthv3</string>
 	</array>
 </dict>
 </plist>
