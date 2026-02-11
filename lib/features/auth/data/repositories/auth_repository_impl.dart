@@ -112,7 +112,8 @@ class AuthRepositoryImpl implements AuthRepository {
       // Pass UserNotVerified as a specific failure with timeRemaining
       return Left(ServerFailure('UserNotVerified:${e.timeRemaining ?? ""}'));
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
     }
   }
 

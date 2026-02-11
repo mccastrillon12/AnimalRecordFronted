@@ -88,7 +88,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is PasswordChangeSuccess) {
-          ErrorDisplay.showSuccess(context, 'Contraseña cambiada exitosamente');
+          ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
           Navigator.pop(context);
         } else if (state is AuthError) {
           ErrorDisplay.showError(
