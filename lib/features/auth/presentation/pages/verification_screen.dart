@@ -103,9 +103,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
         listener: (context, state) {
           if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('¡Verificación exitosa!')),
-            );
+            ErrorDisplay.showSuccess(context, '¡Verificación exitosa!');
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/home',

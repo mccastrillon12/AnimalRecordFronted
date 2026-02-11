@@ -16,6 +16,7 @@ import '../../../../features/locations/presentation/cubit/locations_cubit.dart';
 import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -131,11 +132,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       listener: (context, state) {
         if (state is AuthSuccess) {
           if (state.updateError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error al actualizar: ${state.updateError}'),
-                backgroundColor: Colors.red,
-              ),
+            ErrorDisplay.showError(
+              context,
+              'Error al actualizar: ${state.updateError}',
             );
           } else if (state.isUpdating == false && state.updateError == null) {
             // Check if we just finished updating (this logic might need refinement if we don't want to show it on initial load.
@@ -147,11 +146,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             // The Bloc emits AuthSuccess with isUpdating=false after update.
             // Let's rely on a separate event or just show it ?
             // For now, let's keep it simple. If we want to be precise, we'd add 'updateSuccess' flag too, but let's try just showing if NO error.
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Perfil actualizado correctamente'),
-                backgroundColor: Colors.green,
-              ),
+            ErrorDisplay.showSuccess(
+              context,
+              'Perfil actualizado correctamente',
             );
           }
         }

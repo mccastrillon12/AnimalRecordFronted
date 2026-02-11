@@ -15,6 +15,7 @@ import 'change_password_screen.dart';
 import 'change_pin_screen.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -90,19 +91,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       listener: (context, state) {
         if (state is AuthSuccess && state is! PasswordChangeSuccess) {
           if (state.updateError != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Error: ${state.updateError}'),
-                backgroundColor: Colors.red,
-              ),
-            );
+            ErrorDisplay.showError(context, 'Error: ${state.updateError}');
           } else if (state.isUpdating == false && state.updateError == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Cambios guardados'),
-                backgroundColor: Colors.green,
-              ),
-            );
+            ErrorDisplay.showSuccess(context, 'Cambios guardados');
           }
         }
       },

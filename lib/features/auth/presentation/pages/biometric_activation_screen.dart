@@ -11,6 +11,7 @@ import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'biometric_confirmation_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class BiometricActivationScreen extends StatefulWidget {
   const BiometricActivationScreen({super.key});
@@ -90,14 +91,11 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? AppColors.errorRojo
-            : AppColors.successEsmeralda,
-      ),
-    );
+    if (isError) {
+      ErrorDisplay.showError(context, message);
+    } else {
+      ErrorDisplay.showSuccess(context, message);
+    }
   }
 
   @override

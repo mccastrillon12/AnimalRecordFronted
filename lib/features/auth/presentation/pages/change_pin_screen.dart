@@ -7,6 +7,7 @@ import '../../../../core/widgets/buttons/custom_button.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class ChangePinScreen extends StatefulWidget {
   const ChangePinScreen({super.key});
@@ -123,9 +124,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           setState(() => _errorMessage = state.message);
         }
         if (state is AuthSuccess && state.pinChangeSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN cambiado exitosamente')),
-          );
+          ErrorDisplay.showSuccess(context, 'PIN cambiado exitosamente');
           Navigator.pop(context);
         }
       },

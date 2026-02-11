@@ -14,6 +14,7 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   const BiometricLockScreen({super.key});
@@ -82,9 +83,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       if (e.code == auth_error.notAvailable ||
           e.code == auth_error.notEnrolled) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Biometría no disponible')),
-          );
+          ErrorDisplay.showError(context, 'Biometría no disponible');
         }
       }
     }

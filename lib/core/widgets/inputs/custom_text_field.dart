@@ -29,6 +29,7 @@ class CustomTextField extends StatelessWidget {
   final TextInputAction? textInputAction;
   final String? errorText;
   final bool? enabled;
+  final ValueChanged<String>? onSubmitted;
 
   const CustomTextField({
     super.key,
@@ -55,6 +56,7 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.errorText,
     this.enabled,
+    this.onSubmitted,
   });
 
   @override
@@ -102,6 +104,7 @@ class CustomTextField extends StatelessWidget {
               validator: validator,
               maxLength: maxLength,
               inputFormatters: inputFormatters,
+              onFieldSubmitted: onSubmitted,
               onEditingComplete: onEditingComplete,
               textInputAction: textInputAction,
               textAlignVertical: TextAlignVertical.center,

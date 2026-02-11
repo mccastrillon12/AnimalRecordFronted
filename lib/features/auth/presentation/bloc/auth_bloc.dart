@@ -109,7 +109,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       } else if (!loadedFromCache) {
         // No cache and no userId -> No active session
-        emit(AuthError('No active session'));
+        // Replacing "No active session" with success message as requested to guide user
+        emit(
+          AuthError(
+            '¡Cuenta creada con éxito! inicia sesión y comienza a usar AnimalRecord.',
+          ),
+        );
       }
     });
 

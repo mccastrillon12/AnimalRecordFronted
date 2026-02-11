@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
@@ -87,30 +88,17 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is PasswordChangeSuccess) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Contraseña cambiada exitosamente'),
-              backgroundColor: AppColors.successEsmeralda,
-            ),
-          );
+          ErrorDisplay.showSuccess(context, 'Contraseña cambiada exitosamente');
           Navigator.pop(context);
         } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Error: ${state.message}. Por favor valide las contraseñas.',
-              ),
-              backgroundColor: AppColors.error,
-            ),
+          ErrorDisplay.showError(
+            context,
+            'Error: ${state.message}. Por favor valide las contraseñas.',
           );
         } else if (state is AuthSuccess && state.updateError != null) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Error: ${state.updateError}. Por favor valide las contraseñas.',
-              ),
-              backgroundColor: AppColors.error,
-            ),
+          ErrorDisplay.showError(
+            context,
+            'Error: ${state.updateError}. Por favor valide las contraseñas.',
           );
         }
       },
