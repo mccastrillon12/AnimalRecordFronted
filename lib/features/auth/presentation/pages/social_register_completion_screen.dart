@@ -18,6 +18,7 @@ import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/domain/entities/country_entity.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'welcome_social_page.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
@@ -134,8 +135,16 @@ class _SocialRegisterCompletionScreenState
         listener: (context, state) {
           if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
-            ErrorDisplay.showSuccess(context, 'Registro vía Google exitoso.');
-            Navigator.pushReplacementNamed(context, '/home');
+            ErrorDisplay.showSuccess(
+              context,
+              'Registro vía ${widget.providerName} exitoso.',
+            );
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WelcomeSocialPage(userName: widget.name),
+              ),
+            );
           } else if (state is AuthError) {
             ErrorDisplay.showError(context, state.message);
           }

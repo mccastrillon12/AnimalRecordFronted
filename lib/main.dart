@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+
 import 'package:animal_record/core/theme/app_theme.dart'; // Keeping it if used in theme: property. Wait, linter said it was unused.
 // Let's check line 43: theme: AppTheme.lightTheme,
 // If line 43 uses AppTheme, then the import IS used.
@@ -15,6 +15,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/features/auth/presentation/pages/profile_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/edit_profile_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/my_account_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/welcome_social_page.dart';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -55,6 +56,7 @@ class MyApp extends StatelessWidget {
           '/profile': (context) => const ProfileScreen(),
           '/edit-profile': (context) => const EditProfileScreen(),
           '/my-account': (context) => const MyAccountScreen(),
+          '/welcome-social': (context) => const WelcomeSocialPage(),
         },
       ),
     );
