@@ -208,7 +208,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         response,
       ) async {
         if (response['status'] == 'NEED_REGISTER') {
-          emit(SocialAuthNeedRegister(response));
+          emit(SocialAuthNeedRegister(response, provider: event.provider));
         } else if (response['status'] == 'SUCCESS') {
           final user = response['user'];
           // Cache full user profile

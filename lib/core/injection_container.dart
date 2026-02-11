@@ -30,6 +30,7 @@ import 'package:animal_record/features/locations/domain/usecases/get_cities_usec
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/network/auth_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
@@ -129,6 +130,11 @@ Future<void> init() async {
   // Token Storage
   sl.registerLazySingleton<TokenStorage>(
     () => TokenStorage(const FlutterSecureStorage()),
+  );
+
+  // Microsoft Auth Service
+  sl.registerLazySingleton<MicrosoftAuthService>(
+    () => MicrosoftAuthService(logger: sl()),
   );
 
   // Get configuration from environment variables
