@@ -68,11 +68,12 @@ class AuthUserNotVerified extends AuthState {
 
 class SocialAuthNeedRegister extends AuthState {
   final Map<String, dynamic> response;
+  final String provider;
 
-  SocialAuthNeedRegister(this.response);
+  SocialAuthNeedRegister(this.response, {this.provider = 'Google'});
 
   @override
-  List<Object?> get props => [response];
+  List<Object?> get props => [response, provider];
 }
 
 class PasswordChangeSuccess extends AuthSuccess {
