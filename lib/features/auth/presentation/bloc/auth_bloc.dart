@@ -12,12 +12,12 @@ import 'package:animal_record/features/auth/domain/usecases/register_social_usec
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -61,7 +61,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.tokenStorage,
   }) : super(AuthInitial()) {
     on<FetchUserRequested>((event, emit) async {
-      // 1. Try to load from cache
       final cachedUser = await tokenStorage.getUserData();
       bool loadedFromCache = false;
 
@@ -76,37 +75,27 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             emit(AuthSuccess(user));
           }
           loadedFromCache = true;
-        } catch (e) {
-          // If decoding fails, ignore and fetch from API
-        }
+        } catch (e) {}
       }
 
-      // 2. Fetch from API using stored ID
       final userId = await tokenStorage.getUserId();
       if (userId != null) {
         final result = await getUserProfileUseCase(userId);
 
         await result.fold(
           (failure) async {
-            // Only show error if we don't have cached data
             if (state is! AuthSuccess) {
               emit(AuthError('Session expired or invalid'));
             }
           },
           (user) async {
-            // Update cache
             if (user is UserModel) {
               await tokenStorage.saveUserData(json.encode(user.toJson()));
             }
 
-            // Only emit if the user data is actually different from what we have
             final currentState = state;
             if (currentState is! AuthSuccess || currentState.user != user) {
               await _syncBiometricStatus(user.id, emit);
-              // _syncBiometricStatus emits a state. We should check the LATEST state to get the value.
-              // However, since we just emitted, we can also just read it from cache or return it from helper.
-              // Let's modify the helper to RETURN the value, so we can use it here.
-              // OR, simpler: just read from tokenStorage again since we just synced it.
               final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
                 user.id,
               );
@@ -115,8 +104,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           },
         );
       } else if (!loadedFromCache) {
-        // No cache and no userId -> No active session
-        // Replacing "No active session" with success message as requested to guide user
         emit(
           AuthError(
             '¡Cuenta creada con éxito! inicia sesión y comienza a usar AnimalRecord.',
@@ -159,7 +146,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           }
         },
         (user) async {
-          // Cache full user profile
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
@@ -205,7 +191,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<ResendCodeSubmitted>((event, emit) async {
-      // Don't emit AuthLoading to avoid blocking the verify button
       final result = await resendCodeUseCase(event.identifier);
 
       await result.fold(
@@ -229,7 +214,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(SocialAuthNeedRegister(response, provider: event.provider));
         } else if (response['status'] == 'SUCCESS') {
           final user = response['user'];
-          // Cache full user profile
+
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
@@ -252,7 +237,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       await result.fold((failure) async => emit(AuthError(failure.message)), (
         user,
       ) async {
-        // Cache full user profile
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
@@ -271,7 +255,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<UpdateProfileRequested>((event, emit) async {
-      // Check current state to preserve user data
       final currentState = state;
       UserEntity? currentUser;
 
@@ -279,7 +262,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         currentUser = currentState.user;
         emit(AuthSuccess(currentUser, isUpdating: true));
       } else {
-        // Fallback if somehow called when not success (shouldn't happen in profile)
         emit(AuthLoading());
       }
 
@@ -303,7 +285,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           }
         },
         (user) async {
-          // Update cache with new user data
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
@@ -321,7 +302,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Emit update state to show loading on button, but keep MyAccountScreen visible
         emit(AuthSuccess(currentUser, isUpdating: true));
       } else {
-        // Fallback if somehow called without AuthSuccess (should not happen in this flow)
         emit(AuthLoading());
       }
 
@@ -351,7 +331,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             // but PasswordChangeSuccess IS AuthSuccess so MyAccountScreen will stay visible.
             // MyAccountScreen might re-render, but it's fine.
           } else {
-            // Should not happen, but fallback
             emit(PasswordChangeSuccess(UserModel.empty()));
           }
         },
@@ -359,7 +338,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<SavePinSubmitted>((event, emit) async {
-      print("🚀 SavePinSubmitted event received with PIN: ${event.pin}"); // LOG
+      print("🚀 SavePinSubmitted event received with PIN: ${event.pin}");
 
       final currentState = state;
       UserEntity? currentUser;
@@ -369,22 +348,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
 
       emit(AuthLoading());
-      print("🚀 Emitted AuthLoading"); // LOG
+      print("🚀 Emitted AuthLoading");
 
       final result = await savePinUseCase(event.pin);
 
       await result.fold(
         (failure) async {
-          print("❌ SavePin Failed: ${failure.message}"); // LOG
+          print("❌ SavePin Failed: ${failure.message}");
           emit(AuthError(failure.message));
         },
         (_) async {
-          print("✅ SavePin Success. Restoring user: $currentUser"); // LOG
+          print("✅ SavePin Success. Restoring user: $currentUser");
           // If we had a user, restore success state
           if (currentUser != null) {
             emit(AuthSuccess(currentUser, pinSaveSuccess: true));
           } else {
-            print("⚠️ CurrentUser is null, requesting fetch"); // LOG
+            print("⚠️ CurrentUser is null, requesting fetch");
             // If we fetch user, we can't easily set pinSaveSuccess unless we pass it or chain state.
             // But FetchUserRequested emits AuthSuccess(user).
             // We might need to handle this case carefully if user is null.
@@ -400,54 +379,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
 
     on<VerifyPinSubmitted>((event, emit) async {
-      print("🚀 VerifyPinSubmitted event: ${event.pin}"); // LOG
+      print("🚀 VerifyPinSubmitted event: ${event.pin}");
       emit(AuthLoading());
 
-      print("🔄 Calling verifyPinUseCase..."); // LOG
+      print("🔄 Calling verifyPinUseCase...");
       final result = await verifyPinUseCase(event.pin);
-      print("🔄 verifyPinUseCase returned"); // LOG
+      print("🔄 verifyPinUseCase returned");
 
       await result.fold(
         (failure) async {
-          print("❌ VerifyPin Failed: ${failure.message}"); // LOG
+          print("❌ VerifyPin Failed: ${failure.message}");
           emit(AuthError(failure.message));
         },
         (_) async {
-          print("✅ VerifyPin Success"); // LOG
-          // Pin is valid, fetch user to log them in fully or set session
-          // We need to ensure we have the user ID from token storage first
-          // which logic inside FetchUserRequested handles.
-
-          // Instead of calling FetchUserRequested which emits generic AuthSuccess,
-          // We should ideally fetch locally or just trigger the fetch but manually emit success if possible?
-          // If we add(FetchUserRequested()), the BLOCK handler for FetchUserRequested will run.
-          // That handler emits AuthSuccess(user). It does NOT know about pinVerifiedSuccess = true.
-
-          // So we should try to fetch user here manually or modify fetch handler.
-          // Let's try to fetch user manually here to control the emission.
+          print("✅ VerifyPin Success");
 
           final userId = await tokenStorage.getUserId();
           if (userId != null) {
-            print("📌 Fetching user profile for userId: $userId"); // LOG
+            print("📌 Fetching user profile for userId: $userId");
             final userResult = await getUserProfileUseCase(userId);
             await userResult.fold(
               (failure) async {
-                print("❌ Failed to fetch user: ${failure.message}"); // LOG
+                print("❌ Failed to fetch user: ${failure.message}");
                 add(FetchUserRequested());
               }, // Fallback
               (user) async {
-                print("✅ User fetched successfully"); // LOG
+                print("✅ User fetched successfully");
                 if (user is UserModel) {
                   await tokenStorage.saveUserData(json.encode(user.toJson()));
                 }
-                // Emit specific success state
+
                 emit(AuthSuccess(user, pinVerifiedSuccess: true));
               },
             );
           } else {
-            print(
-              "⚠️ No userId found, falling back to FetchUserRequested",
-            ); // LOG
+            print("⚠️ No userId found, falling back to FetchUserRequested");
             add(FetchUserRequested());
           }
         },
@@ -457,7 +423,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<ChangePinRequested>((event, emit) async {
       print(
         "🚀 ChangePinRequested event: oldPin=${event.oldPin}, newPin=${event.newPin}",
-      ); // LOG
+      );
 
       final currentState = state;
       if (currentState is! AuthSuccess) {
@@ -471,7 +437,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
       await result.fold(
         (failure) async {
-          print("❌ ChangePin Failed: ${failure.message}"); // LOG
+          print("❌ ChangePin Failed: ${failure.message}");
           emit(
             AuthSuccess(
               currentState.user,
@@ -483,7 +449,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(AuthError(failure.message));
         },
         (_) async {
-          print("✅ ChangePin Success"); // LOG
+          print("✅ ChangePin Success");
           emit(
             AuthSuccess(
               currentState.user,
@@ -509,7 +475,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           print(
             "✅🚨 [BLOC] Biometría actualizada exitosamente en backend a: ${event.enabled}",
           );
-          // Update local cache
+
           final userId = await tokenStorage.getUserId();
           if (userId != null) {
             await tokenStorage.saveBiometricsEnabledForUser(
@@ -525,7 +491,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
                   biometricUpdateSuccess: true,
                 ),
               );
-              // Reset flag immediately so it doesn't persist affecting other updates
+
               emit(
                 currentState.copyWith(
                   isBiometricEnabled: event.enabled,
@@ -568,7 +534,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             "💾🚨 [BLOC] Caché local actualizado para $userId a: $isEnabled",
           );
 
-          // Emit new state with updated biometric status if we are currently in AuthSuccess
           final currentState = state;
           if (currentState is AuthSuccess) {
             print(

@@ -190,9 +190,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _isNavigating = true;
 
           if (widget.hideBiometrics) {
-            // Returning from enrollment - go to PIN setup
-
-            // Check if we need to link biometrics to this user
             final storage = sl<TokenStorage>();
             storage.isBiometricActivationPending().then((isPending) async {
               if (isPending) {
@@ -200,7 +197,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     state.user.authMethod.toLowerCase() == 'email';
 
                 if (isEmailUser) {
-                  // Email/Phone user ends here
                   if (mounted) {
                     context.read<AuthBloc>().add(
                       UpdateBiometricStatusRequested(true),
@@ -208,7 +204,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.pushReplacementNamed(context, '/home');
                   }
                 } else {
-                  // Social user continues to PIN setup
                   if (mounted) {
                     Navigator.pushReplacement(
                       context,
@@ -222,7 +217,6 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             });
           } else {
-            // Standard Login success -> Go to Home
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else if (state is AuthError) {
