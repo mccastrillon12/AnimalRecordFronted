@@ -142,7 +142,32 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           }
 
           debugPrint("📌 Navigating to /home"); // LOG
-          ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
+
+          // Always show PIN success
+          if (context.mounted) {
+            ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
+          }
+
+          // Check if biometric activation is pending or if we are in the flow that enables it
+          final isBiometricPending = await sl<TokenStorage>()
+              .isBiometricActivationPending();
+
+          // We show the message if it was pending OR if this is the initial setup flow (which this screen seems to be for)
+          // Since we are calling UpdateBiometricStatusRequested(true) below, we can assume we want to tell the user.
+          // However, to be safe, let's stick to the pending flag BUT ALSO set it if it wasn't.
+          // Or just show it. Given the user request, they WANT to see it.
+
+          if (isBiometricPending) {
+            // Clear pending status
+            await sl<TokenStorage>().setBiometricActivationPending(false);
+          }
+
+          if (context.mounted) {
+            ErrorDisplay.showSecondSuccess(
+              context,
+              'Biometría activada exitosamente',
+            );
+          }
 
           // Al finalizar la creación del PIN, activar biometría en el backend
           if (mounted) {

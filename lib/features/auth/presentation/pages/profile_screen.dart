@@ -7,6 +7,10 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
+import 'package:animal_record/features/auth/presentation/widgets/biometric_disable_dialog.dart';
+import 'package:animal_record/features/auth/presentation/widgets/biometric_enable_dialog.dart';
+import 'package:animal_record/features/auth/presentation/pages/biometric_activation_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -22,6 +26,23 @@ class ProfileScreen extends StatelessWidget {
             '/login',
             (route) => false,
           );
+        }
+        if (state is AuthSuccess && state.biometricUpdateSuccess) {
+          if (!state.isBiometricEnabled) {
+            // Show success message only when disabling, as requested
+            // "Biometría desactivada exitosamente"
+            // Using a custom method or existing ErrorDisplay if suitable
+            // The user provided image shows a green snackbar-like or top notification.
+            // ErrorDisplay.showSuccess uses a top snackbar usually.
+            // Let's use that.
+            ScaffoldMessenger.of(
+              context,
+            ).hideCurrentSnackBar(); // Clear previous
+            ErrorDisplay.showSuccess(
+              context,
+              'Biometría desactivada exitosamente.',
+            );
+          }
         }
       },
       child: Scaffold(
@@ -188,7 +209,44 @@ class ProfileScreen extends StatelessWidget {
                                 _buildOptionTile(
                                   icon: 'assets/icons/scan-eye.svg',
                                   label: 'Ingreso con biometría',
-                                  onTap: () {},
+                                  onTap: () {
+                                    if (state is AuthSuccess) {
+                                      print(
+                                        "🔍 ProfileScreen: isBiometricEnabled = ${state.isBiometricEnabled}",
+                                      );
+                                    }
+                                    if (state is AuthSuccess &&
+                                        state.isBiometricEnabled) {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) =>
+                                            BiometricDisableDialog(
+                                              onDisable: () {
+                                                context.read<AuthBloc>().add(
+                                                  UpdateBiometricStatusRequested(
+                                                    false,
+                                                  ),
+                                                );
+                                              },
+                                            ),
+                                      );
+                                    } else {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => BiometricEnableDialog(
+                                          onEnable: () {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) =>
+                                                    const BiometricActivationScreen(),
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      );
+                                    }
+                                  },
                                 ),
                                 Divider(color: AppColors.greyClaro, height: 1),
                                 _buildOptionTile(

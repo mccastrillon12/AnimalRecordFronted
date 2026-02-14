@@ -15,16 +15,20 @@ class AuthSuccess extends AuthState {
   final bool isUpdating;
   final String? updateError;
   final bool pinSaveSuccess;
-  final bool pinVerifiedSuccess; // Added
-  final bool pinChangeSuccess; // Added
+  final bool pinVerifiedSuccess;
+  final bool pinChangeSuccess;
+  final bool isBiometricEnabled;
+  final bool biometricUpdateSuccess;
 
   AuthSuccess(
     this.user, {
     this.isUpdating = false,
     this.updateError,
     this.pinSaveSuccess = false,
-    this.pinVerifiedSuccess = false, // Added
-    this.pinChangeSuccess = false, // Added
+    this.pinVerifiedSuccess = false,
+    this.pinChangeSuccess = false,
+    this.isBiometricEnabled = false,
+    this.biometricUpdateSuccess = false,
   });
 
   @override
@@ -35,7 +39,32 @@ class AuthSuccess extends AuthState {
     pinSaveSuccess,
     pinVerifiedSuccess,
     pinChangeSuccess,
+    isBiometricEnabled,
+    biometricUpdateSuccess,
   ];
+
+  AuthSuccess copyWith({
+    UserEntity? user,
+    bool? isUpdating,
+    String? updateError,
+    bool? pinSaveSuccess,
+    bool? pinVerifiedSuccess,
+    bool? pinChangeSuccess,
+    bool? isBiometricEnabled,
+    bool? biometricUpdateSuccess,
+  }) {
+    return AuthSuccess(
+      user ?? this.user,
+      isUpdating: isUpdating ?? this.isUpdating,
+      updateError: updateError ?? this.updateError,
+      pinSaveSuccess: pinSaveSuccess ?? this.pinSaveSuccess,
+      pinVerifiedSuccess: pinVerifiedSuccess ?? this.pinVerifiedSuccess,
+      pinChangeSuccess: pinChangeSuccess ?? this.pinChangeSuccess,
+      isBiometricEnabled: isBiometricEnabled ?? this.isBiometricEnabled,
+      biometricUpdateSuccess:
+          biometricUpdateSuccess ?? this.biometricUpdateSuccess,
+    );
+  }
 }
 
 class AuthError extends AuthState {

@@ -9,6 +9,9 @@ class ErrorDisplay {
   static OverlayEntry? _currentEntry;
   static Timer? _currentTimer;
 
+  static OverlayEntry? _secondaryEntry;
+  static Timer? _secondaryTimer;
+
   /// Shows an error message at the top of the screen.
   static void showError(
     BuildContext context,
@@ -86,6 +89,64 @@ class ErrorDisplay {
     _currentTimer = null;
     _currentEntry?.remove();
     _currentEntry = null;
+  }
+
+  /// Shows a secondary success message below the first one.
+  static void showSecondSuccess(
+    BuildContext context,
+    String message, {
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    _showSecondaryOverlay(
+      context: context,
+      message: message,
+      isError: false,
+      duration: duration,
+    );
+  }
+
+  static void _showSecondaryOverlay({
+    required BuildContext context,
+    required String message,
+    required bool isError,
+    required Duration duration,
+  }) {
+    // Remove existing secondary overlay if any
+    _removeSecondaryOverlay();
+
+    final overlayState = Overlay.of(context);
+
+    _secondaryEntry = OverlayEntry(
+      builder: (context) => Positioned(
+        top:
+            170.0, // Positioned below the first one (90 + height + padding appx)
+        left: 16,
+        right: 16,
+        child: Material(
+          color: Colors.transparent,
+          child: _AnimatedSlideDown(
+            child: CustomSnackBar(
+              message: message,
+              isError: isError,
+              onClose: _removeSecondaryOverlay,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    overlayState.insert(_secondaryEntry!);
+
+    _secondaryTimer = Timer(duration, () {
+      _removeSecondaryOverlay();
+    });
+  }
+
+  static void _removeSecondaryOverlay() {
+    _secondaryTimer?.cancel();
+    _secondaryTimer = null;
+    _secondaryEntry?.remove();
+    _secondaryEntry = null;
   }
 }
 

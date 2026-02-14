@@ -102,8 +102,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             // Only emit if the user data is actually different from what we have
             final currentState = state;
             if (currentState is! AuthSuccess || currentState.user != user) {
-              await _syncBiometricStatus(user.id);
-              emit(AuthSuccess(user));
+              await _syncBiometricStatus(user.id, emit);
+              // _syncBiometricStatus emits a state. We should check the LATEST state to get the value.
+              // However, since we just emitted, we can also just read it from cache or return it from helper.
+              // Let's modify the helper to RETURN the value, so we can use it here.
+              // OR, simpler: just read from tokenStorage again since we just synced it.
+              final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+                user.id,
+              );
+              emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
             }
           },
         );
@@ -156,8 +163,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
-          await _syncBiometricStatus(user.id);
-          emit(AuthSuccess(user));
+          await _syncBiometricStatus(user.id, emit);
+          final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+            user.id,
+          );
+          emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
         },
       );
     });
@@ -173,8 +183,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
-        await _syncBiometricStatus(user.id);
-        emit(AuthSuccess(user));
+        await _syncBiometricStatus(user.id, emit);
+        final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+          user.id,
+        );
+        emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
       });
     });
 
@@ -220,8 +233,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           if (user is UserModel) {
             await tokenStorage.saveUserData(json.encode(user.toJson()));
           }
-          await _syncBiometricStatus(user.id);
-          emit(AuthSuccess(user));
+          await _syncBiometricStatus(user.id, emit);
+          final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+            user.id,
+          );
+          emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
         } else {
           emit(AuthError('Respuesta inesperada del servidor'));
         }
@@ -240,8 +256,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         if (user is UserModel) {
           await tokenStorage.saveUserData(json.encode(user.toJson()));
         }
-        await _syncBiometricStatus(user.id);
-        emit(AuthSuccess(user));
+        await _syncBiometricStatus(user.id, emit);
+        final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+          user.id,
+        );
+        emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
       });
     });
 
@@ -497,6 +516,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
               userId,
               event.enabled,
             );
+
+            final currentState = state;
+            if (currentState is AuthSuccess) {
+              emit(
+                currentState.copyWith(
+                  isBiometricEnabled: event.enabled,
+                  biometricUpdateSuccess: true,
+                ),
+              );
+              // Reset flag immediately so it doesn't persist affecting other updates
+              emit(
+                currentState.copyWith(
+                  isBiometricEnabled: event.enabled,
+                  biometricUpdateSuccess: false,
+                ),
+              );
+            }
           }
         },
       );
@@ -506,25 +542,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       print("🚀🚨 [BLOC] SyncBiometricStatusRequested LLAMADO");
       final userId = await tokenStorage.getUserId();
       if (userId != null) {
-        await _syncBiometricStatus(userId);
+        await _syncBiometricStatus(userId, emit);
       }
     });
   }
 
-  Future<void> _syncBiometricStatus(String userId) async {
+  Future<void> _syncBiometricStatus(
+    String userId,
+    Emitter<AuthState> emit,
+  ) async {
     print("🔄🚨 [BLOC] Ejecutando _syncBiometricStatus para: $userId");
-    final result = await getBiometricStatusUseCase();
+    try {
+      final result = await getBiometricStatusUseCase();
+      print("🔄🚨 [BLOC] getBiometricStatusUseCase completed. Result: $result");
 
-    await result.fold(
-      (failure) async =>
-          print("❌🚨 [BLOC] Falló sincronización: ${failure.message}"),
-      (isEnabled) async {
-        print(
-          "✅🚨 [BLOC] Sincronización exitosa. Backend devolvió enable=$isEnabled",
-        );
-        await tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
-        print("💾🚨 [BLOC] Caché local actualizado para $userId a: $isEnabled");
-      },
-    );
+      await result.fold(
+        (failure) async =>
+            print("❌🚨 [BLOC] Falló sincronización: ${failure.message}"),
+        (isEnabled) async {
+          print(
+            "✅🚨 [BLOC] Sincronización exitosa. Backend devolvió enable=$isEnabled",
+          );
+          await tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
+          print(
+            "💾🚨 [BLOC] Caché local actualizado para $userId a: $isEnabled",
+          );
+
+          // Emit new state with updated biometric status if we are currently in AuthSuccess
+          final currentState = state;
+          if (currentState is AuthSuccess) {
+            print(
+              "✅🚨 [BLOC] Emitting new AuthSuccess with isBiometricEnabled=$isEnabled",
+            );
+            emit(currentState.copyWith(isBiometricEnabled: isEnabled));
+          } else {
+            print(
+              "⚠️🚨 [BLOC] Current state is NOT AuthSuccess, cannot update biometric status. State: $currentState",
+            );
+          }
+        },
+      );
+    } catch (e) {
+      print("❌🚨 [BLOC] Exception in _syncBiometricStatus: $e");
+    }
   }
 }

@@ -4,6 +4,9 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:animal_record/core/services/token_storage.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
@@ -22,7 +25,20 @@ class _HomeScreenState extends State<HomeScreen> {
     // Trigger user data fetch when home screen is reached
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthBloc>().add(FetchUserRequested());
+      _checkBiometricActivation();
     });
+  }
+
+  Future<void> _checkBiometricActivation() async {
+    final tokenStorage = sl<TokenStorage>();
+    final isPending = await tokenStorage.isBiometricActivationPending();
+
+    if (isPending && mounted) {
+      // Clear the pending status
+      await tokenStorage.setBiometricActivationPending(false);
+      // Show success message
+      ErrorDisplay.showSuccess(context, 'Biometría activada exitosamente.');
+    }
   }
 
   @override
