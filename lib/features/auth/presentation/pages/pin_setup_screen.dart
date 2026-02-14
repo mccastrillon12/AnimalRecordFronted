@@ -11,6 +11,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
@@ -141,9 +142,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           }
 
           debugPrint("📌 Navigating to /home"); // LOG
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('PIN configurado correctamente')),
-          );
+          ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
 
           // Al finalizar la creación del PIN, activar biometría en el backend
           if (mounted) {

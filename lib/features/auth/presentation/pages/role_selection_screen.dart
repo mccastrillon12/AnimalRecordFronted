@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
+
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/cards/selectable_role_card.dart';
 import 'register_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class RoleSelectionScreen extends StatelessWidget {
   const RoleSelectionScreen({super.key});
@@ -63,12 +64,10 @@ class RoleSelectionScreen extends StatelessWidget {
   }
 
   void _showComingSoon(BuildContext context, String role) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('El registro para $role estará disponible próximamente'),
-        backgroundColor: AppColors.primaryFrances,
-        duration: const Duration(seconds: 2),
-      ),
+    ErrorDisplay.showSuccess(
+      context,
+      'El registro para $role estará disponible próximamente',
+      duration: const Duration(seconds: 2),
     );
   }
 }

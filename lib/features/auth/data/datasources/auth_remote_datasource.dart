@@ -106,7 +106,7 @@ Data: ${response.data}
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw Exception('Credenciales inválidas');
+        throw Exception('Contraseña incorrecta. Intente nuevamente.');
       }
       if (e.response?.statusCode == 403) {
         final data = e.response?.data;
@@ -152,11 +152,11 @@ Data: ${response.data}
         }
         return response.data as Map<String, dynamic>;
       } else {
-        throw Exception('Código de verificación inválido');
+        throw Exception('Código incorrecto. Intente nuevamente.');
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
-        throw Exception('Código de verificación inválido o expirado');
+        throw Exception('Código incorrecto. Intente nuevamente.');
       }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
@@ -496,7 +496,7 @@ Data: ${e.response?.data}
 ------------------------
 ''');
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
-        throw Exception('PIN incorrecto. Inténtalo de nuevo.');
+        throw Exception('PIN incorrecto. Intente nuevamente.');
       }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {

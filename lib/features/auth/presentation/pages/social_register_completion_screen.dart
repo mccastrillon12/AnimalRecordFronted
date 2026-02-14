@@ -8,7 +8,7 @@ import '../widgets/id_selector.dart';
 import '../widgets/phone_input_field.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
-import '../../../../core/theme/app_colors.dart';
+
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
 import '../bloc/auth_bloc.dart';
@@ -17,6 +17,8 @@ import '../bloc/auth_state.dart';
 import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/domain/entities/country_entity.dart';
+import 'package:animal_record/core/utils/error_display.dart';
+import 'welcome_social_page.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
@@ -133,17 +135,18 @@ class _SocialRegisterCompletionScreenState
         listener: (context, state) {
           if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Registro vía Google exitoso.')),
+            ErrorDisplay.showSuccess(
+              context,
+              'Registro vía ${widget.providerName} exitoso.',
             );
-            Navigator.pushReplacementNamed(context, '/home');
-          } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(
+                builder: (context) => WelcomeSocialPage(userName: widget.name),
               ),
             );
+          } else if (state is AuthError) {
+            ErrorDisplay.showError(context, state.message);
           }
         },
         child: Column(

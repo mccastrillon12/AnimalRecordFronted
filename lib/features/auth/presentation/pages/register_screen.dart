@@ -18,6 +18,7 @@ import 'package:animal_record/features/auth/domain/entities/register_params.dart
 
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String role;
@@ -316,11 +317,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     // Validate current step before proceeding
     if (!_isStepValid()) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Por favor completa todos los campos requeridos'),
-          backgroundColor: AppColors.error,
-        ),
+      ErrorDisplay.showError(
+        context,
+        'Por favor completa todos los campos requeridos',
       );
       return;
     }
@@ -490,19 +489,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
         listener: (context, state) {
           if (state is AuthSuccess) {
             // Usuario creado exitosamente
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Registro exitoso. Por favor inicia sesión.'),
-              ),
+            // Usuario creado exitosamente
+            ErrorDisplay.showSuccess(
+              context,
+              'Registro exitoso. Por favor inicia sesión.',
             );
             Navigator.pushReplacementNamed(context, '/'); // Go to login
           } else if (state is AuthError) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(state.message),
-                backgroundColor: AppColors.error,
-              ),
-            );
+            ErrorDisplay.showError(context, state.message);
           } else if (state is IdentificationCheckResult) {
             if (state.exists) {
               // El usuario ya está registrado

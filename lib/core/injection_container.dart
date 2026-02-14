@@ -129,7 +129,12 @@ Future<void> init() async {
 
   // Token Storage
   sl.registerLazySingleton<TokenStorage>(
-    () => TokenStorage(const FlutterSecureStorage()),
+    () => TokenStorage(
+      const FlutterSecureStorage(
+        aOptions: AndroidOptions(encryptedSharedPreferences: true),
+        iOptions: IOSOptions(accessibility: KeychainAccessibility.first_unlock),
+      ),
+    ),
   );
 
   // Microsoft Auth Service

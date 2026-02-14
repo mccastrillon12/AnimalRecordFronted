@@ -126,6 +126,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     color: AppColors.greyMedio,
                   ),
                   borderColor: AppColors.greyMedio,
+                  onSubmitted: (_) => _handleLogin(),
                 ),
               ),
               Padding(

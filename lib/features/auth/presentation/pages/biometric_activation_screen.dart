@@ -11,6 +11,7 @@ import 'package:local_auth/error_codes.dart' as auth_error;
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'biometric_confirmation_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class BiometricActivationScreen extends StatefulWidget {
   const BiometricActivationScreen({super.key});
@@ -51,7 +52,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
       );
 
       if (didAuthenticate && mounted) {
-        _showSnackBar('Biometría activada correctamente');
+        _showSnackBar('Biometría activada exitosamente.');
 
         // Marcar bianmetría como pendiente de asociación al usuario (se confirmará al terminar el flujo PIN/Login)
         await sl<TokenStorage>().setBiometricActivationPending(true);
@@ -73,12 +74,18 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
         } else if (e.code == auth_error.notEnrolled) {
           _showSnackBar('No hay datos biométricos configurados', isError: true);
         } else {
-          _showSnackBar('Error de autenticación: ${e.message}', isError: true);
+          _showSnackBar(
+            'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+            isError: true,
+          );
         }
       }
     } catch (e) {
       if (mounted) {
-        _showSnackBar('Ocurrió un error inesperado', isError: true);
+        _showSnackBar(
+          'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+          isError: true,
+        );
       }
     } finally {
       if (mounted) {
@@ -90,14 +97,11 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
   }
 
   void _showSnackBar(String message, {bool isError = false}) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: isError
-            ? AppColors.errorRojo
-            : AppColors.successEsmeralda,
-      ),
-    );
+    if (isError) {
+      ErrorDisplay.showError(context, message);
+    } else {
+      ErrorDisplay.showSuccess(context, message);
+    }
   }
 
   @override

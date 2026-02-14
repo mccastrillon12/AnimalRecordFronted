@@ -37,13 +37,13 @@ class ErrorMapper {
     'DUPLICATE_USER': 'Este usuario ya existe',
     'DUPLICATE_EMAIL': 'Este correo ya está registrado',
     'DUPLICATE_PHONE': 'Este teléfono ya está registrado',
-    'INVALID_CODE': 'Código de verificación inválido o expirado',
+    'INVALID_CODE': 'Código incorrecto. Intente nuevamente.',
   };
 
   /// Messages that are safe to show directly to users
   static const Set<String> _safeMessages = {
     'Credenciales inválidas',
     'Usuario no encontrado',
-    'Código de verificación inválido',
+    'Código incorrecto. Intente nuevamente.',
   };
 }

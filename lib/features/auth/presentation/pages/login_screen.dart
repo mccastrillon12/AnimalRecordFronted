@@ -25,6 +25,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool hideBiometrics;
@@ -79,9 +80,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final identifier = _identifierController.text.trim();
 
     if (identifier.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Por favor ingresa tu correo o celular')),
-      );
+      ErrorDisplay.showError(context, 'Por favor ingresa tu correo o celular');
       return;
     }
 
@@ -116,8 +115,9 @@ class _LoginScreenState extends State<LoginScreen> {
     } catch (error) {
       sl<Logger>().e('Google Sign-In failed: $error');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error al iniciar sesión con Google: $error')),
+        ErrorDisplay.showError(
+          context,
+          'Error al iniciar sesión con Google: $error',
         );
       }
     }
@@ -140,11 +140,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Microsoft Sign-In failed: $error');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error al iniciar sesión con Microsoft'),
-            backgroundColor: AppColors.error,
-          ),
+        ErrorDisplay.showError(
+          context,
+          'Error al iniciar sesión con Microsoft',
         );
       }
     }
@@ -228,12 +226,11 @@ class _LoginScreenState extends State<LoginScreen> {
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else if (state is AuthError) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: AppColors.error,
-            ),
-          );
+          if (state.message.contains('¡Cuenta creada con éxito!')) {
+            ErrorDisplay.showSuccess(context, state.message);
+          } else {
+            ErrorDisplay.showError(context, state.message);
+          }
           if (_isSocialLoading) {
             setState(() => _isSocialLoading = false);
           }
