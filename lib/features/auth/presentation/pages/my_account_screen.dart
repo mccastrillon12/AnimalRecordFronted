@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
+import '../../../../core/utils/string_formatters.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_state.dart';
@@ -40,8 +41,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _emailController = TextEditingController();
     _phoneController = TextEditingController();
 
-    // Check if provider exists before calling to avoid testing errors if not mocked,
-    // but in app it should be there.
     context.read<LocationsCubit>().fetchCountries();
   }
 
@@ -51,7 +50,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
-      _nameController.text = _formatName(user.name);
+      _nameController.text = StringFormatters.formatName(user.name);
 
       if (user.authMethod == 'PHONE') {
         _phoneController.text = user.cellPhone;
@@ -65,16 +64,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         }
       }
     }
-  }
-
-  String _formatName(String name) {
-    if (name.isEmpty) return '';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    final formattedParts = parts.map((part) {
-      if (part.isEmpty) return '';
-      return part[0].toUpperCase() + part.substring(1).toLowerCase();
-    });
-    return formattedParts.join(' ');
   }
 
   @override

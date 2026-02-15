@@ -10,6 +10,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 class ChangePinScreen extends StatefulWidget {
   const ChangePinScreen({super.key});
@@ -188,6 +189,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           _onNewPinChanged,
         ),
         if (_errorMessage != null) _buildError(),
+        const KeyboardSpacer(),
       ],
     );
   }
@@ -208,6 +210,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           _onConfirmPinChanged,
         ),
         if (_errorMessage != null) _buildError(),
+        const KeyboardSpacer(),
       ],
     );
   }

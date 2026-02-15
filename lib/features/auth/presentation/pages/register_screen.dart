@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
@@ -558,7 +559,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
               controller: _pageController,
               physics: const NeverScrollableScrollPhysics(),
               children: steps.map((step) {
-                return SingleChildScrollView(child: step);
+                return SingleChildScrollView(
+                  child: Column(children: [step, const KeyboardSpacer()]),
+                );
               }).toList(),
             ),
           ),

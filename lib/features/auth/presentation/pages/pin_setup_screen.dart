@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
@@ -295,6 +296,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         : _handleContinue,
                   ),
                   const SizedBox(height: 20),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),

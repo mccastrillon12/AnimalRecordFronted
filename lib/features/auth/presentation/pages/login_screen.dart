@@ -25,6 +25,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -231,6 +232,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: AuthFormContainer(
+        addInternalPadding: false,
         showCancelButton: false,
         child: Stack(
           children: [
@@ -351,6 +353,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),

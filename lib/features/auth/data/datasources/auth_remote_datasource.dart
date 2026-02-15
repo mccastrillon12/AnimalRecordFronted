@@ -573,10 +573,6 @@ Data: ${e.response?.data}
 
       final response = await dio.get('/auth/biometric/status');
 
-      print("🔍 [DEBUG] RAW GET RESPONSE: ${response.data}");
-      print(
-        "🔍🔍🔍 [RAW BACKEND RESPONSE] GET /auth/biometric/status: ${response.data}",
-      );
       logger.i('''
 --- BIOMETRIC STATUS RESPONSE ---
 Data: ${response.data}

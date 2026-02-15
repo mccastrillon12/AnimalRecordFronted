@@ -9,6 +9,8 @@ import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import 'package:animal_record/core/utils/password_validator.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -50,15 +52,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     final newPass = _newPasswordController.text;
     final confirmPass = _confirmPasswordController.text;
 
-    final hasMinLength = newPass.length >= 8;
-    final hasUpperLower =
-        newPass.contains(RegExp(r'[a-z]')) &&
-        newPass.contains(RegExp(r'[A-Z]'));
-    final hasNumber = newPass.contains(RegExp(r'[0-9]'));
-    final hasSpecialChar = newPass.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
-
-    final isValidLogic =
-        hasMinLength && hasUpperLower && hasNumber && hasSpecialChar;
+    final isValidLogic = PasswordValidator.isValid(newPass);
     final match = newPass.isNotEmpty && newPass == confirmPass;
 
     setState(() {
@@ -148,6 +142,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                       setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
                 const SizedBox(height: 40),
+                const KeyboardSpacer(),
               ],
             ),
           ),

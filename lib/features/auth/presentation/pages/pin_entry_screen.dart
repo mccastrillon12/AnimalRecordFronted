@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
@@ -80,11 +81,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
-        print("📌 PinEntryScreen Listener - State: $state"); // LOG
         if (state is AuthError) {
-          print(
-            "📌 PinEntryScreen - AuthError detected: ${state.message}",
-          ); // LOG
           setState(() {
             _errorMessage = state.message;
             // Clear fields validation failed
@@ -97,13 +94,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
           });
         }
         if (state is AuthSuccess) {
-          print(
-            "📌 PinEntryScreen - AuthSuccess detected, pinVerifiedSuccess: ${state.pinVerifiedSuccess}",
-          ); // LOG
           if (state.pinVerifiedSuccess) {
-            print(
-              "📌 AuthSuccess with pinVerifiedSuccess=true. Navigating to Home",
-            ); // LOG
             Navigator.pushNamedAndRemoveUntil(
               context,
               '/home',
@@ -226,6 +217,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                   ),
 
                   const SizedBox(height: AppSpacing.xxl),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),

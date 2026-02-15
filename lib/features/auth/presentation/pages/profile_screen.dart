@@ -210,11 +210,6 @@ class ProfileScreen extends StatelessWidget {
                                   icon: 'assets/icons/scan-eye.svg',
                                   label: 'Ingreso con biometría',
                                   onTap: () {
-                                    if (state is AuthSuccess) {
-                                      print(
-                                        "🔍 ProfileScreen: isBiometricEnabled = ${state.isBiometricEnabled}",
-                                      );
-                                    }
                                     if (state is AuthSuccess &&
                                         state.isBiometricEnabled) {
                                       showDialog(
