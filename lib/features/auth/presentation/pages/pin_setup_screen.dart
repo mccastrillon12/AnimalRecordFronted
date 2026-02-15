@@ -5,6 +5,8 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
+
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -142,7 +144,32 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           }
 
           debugPrint("📌 Navigating to /home"); // LOG
-          ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
+
+          // Always show PIN success
+          if (context.mounted) {
+            ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
+          }
+
+          // Check if biometric activation is pending or if we are in the flow that enables it
+          final isBiometricPending = await sl<TokenStorage>()
+              .isBiometricActivationPending();
+
+          // We show the message if it was pending OR if this is the initial setup flow (which this screen seems to be for)
+          // Since we are calling UpdateBiometricStatusRequested(true) below, we can assume we want to tell the user.
+          // However, to be safe, let's stick to the pending flag BUT ALSO set it if it wasn't.
+          // Or just show it. Given the user request, they WANT to see it.
+
+          if (isBiometricPending) {
+            // Clear pending status
+            await sl<TokenStorage>().setBiometricActivationPending(false);
+          }
+
+          if (context.mounted) {
+            ErrorDisplay.showSecondSuccess(
+              context,
+              'Biometría activada exitosamente',
+            );
+          }
 
           // Al finalizar la creación del PIN, activar biometría en el backend
           if (mounted) {
@@ -172,7 +199,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 Navigator.pop(context);
               }
             },
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
                 children: [
@@ -260,9 +287,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ],
-
-                  const Spacer(),
-
+                  const SizedBox(height: 40),
                   CustomButton(
                     text: isStep1 ? 'Continuar' : 'Verificar',
                     isLoading: isLoading,
@@ -270,7 +295,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         ? null
                         : _handleContinue,
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: 20),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),

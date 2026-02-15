@@ -14,6 +14,7 @@ import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'social_register_completion_screen.dart';
 import 'biometric_activation_screen.dart';
+import '../widgets/biometric_disable_dialog.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'pin_setup_screen.dart';
 
@@ -25,6 +26,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -190,9 +192,6 @@ class _LoginScreenState extends State<LoginScreen> {
           _isNavigating = true;
 
           if (widget.hideBiometrics) {
-            // Returning from enrollment - go to PIN setup
-
-            // Check if we need to link biometrics to this user
             final storage = sl<TokenStorage>();
             storage.isBiometricActivationPending().then((isPending) async {
               if (isPending) {
@@ -200,7 +199,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     state.user.authMethod.toLowerCase() == 'email';
 
                 if (isEmailUser) {
-                  // Email/Phone user ends here
                   if (mounted) {
                     context.read<AuthBloc>().add(
                       UpdateBiometricStatusRequested(true),
@@ -208,7 +206,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.pushReplacementNamed(context, '/home');
                   }
                 } else {
-                  // Social user continues to PIN setup
                   if (mounted) {
                     Navigator.pushReplacement(
                       context,
@@ -222,7 +219,6 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             });
           } else {
-            // Standard Login success -> Go to Home
             Navigator.pushReplacementNamed(context, '/home');
           }
         } else if (state is AuthError) {
@@ -237,6 +233,7 @@ class _LoginScreenState extends State<LoginScreen> {
         }
       },
       child: AuthFormContainer(
+        addInternalPadding: false,
         showCancelButton: false,
         child: Stack(
           children: [
@@ -357,6 +354,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),
@@ -377,6 +375,55 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _BiometricButton extends StatelessWidget {
+  Future<void> _handleBiometricTap(BuildContext context) async {
+    final storage = sl<TokenStorage>();
+    final userId = await storage.getUserId();
+
+    if (userId != null) {
+      final isEnabled = await storage.getBiometricsEnabledForUser(userId);
+
+      if (isEnabled) {
+        // Show disable dialog
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => BiometricDisableDialog(
+              onDisable: () {
+                context.read<AuthBloc>().add(
+                  UpdateBiometricStatusRequested(false),
+                );
+                ErrorDisplay.showSuccess(
+                  context,
+                  'Biometría desactivada exitosamente',
+                );
+              },
+            ),
+          );
+        }
+      } else {
+        // Go to activation screen
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BiometricActivationScreen(),
+            ),
+          );
+        }
+      }
+    } else {
+      // No user logged in, go to activation screen
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const BiometricActivationScreen(),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
@@ -386,14 +433,7 @@ class _BiometricButton extends StatelessWidget {
     final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometria';
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BiometricActivationScreen(),
-          ),
-        );
-      },
+      onTap: () => _handleBiometricTap(context),
       child: Padding(
         padding: const EdgeInsets.only(
           top: AppSpacing.xxl,

@@ -1,12 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-import 'package:animal_record/core/theme/app_theme.dart'; // Keeping it if used in theme: property. Wait, linter said it was unused.
-// Let's check line 43: theme: AppTheme.lightTheme,
-// If line 43 uses AppTheme, then the import IS used.
-// The lint message was: "Unused import: 'package:animal_record/core/theme/app_theme.dart'."
-// Maybe I removed the usage in line 43 accidentally in a previous replace?
-// Let's check the file content of main.dart again to be sure.
+import 'package:animal_record/core/theme/app_theme.dart';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
@@ -24,8 +19,6 @@ import 'package:animal_record/features/locations/presentation/cubit/locations_cu
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Load environment variables
-  // Change fileName to switch between environments:
   // - .env.development (for emulator)
   // - .env.physical (for physical device)
   // - .env.production (for production)

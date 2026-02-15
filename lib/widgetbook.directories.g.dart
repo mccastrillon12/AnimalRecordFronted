@@ -16,38 +16,38 @@ import 'package:widgetbook/widgetbook.dart' as _widgetbook;
 
 final directories = <_widgetbook.WidgetbookNode>[
   _widgetbook.WidgetbookFolder(
-    name: 'features',
+    name: 'core',
     children: [
       _widgetbook.WidgetbookFolder(
-        name: 'auth',
+        name: 'widgets',
         children: [
           _widgetbook.WidgetbookFolder(
-            name: 'presentation',
+            name: 'buttons',
             children: [
-              _widgetbook.WidgetbookFolder(
-                name: 'widgets',
-                children: [
-                  _widgetbook.WidgetbookComponent(
-                    name: 'CustomButton',
-                    useCases: [
-                      _widgetbook.WidgetbookUseCase(
-                        name: 'Default',
-                        builder:
-                            _animal_record_features_auth_presentation_widgets_auth_widgets_stories
-                                .buildCustomButtonUseCase,
-                      ),
-                    ],
+              _widgetbook.WidgetbookComponent(
+                name: 'CustomButton',
+                useCases: [
+                  _widgetbook.WidgetbookUseCase(
+                    name: 'Default',
+                    builder:
+                        _animal_record_features_auth_presentation_widgets_auth_widgets_stories
+                            .buildCustomButtonUseCase,
                   ),
-                  _widgetbook.WidgetbookComponent(
-                    name: 'CustomTextField',
-                    useCases: [
-                      _widgetbook.WidgetbookUseCase(
-                        name: 'Default',
-                        builder:
-                            _animal_record_features_auth_presentation_widgets_auth_widgets_stories
-                                .buildCustomTextFieldUseCase,
-                      ),
-                    ],
+                ],
+              ),
+            ],
+          ),
+          _widgetbook.WidgetbookFolder(
+            name: 'inputs',
+            children: [
+              _widgetbook.WidgetbookComponent(
+                name: 'CustomTextField',
+                useCases: [
+                  _widgetbook.WidgetbookUseCase(
+                    name: 'Default',
+                    builder:
+                        _animal_record_features_auth_presentation_widgets_auth_widgets_stories
+                            .buildCustomTextFieldUseCase,
                   ),
                 ],
               ),

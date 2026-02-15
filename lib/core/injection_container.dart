@@ -142,7 +142,6 @@ Future<void> init() async {
     () => MicrosoftAuthService(logger: sl()),
   );
 
-  // Get configuration from environment variables
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
   final int connectTimeout = int.parse(dotenv.env['CONNECT_TIMEOUT'] ?? '60');
   final int receiveTimeout = int.parse(dotenv.env['RECEIVE_TIMEOUT'] ?? '60');

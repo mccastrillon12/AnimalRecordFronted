@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
+import '../../../../core/utils/string_formatters.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -17,6 +18,7 @@ import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -59,7 +61,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
-      _nameController.text = _formatName(user.name);
+      _nameController.text = StringFormatters.formatName(user.name);
       _idNumberController.text = user.identificationNumber;
       _phoneController.text = user.cellPhone;
       _addressController.text = user.address;
@@ -113,19 +115,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
-  String _formatName(String name) {
-    if (name.isEmpty) return '';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    final limitedParts = parts.take(3);
-
-    final formattedParts = limitedParts.map((part) {
-      if (part.isEmpty) return '';
-      return part[0].toUpperCase() + part.substring(1).toLowerCase();
-    });
-
-    return formattedParts.join(' ');
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -137,15 +126,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               'Error al actualizar: ${state.updateError}',
             );
           } else if (state.isUpdating == false && state.updateError == null) {
-            // Check if we just finished updating (this logic might need refinement if we don't want to show it on initial load.
-            // Since isUpdating defaults to false, initial load is false. But we don't wanna show "Success" on every load.
-            // However, the event is only emitted after update. But wait, checking just isUpdating == false is risky for initial load.
-            // A better way is to check previous state or just assume if we are here and it's a rebuild...
-            // Actually, BlocListener only listens to CHANGES.
-            // But we need to distinguish "Just Loaded" vs "Update Success".
-            // The Bloc emits AuthSuccess with isUpdating=false after update.
-            // Let's rely on a separate event or just show it ?
-            // For now, let's keep it simple. If we want to be precise, we'd add 'updateSuccess' flag too, but let's try just showing if NO error.
             ErrorDisplay.showSuccess(
               context,
               'Perfil actualizado correctamente',
@@ -154,7 +134,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         }
       },
       listenWhen: (previous, current) {
-        // Only listen if we are transitioning from isUpdating:true to isUpdating:false
         if (previous is AuthSuccess && current is AuthSuccess) {
           return previous.isUpdating == true && current.isUpdating == false;
         }
@@ -162,7 +141,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       },
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
-          // If state is AuthSuccess, we are good. Even if isUpdating is true.
           if (state is! AuthSuccess) {
             return const Scaffold(
               body: Center(child: Text('Usuario no autenticado')),
@@ -173,19 +151,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final bool isUpdating = state.isUpdating;
 
           return Scaffold(
+            resizeToAvoidBottomInset: false,
             backgroundColor: AppColors.bgOxford,
             body: SafeArea(
-              child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
-
-                    // Form Container with everything inside
-                    Container(
+              child: Column(
+                children: [
+                  const SizedBox(height: 24),
+                  // White card container with Stack for fixed button
+                  Expanded(
+                    child: Container(
                       width: double.infinity,
-                      constraints: BoxConstraints(
-                        minHeight: MediaQuery.of(context).size.height - 100,
-                      ),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.only(
@@ -193,270 +168,302 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                           topRight: Radius.circular(32),
                         ),
                       ),
-                      child: Column(
+                      child: Stack(
                         children: [
-                          // Header inside white card with close button
-                          Stack(
-                            children: [
-                              // Centered title with 57px top padding
-                              Padding(
-                                padding: const EdgeInsets.only(top: 57),
-                                child: Center(
-                                  child: Text(
-                                    'Perfil',
-                                    style: AppTypography.heading1.copyWith(
+                          // Scrollable content
+                          SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                bottom: 100, // Space for fixed button
+                              ),
+                              child: Column(
+                                children: [
+                                  _buildHeader(context),
+                                  const SizedBox(height: 24),
+                                  _buildAvatar(user, context),
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    StringFormatters.formatName(user.name),
+                                    style: AppTypography.heading2.copyWith(
                                       color: AppColors.textPrimary,
                                     ),
                                   ),
-                                ),
-                              ),
-                              // Close button positioned top-right
-                              Positioned(
-                                top: 24,
-                                right: 24,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Avatar Section
-                          Stack(
-                            children: [
-                              Container(
-                                width: 96,
-                                height: 96,
-                                decoration: BoxDecoration(
-                                  color: AppColors.primaryIndigo,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    _getInitials(user.name),
-                                    style: AppTypography.heading1.copyWith(
-                                      color: Colors.white,
-                                      fontSize: 40,
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    '${user.identificationType} ${user.identificationNumber}',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.greyMedio,
                                     ),
                                   ),
-                                ),
-                              ),
-                              Positioned(
-                                top: 8,
-                                right: 8,
-                                child: Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withOpacity(0.6),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Center(
-                                    child: SvgPicture.asset(
-                                      'assets/icons/Edit.svg',
-                                      width: 24,
-                                      height: 24,
-                                      colorFilter: const ColorFilter.mode(
-                                        Colors.white,
-                                        BlendMode.srcIn,
+                                  const SizedBox(height: 32),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                    ),
+                                    child: Form(
+                                      key: _formKey,
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          if (user.authMethod == 'PHONE') ...[
+                                            CustomTextField(
+                                              controller: _emailController,
+                                              label:
+                                                  'Correo electrónico (Opcional)',
+                                              hint: 'ejemplo@correo.com',
+                                              keyboardType:
+                                                  TextInputType.emailAddress,
+                                            ),
+                                            const SizedBox(height: 16),
+                                          ],
+                                          _LocationSelector(
+                                            user: user,
+                                            phoneController: _phoneController,
+                                            selectedPhoneCountryId:
+                                                _selectedPhoneCountryId,
+                                            selectedDepartmentId:
+                                                _selectedDepartmentId,
+                                            selectedCityId: _selectedCityId,
+                                            onPhoneCountryChanged: (val) =>
+                                                setState(
+                                                  () =>
+                                                      _selectedPhoneCountryId =
+                                                          val,
+                                                ),
+                                            onDepartmentChanged: (val) {
+                                              setState(() {
+                                                _selectedDepartmentId = val;
+                                                _selectedCityId = null;
+                                              });
+                                            },
+                                            onCityChanged: (val) => setState(
+                                              () => _selectedCityId = val,
+                                            ),
+                                          ),
+                                          CustomTextField(
+                                            controller: _addressController,
+                                            label:
+                                                'Dirección de residencia (Opcional)',
+                                            hint: 'Calle 123 # 45-67',
+                                          ),
+                                          const KeyboardSpacer(),
+                                        ],
                                       ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Name
-                          Text(
-                            _formatName(user.name),
-                            style: AppTypography.heading2.copyWith(
-                              color: AppColors.textPrimary,
                             ),
                           ),
-                          const SizedBox(height: 8),
+                          // Fixed button at bottom of white card
+                          Positioned(
+                            left: 24,
+                            right: 24,
+                            bottom: 24,
+                            child: CustomButton(
+                              text: 'Guardar cambios',
+                              isLoading: isUpdating,
+                              onPressed: () {
+                                if (_formKey.currentState!.validate()) {
+                                  final updatedData = <String, dynamic>{
+                                    'name': _nameController.text,
+                                    'address': _addressController.text,
+                                    if (user.authMethod == 'PHONE')
+                                      'email': _emailController.text,
+                                    if (user.authMethod == 'EMAIL' ||
+                                        user.authMethod == 'GOOGLE')
+                                      'cellPhone': _phoneController.text,
+                                    if (_selectedCityId != null)
+                                      'cityId': _selectedCityId,
+                                    if (_selectedDepartmentId != null)
+                                      'departmentId': _selectedDepartmentId,
+                                  };
 
-                          // ID
-                          Text(
-                            '${user.identificationType} ${user.identificationNumber}',
-                            style: AppTypography.body4.copyWith(
-                              color: AppColors.greyMedio,
-                            ),
-                          ),
-                          const SizedBox(height: 32),
-
-                          // Form Fields
-                          Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 24),
-                            child: Form(
-                              key: _formKey,
-                              child: BlocBuilder<LocationsCubit, LocationsState>(
-                                builder: (context, locationsState) {
-                                  final countries =
-                                      locationsState is LocationsLoaded
-                                      ? locationsState.countries
-                                      : <CountryEntity>[];
-
-                                  // Show email field if user registered with PHONE
-                                  final showEmailField =
-                                      user.authMethod == 'PHONE';
-                                  // Show phone field if user registered with EMAIL or GOOGLE
-                                  final showPhoneField =
-                                      user.authMethod == 'EMAIL' ||
-                                      user.authMethod == 'GOOGLE';
-
-                                  return Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      // Email (Conditional - only if registered with phone)
-                                      if (showEmailField) ...[
-                                        CustomTextField(
-                                          controller: _emailController,
-                                          label:
-                                              'Correo electrónico (Opcional)',
-                                          hint: 'ejemplo@correo.com',
-                                          keyboardType:
-                                              TextInputType.emailAddress,
-                                        ),
-                                        const SizedBox(height: 16),
-                                      ],
-
-                                      // Phone (Conditional - only if registered with email/Google)
-                                      if (showPhoneField &&
-                                          countries.isNotEmpty) ...[
-                                        PhoneInputField(
-                                          label: 'Número de celular (Opcional)',
-                                          controller: _phoneController,
-                                          countries: countries,
-                                          selectedCountryId:
-                                              _selectedPhoneCountryId,
-                                          onCountryChanged: (countryId) {
-                                            setState(() {
-                                              _selectedPhoneCountryId =
-                                                  countryId;
-                                            });
-                                          },
-                                          isOptional: true,
-                                        ),
-                                        const SizedBox(height: 16),
-                                      ],
-
-                                      // Country (Disabled, Full Width)
-                                      if (countries.isNotEmpty)
-                                        CountryDropdown(
-                                          label: 'País de residencia',
-                                          value: user.countryId,
-                                          onChanged: null,
-                                          countries: countries,
-                                          enabled: false,
-                                          width: double.infinity,
-                                        ),
-                                      const SizedBox(height: 16),
-
-                                      // Departamento (Disabled)
-                                      if (locationsState is LocationsLoaded)
-                                        DepartmentDropdown(
-                                          label: 'Departamento',
-                                          value: _selectedDepartmentId,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedDepartmentId = value;
-                                              _selectedCityId =
-                                                  null; // Reset city
-                                            });
-                                            if (value != null) {
-                                              context
-                                                  .read<LocationsCubit>()
-                                                  .fetchCities(value);
-                                            }
-                                          },
-                                          departments:
-                                              locationsState.departments,
-                                          enabled: true,
-                                        ),
-                                      const SizedBox(height: 16),
-
-                                      // Ciudad (Disabled)
-                                      if (locationsState is LocationsLoaded)
-                                        CityDropdown(
-                                          label: 'Ciudad',
-                                          value: _selectedCityId,
-                                          onChanged: (value) {
-                                            setState(() {
-                                              _selectedCityId = value;
-                                            });
-                                          },
-                                          cities: locationsState.cities,
-                                          enabled:
-                                              _selectedDepartmentId != null,
-                                        ),
-                                      const SizedBox(height: 16),
-
-                                      // Dirección de residencia (Optional)
-                                      CustomTextField(
-                                        controller: _addressController,
-                                        label:
-                                            'Dirección de residencia (Opcional)',
-                                        hint: 'Calle 123 # 45-67',
-                                      ),
-                                      const SizedBox(height: 90),
-                                      CustomButton(
-                                        text: 'Guardar cambios',
-                                        isLoading:
-                                            isUpdating, // Use the proper flag
-                                        onPressed: () {
-                                          if (_formKey.currentState!
-                                              .validate()) {
-                                            final updatedData = <String, dynamic>{
-                                              'name': _nameController.text,
-                                              'address':
-                                                  _addressController.text,
-                                              if (showEmailField)
-                                                'email': _emailController.text,
-                                              if (showPhoneField)
-                                                'cellPhone':
-                                                    _phoneController.text,
-                                              // Include location data if selected
-                                              if (_selectedCityId != null)
-                                                'cityId': _selectedCityId,
-                                              if (_selectedDepartmentId != null)
-                                                'departmentId':
-                                                    _selectedDepartmentId,
-                                              // Keep other fields if necessary or let backend handle partial updates
-                                            };
-
-                                            context.read<AuthBloc>().add(
-                                              UpdateProfileRequested(
-                                                userId: user.id,
-                                                data: updatedData,
-                                              ),
-                                            );
-                                          }
-                                        },
-                                      ),
-                                      const SizedBox(height: 40),
-                                    ],
+                                  context.read<AuthBloc>().add(
+                                    UpdateProfileRequested(
+                                      userId: user.id,
+                                      data: updatedData,
+                                    ),
                                   );
-                                },
-                              ),
+                                }
+                              },
                             ),
                           ),
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
         },
       ),
+    );
+  }
+
+  Widget _buildHeader(BuildContext context) {
+    return Stack(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 57),
+          child: Center(
+            child: Text(
+              'Perfil',
+              style: AppTypography.heading1.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 24,
+          right: 24,
+          child: IconButton(
+            onPressed: () => Navigator.pop(context),
+            icon: const Icon(Icons.close),
+            padding: EdgeInsets.zero,
+            constraints: const BoxConstraints(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAvatar(UserEntity user, BuildContext context) {
+    return Stack(
+      children: [
+        Container(
+          width: 96,
+          height: 96,
+          decoration: BoxDecoration(
+            color: AppColors.primaryIndigo,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              _getInitials(user.name),
+              style: AppTypography.heading1.copyWith(
+                color: Colors.white,
+                fontSize: 40,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 8,
+          right: 8,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.6),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Center(
+              child: SvgPicture.asset(
+                'assets/icons/Edit.svg',
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(
+                  Colors.white,
+                  BlendMode.srcIn,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Isolated widget for location selection to optimize performance
+class _LocationSelector extends StatelessWidget {
+  final UserEntity user;
+  final TextEditingController phoneController;
+  final String? selectedPhoneCountryId;
+  final String? selectedDepartmentId;
+  final String? selectedCityId;
+  final ValueChanged<String?> onPhoneCountryChanged;
+  final ValueChanged<String?> onDepartmentChanged;
+  final ValueChanged<String?> onCityChanged;
+
+  const _LocationSelector({
+    required this.user,
+    required this.phoneController,
+    required this.selectedPhoneCountryId,
+    required this.selectedDepartmentId,
+    required this.selectedCityId,
+    required this.onPhoneCountryChanged,
+    required this.onDepartmentChanged,
+    required this.onCityChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final showPhoneField =
+        user.authMethod == 'EMAIL' || user.authMethod == 'GOOGLE';
+
+    return BlocBuilder<LocationsCubit, LocationsState>(
+      builder: (context, locationsState) {
+        final countries = locationsState is LocationsLoaded
+            ? locationsState.countries
+            : <CountryEntity>[];
+
+        return Column(
+          children: [
+            if (showPhoneField && countries.isNotEmpty) ...[
+              PhoneInputField(
+                label: 'Número de celular (Opcional)',
+                controller: phoneController,
+                countries: countries,
+                selectedCountryId: selectedPhoneCountryId,
+                onCountryChanged: onPhoneCountryChanged,
+                isOptional: true,
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            if (countries.isNotEmpty)
+              CountryDropdown(
+                label: 'País de residencia',
+                value: user.countryId,
+                onChanged: null,
+                countries: countries,
+                enabled: false,
+                width: double.infinity,
+              ),
+            const SizedBox(height: 16),
+
+            if (locationsState is LocationsLoaded)
+              DepartmentDropdown(
+                label: 'Departamento',
+                value: selectedDepartmentId,
+                onChanged: (value) {
+                  onDepartmentChanged(value);
+                  if (value != null) {
+                    context.read<LocationsCubit>().fetchCities(value);
+                  }
+                },
+                departments: locationsState.departments,
+                enabled: true,
+              ),
+            const SizedBox(height: 16),
+
+            if (locationsState is LocationsLoaded)
+              CityDropdown(
+                label: 'Ciudad',
+                value: selectedCityId,
+                onChanged: onCityChanged,
+                cities: locationsState.cities,
+                enabled: selectedDepartmentId != null,
+              ),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
     );
   }
 }

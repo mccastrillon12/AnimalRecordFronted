@@ -363,7 +363,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.verifyPin(pin);
       return const Right(null);
     } catch (e) {
-      print("🔴 Repository verifyPin error: $e"); // LOG
       // Clean up "Exception: " prefix if present
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));
@@ -376,7 +375,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.changePin(oldPin, newPin);
       return const Right(null);
     } catch (e) {
-      print("🔴 Repository changePin error: $e"); // LOG
       // Clean up "Exception: " prefix if present
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));
