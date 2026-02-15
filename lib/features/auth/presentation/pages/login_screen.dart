@@ -14,6 +14,7 @@ import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'social_register_completion_screen.dart';
 import 'biometric_activation_screen.dart';
+import '../widgets/biometric_disable_dialog.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'pin_setup_screen.dart';
 
@@ -374,6 +375,55 @@ class _LoginScreenState extends State<LoginScreen> {
 }
 
 class _BiometricButton extends StatelessWidget {
+  Future<void> _handleBiometricTap(BuildContext context) async {
+    final storage = sl<TokenStorage>();
+    final userId = await storage.getUserId();
+
+    if (userId != null) {
+      final isEnabled = await storage.getBiometricsEnabledForUser(userId);
+
+      if (isEnabled) {
+        // Show disable dialog
+        if (context.mounted) {
+          showDialog(
+            context: context,
+            builder: (context) => BiometricDisableDialog(
+              onDisable: () {
+                context.read<AuthBloc>().add(
+                  UpdateBiometricStatusRequested(false),
+                );
+                ErrorDisplay.showSuccess(
+                  context,
+                  'Biometría desactivada exitosamente',
+                );
+              },
+            ),
+          );
+        }
+      } else {
+        // Go to activation screen
+        if (context.mounted) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const BiometricActivationScreen(),
+            ),
+          );
+        }
+      }
+    } else {
+      // No user logged in, go to activation screen
+      if (context.mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const BiometricActivationScreen(),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final bool isIOS = defaultTargetPlatform == TargetPlatform.iOS;
@@ -383,14 +433,7 @@ class _BiometricButton extends StatelessWidget {
     final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometria';
 
     return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const BiometricActivationScreen(),
-          ),
-        );
-      },
+      onTap: () => _handleBiometricTap(context),
       child: Padding(
         padding: const EdgeInsets.only(
           top: AppSpacing.xxl,
