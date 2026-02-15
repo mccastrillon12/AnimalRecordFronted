@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
+
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -197,7 +198,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 Navigator.pop(context);
               }
             },
-            child: Padding(
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
                 children: [
@@ -285,9 +286,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       textAlign: TextAlign.center,
                     ),
                   ],
-
-                  const Spacer(),
-
+                  const SizedBox(height: 40),
                   CustomButton(
                     text: isStep1 ? 'Continuar' : 'Verificar',
                     isLoading: isLoading,
@@ -295,7 +294,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         ? null
                         : _handleContinue,
                   ),
-                  const SizedBox(height: AppSpacing.xxl),
+                  const SizedBox(height: 20),
                 ],
               ),
             ),

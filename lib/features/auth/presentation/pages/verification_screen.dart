@@ -124,86 +124,94 @@ class _VerificationScreenState extends State<VerificationScreen> {
             ErrorDisplay.showError(context, state.message);
           }
         },
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-          child: Column(
-            children: [
-              const SizedBox(height: AppSpacing.xxl),
-              VerificationStep(
-                key: _verificationKey,
-                email: widget.email,
-                phoneNumber: widget.phoneNumber,
-                onResendCode: _resendVerificationCode,
-                initialTimeRemaining: widget.timeRemaining,
-                onCodeChanged: _onCodeChanged,
-                onTimerChanged: _onTimerChanged,
-                isResending: _isResending,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  final isLoading = state is AuthLoading;
-                  return CustomButton(
-                    text: 'Verificar',
-                    isLoading: isLoading,
-                    onPressed: _isCodeComplete && !isLoading
-                        ? _verifyCode
-                        : null,
-                  );
-                },
-              ),
-              const SizedBox(height: AppSpacing.l),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    '¿No recibiste un código?  ',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyNegro,
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppSpacing.xxl),
+                    VerificationStep(
+                      key: _verificationKey,
+                      email: widget.email,
+                      phoneNumber: widget.phoneNumber,
+                      onResendCode: _resendVerificationCode,
+                      initialTimeRemaining: widget.timeRemaining,
+                      onCodeChanged: _onCodeChanged,
+                      onTimerChanged: _onTimerChanged,
+                      isResending: _isResending,
                     ),
-                  ),
-                  if (_isResending)
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryFrances,
-                        ),
-                      ),
-                    )
-                  else if (!_canResendLocally &&
-                      _verificationKey.currentState == null)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(
-                          AppColors.primaryFrances,
-                        ),
-                      ),
-                    )
-                  else
-                    GestureDetector(
-                      onTap: _canResendLocally ? _resendVerificationCode : null,
-                      child: Text(
-                        _canResendLocally
-                            ? 'Reenviar'
-                            : 'Reenviar (${_verificationKey.currentState?.formatTimeRemaining() ?? "00:00"})',
-                        style: AppTypography.body4.copyWith(
-                          color: _canResendLocally
-                              ? AppColors.primaryFrances
-                              : AppColors.greyMedio,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                    const SizedBox(height: 40),
+                    BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        final isLoading = state is AuthLoading;
+                        return CustomButton(
+                          text: 'Verificar',
+                          isLoading: isLoading,
+                          onPressed: _isCodeComplete && !isLoading
+                              ? _verifyCode
+                              : null,
+                        );
+                      },
                     ),
-                ],
+                    const SizedBox(height: AppSpacing.l),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '¿No recibiste un código?  ',
+                          style: AppTypography.body4.copyWith(
+                            color: AppColors.greyNegro,
+                          ),
+                        ),
+                        if (_isResending)
+                          SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryFrances,
+                              ),
+                            ),
+                          )
+                        else if (!_canResendLocally &&
+                            _verificationKey.currentState == null)
+                          const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.primaryFrances,
+                              ),
+                            ),
+                          )
+                        else
+                          GestureDetector(
+                            onTap: _canResendLocally
+                                ? _resendVerificationCode
+                                : null,
+                            child: Text(
+                              _canResendLocally
+                                  ? 'Reenviar'
+                                  : 'Reenviar (${_verificationKey.currentState?.formatTimeRemaining() ?? "00:00"})',
+                              style: AppTypography.body4.copyWith(
+                                color: _canResendLocally
+                                    ? AppColors.primaryFrances
+                                    : AppColors.greyMedio,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

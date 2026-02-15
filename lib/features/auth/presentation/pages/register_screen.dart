@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
@@ -580,49 +581,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
-                  top: AppSpacing.xl,
-                  right: AppSpacing.l,
-                  left: AppSpacing.l,
+              child: FixedBottomActionLayout(
+                child: Padding(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xl,
+                    right: AppSpacing.l,
+                    left: AppSpacing.l,
+                  ),
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const NeverScrollableScrollPhysics(),
+                    children: steps.map((step) {
+                      return SingleChildScrollView(child: step);
+                    }).toList(),
+                  ),
                 ),
-                child: PageView(
-                  controller: _pageController,
-                  physics: const NeverScrollableScrollPhysics(),
-                  children: steps.map((step) {
-                    return SingleChildScrollView(child: step);
-                  }).toList(),
+                bottomChild: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    return AnimatedBuilder(
+                      animation: Listenable.merge(_getStepListenables()),
+                      builder: (context, _) {
+                        final buttonText = _currentStep == steps.length - 1
+                            ? 'Crear cuenta'
+                            : 'Continuar';
+
+                        final isValid = _isStepValid();
+
+                        return CustomButton(
+                          text: buttonText,
+                          isLoading: state is AuthLoading,
+                          onPressed: state is AuthLoading || !isValid
+                              ? null
+                              : _nextStep,
+                        );
+                      },
+                    );
+                  },
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.only(
-                left: AppSpacing.l,
-                right: AppSpacing.l,
-                bottom: AppSpacing.xxl,
-                top: AppSpacing.m,
-              ),
-              child: BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  return AnimatedBuilder(
-                    animation: Listenable.merge(_getStepListenables()),
-                    builder: (context, _) {
-                      final buttonText = _currentStep == steps.length - 1
-                          ? 'Crear cuenta'
-                          : 'Continuar';
-
-                      final isValid = _isStepValid();
-
-                      return CustomButton(
-                        text: buttonText,
-                        isLoading: state is AuthLoading,
-                        onPressed: state is AuthLoading || !isValid
-                            ? null
-                            : _nextStep,
-                      );
-                    },
-                  );
-                },
               ),
             ),
           ],

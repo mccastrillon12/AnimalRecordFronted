@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import '../widgets/country_dropdown.dart';
 import '../widgets/id_selector.dart';
 import '../widgets/phone_input_field.dart';
@@ -152,151 +153,147 @@ class _SocialRegisterCompletionScreenState
         child: Column(
           children: [
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.l,
-                  vertical: AppSpacing.xxl,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Finaliza tu registro - Propietario',
-                      style: AppTypography.heading2,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    Text(
-                      'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                      style: AppTypography.body4,
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xl),
+              child: FixedBottomActionLayout(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.l,
+                    vertical: AppSpacing.xxl,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Finaliza tu registro - Propietario',
+                        style: AppTypography.heading2,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      Text(
+                        'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                        style: AppTypography.body4,
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
 
-                    CustomTextField(
-                      label: 'Nombre completo',
-                      controller: _nameController,
-                      enabled: false,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
+                      CustomTextField(
+                        label: 'Nombre completo',
+                        controller: _nameController,
+                        enabled: false,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
 
-                    CustomTextField(
-                      label: 'Correo electrónico',
-                      controller: _emailController,
-                      enabled: false,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
+                      CustomTextField(
+                        label: 'Correo electrónico',
+                        controller: _emailController,
+                        enabled: false,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
 
-                    BlocBuilder<LocationsCubit, LocationsState>(
-                      builder: (context, state) {
-                        if (state is LocationsLoaded) {
-                          if (_countryController.text.isEmpty &&
-                              state.countries.isNotEmpty) {
-                            WidgetsBinding.instance.addPostFrameCallback((_) {
-                              if (mounted) {
-                                final colombia = state.countries
-                                    .cast<CountryEntity>()
-                                    .firstWhere(
-                                      (c) => c.name.toLowerCase().contains(
-                                        'colombia',
-                                      ),
-                                      orElse: () => state.countries.first,
-                                    );
-                                setState(() {
-                                  _countryController.text = colombia.id;
-                                  _selectedPhoneCountryId = colombia.id;
-                                });
-                              }
-                            });
-                          }
+                      BlocBuilder<LocationsCubit, LocationsState>(
+                        builder: (context, state) {
+                          if (state is LocationsLoaded) {
+                            if (_countryController.text.isEmpty &&
+                                state.countries.isNotEmpty) {
+                              WidgetsBinding.instance.addPostFrameCallback((_) {
+                                if (mounted) {
+                                  final colombia = state.countries
+                                      .cast<CountryEntity>()
+                                      .firstWhere(
+                                        (c) => c.name.toLowerCase().contains(
+                                          'colombia',
+                                        ),
+                                        orElse: () => state.countries.first,
+                                      );
+                                  setState(() {
+                                    _countryController.text = colombia.id;
+                                    _selectedPhoneCountryId = colombia.id;
+                                  });
+                                }
+                              });
+                            }
 
-                          return Column(
-                            children: [
-                              CountryDropdown(
-                                label: 'País de residencia',
-                                value: _countryController.text.isEmpty
-                                    ? (state.countries.isNotEmpty
+                            return Column(
+                              children: [
+                                CountryDropdown(
+                                  label: 'País de residencia',
+                                  value: _countryController.text.isEmpty
+                                      ? (state.countries.isNotEmpty
+                                            ? state.countries.first.id
+                                            : null)
+                                      : _countryController.text,
+                                  countries: state.countries,
+                                  enabled: false,
+                                  width: double.infinity,
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      setState(() {
+                                        _countryController.text = val;
+                                      });
+                                    }
+                                  },
+                                ),
+                                const SizedBox(height: AppSpacing.m),
+
+                                IdSelector(
+                                  idController: _idController,
+                                  initialIdType: _selectedIdType,
+                                  onIdTypeChanged: (val) {
+                                    setState(() => _selectedIdType = val);
+                                  },
+                                  errorText: _idErrorText,
+                                ),
+                                const SizedBox(height: AppSpacing.m),
+
+                                PhoneInputField(
+                                  label: 'Número de celular (Opcional)',
+                                  controller: _phoneController,
+                                  countries: state.countries,
+                                  selectedCountryId:
+                                      _selectedPhoneCountryId ??
+                                      (state.countries.isNotEmpty
                                           ? state.countries.first.id
-                                          : null)
-                                    : _countryController.text,
-                                countries: state.countries,
-                                enabled: false,
-                                width: double.infinity,
-                                onChanged: (val) {
-                                  if (val != null) {
-                                    setState(() {
-                                      _countryController.text = val;
-                                    });
-                                  }
-                                },
-                              ),
-                              const SizedBox(height: AppSpacing.m),
-
-                              IdSelector(
-                                idController: _idController,
-                                initialIdType: _selectedIdType,
-                                onIdTypeChanged: (val) {
-                                  setState(() => _selectedIdType = val);
-                                },
-                                errorText: _idErrorText,
-                              ),
-                              const SizedBox(height: AppSpacing.m),
-
-                              PhoneInputField(
-                                label: 'Número de celular (Opcional)',
-                                controller: _phoneController,
-                                countries: state.countries,
-                                selectedCountryId:
-                                    _selectedPhoneCountryId ??
-                                    (state.countries.isNotEmpty
-                                        ? state.countries.first.id
-                                        : null),
-                                onCountryChanged: (val) {
-                                  setState(() => _selectedPhoneCountryId = val);
-                                },
-                                maxLength: 15,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.digitsOnly,
-                                ],
-                                errorText: _phoneErrorText,
-                              ),
-                            ],
-                          );
-                        } else if (state is LocationsLoading) {
-                          return const Center(
-                            child: CircularProgressIndicator(),
-                          );
-                        } else {
-                          return const Text('Error cargando países');
-                        }
-                      },
-                    ),
-                  ],
+                                          : null),
+                                  onCountryChanged: (val) {
+                                    setState(
+                                      () => _selectedPhoneCountryId = val,
+                                    );
+                                  },
+                                  maxLength: 15,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  errorText: _phoneErrorText,
+                                ),
+                              ],
+                            );
+                          } else if (state is LocationsLoading) {
+                            return const Center(
+                              child: CircularProgressIndicator(),
+                            );
+                          } else {
+                            return const Text('Error cargando países');
+                          }
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(
-                AppSpacing.l,
-                AppSpacing.m,
-                AppSpacing.l,
-                AppSpacing.xxl,
-              ),
-              child: BlocBuilder<AuthBloc, AuthState>(
-                builder: (context, state) {
-                  return ValueListenableBuilder<TextEditingValue>(
-                    valueListenable: _idController,
-                    builder: (context, value, _) {
-                      final bool isIdFilled = value.text.trim().isNotEmpty;
+                bottomChild: BlocBuilder<AuthBloc, AuthState>(
+                  builder: (context, state) {
+                    return ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _idController,
+                      builder: (context, value, _) {
+                        final bool isIdFilled = value.text.trim().isNotEmpty;
 
-                      return CustomButton(
-                        text: 'Finalizar',
-                        isLoading: state is AuthLoading,
-                        onPressed: isIdFilled ? _onSubmit : null,
-                      );
-                    },
-                  );
-                },
+                        return CustomButton(
+                          text: 'Finalizar',
+                          isLoading: state is AuthLoading,
+                          onPressed: isIdFilled ? _onSubmit : null,
+                        );
+                      },
+                    );
+                  },
+                ),
               ),
             ),
           ],
