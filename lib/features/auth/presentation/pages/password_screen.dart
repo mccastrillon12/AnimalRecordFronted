@@ -61,6 +61,11 @@ class _PasswordScreenState extends State<PasswordScreen> {
     return AuthFormContainer(
       showLogo: true,
       showCancelButton: false,
+      title: 'Ingresa tu contraseña',
+      subtitle: Text(
+        widget.identifier,
+        style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
+      ),
       onBack: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
@@ -77,8 +82,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
               MaterialPageRoute(
                 builder: (context) => VerificationScreen(
                   email: widget.identifier,
-                  phoneNumber:
-                      null, // Assuming identifier is passed as email for now
+                  phoneNumber: null,
                   timeRemaining: state.timeRemaining,
                 ),
               ),
@@ -88,26 +92,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
           }
         },
         child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xxl),
-                child: Text(
-                  'Ingresa tu contraseña',
-                  style: AppTypography.heading1,
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(top: AppSpacing.xs),
-                child: Text(
-                  widget.identifier,
-                  style: AppTypography.body4.copyWith(
-                    color: AppColors.greyNegroV2,
-                  ),
-                ),
-              ),
               Padding(
                 padding: const EdgeInsets.only(top: 94),
                 child: CustomTextField(

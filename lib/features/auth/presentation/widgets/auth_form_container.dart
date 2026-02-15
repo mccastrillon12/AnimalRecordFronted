@@ -9,6 +9,9 @@ class AuthFormContainer extends StatelessWidget {
   final VoidCallback? onCancel;
   final bool showLogo;
   final bool showCancelButton;
+  final String? title;
+  final Widget? subtitle;
+  final bool addInternalPadding;
 
   const AuthFormContainer({
     super.key,
@@ -17,6 +20,9 @@ class AuthFormContainer extends StatelessWidget {
     this.onCancel,
     this.showLogo = true,
     this.showCancelButton = true,
+    this.title,
+    this.subtitle,
+    this.addInternalPadding = true,
   });
 
   @override
@@ -105,7 +111,48 @@ class AuthFormContainer extends StatelessWidget {
                     topRight: Radius.circular(32),
                   ),
                 ),
-                child: child,
+                child: Column(
+                  children: [
+                    // Title and subtitle section (optional)
+                    if (title != null || subtitle != null)
+                      Padding(
+                        padding: const EdgeInsets.only(
+                          top: AppSpacing.xxl,
+                          right: AppSpacing.l,
+                          left: AppSpacing.l,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            if (title != null)
+                              SizedBox(
+                                height: AppSpacing.registerTitleHeight,
+                                child: Text(
+                                  title!,
+                                  style: AppTypography.heading1,
+                                ),
+                              ),
+                            if (subtitle != null)
+                              SizedBox(
+                                height: AppSpacing.registerSubtitleHeight,
+                                child: subtitle!,
+                              ),
+                          ],
+                        ),
+                      ),
+                    // Content area
+                    Expanded(
+                      child: addInternalPadding
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: AppSpacing.l,
+                              ),
+                              child: child,
+                            )
+                          : child,
+                    ),
+                  ],
+                ),
               ),
             ),
           ],

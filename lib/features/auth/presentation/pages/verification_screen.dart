@@ -110,12 +110,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
               (route) => false,
             );
           } else if (state is ResendCodeSuccess) {
-            // First restart timer to ensure VerificationStep state is updated
             _verificationKey.currentState?.restartTimer(180000);
 
             setState(() {
               _isResending = false;
-              _canResendLocally = false; // Prevent flashing enabled state
+              _canResendLocally = false;
             });
           } else if (state is AuthError) {
             setState(() {
@@ -128,7 +127,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
           children: [
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
                 child: Column(
                   children: [
                     const SizedBox(height: AppSpacing.xxl),

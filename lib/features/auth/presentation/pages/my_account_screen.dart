@@ -460,15 +460,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                       TextButton(
                                                         onPressed: () {
-                                                          showModalBottomSheet(
-                                                            context: context,
-                                                            isScrollControlled:
-                                                                true,
-                                                            backgroundColor:
-                                                                Colors
-                                                                    .transparent,
-                                                            builder: (context) =>
-                                                                const ChangePinScreen(),
+                                                          Navigator.push(
+                                                            context,
+                                                            MaterialPageRoute(
+                                                              builder: (context) =>
+                                                                  const ChangePinScreen(),
+                                                            ),
                                                           );
                                                         },
                                                         child: Text(

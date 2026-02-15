@@ -476,6 +476,41 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     return AuthFormContainer(
       showLogo: false,
+      title: 'Tu cuenta AnimalRecord - $_roleName',
+      subtitle: _currentStep < steps.length - 1
+          ? Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(
+                    text:
+                        widget.role == 'PROPIETARIO_MASCOTA' &&
+                            _currentStep == 0
+                        ? 'Ingreso '
+                        : 'Datos personales ',
+                    style: AppTypography.body4,
+                  ),
+                  TextSpan(
+                    text: '- ${_currentStep + 1} de $_totalSteps',
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyMedio,
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : Text.rich(
+              TextSpan(
+                children: [
+                  TextSpan(text: 'Seguridad ', style: AppTypography.body4),
+                  TextSpan(
+                    text: '- ${_currentStep + 1} de $_totalSteps',
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyMedio,
+                    ),
+                  ),
+                ],
+              ),
+            ),
       onBack: _currentStep > 0
           ? () {
               _pageController.previousPage(
@@ -486,27 +521,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
             }
           : () => Navigator.pop(context),
       onCancel: () => Navigator.pop(context),
+      addInternalPadding: false,
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
           if (state is AuthSuccess) {
-            // Usuario creado exitosamente
-            // Usuario creado exitosamente
             ErrorDisplay.showSuccess(
               context,
               'Registro exitoso. Por favor inicia sesión.',
             );
-            Navigator.pushReplacementNamed(context, '/'); // Go to login
+            Navigator.pushReplacementNamed(context, '/');
           } else if (state is AuthError) {
             ErrorDisplay.showError(context, state.message);
           } else if (state is IdentificationCheckResult) {
             if (state.exists) {
-              // El usuario ya está registrado
               setState(() {
                 _idErrorText =
                     'Este número de documento ya está registrado. Por favor inicia sesión.';
               });
             } else {
-              // El usuario no existe, proceder al siguiente paso
               _pageController.nextPage(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
@@ -515,112 +547,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
             }
           }
         },
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.xxl,
-                right: AppSpacing.l,
-                left: AppSpacing.l,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  SizedBox(
-                    height: AppSpacing.registerTitleHeight,
-                    child: Text(
-                      'Tu cuenta AnimalRecord - $_roleName',
-                      style: AppTypography.heading1,
-                    ),
-                  ),
-                  if (_currentStep < steps.length - 1)
-                    SizedBox(
-                      height: AppSpacing.registerSubtitleHeight,
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text:
-                                  widget.role == 'PROPIETARIO_MASCOTA' &&
-                                      _currentStep == 0
-                                  ? 'Ingreso '
-                                  : 'Datos personales ',
-                              style: AppTypography.body4,
-                            ),
-                            TextSpan(
-                              text: '- ${_currentStep + 1} de $_totalSteps',
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyMedio,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    SizedBox(
-                      height: AppSpacing.registerSubtitleHeight,
-                      child: Text.rich(
-                        TextSpan(
-                          children: [
-                            TextSpan(
-                              text: 'Seguridad ',
-                              style: AppTypography.body4,
-                            ),
-                            TextSpan(
-                              text: '- ${_currentStep + 1} de $_totalSteps',
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyMedio,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+        child: FixedBottomActionLayout(
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xl,
+              right: AppSpacing.l,
+              left: AppSpacing.l,
             ),
-            Expanded(
-              child: FixedBottomActionLayout(
-                child: Padding(
-                  padding: const EdgeInsets.only(
-                    top: AppSpacing.xl,
-                    right: AppSpacing.l,
-                    left: AppSpacing.l,
-                  ),
-                  child: PageView(
-                    controller: _pageController,
-                    physics: const NeverScrollableScrollPhysics(),
-                    children: steps.map((step) {
-                      return SingleChildScrollView(child: step);
-                    }).toList(),
-                  ),
-                ),
-                bottomChild: BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    return AnimatedBuilder(
-                      animation: Listenable.merge(_getStepListenables()),
-                      builder: (context, _) {
-                        final buttonText = _currentStep == steps.length - 1
-                            ? 'Crear cuenta'
-                            : 'Continuar';
-
-                        final isValid = _isStepValid();
-
-                        return CustomButton(
-                          text: buttonText,
-                          isLoading: state is AuthLoading,
-                          onPressed: state is AuthLoading || !isValid
-                              ? null
-                              : _nextStep,
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: steps.map((step) {
+                return SingleChildScrollView(child: step);
+              }).toList(),
             ),
-          ],
+          ),
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return AnimatedBuilder(
+                animation: Listenable.merge(_getStepListenables()),
+                builder: (context, _) {
+                  final buttonText = _currentStep == steps.length - 1
+                      ? 'Crear cuenta'
+                      : 'Continuar';
+
+                  final isValid = _isStepValid();
+
+                  return CustomButton(
+                    text: buttonText,
+                    isLoading: state is AuthLoading,
+                    onPressed: state is AuthLoading || !isValid
+                        ? null
+                        : _nextStep,
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

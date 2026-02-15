@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import '../widgets/auth_form_container.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -129,76 +130,34 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           Navigator.pop(context);
         }
       },
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        body: Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      child: AuthFormContainer(
+        showLogo: false,
+        title: _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
+        onBack: _currentStep == 2
+            ? () => setState(() => _currentStep = 1)
+            : () => Navigator.pop(context),
+        onCancel: () => Navigator.pop(context),
+        addInternalPadding: false,
+        child: FixedBottomActionLayout(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
           ),
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 20,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (_currentStep == 2)
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back),
-                        onPressed: () => setState(() => _currentStep = 1),
-                      )
-                    else
-                      const SizedBox(width: 48),
-                    Text(
-                      _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
-                      style: AppTypography.heading1.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: FixedBottomActionLayout(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
-                  ),
-                  bottomChild: BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, state) {
-                      final isLoading =
-                          state is AuthSuccess && state.isUpdating;
-                      return CustomButton(
-                        text: _currentStep == 1 ? 'Continuar' : 'Cambiar',
-                        isLoading: isLoading,
-                        onPressed:
-                            isLoading ||
-                                (_currentStep == 1
-                                    ? (_oldPin.length != 4 ||
-                                          _newPin.length != 4)
-                                    : _confirmPin.length != 4)
-                            ? null
-                            : (_currentStep == 1
-                                  ? _handleContinue
-                                  : _handleChange),
-                      );
-                    },
-                  ),
-                ),
-              ),
-
-              // Button
-            ],
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              final isLoading = state is AuthSuccess && state.isUpdating;
+              return CustomButton(
+                text: _currentStep == 1 ? 'Continuar' : 'Cambiar',
+                isLoading: isLoading,
+                onPressed:
+                    isLoading ||
+                        (_currentStep == 1
+                            ? (_oldPin.length != 4 || _newPin.length != 4)
+                            : _confirmPin.length != 4)
+                    ? null
+                    : (_currentStep == 1 ? _handleContinue : _handleChange),
+              );
+            },
           ),
         ),
       ),
