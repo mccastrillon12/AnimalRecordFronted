@@ -16,6 +16,7 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getUserProfile(String id);
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
   Future<void> changePassword(String oldPassword, String newPassword);
+  Future<void> forgotPassword(String identifier);
   Future<void> savePin(String pin);
   Future<void> verifyPin(String pin);
   Future<void> changePin(String oldPin, String newPin);
@@ -423,6 +424,43 @@ URL: /auth/change-password
     } on DioException catch (e) {
       logger.e('''
 --- CHANGE PASSWORD ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+-----------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> forgotPassword(String identifier) async {
+    try {
+      logger.d('''
+--- DEBUG FORGOT PASSWORD ---
+URL: /auth/forgot-password
+Payload: {"identifier": "$identifier"}
+------------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/forgot-password',
+        data: {'identifier': identifier},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al enviar las instrucciones');
+      }
+
+      logger.i('''
+--- FORGOT PASSWORD SUCCESS ---
+Status: ${response.statusCode}
+-------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- FORGOT PASSWORD ERROR ---
 Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 -----------------------------
