@@ -31,6 +31,7 @@ import 'package:animal_record/features/locations/presentation/cubit/locations_cu
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/core/services/apple_auth_service.dart';
 import 'package:animal_record/core/network/auth_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
@@ -140,6 +141,11 @@ Future<void> init() async {
   // Microsoft Auth Service
   sl.registerLazySingleton<MicrosoftAuthService>(
     () => MicrosoftAuthService(logger: sl()),
+  );
+
+  // Apple Auth Service
+  sl.registerLazySingleton<AppleAuthService>(
+    () => AppleAuthService(logger: sl()),
   );
 
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';
