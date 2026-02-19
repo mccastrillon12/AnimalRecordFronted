@@ -41,9 +41,12 @@ class LinkExpiredScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.m),
           GestureDetector(
             onTap: () {
-              // Navigate to Login or Forgot Password to restart the process
-              // Assuming '/login' is the route to restart
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+              // Navigate to Login to restart the process
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/forgot-password',
+                (route) => false,
+              );
             },
             child: Text(
               'Cambiar contraseña',

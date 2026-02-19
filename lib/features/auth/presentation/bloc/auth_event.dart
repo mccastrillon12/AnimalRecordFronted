@@ -148,5 +148,15 @@ class ResetPasswordSubmitted extends AuthEvent {
   });
 
   @override
-  List<Object?> get props => [identifier, token, newPassword];
+  List<Object> get props => [identifier, token, newPassword];
+}
+
+class ValidateResetToken extends AuthEvent {
+  final String identifier;
+  final String token;
+
+  ValidateResetToken({required this.identifier, required this.token});
+
+  @override
+  List<Object> get props => [identifier, token];
 }

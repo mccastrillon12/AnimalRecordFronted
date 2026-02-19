@@ -39,4 +39,8 @@ abstract class AuthRepository {
     String token,
     String newPassword,
   );
+  Future<Either<Failure, bool>> validatePasswordToken(
+    String identifier,
+    String token,
+  );
 }

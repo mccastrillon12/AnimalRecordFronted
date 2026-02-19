@@ -19,6 +19,7 @@ import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.d
 import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -42,6 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final UpdateProfileUseCase updateProfileUseCase;
   final ChangePasswordUseCase changePasswordUseCase;
   final ResetPasswordUseCase resetPasswordUseCase;
+  final ValidatePasswordTokenUseCase validatePasswordTokenUseCase;
   final SavePinUseCase savePinUseCase;
   final VerifyPinUseCase verifyPinUseCase;
   final ChangePinUseCase changePinUseCase;
@@ -62,6 +64,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.updateProfileUseCase,
     required this.changePasswordUseCase,
     required this.resetPasswordUseCase,
+    required this.validatePasswordTokenUseCase,
     required this.savePinUseCase,
     required this.verifyPinUseCase,
     required this.changePinUseCase,
@@ -107,6 +110,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     /// Resets user password
     on<ResetPasswordSubmitted>(_onResetPasswordSubmitted);
+
+    /// Validates reset password token
+    on<ValidateResetToken>(_onValidateResetToken);
 
     // ═══════════════════════════════════════════════════════════════
     // AUTHENTICATION - Social (Google/Microsoft)
@@ -589,6 +595,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(failure.message)),
       (_) async => emit(ResetPasswordSuccess()),
+    );
+  }
+
+  Future<void> _onValidateResetToken(
+    ValidateResetToken event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await validatePasswordTokenUseCase(
+      event.identifier,
+      event.token,
+    );
+
+    await result.fold(
+      (failure) async {
+        if (failure.message.toLowerCase().contains('invalid') ||
+            failure.message.toLowerCase().contains('expired') ||
+            failure.message.toLowerCase().contains('inválido') ||
+            failure.message.toLowerCase().contains('expirado')) {
+          emit(ResetTokenInvalid());
+        } else {
+          // If it's a server error, we might still want to show it,
+          // but for the sake of the flow, if validation fails, we generally treat it as invalid.
+          // However, let's distinguish:
+          emit(ResetTokenInvalid());
+        }
+      },
+      (isValid) async {
+        if (isValid) {
+          emit(ResetTokenValid());
+        } else {
+          emit(ResetTokenInvalid());
+        }
+      },
     );
   }
 

@@ -44,7 +44,7 @@ class CheckMessagesScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.m),
               GestureDetector(
                 onTap: () {
-                  // TODO: Implement resend logic
+                  Navigator.pushNamed(context, '/forgot-password');
                 },
                 child: Text(
                   'Reenviar',

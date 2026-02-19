@@ -5,6 +5,7 @@ import 'package:animal_record/features/auth/presentation/pages/login_screen.dart
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/profile_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/edit_profile_screen.dart';
@@ -17,6 +18,7 @@ import 'package:animal_record/features/locations/presentation/cubit/locations_cu
 import 'package:animal_record/core/services/deep_link_service.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/link_expired_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/forgot_password_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -31,7 +33,11 @@ Future<void> main() async {
   await di.init();
 
   // Initialize Deep Links
-  DeepLinkService().initDeepLinks(navigatorKey);
+  final deepLinkService = DeepLinkService();
+  deepLinkService.setValidatePasswordTokenUseCase(
+    di.sl<ValidatePasswordTokenUseCase>(),
+  );
+  deepLinkService.initDeepLinks(navigatorKey);
 
   runApp(const MyApp());
 }
@@ -61,6 +67,7 @@ class MyApp extends StatelessWidget {
           '/welcome-social': (context) => const WelcomeSocialPage(),
           '/reset-password': (context) => const ResetPasswordScreen(),
           '/link-expired': (context) => const LinkExpiredScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
         },
       ),
     );
