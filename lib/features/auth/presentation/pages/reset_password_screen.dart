@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/widgets/inputs/password_requirements_validator.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/auth_form_container.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -18,143 +22,173 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  bool _hasMinLength = false;
-  bool _hasUpperLower = false;
-  bool _hasSpecialChar = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
+  String? _token;
+  String? _identifier;
+  String? _confirmPasswordError;
 
   @override
   void initState() {
     super.initState();
-    _passwordController.addListener(_validatePassword);
+    _passwordController.addListener(_validateForm);
+    _confirmPasswordController.addListener(_validateForm);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map) {
+      _token = args['token'] as String?;
+      _identifier = args['identifier'] as String?;
+    } else if (args is String) {
+      _token = args;
+    }
   }
 
   @override
   void dispose() {
-    _passwordController.removeListener(_validatePassword);
+    _passwordController.removeListener(_validateForm);
+    _confirmPasswordController.removeListener(_validateForm);
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();
   }
 
-  void _validatePassword() {
-    final value = _passwordController.text;
+  void _validateForm() {
     setState(() {
-      _hasMinLength = value.length >= 8;
-      _hasUpperLower = RegExp(r'^(?=.*[a-z])(?=.*[A-Z])').hasMatch(value);
-      _hasSpecialChar = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(value);
+      if (_confirmPasswordController.text.isNotEmpty &&
+          _passwordController.text != _confirmPasswordController.text) {
+        _confirmPasswordError = 'Las contraseñas no coinciden';
+      } else {
+        _confirmPasswordError = null;
+      }
     });
   }
 
+  bool _isPasswordValid(String password) {
+    return password.length >= 8 &&
+        password.contains(RegExp(r'[a-z]')) &&
+        password.contains(RegExp(r'[A-Z]')) &&
+        password.contains(RegExp(r'[0-9]')) &&
+        password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
+  }
+
   bool get _isFormValid {
-    return _hasMinLength &&
-        _hasUpperLower &&
-        _hasSpecialChar &&
+    return _isPasswordValid(_passwordController.text) &&
         _passwordController.text == _confirmPasswordController.text &&
         _passwordController.text.isNotEmpty;
   }
 
   void _handleChangePassword() {
+    if (_token == null || _identifier == null) {
+      ErrorDisplay.showError(
+        context,
+        'Enlace inválido o incompleto. Por favor solicite uno nuevo.',
+      );
+      return;
+    }
+
     if (_isFormValid) {
-      // TODO: Implement password change logic
-      // For now, just show success and navigate back
-      Navigator.pop(context);
+      context.read<AuthBloc>().add(
+        ResetPasswordSubmitted(
+          identifier: _identifier!,
+          token: _token!,
+          newPassword: _passwordController.text,
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return AuthFormContainer(
-      showCancelButton: true,
-      title: 'Cambiar contraseña',
-      child: SingleChildScrollView(
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is ResetPasswordSuccess) {
+          ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        } else if (state is AuthError) {
+          if (state.message.toLowerCase().contains('invalid') ||
+              state.message.toLowerCase().contains('inválido') ||
+              state.message.toLowerCase().contains('expired') ||
+              state.message.toLowerCase().contains('expirado')) {
+            Navigator.pushNamed(context, '/link-expired');
+          } else {
+            ErrorDisplay.showError(context, state.message);
+          }
+        }
+      },
+      child: AuthFormContainer(
+        showCancelButton: true,
+        showLogo: false,
+        title: 'Cambiar contraseña',
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const SizedBox(height: AppSpacing.l),
-            CustomTextField(
-              label: 'Nueva contraseña',
-              hint: '• • • • • • • •',
-              controller: _passwordController,
-              labelStyle: AppTypography.body6,
-              hintStyle: AppTypography.body4.copyWith(
-                color: AppColors.greyMedio,
-              ),
-              borderColor: AppColors.greyMedio,
-              obscureText: _obscurePassword,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePassword ? Icons.visibility_off : Icons.visibility,
-                  color: AppColors.greyMedio,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppSpacing.l),
+                    CustomTextField(
+                      label: 'Nueva contraseña',
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      isPassword: true,
+                      onToggleVisibility: () {
+                        setState(() {
+                          _obscurePassword = !_obscurePassword;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    // Reusable Password Validator
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: _passwordController,
+                      builder: (context, value, child) {
+                        return PasswordRequirementsValidator(
+                          password: value.text,
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: AppSpacing.l),
+                    CustomTextField(
+                      label: 'Confirmar nueva contraseña',
+                      controller: _confirmPasswordController,
+                      obscureText: _obscureConfirmPassword,
+                      isPassword: true,
+                      errorText: _confirmPasswordError,
+                      onToggleVisibility: () {
+                        setState(() {
+                          _obscureConfirmPassword = !_obscureConfirmPassword;
+                        });
+                      },
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
                 ),
-                onPressed: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
               ),
             ),
-            const SizedBox(height: AppSpacing.l),
-            Text('Usa al menos:', style: AppTypography.body6),
-            const SizedBox(height: AppSpacing.xs),
-            _buildValidationItem('8 caracteres', _hasMinLength),
-            _buildValidationItem('Minúscula y mayúscula', _hasUpperLower),
-            _buildValidationItem('1 carácter especial', _hasSpecialChar),
-            const SizedBox(height: AppSpacing.l),
-            CustomTextField(
-              label: 'Confirmar nueva contraseña',
-              hint: '• • • • • • • •',
-              controller: _confirmPasswordController,
-              labelStyle: AppTypography.body6,
-              hintStyle: AppTypography.body4.copyWith(
-                color: AppColors.greyMedio,
+            Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.m,
+                bottom: AppSpacing.l,
               ),
-              borderColor: AppColors.greyMedio,
-              obscureText: _obscureConfirmPassword,
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscureConfirmPassword
-                      ? Icons.visibility_off
-                      : Icons.visibility,
-                  color: AppColors.greyMedio,
-                ),
-                onPressed: () {
-                  setState(() {
-                    _obscureConfirmPassword = !_obscureConfirmPassword;
-                  });
+              child: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  return CustomButton(
+                    text: 'Cambiar',
+                    isLoading: state is AuthLoading,
+                    onPressed: _isFormValid ? _handleChangePassword : null,
+                  );
                 },
               ),
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            CustomButton(
-              text: 'Cambiar',
-              onPressed: _isFormValid ? _handleChangePassword : null,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildValidationItem(String text, bool isValid) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
-        children: [
-          Icon(
-            isValid ? Icons.check_circle : Icons.radio_button_unchecked,
-            color: isValid ? Colors.green : AppColors.greyMedio,
-            size: 16,
-          ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(
-            text,
-            style: AppTypography.body5.copyWith(
-              color: isValid ? Colors.green : AppColors.greyMedio,
-            ),
-          ),
-        ],
       ),
     );
   }

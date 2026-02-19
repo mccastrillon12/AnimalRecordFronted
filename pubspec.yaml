@@ -55,6 +55,7 @@ dependencies:
   msal_auth: ^3.3.0
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.7
+  app_links: ^6.3.0
 
 dev_dependencies:
   flutter_test:

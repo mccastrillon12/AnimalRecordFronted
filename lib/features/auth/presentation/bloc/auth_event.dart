@@ -135,3 +135,18 @@ class UpdateBiometricStatusRequested extends AuthEvent {
 }
 
 class SyncBiometricStatusRequested extends AuthEvent {}
+
+class ResetPasswordSubmitted extends AuthEvent {
+  final String identifier;
+  final String token;
+  final String newPassword;
+
+  ResetPasswordSubmitted({
+    required this.identifier,
+    required this.token,
+    required this.newPassword,
+  });
+
+  @override
+  List<Object?> get props => [identifier, token, newPassword];
+}

@@ -108,3 +108,5 @@ class SocialAuthNeedRegister extends AuthState {
 class PasswordChangeSuccess extends AuthSuccess {
   PasswordChangeSuccess(super.user);
 }
+
+class ResetPasswordSuccess extends AuthState {}

@@ -22,6 +22,11 @@ abstract class AuthRemoteDataSource {
   Future<void> changePin(String oldPin, String newPin);
   Future<void> updateBiometricStatus(bool enabled);
   Future<Map<String, dynamic>> getBiometricStatus();
+  Future<void> resetPassword(
+    String identifier,
+    String token,
+    String newPassword,
+  );
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -624,6 +629,51 @@ Type: ${response.data.runtimeType}
 Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 ------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPassword(
+    String identifier,
+    String token,
+    String newPassword,
+  ) async {
+    try {
+      logger.d('''
+--- DEBUG RESET PASSWORD ---
+URL: /auth/reset-password
+Payload: {"identifier": "$identifier", "token": "$token", "newPassword": "***"}
+----------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/reset-password',
+        data: {
+          'identifier': identifier,
+          'token': token,
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al restablecer la contraseña');
+      }
+
+      logger.i('''
+--- RESET PASSWORD SUCCESS ---
+Status: ${response.statusCode}
+------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- RESET PASSWORD ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+----------------------------
 ''');
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
