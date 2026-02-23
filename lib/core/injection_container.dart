@@ -18,6 +18,8 @@ import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.d
 import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart'; // Added
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -31,6 +33,7 @@ import 'package:animal_record/features/locations/presentation/cubit/locations_cu
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/core/services/apple_auth_service.dart';
 import 'package:animal_record/core/network/auth_interceptor.dart';
 import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
@@ -56,6 +59,8 @@ Future<void> init() async {
       getUserProfileUseCase: sl(),
       updateProfileUseCase: sl(),
       changePasswordUseCase: sl(),
+      resetPasswordUseCase: sl(),
+      validatePasswordTokenUseCase: sl(), // Added
       savePinUseCase: sl(),
       verifyPinUseCase: sl(), // Added
       changePinUseCase: sl(), // Added
@@ -79,6 +84,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ResetPasswordUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ValidatePasswordTokenUseCase(sl())); // Added
   sl.registerLazySingleton(() => SavePinUseCase(sl()));
   sl.registerLazySingleton(() => VerifyPinUseCase(sl())); // Added
   sl.registerLazySingleton(() => ChangePinUseCase(sl())); // Added
@@ -140,6 +147,11 @@ Future<void> init() async {
   // Microsoft Auth Service
   sl.registerLazySingleton<MicrosoftAuthService>(
     () => MicrosoftAuthService(logger: sl()),
+  );
+
+  // Apple Auth Service
+  sl.registerLazySingleton<AppleAuthService>(
+    () => AppleAuthService(logger: sl()),
   );
 
   final String baseUrl = dotenv.env['API_BASE_URL'] ?? 'http://localhost:3000';

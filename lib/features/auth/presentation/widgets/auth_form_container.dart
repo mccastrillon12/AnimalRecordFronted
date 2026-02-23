@@ -48,7 +48,7 @@ class AuthFormContainer extends StatelessWidget {
                         onPressed: onBack,
                       )
                     else
-                      const SizedBox(width: 48),
+                      const SizedBox(width: 48, height: 48),
 
                     // Logo centrado cuando no hay botón cancelar
                     if (!showCancelButton && showLogo)
@@ -82,6 +82,7 @@ class AuthFormContainer extends StatelessWidget {
                     else
                       const SizedBox(
                         width: 48,
+                        height: 48,
                       ), // Espaciador para mantener equilibrio
                   ],
                 ),

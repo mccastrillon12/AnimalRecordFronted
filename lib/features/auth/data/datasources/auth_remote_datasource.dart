@@ -16,11 +16,18 @@ abstract class AuthRemoteDataSource {
   Future<UserModel> getUserProfile(String id);
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data);
   Future<void> changePassword(String oldPassword, String newPassword);
+  Future<void> forgotPassword(String identifier);
   Future<void> savePin(String pin);
   Future<void> verifyPin(String pin);
   Future<void> changePin(String oldPin, String newPin);
   Future<void> updateBiometricStatus(bool enabled);
   Future<Map<String, dynamic>> getBiometricStatus();
+  Future<void> resetPassword(
+    String identifier,
+    String token,
+    String newPassword,
+  );
+  Future<bool> validatePasswordToken(String identifier, String token);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -434,6 +441,43 @@ Data: ${e.response?.data}
   }
 
   @override
+  Future<void> forgotPassword(String identifier) async {
+    try {
+      logger.d('''
+--- DEBUG FORGOT PASSWORD ---
+URL: /auth/forgot-password
+Payload: {"identifier": "$identifier"}
+------------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/forgot-password',
+        data: {'identifier': identifier},
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al enviar las instrucciones');
+      }
+
+      logger.i('''
+--- FORGOT PASSWORD SUCCESS ---
+Status: ${response.statusCode}
+-------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- FORGOT PASSWORD ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+-----------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
   Future<void> savePin(String pin) async {
     try {
       logger.d('''
@@ -587,6 +631,99 @@ Status: ${e.response?.statusCode}
 Data: ${e.response?.data}
 ------------------------
 ''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPassword(
+    String identifier,
+    String token,
+    String newPassword,
+  ) async {
+    try {
+      logger.d('''
+--- DEBUG RESET PASSWORD ---
+URL: /auth/reset-password
+Payload: {"identifier": "$identifier", "token": "$token", "newPassword": "***"}
+----------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/reset-password',
+        data: {
+          'identifier': identifier,
+          'token': token,
+          'newPassword': newPassword,
+        },
+      );
+
+      if (response.statusCode != 200) {
+        throw Exception('Error al restablecer la contraseña');
+      }
+
+      logger.i('''
+--- RESET PASSWORD SUCCESS ---
+Status: ${response.statusCode}
+------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- RESET PASSWORD ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+----------------------------
+''');
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<bool> validatePasswordToken(String identifier, String token) async {
+    try {
+      logger.d('''
+--- DEBUG VALIDATE PASSWORD TOKEN ---
+URL: /auth/validate-password-token
+Identifier: $identifier
+Token: $token
+-------------------------------------
+''');
+
+      final response = await dio.get(
+        '/auth/validate-password-token',
+        queryParameters: {'identifier': identifier, 'token': token},
+        options: Options(
+          responseType:
+              ResponseType.plain, // Force plain text to handle "true" string
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      logger.i('''
+--- VALIDATE PASSWORD TOKEN RESPONSE ---
+Status: ${response.statusCode}
+Data: ${response.data}
+---------------------------------------
+''');
+
+      if (response.statusCode == 200) {
+        // Backend returns "true" string with text/html content-type
+        return response.data.toString().trim().toLowerCase() == 'true';
+      }
+      return false;
+    } on DioException catch (e) {
+      logger.e('''
+--- VALIDATE PASSWORD TOKEN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+-------------------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        return false;
+      }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
       throw Exception('Error inesperado: $e');

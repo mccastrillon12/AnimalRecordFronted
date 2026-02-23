@@ -402,4 +402,36 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(errorMsg));
     }
   }
+
+  @override
+  Future<Either<Failure, void>> resetPassword(
+    String identifier,
+    String token,
+    String newPassword,
+  ) async {
+    try {
+      await remoteDataSource.resetPassword(identifier, token, newPassword);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, bool>> validatePasswordToken(
+    String identifier,
+    String token,
+  ) async {
+    try {
+      final isValid = await remoteDataSource.validatePasswordToken(
+        identifier,
+        token,
+      );
+      return Right(isValid);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

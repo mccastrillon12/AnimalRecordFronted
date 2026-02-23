@@ -12,6 +12,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/login_params.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'verification_screen.dart';
+import 'forgot_password_screen.dart';
 
 class PasswordScreen extends StatefulWidget {
   final String identifier; // Email or phone
@@ -135,7 +136,12 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 padding: const EdgeInsets.only(top: AppSpacing.xxl),
                 child: GestureDetector(
                   onTap: () {
-                    // TODO: Navigate to forgot password screen
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const ForgotPasswordScreen(),
+                      ),
+                    );
                   },
                   child: Text(
                     '¿Olvidaste la contraseña?',

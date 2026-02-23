@@ -28,6 +28,7 @@ import '../bloc/auth_state.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/services/apple_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool hideBiometrics;
@@ -146,6 +147,33 @@ class _LoginScreenState extends State<LoginScreen> {
           context,
           'Error al iniciar sesión con Microsoft',
         );
+      }
+    }
+  }
+
+  Future<void> _handleAppleSignIn() async {
+    try {
+      final appleAuth = sl<AppleAuthService>();
+      final credential = await appleAuth.signIn();
+
+      if (credential != null && mounted) {
+        // El identityToken es lo que enviamos al backend para verificar
+        final token = credential.identityToken;
+
+        if (token != null) {
+          setState(() => _isSocialLoading = true);
+          context.read<AuthBloc>().add(
+            SocialAuthChecked(provider: 'APPLE', token: token),
+          );
+        } else {
+          sl<Logger>().e('Apple Sign-In failed: Identity Token is null');
+        }
+      }
+    } catch (error) {
+      if (mounted) setState(() => _isSocialLoading = false);
+      sl<Logger>().e('Apple Sign-In failed: $error');
+      if (mounted) {
+        ErrorDisplay.showError(context, 'Error al iniciar sesión con Apple');
       }
     }
   }
@@ -351,6 +379,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       _SocialButton(
                         iconPath: 'assets/icons/Apple_icon.svg',
                         label: 'Apple',
+                        onTap: _handleAppleSignIn,
                       ),
                     ],
                   ),
