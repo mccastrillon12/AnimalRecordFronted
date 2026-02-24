@@ -141,7 +141,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   onToggleVisibility: () =>
                       setState(() => _obscureConfirm = !_obscureConfirm),
                 ),
-                const SizedBox(height: 40),
                 const KeyboardSpacer(),
               ],
             ),

@@ -37,11 +37,58 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _phoneController = TextEditingController();
+    _nameController = TextEditingController()..addListener(_onFieldChanged);
+    _emailController = TextEditingController()..addListener(_onFieldChanged);
+    _phoneController = TextEditingController()..addListener(_onFieldChanged);
 
     context.read<LocationsCubit>().fetchCountries();
+  }
+
+  void _onFieldChanged() {
+    setState(() {});
+  }
+
+  bool _isValidPhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 10;
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  bool _hasChangesAndValid(UserEntity user) {
+    final isPhoneLogin = user.authMethod == 'PHONE';
+
+    final currentName = _nameController.text.trim();
+    final originalName = StringFormatters.formatName(user.name);
+    final nameChanged = currentName != originalName;
+    final isNameValid = currentName.isNotEmpty;
+
+    bool phoneChanged = false;
+    bool isPhoneValid = true;
+
+    if (!isPhoneLogin) {
+      final currentPhone = _phoneController.text.trim();
+      final originalPhone = user.cellPhone;
+      phoneChanged = currentPhone != originalPhone;
+      isPhoneValid = currentPhone.isEmpty || _isValidPhone(currentPhone);
+    }
+
+    bool emailChanged = false;
+    bool isEmailValid = true;
+
+    if (isPhoneLogin) {
+      final currentEmail = _emailController.text.trim();
+      final originalEmail = user.email;
+      emailChanged = currentEmail != originalEmail;
+      isEmailValid = currentEmail.isEmpty || _isValidEmail(currentEmail);
+    }
+
+    final hasAnyChange = nameChanged || phoneChanged || emailChanged;
+    final areAllFieldsValid = isNameValid && isPhoneValid && isEmailValid;
+
+    return hasAnyChange && areAllFieldsValid;
   }
 
   @override
@@ -68,6 +115,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   @override
   void dispose() {
+    _nameController.removeListener(_onFieldChanged);
+    _emailController.removeListener(_onFieldChanged);
+    _phoneController.removeListener(_onFieldChanged);
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
@@ -496,25 +546,28 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                               bottomChild: CustomButton(
                                 text: 'Guardar cambios',
                                 isLoading: isUpdating,
-                                onPressed: () {
-                                  if (_formKey.currentState!.validate()) {
-                                    final updatedData = <String, dynamic>{
-                                      'name': _nameController.text,
-                                      if (isPhoneLogin)
-                                        'email': _emailController.text,
-                                      if (!isPhoneLogin)
-                                        'cellPhone': _phoneController.text,
-                                      'countryId': user
-                                          .countryId, // Keep existing country
-                                    };
-                                    context.read<AuthBloc>().add(
-                                      UpdateProfileRequested(
-                                        userId: user.id,
-                                        data: updatedData,
-                                      ),
-                                    );
-                                  }
-                                },
+                                onPressed:
+                                    (isUpdating || !_hasChangesAndValid(user))
+                                    ? null
+                                    : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          final updatedData = <String, dynamic>{
+                                            'name': _nameController.text,
+                                            if (isPhoneLogin)
+                                              'email': _emailController.text,
+                                            if (!isPhoneLogin)
+                                              'cellPhone':
+                                                  _phoneController.text,
+                                            'countryId': user.countryId,
+                                          };
+                                          context.read<AuthBloc>().add(
+                                            UpdateProfileRequested(
+                                              userId: user.id,
+                                              data: updatedData,
+                                            ),
+                                          );
+                                        }
+                                      },
                               ),
                             ),
                           ),
