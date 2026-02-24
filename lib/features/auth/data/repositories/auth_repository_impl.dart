@@ -415,6 +415,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> forgotPassword(String identifier) async {
+    try {
+      await remoteDataSource.forgotPassword(identifier);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> resetPassword(
     String identifier,
     String token,

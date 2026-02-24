@@ -115,6 +115,8 @@ class ResetTokenValid extends AuthState {}
 
 class ResetTokenInvalid extends AuthState {}
 
+class ForgotPasswordSuccess extends AuthState {}
+
 class ForgotPinSuccess extends AuthState {}
 
 class ResetPinSuccess extends AuthState {}

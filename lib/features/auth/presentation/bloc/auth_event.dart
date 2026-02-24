@@ -183,3 +183,11 @@ class ForgotPinRequested extends AuthEvent {
   @override
   List<Object> get props => [identifier];
 }
+
+class ForgotPasswordRequested extends AuthEvent {
+  final String identifier;
+  ForgotPasswordRequested(this.identifier);
+
+  @override
+  List<Object> get props => [identifier];
+}

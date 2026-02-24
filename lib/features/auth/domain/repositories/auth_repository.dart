@@ -35,6 +35,7 @@ abstract class AuthRepository {
   Future<Either<Failure, void>> forgotPin(String identifier);
   Future<Either<Failure, void>> updateBiometricStatus(bool enabled);
   Future<Either<Failure, bool>> getBiometricStatus();
+  Future<Either<Failure, void>> forgotPassword(String identifier);
   Future<Either<Failure, void>> resetPassword(
     String identifier,
     String token,
