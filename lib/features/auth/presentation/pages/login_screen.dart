@@ -223,10 +223,11 @@ class _LoginScreenState extends State<LoginScreen> {
             final storage = sl<TokenStorage>();
             storage.isBiometricActivationPending().then((isPending) async {
               if (isPending) {
-                final isEmailUser =
-                    state.user.authMethod.toLowerCase() == 'email';
+                final authMethod = state.user.authMethod.toLowerCase();
+                final isDirectLoginUser =
+                    authMethod == 'email' || authMethod == 'phone';
 
-                if (isEmailUser) {
+                if (isDirectLoginUser) {
                   if (mounted) {
                     context.read<AuthBloc>().add(
                       UpdateBiometricStatusRequested(true),
@@ -243,7 +244,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   }
                 }
-                await storage.setBiometricActivationPending(false);
               }
             });
           } else {
