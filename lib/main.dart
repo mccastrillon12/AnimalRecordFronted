@@ -19,6 +19,8 @@ import 'package:animal_record/core/services/deep_link_service.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/link_expired_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/forgot_password_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -68,6 +70,18 @@ class MyApp extends StatelessWidget {
           '/reset-password': (context) => const ResetPasswordScreen(),
           '/link-expired': (context) => const LinkExpiredScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/forgot-pin': (context) => const ForgotPinScreen(
+            identifier: '',
+          ), // Base route, identifier normally passed via constructor Push
+          '/reset-pin': (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            return ResetPinScreen(
+              identifier: args?['identifier'] ?? '',
+              token: args?['token'] ?? '',
+            );
+          },
         },
       ),
     );

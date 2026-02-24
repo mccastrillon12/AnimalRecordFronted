@@ -11,6 +11,8 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 
+import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
+
 class PinEntryScreen extends StatefulWidget {
   final String identifier; // Email to display
 
@@ -202,10 +204,12 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
                   TextButton(
                     onPressed: () {
-                      Navigator.pushNamedAndRemoveUntil(
+                      Navigator.push(
                         context,
-                        '/login',
-                        (route) => false,
+                        MaterialPageRoute(
+                          builder: (context) =>
+                              ForgotPinScreen(identifier: widget.identifier),
+                        ),
                       );
                     },
                     child: Text(

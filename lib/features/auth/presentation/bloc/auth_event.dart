@@ -160,3 +160,26 @@ class ValidateResetToken extends AuthEvent {
   @override
   List<Object> get props => [identifier, token];
 }
+
+class ResetPinSubmitted extends AuthEvent {
+  final String identifier;
+  final String token;
+  final String newPin;
+
+  ResetPinSubmitted({
+    required this.identifier,
+    required this.token,
+    required this.newPin,
+  });
+
+  @override
+  List<Object> get props => [identifier, token, newPin];
+}
+
+class ForgotPinRequested extends AuthEvent {
+  final String identifier;
+  ForgotPinRequested(this.identifier);
+
+  @override
+  List<Object> get props => [identifier];
+}
