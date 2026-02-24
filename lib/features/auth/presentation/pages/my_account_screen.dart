@@ -444,10 +444,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ],
                                         )
                                       else if ([
-                                        'google',
-                                        'microsoft',
-                                        'apple',
-                                      ].contains(user.authMethod.toLowerCase()))
+                                            'google',
+                                            'microsoft',
+                                            'apple',
+                                          ].contains(
+                                            user.authMethod.toLowerCase(),
+                                          ) &&
+                                          state.isBiometricEnabled)
                                         Column(
                                           children: [
                                             Container(

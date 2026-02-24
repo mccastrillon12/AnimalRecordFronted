@@ -228,7 +228,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (currentState is AuthSuccess) {
       currentUser = currentState.user;
-      emit(AuthSuccess(currentUser, isUpdating: true));
+      emit(
+        AuthSuccess(
+          currentUser,
+          isUpdating: true,
+          isBiometricEnabled: currentState.isBiometricEnabled,
+        ),
+      );
     } else {
       emit(AuthLoading());
     }
@@ -240,12 +246,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     await result.fold(
       (failure) async {
-        if (currentUser != null) {
+        if (currentUser != null && currentState is AuthSuccess) {
           emit(
             AuthSuccess(
               currentUser,
               isUpdating: false,
               updateError: failure.message,
+              isBiometricEnabled: currentState.isBiometricEnabled,
             ),
           );
         } else {
@@ -254,7 +261,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) async {
         await _saveUserToCache(user);
-        emit(AuthSuccess(user, isUpdating: false));
+        emit(
+          AuthSuccess(
+            user,
+            isUpdating: false,
+            isBiometricEnabled: currentState is AuthSuccess
+                ? currentState.isBiometricEnabled
+                : false,
+          ),
+        );
       },
     );
   }
@@ -268,7 +283,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (currentState is AuthSuccess) {
       currentUser = currentState.user;
-      emit(AuthSuccess(currentUser, isUpdating: true));
+      emit(
+        AuthSuccess(
+          currentUser,
+          isUpdating: true,
+          isBiometricEnabled: currentState.isBiometricEnabled,
+        ),
+      );
     } else {
       emit(AuthLoading());
     }
@@ -280,12 +301,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     await result.fold(
       (failure) async {
-        if (currentUser != null) {
+        if (currentUser != null && currentState is AuthSuccess) {
           emit(
             AuthSuccess(
               currentUser,
               isUpdating: false,
               updateError: failure.message,
+              isBiometricEnabled: currentState.isBiometricEnabled,
             ),
           );
         } else {
@@ -294,7 +316,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null) {
-          emit(PasswordChangeSuccess(currentUser));
+          emit(
+            PasswordChangeSuccess(
+              currentUser,
+              isBiometricEnabled: currentState is AuthSuccess
+                  ? currentState.isBiometricEnabled
+                  : false,
+            ),
+          );
         } else {
           emit(PasswordChangeSuccess(UserModel.empty()));
         }
@@ -475,8 +504,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(failure.message));
       },
       (_) async {
-        if (currentUser != null) {
-          emit(AuthSuccess(currentUser, pinSaveSuccess: true));
+        if (currentUser != null && currentState is AuthSuccess) {
+          emit(
+            AuthSuccess(
+              currentUser,
+              pinSaveSuccess: true,
+              isBiometricEnabled: currentState.isBiometricEnabled,
+            ),
+          );
         } else {
           add(FetchUserRequested());
         }
@@ -506,7 +541,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             },
             (user) async {
               await _saveUserToCache(user);
-              emit(AuthSuccess(user, pinVerifiedSuccess: true));
+              final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+                user.id,
+              );
+              emit(
+                AuthSuccess(
+                  user,
+                  pinVerifiedSuccess: true,
+                  isBiometricEnabled: isEnabled,
+                ),
+              );
             },
           );
         } else {
@@ -526,7 +570,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    emit(AuthSuccess(currentState.user, isUpdating: true));
+    emit(
+      AuthSuccess(
+        currentState.user,
+        isUpdating: true,
+        isBiometricEnabled: currentState.isBiometricEnabled,
+      ),
+    );
 
     final result = await changePinUseCase(event.oldPin, event.newPin);
 
@@ -537,6 +587,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             currentState.user,
             isUpdating: false,
             updateError: failure.message,
+            isBiometricEnabled: currentState.isBiometricEnabled,
           ),
         );
         emit(AuthError(failure.message));
@@ -547,6 +598,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             currentState.user,
             isUpdating: false,
             pinChangeSuccess: true,
+            isBiometricEnabled: currentState.isBiometricEnabled,
           ),
         );
       },

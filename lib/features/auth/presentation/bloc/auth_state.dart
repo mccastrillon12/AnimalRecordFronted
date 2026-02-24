@@ -106,7 +106,7 @@ class SocialAuthNeedRegister extends AuthState {
 }
 
 class PasswordChangeSuccess extends AuthSuccess {
-  PasswordChangeSuccess(super.user);
+  PasswordChangeSuccess(super.user, {super.isBiometricEnabled});
 }
 
 class ResetPasswordSuccess extends AuthState {}
