@@ -382,6 +382,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> forgotPin(String identifier) async {
+    try {
+      await remoteDataSource.forgotPin(identifier);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> updateBiometricStatus(bool enabled) async {
     try {
       await remoteDataSource.updateBiometricStatus(enabled);
@@ -404,6 +415,17 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, void>> forgotPassword(String identifier) async {
+    try {
+      await remoteDataSource.forgotPassword(identifier);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
   Future<Either<Failure, void>> resetPassword(
     String identifier,
     String token,
@@ -411,6 +433,21 @@ class AuthRepositoryImpl implements AuthRepository {
   ) async {
     try {
       await remoteDataSource.resetPassword(identifier, token, newPassword);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> resetPin(
+    String identifier,
+    String token,
+    String newPin,
+  ) async {
+    try {
+      await remoteDataSource.resetPin(identifier, token, newPin);
       return const Right(null);
     } catch (e) {
       String errorMsg = e.toString().replaceFirst('Exception: ', '');

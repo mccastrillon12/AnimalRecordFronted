@@ -20,6 +20,9 @@ import 'package:animal_record/features/auth/domain/usecases/update_biometric_sta
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
@@ -42,6 +45,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final GetUserProfileUseCase getUserProfileUseCase;
   final UpdateProfileUseCase updateProfileUseCase;
   final ChangePasswordUseCase changePasswordUseCase;
+  final ForgotPasswordUseCase forgotPasswordUseCase;
   final ResetPasswordUseCase resetPasswordUseCase;
   final ValidatePasswordTokenUseCase validatePasswordTokenUseCase;
   final SavePinUseCase savePinUseCase;
@@ -49,6 +53,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ChangePinUseCase changePinUseCase;
   final UpdateBiometricStatusUseCase updateBiometricStatusUseCase;
   final GetBiometricStatusUseCase getBiometricStatusUseCase;
+  final ForgotPinUseCase forgotPinUseCase;
+  final ResetPinUseCase resetPinUseCase;
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
 
@@ -63,6 +69,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.getUserProfileUseCase,
     required this.updateProfileUseCase,
     required this.changePasswordUseCase,
+    required this.forgotPasswordUseCase,
     required this.resetPasswordUseCase,
     required this.validatePasswordTokenUseCase,
     required this.savePinUseCase,
@@ -70,6 +77,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.changePinUseCase,
     required this.updateBiometricStatusUseCase,
     required this.getBiometricStatusUseCase,
+    required this.forgotPinUseCase,
+    required this.resetPinUseCase,
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
@@ -114,6 +123,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     /// Validates reset password token
     on<ValidateResetToken>(_onValidateResetToken);
 
+    /// Requests instructions to reset password
+    on<ForgotPasswordRequested>(_onForgotPasswordRequested);
+
     // ═══════════════════════════════════════════════════════════════
     // AUTHENTICATION - Social (Google/Microsoft)
     // ═══════════════════════════════════════════════════════════════
@@ -136,6 +148,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     /// Changes existing PIN
     on<ChangePinRequested>(_onChangePinRequested);
+
+    /// Requests instructions to reset PIN
+    on<ForgotPinRequested>(_onForgotPinRequested);
+
+    /// Resets PIN using token
+    on<ResetPinSubmitted>(_onResetPinSubmitted);
 
     // ═══════════════════════════════════════════════════════════════
     // BIOMETRIC MANAGEMENT
@@ -535,6 +553,38 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
+  Future<void> _onForgotPinRequested(
+    ForgotPinRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await forgotPinUseCase(event.identifier);
+
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (_) async => emit(ForgotPinSuccess()),
+    );
+  }
+
+  Future<void> _onResetPinSubmitted(
+    ResetPinSubmitted event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await resetPinUseCase(
+      event.identifier,
+      event.token,
+      event.newPin,
+    );
+
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (_) async => emit(ResetPinSuccess()),
+    );
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // BIOMETRIC MANAGEMENT HANDLERS
   // ═══════════════════════════════════════════════════════════════
@@ -630,6 +680,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(ResetTokenInvalid());
         }
       },
+    );
+  }
+
+  Future<void> _onForgotPasswordRequested(
+    ForgotPasswordRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await forgotPasswordUseCase(event.identifier);
+
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (_) async => emit(ForgotPasswordSuccess()),
     );
   }
 

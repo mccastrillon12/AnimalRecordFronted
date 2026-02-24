@@ -18,8 +18,11 @@ import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.d
 import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart'; // Added
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -59,6 +62,7 @@ Future<void> init() async {
       getUserProfileUseCase: sl(),
       updateProfileUseCase: sl(),
       changePasswordUseCase: sl(),
+      forgotPasswordUseCase: sl(), // Added
       resetPasswordUseCase: sl(),
       validatePasswordTokenUseCase: sl(), // Added
       savePinUseCase: sl(),
@@ -66,6 +70,8 @@ Future<void> init() async {
       changePinUseCase: sl(), // Added
       updateBiometricStatusUseCase: sl(), // Added
       getBiometricStatusUseCase: sl(), // Added
+      forgotPinUseCase: sl(),
+      resetPinUseCase: sl(),
       logoutUseCase: sl(),
       tokenStorage: sl(),
     ),
@@ -84,6 +90,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ForgotPasswordUseCase(sl())); // Added
   sl.registerLazySingleton(() => ResetPasswordUseCase(sl())); // Added
   sl.registerLazySingleton(() => ValidatePasswordTokenUseCase(sl())); // Added
   sl.registerLazySingleton(() => SavePinUseCase(sl()));
@@ -91,6 +98,8 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ChangePinUseCase(sl())); // Added
   sl.registerLazySingleton(() => UpdateBiometricStatusUseCase(sl())); // Added
   sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ForgotPinUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ResetPinUseCase(sl())); // Added
 
   // Repository
   sl.registerLazySingleton<AuthRepository>(

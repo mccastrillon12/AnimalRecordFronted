@@ -22,11 +22,13 @@ abstract class AuthRemoteDataSource {
   Future<void> changePin(String oldPin, String newPin);
   Future<void> updateBiometricStatus(bool enabled);
   Future<Map<String, dynamic>> getBiometricStatus();
+  Future<void> forgotPin(String identifier);
   Future<void> resetPassword(
     String identifier,
     String token,
     String newPassword,
   );
+  Future<void> resetPin(String identifier, String token, String newPin);
   Future<bool> validatePasswordToken(String identifier, String token);
 }
 
@@ -638,6 +640,43 @@ Data: ${e.response?.data}
   }
 
   @override
+  Future<void> forgotPin(String identifier) async {
+    try {
+      logger.d('''
+--- DEBUG FORGOT PIN ---
+URL: /auth/forgot-pin
+Payload: {"identifier": "$identifier"}
+------------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/forgot-pin',
+        data: {'identifier': identifier},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al enviar las instrucciones del PIN');
+      }
+
+      logger.i('''
+--- FORGOT PIN SUCCESS ---
+Status: ${response.statusCode}
+-------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- FORGOT PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+-----------------------------
+''');
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
   Future<void> resetPassword(
     String identifier,
     String token,
@@ -723,6 +762,46 @@ Data: ${e.response?.data}
 ''');
       if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
         return false;
+      }
+      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+    } catch (e) {
+      throw Exception('Error inesperado: $e');
+    }
+  }
+
+  @override
+  Future<void> resetPin(String identifier, String token, String newPin) async {
+    try {
+      logger.d('''
+--- DEBUG RESET PIN ---
+URL: /auth/reset-pin
+Payload: {"identifier": "$identifier", "token": "$token", "newPin": "***"}
+----------------------------
+''');
+
+      final response = await dio.post(
+        '/auth/reset-pin',
+        data: {'identifier': identifier, 'token': token, 'newPin': newPin},
+      );
+
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Error al restablecer el PIN');
+      }
+
+      logger.i('''
+--- RESET PIN SUCCESS ---
+Status: ${response.statusCode}
+------------------------------
+''');
+    } on DioException catch (e) {
+      logger.e('''
+--- RESET PIN ERROR ---
+Status: ${e.response?.statusCode}
+Data: ${e.response?.data}
+----------------------------
+''');
+      if (e.response?.statusCode == 400 || e.response?.statusCode == 401) {
+        throw Exception('El enlace ha expirado o es inválido.');
       }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
