@@ -43,6 +43,8 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:animal_record/core/network/api_log_interceptor.dart';
+import 'package:animal_record/core/network/api_client.dart';
 
 final sl = GetIt.instance;
 
@@ -108,7 +110,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(dio: sl(), logger: sl()),
+    () => AuthRemoteDataSourceImpl(apiClient: sl(), logger: sl()),
   );
 
   //! Features - Locations
@@ -138,7 +140,7 @@ Future<void> init() async {
 
   // Data sources
   sl.registerLazySingleton<LocationsRemoteDataSource>(
-    () => LocationsRemoteDataSourceImpl(dio: sl()),
+    () => LocationsRemoteDataSourceImpl(apiClient: sl()),
   );
 
   //! Core & External
@@ -168,6 +170,9 @@ Future<void> init() async {
   final int receiveTimeout = int.parse(dotenv.env['RECEIVE_TIMEOUT'] ?? '60');
   final int sendTimeout = int.parse(dotenv.env['SEND_TIMEOUT'] ?? '60');
 
+  // Logger
+  sl.registerLazySingleton(() => Logger());
+
   // Dio instance
   final dio = Dio(
     BaseOptions(
@@ -178,13 +183,12 @@ Future<void> init() async {
     ),
   );
 
-  // Add Auth Interceptor
-  dio.interceptors.add(
+  // Interceptores
+  dio.interceptors.addAll([
     AuthInterceptor(tokenStorage: sl<TokenStorage>(), dio: dio),
-  );
+    ApiLogInterceptor(logger: sl<Logger>()),
+  ]);
 
   sl.registerLazySingleton(() => dio);
-
-  // Logger
-  sl.registerLazySingleton(() => Logger());
+  sl.registerLazySingleton(() => ApiClient(dio: dio, logger: sl<Logger>()));
 }

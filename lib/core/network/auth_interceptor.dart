@@ -147,8 +147,8 @@ class AuthInterceptor extends Interceptor {
         path.contains(
           '/users/identification/',
         ) || // Check if identification exists (public)
-        (path.contains('/users') &&
-            !path.contains('/')); // POST /users signup (public)
+        path.endsWith('/users') || // POST /users signup (public)
+        path.contains('/locations/countries'); // Public locations
   }
 
   /// Refresh the access token using refresh token

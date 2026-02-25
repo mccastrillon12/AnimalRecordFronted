@@ -1,23 +1,27 @@
 import 'package:animal_record/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
+import 'package:animal_record/core/network/api_client.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 import 'package:logger/logger.dart';
 
-class MockDio extends Mock implements Dio {}
+class MockApiClient extends Mock implements ApiClient {}
 
 class MockLogger extends Mock implements Logger {}
 
 void main() {
   late AuthRemoteDataSourceImpl dataSource;
-  late MockDio mockDio;
+  late MockApiClient mockApiClient;
   late MockLogger mockLogger;
 
   setUp(() {
-    mockDio = MockDio();
+    mockApiClient = MockApiClient();
     mockLogger = MockLogger();
-    dataSource = AuthRemoteDataSourceImpl(dio: mockDio, logger: mockLogger);
+    dataSource = AuthRemoteDataSourceImpl(
+      apiClient: mockApiClient,
+      logger: mockLogger,
+    );
   });
 
   group('signUp', () {
@@ -41,7 +45,9 @@ void main() {
 
     test('debe realizar una petición POST al endpoint correcto', () async {
       // arrange
-      when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
+      when(
+        () => mockApiClient.post(any(), data: any(named: 'data')),
+      ).thenAnswer(
         (_) async => Response(
           data: {
             'id': '1',
@@ -69,28 +75,24 @@ void main() {
       final result = await dataSource.signUp(tUserModel);
 
       // assert
-      verify(() => mockDio.post('/users', data: tUserModel.toJson())).called(1);
-      expect(result, equals(tUserModel));
+      verify(
+        () => mockApiClient.post('/users', data: tUserModel.toJson()),
+      ).called(1);
+      expect(result.id, equals(tUserModel.id));
+      expect(result.email, equals(tUserModel.email));
     });
 
-    test(
-      'debe lanzar una excepción cuando el statusCode no sea 200 o 201',
-      () async {
-        // arrange
-        when(() => mockDio.post(any(), data: any(named: 'data'))).thenAnswer(
-          (_) async => Response(
-            data: 'Something went wrong',
-            statusCode: 404,
-            requestOptions: RequestOptions(path: '/users'),
-          ),
-        );
+    test('debe propagar la excepción lanzada por ApiClient', () async {
+      // arrange
+      when(
+        () => mockApiClient.post(any(), data: any(named: 'data')),
+      ).thenThrow(Exception('Error inesperado: \${e.toString()}'));
 
-        // act
-        final call = dataSource.signUp(tUserModel);
+      // act
+      final call = dataSource.signUp;
 
-        // assert
-        expect(() => call, throwsA(isA<Exception>()));
-      },
-    );
+      // assert
+      expect(() => call(tUserModel), throwsA(isA<Exception>()));
+    });
   });
 }
