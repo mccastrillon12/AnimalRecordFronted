@@ -54,7 +54,7 @@ class AuthInterceptor extends Interceptor {
     if (err.response?.statusCode == 401 &&
         !_isAuthEndpoint(path) &&
         !path.contains('change-password') &&
-        !path.contains('/auth/pin/verify')) {
+        !path.contains('/auth/pin')) {
       if (_isRefreshRateLimited()) {
         _logger.w('Refresh rate limit exceeded, clearing tokens');
         await tokenStorage.clearTokens();

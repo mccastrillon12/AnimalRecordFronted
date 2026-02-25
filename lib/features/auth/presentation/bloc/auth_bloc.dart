@@ -525,7 +525,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             isBiometricEnabled: currentState.isBiometricEnabled,
           ),
         );
-        emit(AuthError(failure.message));
       },
       (_) async {
         emit(

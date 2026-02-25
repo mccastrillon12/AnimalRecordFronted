@@ -126,6 +126,9 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         if (state is AuthError) {
           setState(() => _errorMessage = state.message);
         }
+        if (state is AuthSuccess && state.updateError != null) {
+          setState(() => _errorMessage = state.updateError);
+        }
         if (state is AuthSuccess && state.pinChangeSuccess) {
           ErrorDisplay.showSuccess(context, 'PIN cambiado exitosamente');
           Navigator.pop(context);
