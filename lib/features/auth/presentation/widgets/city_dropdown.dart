@@ -64,7 +64,6 @@ class _CityDropdownState extends State<CityDropdown> {
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // Modal barrier to close on tap outside
           Positioned.fill(
             child: GestureDetector(
               onTap: _closeDropdown,
@@ -92,9 +91,8 @@ class _CityDropdownState extends State<CityDropdown> {
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
-                    itemCount: validCities.length + 1, // +1 for blank option
+                    itemCount: validCities.length + 1,
                     itemBuilder: (context, index) {
-                      // First item is blank option
                       if (index == 0) {
                         return InkWell(
                           onTap: () {
@@ -152,7 +150,6 @@ class _CityDropdownState extends State<CityDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    // Find selected city
     CityEntity? selectedCity;
     if (widget.value != null) {
       try {
@@ -166,7 +163,6 @@ class _CityDropdownState extends State<CityDropdown> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         SizedBox(
           height: 18,
           child: Align(
@@ -213,7 +209,7 @@ class _CityDropdownState extends State<CityDropdown> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Custom arrow icon to match design
+
                   Icon(
                     _isOpen
                         ? Icons.keyboard_arrow_up

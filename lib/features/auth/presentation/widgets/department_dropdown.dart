@@ -64,7 +64,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // Modal barrier to close on tap outside
           Positioned.fill(
             child: GestureDetector(
               onTap: _closeDropdown,
@@ -92,10 +91,8 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
-                    itemCount:
-                        validDepartments.length + 1, // +1 for blank option
+                    itemCount: validDepartments.length + 1,
                     itemBuilder: (context, index) {
-                      // First item is blank option
                       if (index == 0) {
                         return InkWell(
                           onTap: () {
@@ -153,7 +150,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    // Find selected department
     DepartmentEntity? selectedDepartment;
     if (widget.value != null) {
       try {
@@ -167,7 +163,6 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         SizedBox(
           height: 18,
           child: Align(
@@ -214,7 +209,7 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  // Custom arrow icon to match design
+
                   Icon(
                     _isOpen
                         ? Icons.keyboard_arrow_up

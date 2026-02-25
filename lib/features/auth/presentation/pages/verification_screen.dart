@@ -38,7 +38,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   @override
   void initState() {
     super.initState();
-    // If there's initialTimeRemaining, resend should be disabled initially
+
     _canResendLocally = widget.timeRemaining == null;
   }
 
@@ -51,7 +51,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
   void _onTimerChanged() {
     setState(() {
-      // Update local state from VerificationStepState
       _canResendLocally = _verificationKey.currentState?.canResend ?? true;
     });
   }
@@ -59,7 +58,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
   void _verifyCode() {
     final code = _verificationKey.currentState?.getCode() ?? '';
 
-    // Validate length
     if (code.length != 5) {
       ErrorDisplay.showError(
         context,
@@ -68,7 +66,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
       return;
     }
 
-    // Validate numeric
     if (!RegExp(r'^\d{5}$').hasMatch(code)) {
       ErrorDisplay.showError(context, 'El código debe contener solo números');
       return;
@@ -80,7 +77,6 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   void _resendVerificationCode() {
-    // Get identifier (email or phone)
     final identifier =
         widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty
         ? widget.phoneNumber!

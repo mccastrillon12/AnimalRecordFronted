@@ -17,7 +17,6 @@ class UserHeader extends StatelessWidget {
       decoration: const BoxDecoration(color: AppColors.bgOxford),
       child: Column(
         children: [
-          // Logo section
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: 0),
             child: Image.asset(
@@ -28,7 +27,6 @@ class UserHeader extends StatelessWidget {
             ),
           ),
 
-          // User info section
           Padding(
             padding: const EdgeInsets.symmetric(
               horizontal: AppSpacing.l,
@@ -66,11 +64,9 @@ class UserHeader extends StatelessWidget {
 
                 const SizedBox(width: 8),
 
-                // User info
                 Expanded(
                   child: BlocBuilder<AuthBloc, AuthState>(
                     buildWhen: (previous, current) {
-                      // Only rebuild if it's a success state or if transitioning out of success
                       if (current is AuthSuccess || previous is AuthSuccess) {
                         return true;
                       }
@@ -93,7 +89,6 @@ class UserHeader extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          // Greeting
                           SizedBox(
                             height: 21,
                             child: Align(
@@ -127,7 +122,6 @@ class UserHeader extends StatelessWidget {
 
                           const SizedBox(height: 4),
 
-                          // User role
                           Container(
                             height: 21,
                             alignment: Alignment.centerLeft,
@@ -146,7 +140,6 @@ class UserHeader extends StatelessWidget {
                   ),
                 ),
 
-                // Notification bell
                 SizedBox(
                   width: 42,
                   height: 42,
@@ -162,9 +155,7 @@ class UserHeader extends StatelessWidget {
                         BlendMode.srcIn,
                       ),
                     ),
-                    onPressed: () {
-                      // TODO: Navigate to notifications
-                    },
+                    onPressed: () {},
                   ),
                 ),
               ],

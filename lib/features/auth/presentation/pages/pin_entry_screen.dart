@@ -14,7 +14,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {
-  final String identifier; // Email to display
+  final String identifier;
 
   const PinEntryScreen({super.key, required this.identifier});
 
@@ -61,7 +61,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
       _focusNodes[index - 1].requestFocus();
     }
 
-    // Update current PIN to reflect the deletion
     final pin = _controllers.map((c) => c.text).join();
     setState(() {
       _currentPin = pin;
@@ -75,7 +74,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
       _errorMessage = null;
     });
 
-    // Dispatch event to AuthBloc to verify PIN with backend
     context.read<AuthBloc>().add(VerifyPinSubmitted(_currentPin));
   }
 
@@ -86,12 +84,12 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         if (state is AuthError) {
           setState(() {
             _errorMessage = state.message;
-            // Clear fields validation failed
+
             for (var c in _controllers) {
               c.clear();
             }
             _currentPin = '';
-            // Focus first field
+
             _focusNodes[0].requestFocus();
           });
         }
@@ -129,7 +127,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
                   const SizedBox(height: AppSpacing.xxxl),
 
-                  // PIN Input
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {

@@ -20,7 +20,7 @@ class ChangePinScreen extends StatefulWidget {
 }
 
 class _ChangePinScreenState extends State<ChangePinScreen> {
-  int _currentStep = 1; // 1: Old + New, 2: Confirm
+  int _currentStep = 1;
   final List<TextEditingController> _oldPinControllers = List.generate(
     4,
     (_) => TextEditingController(),

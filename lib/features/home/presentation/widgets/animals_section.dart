@@ -8,13 +8,11 @@ class AnimalsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // TODO: Replace with actual data from BLoC/backend when implementing animal list
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -25,9 +23,7 @@ class AnimalsSection extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () {
-                  // TODO: Navigate to full list
-                },
+                onTap: () {},
                 child: Text(
                   'Ver todos',
                   style: AppTypography.body3.copyWith(
@@ -40,8 +36,6 @@ class AnimalsSection extends StatelessWidget {
 
           const SizedBox(height: 64),
 
-          // Animals list or empty state
-          // TODO: When implementing BLoC, replace with conditional based on actual data
           _buildEmptyState(context),
         ],
       ),
@@ -55,7 +49,6 @@ class AnimalsSection extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Empty state message
             Text(
               'No tienes ningún animal registrado todavía.',
               textAlign: TextAlign.center,
@@ -72,14 +65,11 @@ class AnimalsSection extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            // Add animal button
             SizedBox(
               width: 128,
               height: 39,
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Navigate to add animal screen
-                },
+                onPressed: () {},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primaryOrange,
                   foregroundColor: AppColors.white,

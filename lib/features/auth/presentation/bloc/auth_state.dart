@@ -8,7 +8,7 @@ abstract class AuthState extends Equatable {
 
 class AuthInitial extends AuthState {}
 
-class AuthLoading extends AuthState {} // Para mostrar el círculo de carga
+class AuthLoading extends AuthState {}
 
 class AuthSuccess extends AuthState {
   final UserEntity user;

@@ -44,7 +44,6 @@ void main() {
     });
 
     test('debe realizar una petición POST al endpoint correcto', () async {
-      // arrange
       when(
         () => mockApiClient.post(any(), data: any(named: 'data')),
       ).thenAnswer(
@@ -71,10 +70,8 @@ void main() {
         ),
       );
 
-      // act
       final result = await dataSource.signUp(tUserModel);
 
-      // assert
       verify(
         () => mockApiClient.post('/users', data: tUserModel.toJson()),
       ).called(1);
@@ -83,15 +80,12 @@ void main() {
     });
 
     test('debe propagar la excepción lanzada por ApiClient', () async {
-      // arrange
       when(
         () => mockApiClient.post(any(), data: any(named: 'data')),
       ).thenThrow(Exception('Error inesperado: \${e.toString()}'));
 
-      // act
       final call = dataSource.signUp;
 
-      // assert
       expect(() => call(tUserModel), throwsA(isA<Exception>()));
     });
   });

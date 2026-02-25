@@ -171,7 +171,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       ),
                       child: Column(
                         children: [
-                          // Header imitating ModalPageLayout
                           Stack(
                             children: [
                               Padding(
@@ -201,7 +200,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             ],
                           ),
 
-                          // Scrollable Content
                           Expanded(
                             child: FixedBottomActionLayout(
                               child: SingleChildScrollView(
@@ -211,7 +209,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     crossAxisAlignment:
                                         CrossAxisAlignment.start,
                                     children: [
-                                      // Section 1 Header
                                       Container(
                                         width: double.infinity,
                                         padding: const EdgeInsets.symmetric(
@@ -229,7 +226,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                       ),
                                       const SizedBox(height: 24),
 
-                                      // Section 1 Content
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
                                           horizontal: 24,

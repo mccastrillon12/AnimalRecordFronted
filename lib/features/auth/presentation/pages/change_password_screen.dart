@@ -123,7 +123,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                 ),
                 const SizedBox(height: 16),
 
-                // Requirements Validator
                 ValueListenableBuilder<TextEditingValue>(
                   valueListenable: _newPasswordController,
                   builder: (context, value, child) {

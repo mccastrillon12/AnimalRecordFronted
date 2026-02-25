@@ -86,18 +86,14 @@ class UserModel extends UserEntity {
       'isHomeDelivery': isHomeDelivery,
     };
 
-    // Only include email if not empty
     if (email.isNotEmpty) {
       json['email'] = email;
     }
 
-    // Only include cellPhone if not empty
     if (cellPhone.isNotEmpty) {
       json['cellPhone'] = cellPhone;
     }
 
-    // Only include optional fields if they are not empty
-    // city name is technically redundant if we have cityId but keeping for symmetry with entity
     if (city.isNotEmpty) {
       json['city'] = city;
     }

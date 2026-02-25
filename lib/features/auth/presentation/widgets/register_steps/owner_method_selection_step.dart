@@ -39,7 +39,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
   @override
   void initState() {
     super.initState();
-    // Fetch countries when widget initializes
+
     context.read<LocationsCubit>().fetchCountries();
   }
 
@@ -48,7 +48,6 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Instruction text
         Text(
           'Seleccione el método de acceso a su cuenta:',
           style: AppTypography.body4.copyWith(color: AppColors.textPrimary),
@@ -56,7 +55,6 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
 
         const SizedBox(height: AppSpacing.l),
 
-        // Email option
         _buildMethodOption(
           method: AccessMethod.email,
           title: 'Correo electrónico',
@@ -65,7 +63,6 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
 
         const SizedBox(height: AppSpacing.l),
 
-        // Phone option
         _buildMethodOption(
           method: AccessMethod.phone,
           title: 'Número celular',
@@ -74,7 +71,6 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
 
         const SizedBox(height: AppSpacing.l),
 
-        // Conditional fields based on selection
         if (_selectedMethod == AccessMethod.email) ...[
           _buildEmailField(),
         ] else if (_selectedMethod == AccessMethod.phone) ...[

@@ -40,9 +40,9 @@ class AuthRepositoryImpl implements AuthRepository {
         roles: params.roles,
         authMethod: params.authMethod,
         password: params.password,
-        isVerified: false, // Initial registration state
-        departmentId: params.departmentId, // Added
-        cityId: params.cityId, // Added
+        isVerified: false,
+        departmentId: params.departmentId,
+        cityId: params.cityId,
       );
 
       final result = await remoteDataSource.signUp(userModel);
@@ -58,20 +58,15 @@ class AuthRepositoryImpl implements AuthRepository {
       final credentials = params.toJson();
       final response = await remoteDataSource.login(credentials);
 
-      // Parse user data from response to get the ID
-      // Parse user data from response to get the ID
-
       final userData = response['user'] ?? response;
       String userId = (userData['id'] ?? '').toString();
 
-      // Fallback: Try to get ID from Access Token if not found in response
       if (userId.isEmpty || userId == 'null') {
         final accessToken = response['accessToken'] as String?;
         if (accessToken != null) {
           try {
             Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
 
-            // Try common ID fields
             if (decodedToken.containsKey('id')) {
               userId = decodedToken['id'].toString();
             } else if (decodedToken.containsKey('sub')) {
@@ -79,9 +74,7 @@ class AuthRepositoryImpl implements AuthRepository {
             } else if (decodedToken.containsKey('userId')) {
               userId = decodedToken['userId'].toString();
             }
-          } catch (e) {
-            // Ignore decoding error
-          }
+          } catch (e) {}
         }
       }
 
@@ -91,7 +84,6 @@ class AuthRepositoryImpl implements AuthRepository {
         );
       }
 
-      // Store tokens securely
       final accessToken = response['accessToken'] as String?;
       final refreshToken = response['refreshToken'] as String?;
 
@@ -103,13 +95,10 @@ class AuthRepositoryImpl implements AuthRepository {
         await tokenStorage.saveUserId(userId);
       }
 
-      // Fetch FULL profile to ensure we have the correct name and other fields
-      // This will now only be called if we have a valid userId
       final fullProfile = await remoteDataSource.getUserProfile(userId);
 
       return Right(fullProfile);
     } on UserNotVerifiedException catch (e) {
-      // Pass UserNotVerified as a specific failure with timeRemaining
       return Left(ServerFailure('UserNotVerified:${e.timeRemaining ?? ""}'));
     } catch (e) {
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
@@ -120,15 +109,12 @@ class AuthRepositoryImpl implements AuthRepository {
   @override
   Future<Either<Failure, void>> logout() async {
     try {
-      // Call backend logout (optional)
       await remoteDataSource.logout();
 
-      // Clear tokens from secure storage
       await tokenStorage.clearTokens();
 
       return const Right(null);
     } catch (e) {
-      // Even if backend logout fails, clear local tokens
       await tokenStorage.clearTokens();
       return Left(ServerFailure(e.toString()));
     }
@@ -156,7 +142,6 @@ class AuthRepositoryImpl implements AuthRepository {
       final userData = response['user'] ?? response;
       String userId = (userData['id'] ?? '').toString();
 
-      // Fallback: Try to get ID from Access Token if not found in response
       if (userId.isEmpty || userId == 'null') {
         final accessToken = response['accessToken'] as String?;
         if (accessToken != null) {
@@ -170,9 +155,7 @@ class AuthRepositoryImpl implements AuthRepository {
             } else if (decodedToken.containsKey('userId')) {
               userId = decodedToken['userId'].toString();
             }
-          } catch (e) {
-            // Ignore decoding error
-          }
+          } catch (e) {}
         }
       }
 
@@ -192,15 +175,7 @@ class AuthRepositoryImpl implements AuthRepository {
         return Right(fullProfile);
       }
 
-      // If we are here, we might have verified but not got a full session or ID.
-      // If we have tokens but no ID, we are in a weird state.
-      // If we have nothing, maybe the backend doesn't support auto-login on verify.
-
       if (accessToken != null) {
-        // We have token but no ID? Try to fetch profile?
-        // But we need ID for getUserProfile?
-        // Actually getUserProfile takes ID.
-        // If we can't find ID, we fail.
         return Left(ServerFailure('No se pudo obtener el ID del usuario'));
       }
 
@@ -264,7 +239,6 @@ class AuthRepositoryImpl implements AuthRepository {
           await tokenStorage.saveUserId(userId);
         }
 
-        // Fetch FULL profile
         final fullProfile = await remoteDataSource.getUserProfile(userId);
 
         return Right({'status': 'SUCCESS', 'user': fullProfile});
@@ -297,7 +271,6 @@ class AuthRepositoryImpl implements AuthRepository {
         await tokenStorage.saveUserId(userId);
       }
 
-      // Fetch FULL profile
       final fullProfile = await remoteDataSource.getUserProfile(userId);
 
       return Right(fullProfile);
@@ -324,10 +297,6 @@ class AuthRepositoryImpl implements AuthRepository {
     try {
       final user = await remoteDataSource.updateProfile(id, data);
 
-      // Update local storage with new data
-      // Using json.encode needs dart:convert
-      // But let's assume imports are handled or will be.
-      // Actually, let's just return Right(user) for now to fix the interface implementation
       return Right(user);
     } catch (e) {
       return Left(ServerFailure(e.toString()));
@@ -363,7 +332,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.verifyPin(pin);
       return const Right(null);
     } catch (e) {
-      // Clean up "Exception: " prefix if present
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));
     }
@@ -375,7 +343,6 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.changePin(oldPin, newPin);
       return const Right(null);
     } catch (e) {
-      // Clean up "Exception: " prefix if present
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));
     }

@@ -92,7 +92,6 @@ class ApiClient {
       return response;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        // Special case for wrong password/pin which often return 401
         throw Exception('Contraseña o PIN incorrecto. Intente nuevamente.');
       }
       if (e.response?.statusCode == 403) {
@@ -102,7 +101,6 @@ class ApiClient {
         }
       }
       if (e.response?.statusCode == 404) {
-        // Special handling that some methods use
         throw Exception('Recurso no encontrado (404)');
       }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));

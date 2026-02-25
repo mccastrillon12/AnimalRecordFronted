@@ -39,7 +39,6 @@ class AnimalCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Animal image/icon
             Container(
               width: 60,
               height: 60,
@@ -63,13 +62,11 @@ class AnimalCard extends StatelessWidget {
 
             const SizedBox(width: AppSpacing.m),
 
-            // Animal info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Name
                   Text(
                     name,
                     style: AppTypography.body3.copyWith(
@@ -79,7 +76,6 @@ class AnimalCard extends StatelessWidget {
 
                   const SizedBox(height: 4),
 
-                  // Species and breed
                   Text(
                     breed != null ? '$species - $breed' : species,
                     style: AppTypography.body5.copyWith(
@@ -90,7 +86,6 @@ class AnimalCard extends StatelessWidget {
               ),
             ),
 
-            // Arrow icon
             const Icon(
               Icons.chevron_right,
               color: AppColors.textSecondary,

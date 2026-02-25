@@ -49,7 +49,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
 
-    // Initialize values from user data
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
@@ -79,7 +78,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await cubit.fetchDepartments(user.countryId);
     }
 
-    // Fetch cities after departments so the departments fetch doesn't overwrite cities with []
     if (user.departmentId.isNotEmpty && mounted) {
       await cubit.fetchCities(user.departmentId);
     }
@@ -153,7 +151,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 24),
-                  // White card container with Stack for fixed button
+
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -166,12 +164,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       child: Stack(
                         children: [
-                          // Scrollable content
                           SingleChildScrollView(
                             child: Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: 100, // Space for fixed button
-                              ),
+                              padding: const EdgeInsets.only(bottom: 100),
                               child: Column(
                                 children: [
                                   _buildHeader(context),
@@ -252,7 +247,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ),
-                          // Fixed button at bottom of white card
+
                           Positioned(
                             left: 24,
                             right: 24,
@@ -375,7 +370,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-/// Isolated widget for location selection to optimize performance
 class _LocationSelector extends StatelessWidget {
   final UserEntity user;
   final TextEditingController phoneController;

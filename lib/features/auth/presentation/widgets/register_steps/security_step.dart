@@ -45,7 +45,6 @@ class _SecurityStepState extends State<SecurityStep> {
         ),
         const SizedBox(height: AppSpacing.m),
 
-        // Using reusable PasswordRequirementsValidator component
         ValueListenableBuilder<TextEditingValue>(
           valueListenable: widget.passwordController,
           builder: (context, value, child) {

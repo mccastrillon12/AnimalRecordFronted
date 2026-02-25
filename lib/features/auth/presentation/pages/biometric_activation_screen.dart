@@ -52,7 +52,6 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
       );
 
       if (didAuthenticate && mounted) {
-        // Marcar bianmetría como pendiente de asociación al usuario (se confirmará al terminar el flujo PIN/Login)
         await sl<TokenStorage>().setBiometricActivationPending(true);
 
         Navigator.pushReplacement(
@@ -117,20 +116,18 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
           child: Column(
             children: [
               const Spacer(),
-              // Icono biométrico grande
+
               SvgPicture.asset(
                 iconPath,
-                width: 120, // Ajustar tamaño según diseño
+                width: 120,
                 height: 120,
                 colorFilter: const ColorFilter.mode(
-                  AppColors
-                      .greyBlanco, // O el color que corresponda según diseño
+                  AppColors.greyBlanco,
                   BlendMode.srcIn,
                 ),
               ),
               const SizedBox(height: AppSpacing.xxxl),
 
-              // Título
               Text(
                 'Activar biometría',
                 textAlign: TextAlign.center,
@@ -140,7 +137,6 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
               ),
               const SizedBox(height: AppSpacing.l),
 
-              // Descripción
               Text(
                 'Habilita esta opción para que puedas ingresar de forma más rápida y segura usando la huella o el rostro registrado en tu dispositivo.',
                 textAlign: TextAlign.center,
@@ -152,7 +148,6 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
 
               const Spacer(),
 
-              // Indicadores de página (Puntos)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -161,7 +156,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: const BoxDecoration(
-                      color: AppColors.primaryFrances, // Azul activo
+                      color: AppColors.primaryFrances,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -170,9 +165,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: BoxDecoration(
-                      color: AppColors.greyMedio.withOpacity(
-                        0.5,
-                      ), // Gris inactivo
+                      color: AppColors.greyMedio.withOpacity(0.5),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -180,7 +173,6 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Botón Activar
               CustomButton(
                 text: 'Activar',
                 isLoading: _isAuthenticating,
@@ -188,7 +180,6 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
               ),
               const SizedBox(height: AppSpacing.m),
 
-              // Botón Cancelar
               CustomButton(
                 text: 'Cancelar',
                 isSecondary: true,

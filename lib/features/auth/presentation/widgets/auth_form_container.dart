@@ -33,7 +33,6 @@ class AuthFormContainer extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            // Header con flecha, logo y Cancelar
             Transform.translate(
               offset: const Offset(0, 40),
               child: Padding(
@@ -50,7 +49,6 @@ class AuthFormContainer extends StatelessWidget {
                     else
                       const SizedBox(width: 48, height: 48),
 
-                    // Logo centrado cuando no hay botón cancelar
                     if (!showCancelButton && showLogo)
                       Expanded(
                         child: Center(
@@ -80,16 +78,13 @@ class AuthFormContainer extends StatelessWidget {
                         ),
                       )
                     else
-                      const SizedBox(
-                        width: 48,
-                        height: 48,
-                      ), // Espaciador para mantener equilibrio
+                      const SizedBox(width: 48, height: 48),
                   ],
                 ),
               ),
             ),
             const SizedBox(height: 56),
-            // Logo Placeholder (solo cuando hay botón cancelar)
+
             if (showLogo && showCancelButton) ...[
               Center(
                 child: Image.asset(
@@ -101,7 +96,7 @@ class AuthFormContainer extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.l),
             ],
-            // Contenido Blanco
+
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -114,7 +109,6 @@ class AuthFormContainer extends StatelessWidget {
                 ),
                 child: Column(
                   children: [
-                    // Title and subtitle section (optional)
                     if (title != null || subtitle != null)
                       Padding(
                         padding: const EdgeInsets.only(
@@ -141,7 +135,7 @@ class AuthFormContainer extends StatelessWidget {
                           ],
                         ),
                       ),
-                    // Content area
+
                     Expanded(
                       child: addInternalPadding
                           ? Padding(

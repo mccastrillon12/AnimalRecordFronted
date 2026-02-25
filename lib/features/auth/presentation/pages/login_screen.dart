@@ -157,7 +157,6 @@ class _LoginScreenState extends State<LoginScreen> {
       final credential = await appleAuth.signIn();
 
       if (credential != null && mounted) {
-        // El identityToken es lo que enviamos al backend para verificar
         final token = credential.identityToken;
 
         if (token != null) {
@@ -412,7 +411,6 @@ class _BiometricButton extends StatelessWidget {
       final isEnabled = await storage.getBiometricsEnabledForUser(userId);
 
       if (isEnabled) {
-        // Show disable dialog
         if (context.mounted) {
           showDialog(
             context: context,
@@ -430,7 +428,6 @@ class _BiometricButton extends StatelessWidget {
           );
         }
       } else {
-        // Go to activation screen
         if (context.mounted) {
           Navigator.push(
             context,
@@ -441,7 +438,6 @@ class _BiometricButton extends StatelessWidget {
         }
       }
     } else {
-      // No user logged in, go to activation screen
       if (context.mounted) {
         Navigator.push(
           context,

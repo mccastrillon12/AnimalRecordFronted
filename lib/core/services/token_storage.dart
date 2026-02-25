@@ -1,10 +1,8 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
-/// Service for securely storing and retrieving authentication tokens
 class TokenStorage {
   final FlutterSecureStorage _secureStorage;
 
-  // Keys for secure storage
   static const String _accessTokenKey = 'access_token';
   static const String _refreshTokenKey = 'refresh_token';
   static const String _userIdKey = 'user_id';
@@ -13,17 +11,14 @@ class TokenStorage {
 
   TokenStorage(this._secureStorage);
 
-  /// Save access token
   Future<void> saveAccessToken(String token) async {
     await _secureStorage.write(key: _accessTokenKey, value: token);
   }
 
-  /// Save refresh token
   Future<void> saveRefreshToken(String token) async {
     await _secureStorage.write(key: _refreshTokenKey, value: token);
   }
 
-  /// Save both tokens at once
   Future<void> saveTokens({
     required String accessToken,
     required String refreshToken,
@@ -34,24 +29,20 @@ class TokenStorage {
     ]);
   }
 
-  /// Get access token
   Future<String?> getAccessToken() async {
     return await _secureStorage.read(key: _accessTokenKey);
   }
 
-  /// Get refresh token
   Future<String?> getRefreshToken() async {
     return await _secureStorage.read(key: _refreshTokenKey);
   }
 
-  /// Check if user has valid tokens (basic check)
   Future<bool> hasTokens() async {
     final accessToken = await getAccessToken();
     final refreshToken = await getRefreshToken();
     return accessToken != null && refreshToken != null;
   }
 
-  /// Clear all tokens (for logout)
   Future<void> clearTokens() async {
     await Future.wait([
       _secureStorage.delete(key: _accessTokenKey),
@@ -61,29 +52,24 @@ class TokenStorage {
     ]);
   }
 
-  /// Save user data as JSON string
   Future<void> saveUserData(String userDataJson) async {
     await _secureStorage.write(key: _userDataKey, value: userDataJson);
   }
 
-  /// Get user data JSON string
   Future<String?> getUserData() async {
     return await _secureStorage.read(key: _userDataKey);
   }
 
-  /// Save user ID
   Future<void> saveUserId(String id) async {
     await _secureStorage.write(key: _userIdKey, value: id);
   }
 
-  /// Get user ID
   Future<String?> getUserId() async {
     return await _secureStorage.read(key: _userIdKey);
   }
 
   static const String _biometricPendingKey = 'biometric_pending';
 
-  /// Save biometric preference for specific user
   Future<void> saveBiometricsEnabledForUser(String userId, bool enabled) async {
     await _secureStorage.write(
       key: '${_biometricsEnabledKey}_$userId',
@@ -91,7 +77,6 @@ class TokenStorage {
     );
   }
 
-  /// Get biometric preference for specific user
   Future<bool> getBiometricsEnabledForUser(String userId) async {
     final value = await _secureStorage.read(
       key: '${_biometricsEnabledKey}_$userId',
@@ -99,7 +84,6 @@ class TokenStorage {
     return value == 'true';
   }
 
-  /// Set pending biometric activation (used when activating before login)
   Future<void> setBiometricActivationPending(bool pending) async {
     await _secureStorage.write(
       key: _biometricPendingKey,
@@ -114,23 +98,19 @@ class TokenStorage {
 
   static const String _userPinKey = 'user_pin';
 
-  /// Save PIN for specific user
   Future<void> saveUserPin(String userId, String pin) async {
     await _secureStorage.write(key: '${_userPinKey}_$userId', value: pin);
   }
 
-  /// Get PIN for specific user (returns null if not set)
   Future<String?> getUserPin(String userId) async {
     return await _secureStorage.read(key: '${_userPinKey}_$userId');
   }
 
-  /// Validate PIN
   Future<bool> validateUserPin(String userId, String inputPin) async {
     final storedPin = await getUserPin(userId);
     return storedPin == inputPin;
   }
 
-  /// Clear all secure storage
   Future<void> clearAll() async {
     await _secureStorage.deleteAll();
   }

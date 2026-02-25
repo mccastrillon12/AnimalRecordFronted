@@ -23,7 +23,7 @@ class PinSetupScreen extends StatefulWidget {
 }
 
 class _PinSetupScreenState extends State<PinSetupScreen> {
-  int _currentStep = 1; // 1: Crear, 2: Confirmar
+  int _currentStep = 1;
   final List<TextEditingController> _controllers = List.generate(
     4,
     (_) => TextEditingController(),
@@ -50,15 +50,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       _focusNodes[index + 1].requestFocus();
     }
 
-    // Rebuild current PIN string
     final pin = _controllers.map((c) => c.text).join();
 
     setState(() {
       _currentPin = pin;
-      _errorMessage = null; // Clear error on typing
+      _errorMessage = null;
     });
-
-    // Auto-advance if logic desires, but user has a button
   }
 
   void _onBackspace(int index) {
@@ -66,7 +63,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       _focusNodes[index - 1].requestFocus();
     }
 
-    // Update current PIN to reflect the deletion
     final pin = _controllers.map((c) => c.text).join();
     setState(() {
       _currentPin = pin;
@@ -77,40 +73,30 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     if (_currentPin.length != 4) return;
 
     if (_currentStep == 1) {
-      // Move to step 2
       setState(() {
         _firstPin = _currentPin;
         _currentStep = 2;
         _currentPin = '';
         _errorMessage = null;
-        // Clear fields for next step
+
         for (var c in _controllers) {
           c.clear();
         }
-        // Focus first field again
+
         _focusNodes[0].requestFocus();
       });
     } else {
       if (_currentPin == _firstPin) {
-        // Success
-        // Dispatch event to save PIN to API
         context.read<AuthBloc>().add(SavePinSubmitted(_currentPin));
       } else {
         setState(() {
           _errorMessage = 'Los PIN no coinciden. Inténtalo de nuevo.';
-          // Optionally clear fields or keep them? Usually clear.
-          // Let's clear to force retry
+
           for (var c in _controllers) {
             c.clear();
           }
           _currentPin = '';
           _focusNodes[0].requestFocus();
-          // Reset to step 1 often? Or simply retry confirmation?
-          // Design says "Ingresa nuevamente". Usually if mismatch, we retry confirmation.
-          // But if user forgot first PIN, they are stuck.
-          // Usually we might just clear fields and let them try matching again.
-          // If they fail too many times, maybe reset to step 1.
-          // For now, retry confirmation step.
         });
       }
     }
@@ -122,7 +108,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) async {
-        debugPrint("📌 PinSetupScreen Listener: $state"); // LOG
+        debugPrint("📌 PinSetupScreen Listener: $state");
         if (state is AuthError) {
           setState(() {
             _errorMessage = state.message;
@@ -131,36 +117,28 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         if (state is AuthSuccess && state.pinSaveSuccess) {
           debugPrint(
             "📌 AuthSuccess with pinSaveSuccess=true. Saving locally...",
-          ); // LOG
-          // Also save locally for offline support / fallback
+          );
+
           final userId = await sl<TokenStorage>().getUserId();
           if (userId != null) {
             await sl<TokenStorage>().saveUserPin(userId, _currentPin);
           }
 
           if (!mounted) {
-            debugPrint("📌 Not mounted after save, aborting nav"); // LOG
+            debugPrint("📌 Not mounted after save, aborting nav");
             return;
           }
 
-          debugPrint("📌 Navigating to /home"); // LOG
+          debugPrint("📌 Navigating to /home");
 
-          // Always show PIN success
           if (context.mounted) {
             ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
           }
 
-          // Check if biometric activation is pending or if we are in the flow that enables it
           final isBiometricPending = await sl<TokenStorage>()
               .isBiometricActivationPending();
 
-          // We show the message if it was pending OR if this is the initial setup flow (which this screen seems to be for)
-          // Since we are calling UpdateBiometricStatusRequested(true) below, we can assume we want to tell the user.
-          // However, to be safe, let's stick to the pending flag BUT ALSO set it if it wasn't.
-          // Or just show it. Given the user request, they WANT to see it.
-
           if (isBiometricPending) {
-            // Clear pending status
             await sl<TokenStorage>().setBiometricActivationPending(false);
           }
 
@@ -171,7 +149,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             );
           }
 
-          // Al finalizar la creación del PIN, activar biometría en el backend
           if (mounted) {
             context.read<AuthBloc>().add(UpdateBiometricStatusRequested(true));
           }
@@ -227,7 +204,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
 
-                  // PIN Input
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
@@ -269,7 +245,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                               } else {
                                 _onCodeChanged(index, value);
                               }
-                              setState(() {}); // refresh for button state
+                              setState(() {});
                             },
                           ),
                         ),

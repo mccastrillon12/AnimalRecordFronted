@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 
 class AppColors {
-  // --- Primary Colors ---
   static const Color primaryAzulClaro = Color(0xFF67C1FF);
   static const Color primaryFrances = Color(0xFF0072BB);
   static const Color primaryIndigo = Color(0xFF1A345C);
   static const Color primaryWhite = Color(0xfffcfcfc);
 
-  // --- Secondary Colors ---
   static const Color secondaryCoral = Color(0xFFF26F49);
 
-  // --- IA Colors ---
   static const Color iaDegradadoStart = Color(0xFFE7E0FD);
   static const Color iaDegradadoEnd = Color(0xFFD9EAFF);
   static const Color iaMorado = Color(0xFF926AFF);
 
-  // --- Semantic Colors ---
   static const Color successEsmeralda = Color(0xFF02CC84);
   static const Color errorRojo = Color(0xFFFA2844);
   static const Color infoAzulMedio = Color(0xFF1E91D6);
   static const Color warningMandarina = Color(0xFFFF975C);
 
-  // --- Background Colors ---
   static const Color bgMenta = Color(0xFFF0FFF7);
   static const Color bgRosa = Color(0xFFFFF0F0);
   static const Color bgHielo = Color(0xFFF2F8FF);
@@ -29,7 +24,6 @@ class AppColors {
   static const Color bgBlancoAntiFlash = Color(0xFFF5F6FA);
   static const Color bgOxford = Color(0xFF091534);
 
-  // --- Grey Colors ---
   static const Color greyBlanco = Color(0xFFFFFFFF);
   static const Color greyDelineante = Color(0xFFE8E9EC);
   static const Color greyMedio = Color(0xFFA8AFBD);
@@ -39,7 +33,6 @@ class AppColors {
   static const Color greyNegro = Color(0xFF0F1925);
   static const Color greyNegroV2 = Color(0xFF2E3949);
 
-  // --- Legacy / Theme mappings ---
   static const Color primaryDark = primaryIndigo;
   static const Color accentOrange = secondaryCoral;
   static const Color background = bgBlancoAntiFlash;
@@ -50,7 +43,6 @@ class AppColors {
   static const Color textSecondary = greyIconos;
   static const Color border = greyDelineante;
 
-  // Additional common aliases
   static const Color white = greyBlanco;
   static const Color greyClaro = greyDelineante;
   static const Color primaryOrange = secondaryCoral;

@@ -3,8 +3,6 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 
-/// Reusable custom radio button widget
-/// Provides consistent styling across the application
 class CustomRadioButton<T> extends StatelessWidget {
   final T value;
   final T? groupValue;
@@ -33,7 +31,6 @@ class CustomRadioButton<T> extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Radio button
             Container(
               width: 24,
               height: 24,
@@ -50,7 +47,6 @@ class CustomRadioButton<T> extends StatelessWidget {
 
             const SizedBox(width: AppSpacing.xs),
 
-            // Title
             Expanded(
               child: Text(
                 label,

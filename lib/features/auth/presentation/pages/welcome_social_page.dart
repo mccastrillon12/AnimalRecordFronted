@@ -18,10 +18,7 @@ class WelcomeSocialPage extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF4A90E2), // Lighter blue at top
-              Color(0xFF1A2B4C), // Dark blue at bottom
-            ],
+            colors: [Color(0xFF4A90E2), Color(0xFF1A2B4C)],
           ),
         ),
         child: SafeArea(
@@ -31,11 +28,10 @@ class WelcomeSocialPage extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Spacer(flex: 1),
-                // Logo
+
                 Image.asset('assets/Logo/Logotipo_blanco.png', height: 80),
                 const SizedBox(height: AppSpacing.xxl),
 
-                // Welcome Text
                 Text(
                   '¡Bienvenido $userName!',
                   style: AppTypography.heading2.copyWith(
@@ -46,7 +42,6 @@ class WelcomeSocialPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Description
                 Text(
                   'Estamos complacidos de tenerte en este espacio.',
                   style: AppTypography.body4.copyWith(color: Colors.white),
@@ -60,7 +55,6 @@ class WelcomeSocialPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xl),
 
-                // Features List Header
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
@@ -70,7 +64,6 @@ class WelcomeSocialPage extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.m),
 
-                // Features List
                 _buildFeatureItem('Historia clínica'),
                 _buildFeatureItem('Carné de vacunación'),
                 _buildFeatureItem('Agregar nuevos animales'),
@@ -87,7 +80,6 @@ class WelcomeSocialPage extends StatelessWidget {
 
                 const Spacer(flex: 2),
 
-                // Button
                 CustomButton(
                   text: 'Comenzar',
                   onPressed: () {

@@ -6,7 +6,6 @@ class MicrosoftAuthService {
   final Logger logger;
   SingleAccountPca? _pca;
 
-  // Configuration
   static const String _clientId = '91b57fa9-3b6e-450a-beb8-86303c7b6cd0';
   static const String _authority = "https://login.microsoftonline.com/common";
   static const String _redirectUriAndroid =
@@ -48,7 +47,6 @@ class MicrosoftAuthService {
         throw Exception("MSAL not initialized");
       }
 
-      // Force sign out to ensure we don't have stale accounts from previous configs
       await signOut();
 
       final result = await _pca!.acquireToken(scopes: _scopes);

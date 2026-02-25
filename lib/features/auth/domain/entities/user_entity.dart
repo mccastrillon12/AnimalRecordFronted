@@ -8,9 +8,9 @@ class UserEntity extends Equatable {
   final String country;
   final String countryId;
   final String departmentId;
-  final String city; // Restored
+  final String city;
   final String cityId;
-  final String address; // Added address field
+  final String address;
   final String email;
   final String cellPhone;
   final String? professionalCard;
@@ -29,10 +29,10 @@ class UserEntity extends Equatable {
     required this.identificationNumber,
     required this.country,
     required this.countryId,
-    required this.departmentId, // Added
+    required this.departmentId,
     required this.city,
-    required this.cityId, // Added
-    this.address = '', // Default to empty string
+    required this.cityId,
+    this.address = '',
     required this.email,
     required this.cellPhone,
     this.professionalCard,

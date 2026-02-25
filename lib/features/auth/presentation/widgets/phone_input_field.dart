@@ -38,7 +38,6 @@ class PhoneInputField extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Country selector using reusable component
         if (countries.isNotEmpty)
           CountryDropdown(
             label: 'País',
@@ -54,7 +53,6 @@ class PhoneInputField extends StatelessWidget {
 
         const SizedBox(width: AppSpacing.xs),
 
-        // Phone number field
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,

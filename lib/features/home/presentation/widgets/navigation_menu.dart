@@ -12,7 +12,7 @@ class NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<NavigationMenu> {
   bool _isExpanded = true;
-  int _selectedIndex = 4; // Default to 'Inicio' (index 4)
+  int _selectedIndex = 4;
 
   void _onItemTapped(int index) {
     setState(() {
@@ -42,7 +42,6 @@ class _NavigationMenuState extends State<NavigationMenu> {
           padding: const EdgeInsets.symmetric(horizontal: 35, vertical: 16),
           child: Column(
             children: [
-              // First row: Mapa, +Animal, Agenda (Collapsible)
               AnimatedSize(
                 duration: const Duration(milliseconds: 300),
                 curve: Curves.easeInOut,
@@ -78,7 +77,6 @@ class _NavigationMenuState extends State<NavigationMenu> {
                     : const SizedBox.shrink(),
               ),
 
-              // Second row: Mis animales, Inicio, Carné vacunas
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -108,7 +106,6 @@ class _NavigationMenuState extends State<NavigationMenu> {
 
         const SizedBox(height: 8),
 
-        // Toggle Expand/Collapse Arrow
         GestureDetector(
           onTap: () {
             setState(() {
@@ -160,7 +157,6 @@ class _NavItem extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Icon
             SvgPicture.asset(
               svgPath,
               width: 24,
@@ -170,7 +166,6 @@ class _NavItem extends StatelessWidget {
 
             const SizedBox(height: 2),
 
-            // Label
             Text(
               label,
               style: AppTypography.body6.copyWith(

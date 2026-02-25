@@ -15,7 +15,7 @@ import 'verification_screen.dart';
 import 'forgot_password_screen.dart';
 
 class PasswordScreen extends StatefulWidget {
-  final String identifier; // Email or phone
+  final String identifier;
 
   const PasswordScreen({super.key, required this.identifier});
 

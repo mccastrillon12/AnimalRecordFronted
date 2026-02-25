@@ -29,7 +29,7 @@ class ModalPageLayout extends StatelessWidget {
               child: Column(
                 children: [
                   const SizedBox(height: 24),
-                  // The White Card
+
                   Container(
                     width: double.infinity,
                     constraints: BoxConstraints(
@@ -46,7 +46,6 @@ class ModalPageLayout extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Header Area
                           Stack(
                             children: [
                               Padding(
@@ -65,7 +64,7 @@ class ModalPageLayout extends StatelessWidget {
                               ),
                               Positioned(
                                 top: 32,
-                                right: 24, // Consistent padding
+                                right: 24,
                                 child:
                                     trailingIcon ??
                                     IconButton(
@@ -81,7 +80,6 @@ class ModalPageLayout extends StatelessWidget {
                             ],
                           ),
 
-                          // Content
                           child,
                         ],
                       ),
