@@ -154,7 +154,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                       _selectedPhoneCountryId = value;
                     });
                   },
-                  maxLength: 15,
+                  maxLength: 50,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   errorText: widget.phoneErrorText,
                 ),

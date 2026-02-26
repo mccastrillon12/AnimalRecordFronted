@@ -299,7 +299,7 @@ class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
                 onCountryChanged: (val) {
                   parent!.setState(() => parent!._selectedPhoneCountryId = val);
                 },
-                maxLength: 15,
+                maxLength: 50,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 errorText: parent!._phoneErrorText,
               ),

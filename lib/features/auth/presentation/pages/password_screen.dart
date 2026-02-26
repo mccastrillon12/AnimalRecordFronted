@@ -89,7 +89,13 @@ class _PasswordScreenState extends State<PasswordScreen> {
               ),
             );
           } else if (state is AuthError) {
-            ErrorDisplay.showError(context, state.message);
+            if (state.message.contains(
+              'No se pudo iniciar sesión. Verifica tus credenciales',
+            )) {
+              Navigator.pop(context, state.message);
+            } else {
+              ErrorDisplay.showError(context, state.message);
+            }
           }
         },
         child: SingleChildScrollView(
@@ -103,6 +109,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                   hint: '',
                   controller: _passwordController,
                   isPassword: true,
+                  maxLength: 12,
                   obscureText: _obscurePassword,
                   onToggleVisibility: () {
                     setState(() {

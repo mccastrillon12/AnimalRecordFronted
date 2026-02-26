@@ -92,7 +92,7 @@ class ApiClient {
       return response;
     } on DioException catch (e) {
       if (e.response?.statusCode == 401) {
-        throw Exception('Contraseña o PIN incorrecto. Intente nuevamente.');
+        throw Exception('No se pudo iniciar sesión. Verifica tus credenciales');
       }
       if (e.response?.statusCode == 403) {
         final data = e.response?.data;

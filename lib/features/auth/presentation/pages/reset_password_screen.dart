@@ -162,6 +162,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             controller: _passwordController,
                             obscureText: _obscurePassword,
                             isPassword: true,
+                            maxLength: 12,
                             onToggleVisibility: () {
                               setState(() {
                                 _obscurePassword = !_obscurePassword;
@@ -185,6 +186,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             controller: _confirmPasswordController,
                             obscureText: _obscureConfirmPassword,
                             isPassword: true,
+                            maxLength: 12,
                             errorText: _confirmPasswordError,
                             onToggleVisibility: () {
                               setState(() {

@@ -108,6 +108,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   controller: _currentPasswordController,
                   label: 'Contraseña actual',
                   isPassword: true,
+                  maxLength: 12,
                   obscureText: _obscureCurrent,
                   onToggleVisibility: () =>
                       setState(() => _obscureCurrent = !_obscureCurrent),
@@ -117,6 +118,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   controller: _newPasswordController,
                   label: 'Nueva contraseña',
                   isPassword: true,
+                  maxLength: 12,
                   obscureText: _obscureNew,
                   onToggleVisibility: () =>
                       setState(() => _obscureNew = !_obscureNew),
@@ -135,6 +137,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   controller: _confirmPasswordController,
                   label: 'Confirmar nueva contraseña',
                   isPassword: true,
+                  maxLength: 12,
                   obscureText: _obscureConfirm,
                   errorText: _confirmPasswordError,
                   onToggleVisibility: () =>

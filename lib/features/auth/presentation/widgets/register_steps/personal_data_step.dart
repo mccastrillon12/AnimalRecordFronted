@@ -107,7 +107,7 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               hint: '3001234567',
               controller: widget.phoneController,
               keyboardType: TextInputType.phone,
-              maxLength: 15,
+              maxLength: 50,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             ),
           ],
