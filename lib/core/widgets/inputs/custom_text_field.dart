@@ -74,7 +74,6 @@ class CustomTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label with consistent spacing pattern
         if (label.isNotEmpty)
           SizedBox(
             height: 18,
@@ -115,19 +114,19 @@ class CustomTextField extends StatelessWidget {
                   vertical: 10,
                   horizontal: 12,
                 ),
-                counterText: '', // Ocultar contador de caracteres
+                counterText: '',
                 prefixIconConstraints: const BoxConstraints(
                   minWidth: 0,
                   minHeight: 0,
                 ),
                 hintText: hint,
-                // Hide internal error text to use external custom error
+
                 errorText: null,
                 hintStyle:
                     hintStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyMedio),
                 prefixIcon: prefixIcon,
-                // Use prefix widget instead of prefixText to ensure visibility
+
                 prefix: prefixText != null
                     ? Text(
                         '$prefixText ',
@@ -165,7 +164,6 @@ class CustomTextField extends StatelessWidget {
           ),
         ),
 
-        // Error text displayed outside to align with label
         if (errorText != null) ...[
           const SizedBox(height: 4),
           Text(

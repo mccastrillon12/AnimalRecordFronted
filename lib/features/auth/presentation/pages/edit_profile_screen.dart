@@ -49,15 +49,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController = TextEditingController();
     _addressController = TextEditingController();
 
-    // Load countries
-    context.read<LocationsCubit>().fetchCountries();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-
-    // Initialize values from user data
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
@@ -66,30 +57,33 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _phoneController.text = user.cellPhone;
       _addressController.text = user.address;
 
-      // Set default location values from user profile
-      if (_selectedPhoneCountryId == null) {
-        _selectedPhoneCountryId = user.countryId;
+      _loadUserLocations(user);
+    } else {
+      context.read<LocationsCubit>().fetchCountries();
+    }
+  }
 
-        // 1. Fetch departments if we have country
-        if (user.countryId.isNotEmpty) {
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.read<LocationsCubit>().fetchDepartments(user.countryId);
-          });
-        }
+  Future<void> _loadUserLocations(UserEntity user) async {
+    _selectedPhoneCountryId = user.countryId.isNotEmpty ? user.countryId : null;
+    _selectedDepartmentId = user.departmentId.isNotEmpty
+        ? user.departmentId
+        : null;
+    _selectedCityId = user.cityId.isNotEmpty ? user.cityId : null;
 
-        // 2. Set Department and fetch cities if we have departmentId
-        if (user.departmentId.isNotEmpty) {
-          _selectedDepartmentId = user.departmentId;
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.read<LocationsCubit>().fetchCities(user.departmentId);
-          });
-        }
+    final cubit = context.read<LocationsCubit>();
 
-        // 3. Set City if we have cityId
-        if (user.cityId.isNotEmpty) {
-          _selectedCityId = user.cityId;
-        }
-      }
+    await cubit.fetchCountries();
+
+    if (user.countryId.isNotEmpty && mounted) {
+      await cubit.fetchDepartments(user.countryId);
+    }
+
+    if (user.departmentId.isNotEmpty && mounted) {
+      await cubit.fetchCities(user.departmentId);
+    }
+
+    if (mounted) {
+      setState(() {});
     }
   }
 
@@ -157,7 +151,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: 24),
-                  // White card container with Stack for fixed button
+
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -170,12 +164,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       child: Stack(
                         children: [
-                          // Scrollable content
                           SingleChildScrollView(
                             child: Padding(
-                              padding: const EdgeInsets.only(
-                                bottom: 100, // Space for fixed button
-                              ),
+                              padding: const EdgeInsets.only(bottom: 100),
                               child: Column(
                                 children: [
                                   _buildHeader(context),
@@ -256,7 +247,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                             ),
                           ),
-                          // Fixed button at bottom of white card
+
                           Positioned(
                             left: 24,
                             right: 24,
@@ -379,7 +370,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 }
 
-/// Isolated widget for location selection to optimize performance
 class _LocationSelector extends StatelessWidget {
   final UserEntity user;
   final TextEditingController phoneController;

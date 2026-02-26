@@ -27,13 +27,6 @@ import 'package:animal_record/core/services/token_storage.dart';
 import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
 
-/// AuthBloc manages all authentication, profile, PIN, and biometric operations.
-///
-/// Organized into sections:
-/// - Authentication (Login, Register, Verification, Social Auth)
-/// - Profile Management (Fetch, Update, Password)
-/// - PIN Management (Save, Verify, Change)
-/// - Biometric Management (Activate, Sync)
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
   final LoginUseCase loginUseCase;
@@ -82,93 +75,48 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.logoutUseCase,
     required this.tokenStorage,
   }) : super(AuthInitial()) {
-    // ═══════════════════════════════════════════════════════════════
-    // PROFILE MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Fetches user profile from cache and backend, syncs biometric status
     on<FetchUserRequested>(_onFetchUserRequested);
 
-    /// Updates user profile (name, phone, address, etc.)
     on<UpdateProfileRequested>(_onUpdateProfileRequested);
 
-    /// Changes user password
     on<ChangePasswordRequested>(_onChangePasswordRequested);
 
-    /// Logs out user, clears tokens and navigates to login
     on<LogoutRequested>(_onLogoutRequested);
 
-    // ═══════════════════════════════════════════════════════════════
-    // AUTHENTICATION - Email/Password
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Registers new user with email/password
     on<SignUpSubmitted>(_onSignUpSubmitted);
 
-    /// Logs in user with email/password
     on<LoginSubmitted>(_onLoginSubmitted);
 
-    /// Verifies email code after registration
     on<VerifyCodeSubmitted>(_onVerifyCodeSubmitted);
 
-    /// Checks if an identification number already exists
     on<CheckIdentificationExists>(_onCheckIdentificationExists);
 
-    /// Resends verification code to email
     on<ResendCodeSubmitted>(_onResendCodeSubmitted);
 
-    /// Resets user password
     on<ResetPasswordSubmitted>(_onResetPasswordSubmitted);
 
-    /// Validates reset password token
     on<ValidateResetToken>(_onValidateResetToken);
 
-    /// Requests instructions to reset password
     on<ForgotPasswordRequested>(_onForgotPasswordRequested);
 
-    // ═══════════════════════════════════════════════════════════════
-    // AUTHENTICATION - Social (Google/Microsoft)
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Checks if social account already exists or needs registration
     on<SocialAuthChecked>(_onSocialAuthChecked);
 
-    /// Completes social registration with additional data
     on<SocialRegisterSubmitted>(_onSocialRegisterSubmitted);
 
-    // ═══════════════════════════════════════════════════════════════
-    // PIN MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Saves new PIN for the authenticated user
     on<SavePinSubmitted>(_onSavePinSubmitted);
 
-    /// Verifies PIN and logs user in
     on<VerifyPinSubmitted>(_onVerifyPinSubmitted);
 
-    /// Changes existing PIN
     on<ChangePinRequested>(_onChangePinRequested);
 
-    /// Requests instructions to reset PIN
     on<ForgotPinRequested>(_onForgotPinRequested);
 
-    /// Resets PIN using token
     on<ResetPinSubmitted>(_onResetPinSubmitted);
 
-    // ═══════════════════════════════════════════════════════════════
-    // BIOMETRIC MANAGEMENT
-    // ═══════════════════════════════════════════════════════════════
-
-    /// Updates biometric authentication status (enable/disable)
     on<UpdateBiometricStatusRequested>(_onUpdateBiometricStatusRequested);
 
-    /// Syncs biometric status from backend
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
   }
-
-  // ═══════════════════════════════════════════════════════════════
-  // PROFILE MANAGEMENT HANDLERS
-  // ═══════════════════════════════════════════════════════════════
 
   Future<void> _onFetchUserRequested(
     FetchUserRequested event,
@@ -182,7 +130,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         final userMap = json.decode(cachedUser);
         final user = UserModel.fromJson(userMap);
 
-        // Only emit if we are not already in AuthSuccess with the same user
         final currentState = state;
         if (currentState is! AuthSuccess || currentState.user != user) {
           emit(AuthSuccess(user));
@@ -228,7 +175,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (currentState is AuthSuccess) {
       currentUser = currentState.user;
-      emit(AuthSuccess(currentUser, isUpdating: true));
+      emit(
+        AuthSuccess(
+          currentUser,
+          isUpdating: true,
+          isBiometricEnabled: currentState.isBiometricEnabled,
+        ),
+      );
     } else {
       emit(AuthLoading());
     }
@@ -240,12 +193,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     await result.fold(
       (failure) async {
-        if (currentUser != null) {
+        if (currentUser != null && currentState is AuthSuccess) {
           emit(
             AuthSuccess(
               currentUser,
               isUpdating: false,
               updateError: failure.message,
+              isBiometricEnabled: currentState.isBiometricEnabled,
             ),
           );
         } else {
@@ -254,7 +208,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (user) async {
         await _saveUserToCache(user);
-        emit(AuthSuccess(user, isUpdating: false));
+        emit(
+          AuthSuccess(
+            user,
+            isUpdating: false,
+            isBiometricEnabled: currentState is AuthSuccess
+                ? currentState.isBiometricEnabled
+                : false,
+          ),
+        );
       },
     );
   }
@@ -268,7 +230,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     if (currentState is AuthSuccess) {
       currentUser = currentState.user;
-      emit(AuthSuccess(currentUser, isUpdating: true));
+      emit(
+        AuthSuccess(
+          currentUser,
+          isUpdating: true,
+          isBiometricEnabled: currentState.isBiometricEnabled,
+        ),
+      );
     } else {
       emit(AuthLoading());
     }
@@ -280,12 +248,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
     await result.fold(
       (failure) async {
-        if (currentUser != null) {
+        if (currentUser != null && currentState is AuthSuccess) {
           emit(
             AuthSuccess(
               currentUser,
               isUpdating: false,
               updateError: failure.message,
+              isBiometricEnabled: currentState.isBiometricEnabled,
             ),
           );
         } else {
@@ -294,7 +263,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null) {
-          emit(PasswordChangeSuccess(currentUser));
+          emit(
+            PasswordChangeSuccess(
+              currentUser,
+              isBiometricEnabled: currentState is AuthSuccess
+                  ? currentState.isBiometricEnabled
+                  : false,
+            ),
+          );
         } else {
           emit(PasswordChangeSuccess(UserModel.empty()));
         }
@@ -310,10 +286,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await logoutUseCase();
     emit(AuthInitial());
   }
-
-  // ═══════════════════════════════════════════════════════════════
-  // AUTHENTICATION - Email/Password HANDLERS
-  // ═══════════════════════════════════════════════════════════════
 
   Future<void> _onSignUpSubmitted(
     SignUpSubmitted event,
@@ -405,10 +377,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // AUTHENTICATION - Social HANDLERS
-  // ═══════════════════════════════════════════════════════════════
-
   Future<void> _onSocialAuthChecked(
     SocialAuthChecked event,
     Emitter<AuthState> emit,
@@ -451,10 +419,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     });
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // PIN MANAGEMENT HANDLERS
-  // ═══════════════════════════════════════════════════════════════
-
   Future<void> _onSavePinSubmitted(
     SavePinSubmitted event,
     Emitter<AuthState> emit,
@@ -475,8 +439,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         emit(AuthError(failure.message));
       },
       (_) async {
-        if (currentUser != null) {
-          emit(AuthSuccess(currentUser, pinSaveSuccess: true));
+        if (currentUser != null && currentState is AuthSuccess) {
+          emit(
+            AuthSuccess(
+              currentUser,
+              pinSaveSuccess: true,
+              isBiometricEnabled: currentState.isBiometricEnabled,
+            ),
+          );
         } else {
           add(FetchUserRequested());
         }
@@ -506,7 +476,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             },
             (user) async {
               await _saveUserToCache(user);
-              emit(AuthSuccess(user, pinVerifiedSuccess: true));
+              final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
+                user.id,
+              );
+              emit(
+                AuthSuccess(
+                  user,
+                  pinVerifiedSuccess: true,
+                  isBiometricEnabled: isEnabled,
+                ),
+              );
             },
           );
         } else {
@@ -526,7 +505,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       return;
     }
 
-    emit(AuthSuccess(currentState.user, isUpdating: true));
+    emit(
+      AuthSuccess(
+        currentState.user,
+        isUpdating: true,
+        isBiometricEnabled: currentState.isBiometricEnabled,
+      ),
+    );
 
     final result = await changePinUseCase(event.oldPin, event.newPin);
 
@@ -537,9 +522,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             currentState.user,
             isUpdating: false,
             updateError: failure.message,
+            isBiometricEnabled: currentState.isBiometricEnabled,
           ),
         );
-        emit(AuthError(failure.message));
       },
       (_) async {
         emit(
@@ -547,6 +532,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             currentState.user,
             isUpdating: false,
             pinChangeSuccess: true,
+            isBiometricEnabled: currentState.isBiometricEnabled,
           ),
         );
       },
@@ -584,10 +570,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (_) async => emit(ResetPinSuccess()),
     );
   }
-
-  // ═══════════════════════════════════════════════════════════════
-  // BIOMETRIC MANAGEMENT HANDLERS
-  // ═══════════════════════════════════════════════════════════════
 
   Future<void> _onUpdateBiometricStatusRequested(
     UpdateBiometricStatusRequested event,
@@ -667,9 +649,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
             failure.message.toLowerCase().contains('expirado')) {
           emit(ResetTokenInvalid());
         } else {
-          // If it's a server error, we might still want to show it,
-          // but for the sake of the flow, if validation fails, we generally treat it as invalid.
-          // However, let's distinguish:
           emit(ResetTokenInvalid());
         }
       },
@@ -697,18 +676,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     );
   }
 
-  // ═══════════════════════════════════════════════════════════════
-  // PRIVATE HELPER METHODS
-  // ═══════════════════════════════════════════════════════════════
-
-  /// Saves user data to encrypted local cache
   Future<void> _saveUserToCache(UserEntity user) async {
     if (user is UserModel) {
       await tokenStorage.saveUserData(json.encode(user.toJson()));
     }
   }
 
-  /// Emits AuthSuccess with user and synced biometric status
   Future<void> _emitAuthSuccessWithBiometrics(
     UserEntity user,
     Emitter<AuthState> emit,
@@ -718,7 +691,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
   }
 
-  /// Syncs biometric status from backend and updates local cache
   Future<void> _syncBiometricStatus(
     String userId,
     Emitter<AuthState> emit,
@@ -734,8 +706,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           emit(currentState.copyWith(isBiometricEnabled: isEnabled));
         }
       });
-    } catch (e) {
-      // Ignore errors during sync
-    }
+    } catch (e) {}
   }
 }

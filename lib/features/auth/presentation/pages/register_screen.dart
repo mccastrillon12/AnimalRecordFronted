@@ -34,7 +34,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
   final PageController _pageController = PageController();
 
-  // Controladores
   final nameController = TextEditingController();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
@@ -48,45 +47,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _acceptTerms = false;
   String? _confirmPasswordError;
 
-  // State for tag inputs
   List<String> _animalTypes = [];
   List<String> _services = [];
 
-  // GlobalKeys to access TagInputWidget state
   final GlobalKey<TagInputWidgetState> _animalTypesKey = GlobalKey();
   final GlobalKey<TagInputWidgetState> _servicesKey = GlobalKey();
 
-  // GlobalKey to access VerificationStep state
-
   bool _isValidPhone(String phone) {
-    // Basic phone validation (at least 10 digits)
     final digits = phone.replaceAll(RegExp(r'\D'), '');
     return digits.length >= 10;
   }
 
-  // Owner-specific state
   AccessMethod? _selectedAccessMethod;
   String? _phoneErrorText;
   String? _emailErrorText;
   String? _idErrorText;
 
-  // Cache for steps to avoid rebuilding on every setState
   List<Widget>? _cachedSteps;
   AccessMethod? _lastAccessMethod;
   String? _lastPhoneErrorText;
   String? _lastEmailErrorText;
   String _selectedIdType = 'C.C.';
 
-  // Definición dinámica de pasos según el rol
   List<Widget> get _steps {
-    // Return cached steps if nothing changed
-    // Note: For SecurityStep we manage state in the parent, so we might need to
-    // rebuild it more often or rely on its own state update from parent.
-    // However, the terms checkbox triggers setState in parent, which rebuilds _steps.
-
     final List<Widget> steps = [];
 
-    // PROPIETARIO: First step is method selection
     if (widget.role == 'PROPIETARIO_MASCOTA') {
       steps.add(
         OwnerMethodSelectionStep(
@@ -96,13 +81,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
           onMethodChanged: (method) {
             setState(() {
               _selectedAccessMethod = method;
-              _cachedSteps = null; // Invalidate cache when method changes
+              _cachedSteps = null;
             });
           },
         ),
       );
 
-      // PROPIETARIO: Owner-specific personal data step
       if (_selectedAccessMethod != null) {
         steps.add(
           OwnerPersonalDataStep(
@@ -124,7 +108,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
         );
       }
     } else {
-      // Other roles: Standard personal data step
       steps.add(
         PersonalDataStep(
           nameController: nameController,
@@ -137,7 +120,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       );
     }
 
-    // VETERINARIO: Professional data step
     if (widget.role == 'VETERINARIO') {
       steps.add(
         ProfessionalDataStep(
@@ -150,11 +132,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
           servicesKey: _servicesKey,
         ),
       );
-    } else if (widget.role == 'LABORATORIO') {
-      // TODO: Añadir paso específico para laboratorio si es necesario
-    }
+    } else if (widget.role == 'LABORATORIO') {}
 
-    // All roles: Security/Password step
     steps.add(
       SecurityStep(
         passwordController: passwordController,
@@ -174,7 +153,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   bool _isPasswordValid(String password) {
-    // 8+ chars, upper, lower, number, special
     return password.length >= 8 &&
         password.contains(RegExp(r'[a-z]')) &&
         password.contains(RegExp(r'[A-Z]')) &&
@@ -186,8 +164,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final confirm = confirmPasswordController.text;
     final password = passwordController.text;
 
-    // Check mismatch: if confirm is not empty AND differs from password
-    // OR if we already have an error (to see if it's fixed)
     if (confirm.isNotEmpty && confirm != password) {
       if (_confirmPasswordError == null) {
         setState(() {
@@ -206,17 +182,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void initState() {
     super.initState();
-    // Add listeners removed to prevent crash. Validation handled by ValueListenableBuilder.
 
-    // Add listener to phone controller for immediate feedback on error state
     phoneController.addListener(_onPhoneChanged);
-    // Add listener for email controller
+
     emailController.addListener(_onEmailChanged);
-    // Add listener for confirm password (inline validation)
+
     confirmPasswordController.addListener(_onConfirmPasswordChanged);
-    // Add listener for password (to clear confirm error if password matches again)
+
     passwordController.addListener(_onConfirmPasswordChanged);
-    // Add listener for ID controller
+
     idController.addListener(_onIdChanged);
   }
 
@@ -229,10 +203,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _onPhoneChanged() {
-    // Only check if there is an error current displayed
     if (_phoneErrorText != null) {
       final text = phoneController.text;
-      // Clear error if empty or valid (>= 10 digits)
+
       if (text.isEmpty || _isValidPhone(text)) {
         setState(() {
           _phoneErrorText = null;
@@ -254,7 +227,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   void dispose() {
-    // Remove listener before disposing
     phoneController.removeListener(_onPhoneChanged);
     emailController.removeListener(_onEmailChanged);
     confirmPasswordController.removeListener(_onConfirmPasswordChanged);
@@ -273,12 +245,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _nextStep() {
-    // Validate inline errors for optional fields (specifically Phone/Email) on submit
     if (widget.role == 'PROPIETARIO_MASCOTA' && _currentStep == 1) {
       bool hasError = false;
 
       if (_selectedAccessMethod == AccessMethod.email) {
-        // Validate optional phone if entered
         if (phoneController.text.isNotEmpty &&
             !_isValidPhone(phoneController.text)) {
           setState(() {
@@ -290,7 +260,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           setState(() => _phoneErrorText = null);
         }
       } else if (_selectedAccessMethod == AccessMethod.phone) {
-        // Validate optional email if entered
         if (emailController.text.isNotEmpty &&
             !_isValidEmail(emailController.text)) {
           setState(() {
@@ -305,19 +274,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (hasError) return;
 
-      // Check if identification number already exists
       if (idController.text.isNotEmpty) {
         context.read<AuthBloc>().add(
           CheckIdentificationExists(idController.text),
         );
-        // The result will be handled in BlocListener below
-        // If exists, we'll show error and return
-        // If doesn't exist, we'll proceed to next step
+
         return;
       }
     }
 
-    // Validate current step before proceeding
     if (!_isStepValid()) {
       ErrorDisplay.showError(
         context,
@@ -326,7 +291,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    // Si estamos en el último paso (SecurityStep), crear el usuario
     if (_currentStep == _steps.length - 1) {
       _submitRegistration();
     } else {
@@ -338,7 +302,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Helper to get readable role name
   String get _roleName {
     switch (widget.role) {
       case 'VETERINARIO':
@@ -354,14 +317,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
   }
 
-  // Helper to get total expected steps for this role
   int get _totalSteps {
     if (widget.role == 'PROPIETARIO_MASCOTA') {
-      return 3; // Method selection + Personal data + Security
+      return 3;
     } else if (widget.role == 'VETERINARIO') {
-      return 3; // Personal data + Professional data + Security
+      return 3;
     } else {
-      return 2; // Personal data + Security (default)
+      return 2;
     }
   }
 
@@ -369,7 +331,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final step = _currentStep;
     final steps = _steps;
 
-    // Validation for Owner Method Selection
     if (widget.role == 'PROPIETARIO_MASCOTA') {
       if (step == 0) {
         if (_selectedAccessMethod == AccessMethod.email) {
@@ -380,17 +341,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return false;
       }
       if (step == 1) {
-        // As per user request: "el button solo se debe activar cuando el campo identificacion este lleno"
-        // and "el pais debe ir deshabilitado" (already handled in step widget).
-        // Standard personal data fields (Name/Country) might still be required for a valid user,
-        // but the button's activation is primarily driven by ID in this specific request.
         return idController.text.isNotEmpty &&
             nameController.text.isNotEmpty &&
             countryController.text.isNotEmpty;
       }
     }
 
-    // Validation for Veterinario/Other Roles
     if (widget.role == 'VETERINARIO') {
       if (step == 0) {
         return nameController.text.isNotEmpty &&
@@ -407,7 +363,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       }
     }
 
-    // Common steps (Security)
     if (step == steps.length - 1) {
       final isPasswordComplex = _isPasswordValid(passwordController.text);
       final passwordsMatch =
@@ -423,14 +378,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _submitRegistration() {
-    // Add any pending tags before submitting
     _animalTypesKey.currentState?.addPendingTag();
     _servicesKey.currentState?.addPendingTag();
 
     const uuid = Uuid();
     final String newUserId = uuid.v4();
 
-    // Helper to get non-empty string or empty string (backend accepts empty now)
     String getFieldValue(TextEditingController controller) {
       return controller.text.trim();
     }
@@ -449,13 +402,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               : 'CC',
           identificationNumber: getFieldValue(idController),
           cellPhone: cellPhone,
-          country: '', // populated by backend based on countryId
-          countryId: getFieldValue(countryController), // stores country ID
+          country: '',
+          countryId: getFieldValue(countryController),
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
-          address:
-              '', // Address is optional and not collected during registration
+          address: '',
           roles: [widget.role],
           professionalCard: widget.role == 'VETERINARIO'
               ? getFieldValue(professionalCardController)
@@ -596,20 +548,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     final step = _currentStep;
     final steps = _steps;
 
-    // Common listenables for all steps (if any global state affects validation)
-    // For now, we return specific controllers based on the step logic in _isStepValid
-
     if (widget.role == 'PROPIETARIO_MASCOTA') {
       if (step == 0) {
-        // Method selection step: listen to email and phone controllers
-        // The validation depends on _selectedAccessMethod which is state,
-        // but the input content is in controllers.
-        // We also need to listen to the selection change, but that triggers setState,
-        // so the widget rebuilds anyway.
         return [emailController, phoneController];
       }
       if (step == 1) {
-        // Personal data step
         return [
           nameController,
           idController,
@@ -622,7 +565,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
     if (widget.role == 'VETERINARIO') {
       if (step == 0) {
-        // First step for Vet
         return [
           nameController,
           emailController,
@@ -632,17 +574,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ];
       }
       if (step == 1) {
-        // Professional data step
-        // These are more complex because they might not be just text controllers
-        // _animalTypes and _services are lists updated via setState, so build is triggered.
-        // professionalCardController is a text controller.
         return [professionalCardController];
       }
     }
 
-    // Security step (last)
     if (step == steps.length - 1) {
-      // Need to listen to both password fields. Terms checked via setState rebuild.
       return [passwordController, confirmPasswordController];
     }
 

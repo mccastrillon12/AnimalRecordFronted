@@ -2,37 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 
-/// A reusable card widget for displaying and selecting roles or options.
-///
-/// This widget displays a title and an image in a styled container with
-/// a shadow effect. It's designed to be used in selection screens where
-/// users need to choose between different options.
-///
-/// Example:
-/// ```dart
-/// SelectableRoleCard(
-///   title: 'Veterinario',
-///   imageAsset: 'assets/illustrations/Perfil_veterinario.png',
-///   onTap: () => navigateToVeterinarianRegistration(),
-/// )
-/// ```
 class SelectableRoleCard extends StatelessWidget {
-  /// The title text to display on the card
   final String title;
 
-  /// The asset path for the image to display
   final String imageAsset;
 
-  /// Callback function to execute when the card is tapped
   final VoidCallback onTap;
 
-  /// Optional custom height for the card. Defaults to 117
   final double height;
 
-  /// Optional custom width for the image. Defaults to 120
   final double imageWidth;
 
-  /// Optional custom height for the image. Defaults to 85.26
   final double imageHeight;
 
   const SelectableRoleCard({

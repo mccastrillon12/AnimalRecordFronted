@@ -8,7 +8,6 @@ abstract class AuthEvent extends Equatable {
   List<Object?> get props => [];
 }
 
-// Este evento se dispara cuando el usuario presiona "Registrar"
 class SignUpSubmitted extends AuthEvent {
   final RegisterParams userData;
   SignUpSubmitted(this.userData);
@@ -17,7 +16,6 @@ class SignUpSubmitted extends AuthEvent {
   List<Object?> get props => [userData];
 }
 
-// Este evento se dispara cuando el usuario presiona "Ingresar"
 class LoginSubmitted extends AuthEvent {
   final LoginParams credentials;
   LoginSubmitted(this.credentials);
@@ -26,7 +24,6 @@ class LoginSubmitted extends AuthEvent {
   List<Object?> get props => [credentials];
 }
 
-// Este evento se dispara cuando el usuario presiona "Verificar"
 class VerifyCodeSubmitted extends AuthEvent {
   final VerifyCodeParams params;
   VerifyCodeSubmitted(this.params);
@@ -35,16 +32,14 @@ class VerifyCodeSubmitted extends AuthEvent {
   List<Object?> get props => [params];
 }
 
-// Este evento se dispara cuando el usuario solicita reenviar el código
 class ResendCodeSubmitted extends AuthEvent {
-  final String identifier; // Email or phone number
+  final String identifier;
   ResendCodeSubmitted(this.identifier);
 
   @override
   List<Object?> get props => [identifier];
 }
 
-// Este evento se dispara para verificar si un número de identificación ya existe
 class CheckIdentificationExists extends AuthEvent {
   final String identificationNumber;
   CheckIdentificationExists(this.identificationNumber);

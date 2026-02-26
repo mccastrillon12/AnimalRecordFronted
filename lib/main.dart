@@ -34,7 +34,6 @@ Future<void> main() async {
 
   await di.init();
 
-  // Initialize Deep Links
   final deepLinkService = DeepLinkService();
   deepLinkService.setValidatePasswordTokenUseCase(
     di.sl<ValidatePasswordTokenUseCase>(),
@@ -70,9 +69,7 @@ class MyApp extends StatelessWidget {
           '/reset-password': (context) => const ResetPasswordScreen(),
           '/link-expired': (context) => const LinkExpiredScreen(),
           '/forgot-password': (context) => const ForgotPasswordScreen(),
-          '/forgot-pin': (context) => const ForgotPinScreen(
-            identifier: '',
-          ), // Base route, identifier normally passed via constructor Push
+          '/forgot-pin': (context) => const ForgotPinScreen(identifier: ''),
           '/reset-pin': (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments

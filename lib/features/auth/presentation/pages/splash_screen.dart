@@ -19,7 +19,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Dispatch check session
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthBloc>().add(FetchUserRequested());
     });
@@ -30,7 +30,6 @@ class _SplashScreenState extends State<SplashScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthSuccess) {
-          // User authenticated - check biometric preference
           sl<TokenStorage>().getBiometricsEnabledForUser(state.user.id).then((
             enabled,
           ) {
@@ -48,7 +47,6 @@ class _SplashScreenState extends State<SplashScreen> {
             }
           });
         } else if (state is AuthError) {
-          // No session or error - go to login
           Navigator.pushReplacementNamed(context, '/login');
         }
       },
@@ -59,10 +57,7 @@ class _SplashScreenState extends State<SplashScreen> {
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [
-                Color(0xFF539DF3), // Light Blue
-                Color(0xFF132D53), // Dark Blue
-              ],
+              colors: [Color(0xFF539DF3), Color(0xFF132D53)],
             ),
           ),
           child: Column(
@@ -70,8 +65,6 @@ class _SplashScreenState extends State<SplashScreen> {
             children: [
               Image.asset('assets/Logo/Logotipo_blanco.png', height: 80),
               const SizedBox(height: 16),
-              // We could add a loading indicator here if needed
-              // const CircularProgressIndicator(color: Colors.white),
             ],
           ),
         ),

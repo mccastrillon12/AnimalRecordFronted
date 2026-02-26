@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Trigger user data fetch when home screen is reached
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AuthBloc>().add(FetchUserRequested());
       _checkBiometricActivation();
@@ -34,9 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
     final isPending = await tokenStorage.isBiometricActivationPending();
 
     if (isPending && mounted) {
-      // Clear the pending status
       await tokenStorage.setBiometricActivationPending(false);
-      // Show success message
+
       ErrorDisplay.showSuccess(context, 'Biometría activada exitosamente.');
     }
   }
@@ -56,13 +55,10 @@ class _HomeScreenState extends State<HomeScreen> {
               children: [
                 const UserHeader(),
 
-                // Navigation menu (Mapa, +Animal, Agenda, etc.)
                 const NavigationMenu(),
 
-                // Separator
                 const SizedBox(height: 52),
 
-                // Animals section (scrollable content)
                 const Expanded(child: AnimalsSection()),
               ],
             ),

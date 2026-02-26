@@ -63,9 +63,7 @@ class BiometricEnableDialog extends StatelessWidget {
                       onEnable();
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(
-                        0xFFFA2844,
-                      ), // Red color (errorRojo)
+                      backgroundColor: const Color(0xFFFA2844),
                       foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(8),

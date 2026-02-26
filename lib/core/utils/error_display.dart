@@ -2,9 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
 
-/// Utility class for displaying error messages to users.
-///
-/// Provides consistent error display across the application using top-aligned Overlays.
 class ErrorDisplay {
   static OverlayEntry? _currentEntry;
   static Timer? _currentTimer;
@@ -12,13 +9,11 @@ class ErrorDisplay {
   static OverlayEntry? _secondaryEntry;
   static Timer? _secondaryTimer;
 
-  /// Shows an error message at the top of the screen.
   static void showError(
     BuildContext context,
     String message, {
     Duration duration = const Duration(seconds: 4),
   }) {
-    // Global interception: certain messages should be displayed as success even if triggered as errors
     if (message.contains('¡Cuenta creada con éxito!')) {
       showSuccess(context, message, duration: duration);
       return;
@@ -32,7 +27,6 @@ class ErrorDisplay {
     );
   }
 
-  /// Shows a success message at the top of the screen.
   static void showSuccess(
     BuildContext context,
     String message, {
@@ -52,16 +46,13 @@ class ErrorDisplay {
     required bool isError,
     required Duration duration,
   }) {
-    // Remove existing overlay if any
     _removeCurrentOverlay();
 
     final overlayState = Overlay.of(context);
 
-    // safe area padding removed as we use fixed offset
-
     _currentEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top: 90.0, // Adjusted to 60.0 to align with logo (was 96.0)
+        top: 90.0,
         left: 16,
         right: 16,
         child: Material(
@@ -91,7 +82,6 @@ class ErrorDisplay {
     _currentEntry = null;
   }
 
-  /// Shows a secondary success message below the first one.
   static void showSecondSuccess(
     BuildContext context,
     String message, {
@@ -111,15 +101,13 @@ class ErrorDisplay {
     required bool isError,
     required Duration duration,
   }) {
-    // Remove existing secondary overlay if any
     _removeSecondaryOverlay();
 
     final overlayState = Overlay.of(context);
 
     _secondaryEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top:
-            170.0, // Positioned below the first one (90 + height + padding appx)
+        top: 170.0,
         left: 16,
         right: 16,
         child: Material(

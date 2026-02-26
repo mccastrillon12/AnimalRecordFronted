@@ -22,7 +22,6 @@ class CheckMessagesScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Email illustration
               Image.asset(
                 'assets/illustrations/email.png',
                 width: 150,

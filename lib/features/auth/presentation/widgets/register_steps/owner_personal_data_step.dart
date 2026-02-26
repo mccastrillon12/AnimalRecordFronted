@@ -10,10 +10,6 @@ import '../id_selector.dart';
 import '../phone_input_field.dart';
 import 'package:flutter/services.dart';
 
-/// A reusable step widget for collecting personal data in registration flows.
-///
-/// This widget can be customized to show/hide optional fields (email or phone)
-/// based on the registration method chosen by the user.
 class OwnerPersonalDataStep extends StatefulWidget {
   final TextEditingController nameController;
   final TextEditingController emailController;
@@ -21,25 +17,18 @@ class OwnerPersonalDataStep extends StatefulWidget {
   final TextEditingController countryController;
   final TextEditingController idController;
 
-  /// Whether to show the email field as optional (when phone is primary method)
   final bool showOptionalEmail;
 
-  /// Whether to show the phone field as optional (when email is primary method)
   final bool showOptionalPhone;
 
-  /// Error text to display for the phone field
   final String? phoneErrorText;
 
-  /// Error text to display for the email field
   final String? emailErrorText;
 
-  /// Error text to display for the id field
   final String? idErrorText;
 
-  /// Callback when ID type changes
   final ValueChanged<String>? onIdTypeChanged;
 
-  /// Initial ID type
   final String? initialIdType;
 
   const OwnerPersonalDataStep({
@@ -66,7 +55,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
   @override
   void initState() {
     super.initState();
-    // Fetch countries when the widget initializes
+
     context.read<LocationsCubit>().fetchCountries();
   }
 
@@ -93,7 +82,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Nombre completo
             CustomTextField(
               label: 'Nombre completo',
               hint: 'Jhon Doe',
@@ -102,7 +90,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
 
             const SizedBox(height: AppSpacing.m),
 
-            // País de residencia
             if (state is LocationsLoaded) ...[
               CountryDropdown(
                 label: 'País de residencia',
@@ -130,7 +117,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
 
             const SizedBox(height: AppSpacing.m),
 
-            // Identificación
             IdSelector(
               idController: widget.idController,
               errorText: widget.idErrorText,
@@ -140,7 +126,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
 
             const SizedBox(height: AppSpacing.m),
 
-            // Email (condicional)
             if (widget.showOptionalEmail) ...[
               CustomTextField(
                 label: 'Correo electrónico (Opcional)',
@@ -153,7 +138,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
               const SizedBox(height: AppSpacing.m),
             ],
 
-            // Teléfono (condicional)
             if (widget.showOptionalPhone) ...[
               if (state is LocationsLoaded)
                 PhoneInputField(

@@ -24,7 +24,6 @@ class TagInputWidgetState extends State<TagInputWidget> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
 
-  // Expose controller for parent to check pending text
   TextEditingController get controller => _controller;
 
   @override
@@ -48,7 +47,6 @@ class TagInputWidgetState extends State<TagInputWidget> {
     widget.onTagsChanged(updatedTags);
   }
 
-  // Public method to add any pending text before form submission
   void addPendingTag() {
     if (_controller.text.trim().isNotEmpty) {
       _addTag();
@@ -60,27 +58,21 @@ class TagInputWidgetState extends State<TagInputWidget> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label - matching CustomTextField style exactly
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            widget.label,
-            style: AppTypography.body6, // Same as CustomTextField
-          ),
+          child: Text(widget.label, style: AppTypography.body6),
         ),
 
-        // Input field and tags container - matching CustomTextField style
         Container(
           decoration: BoxDecoration(
-            color: Colors.white, // White background like CustomTextField
-            borderRadius: BorderRadius.circular(4), // Same as CustomTextField
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(color: AppColors.greyMedio, width: 1.0),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Tags display
               if (widget.tags.isNotEmpty)
                 Wrap(
                   spacing: 8,
@@ -121,14 +113,13 @@ class TagInputWidgetState extends State<TagInputWidget> {
 
               if (widget.tags.isNotEmpty) const SizedBox(height: 8),
 
-              // Input field - matching CustomTextField style
               Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _controller,
                       focusNode: _focusNode,
-                      style: AppTypography.body4, // Same as CustomTextField
+                      style: AppTypography.body4,
                       decoration: InputDecoration(
                         hintText: widget.hint,
                         hintStyle: AppTypography.body4.copyWith(
@@ -141,11 +132,10 @@ class TagInputWidgetState extends State<TagInputWidget> {
                         isDense: true,
                       ),
                       onSubmitted: (_) => _addTag(),
-                      onChanged: (_) =>
-                          setState(() {}), // Rebuild to show/hide button
+                      onChanged: (_) => setState(() {}),
                     ),
                   ),
-                  // Show add button when there's text in the field
+
                   if (_controller.text.trim().isNotEmpty)
                     GestureDetector(
                       onTap: _addTag,

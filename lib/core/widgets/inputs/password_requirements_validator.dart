@@ -2,8 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 
-/// Reusable password requirements validator widget
-/// Displays a list of password requirements with visual feedback
 class PasswordRequirementsValidator extends StatelessWidget {
   final String password;
   final bool showTitle;
@@ -14,7 +12,6 @@ class PasswordRequirementsValidator extends StatelessWidget {
     this.showTitle = true,
   });
 
-  // Password requirements validators
   bool get _hasMinLength => password.length >= 8;
   bool get _hasUpperLower =>
       password.contains(RegExp(r'[a-z]')) &&
@@ -23,7 +20,6 @@ class PasswordRequirementsValidator extends StatelessWidget {
   bool get _hasSpecialChar =>
       password.contains(RegExp(r'[!@#$%^&*(),.?":{}|<>]'));
 
-  /// Check if all requirements are met
   bool get allRequirementsMet =>
       _hasMinLength && _hasUpperLower && _hasNumber && _hasSpecialChar;
 
@@ -61,9 +57,7 @@ class PasswordRequirementsValidator extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           text,
-          style: AppTypography.body6.copyWith(
-            color: AppColors.greyIconos, // Always #59667A
-          ),
+          style: AppTypography.body6.copyWith(color: AppColors.greyIconos),
         ),
       ],
     );

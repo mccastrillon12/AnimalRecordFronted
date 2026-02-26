@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
 class AppTypography {
-  // --- Titillium Web (Titles) ---
   static final TextStyle heading1 = GoogleFonts.titilliumWeb(
     fontSize: 20,
     fontWeight: FontWeight.w700,
@@ -17,7 +16,6 @@ class AppTypography {
     color: AppColors.greyTextos,
   ).copyWith(height: 1.0);
 
-  // --- Noto Sans (Body) ---
   static final TextStyle body1 = GoogleFonts.notoSans(
     fontSize: 16,
     fontWeight: FontWeight.w600,

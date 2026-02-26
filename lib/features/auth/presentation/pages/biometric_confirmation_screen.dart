@@ -25,7 +25,7 @@ class BiometricConfirmationScreen extends StatelessWidget {
           child: Column(
             children: [
               const Spacer(),
-              // Icono biométrico grande
+
               SvgPicture.asset(
                 iconPath,
                 width: 120,
@@ -37,7 +37,6 @@ class BiometricConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xxxl),
 
-              // Título
               Text(
                 '¡Falta poco!',
                 textAlign: TextAlign.center,
@@ -47,7 +46,6 @@ class BiometricConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.l),
 
-              // Descripción
               Text(
                 'Sólo falta iniciar sesión para asociar el Face ID o huella a tu cuenta.',
                 textAlign: TextAlign.center,
@@ -59,7 +57,6 @@ class BiometricConfirmationScreen extends StatelessWidget {
 
               const Spacer(),
 
-              // Indicadores de página (Puntos)
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -77,8 +74,7 @@ class BiometricConfirmationScreen extends StatelessWidget {
                     height: 8,
                     margin: const EdgeInsets.symmetric(horizontal: 4),
                     decoration: const BoxDecoration(
-                      color:
-                          AppColors.primaryFrances, // Azul activo (2do punto)
+                      color: AppColors.primaryFrances,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -86,11 +82,9 @@ class BiometricConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.xl),
 
-              // Botón Iniciar sesión
               CustomButton(
                 text: 'Iniciar sesión',
                 onPressed: () {
-                  // Volver al login ocultando la biometría
                   Navigator.pushAndRemoveUntil(
                     context,
                     MaterialPageRoute(
@@ -103,7 +97,6 @@ class BiometricConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.m),
 
-              // Botón Cancelar
               CustomButton(
                 text: 'Cancelar',
                 isSecondary: true,

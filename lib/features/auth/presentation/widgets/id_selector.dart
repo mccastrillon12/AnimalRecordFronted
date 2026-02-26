@@ -3,7 +3,6 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 
-/// Reusable component for ID selection with type dropdown and number input
 class IdSelector extends StatefulWidget {
   final TextEditingController idController;
   final String? initialIdType;
@@ -55,11 +54,6 @@ class _IdSelectorState extends State<IdSelector> {
   }
 
   OverlayEntry _createOverlayEntry() {
-    // We want the dropdown to match the width of the trigger widget (the ID type container)
-    // However, findRenderObject returns the size of the whole IdSelector (Row).
-    // We need the size of the trigger container.
-    // Since width is fixed to 100, we can use that.
-
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -92,7 +86,7 @@ class _IdSelectorState extends State<IdSelector> {
                     itemCount: _idTypes.length,
                     itemBuilder: (context, index) {
                       final type = _idTypes[index];
-                      // Highlight selected item style if needed
+
                       final isSelected = type == _selectedIdType;
 
                       return InkWell(
@@ -146,7 +140,6 @@ class _IdSelectorState extends State<IdSelector> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ID Type selector
             CompositedTransformTarget(
               link: _layerLink,
               child: InkWell(
@@ -183,9 +176,8 @@ class _IdSelectorState extends State<IdSelector> {
               ),
             ),
             const SizedBox(width: AppSpacing.xs),
-            // ID Number input
+
             Expanded(
-              // Use Expanded to take remaining space instead of fixed width column
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

@@ -29,15 +29,7 @@ class ProfileScreen extends StatelessWidget {
         }
         if (state is AuthSuccess && state.biometricUpdateSuccess) {
           if (!state.isBiometricEnabled) {
-            // Show success message only when disabling, as requested
-            // "Biometría desactivada exitosamente"
-            // Using a custom method or existing ErrorDisplay if suitable
-            // The user provided image shows a green snackbar-like or top notification.
-            // ErrorDisplay.showSuccess uses a top snackbar usually.
-            // Let's use that.
-            ScaffoldMessenger.of(
-              context,
-            ).hideCurrentSnackBar(); // Clear previous
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
             ErrorDisplay.showSuccess(
               context,
               'Biometría desactivada exitosamente.',
@@ -49,11 +41,8 @@ class ProfileScreen extends StatelessWidget {
         backgroundColor: AppColors.bgOxford,
         body: Stack(
           children: [
-            // Content Layer: Frozen when loading
             BlocBuilder<AuthBloc, AuthState>(
               buildWhen: (previous, current) {
-                // Prevent rebuilds during logout phases (Loading/Initial)
-                // so the user sees the last known good state ("Camila") not "Usuario"
                 return current is AuthSuccess;
               },
               builder: (context, state) {
@@ -76,7 +65,6 @@ class ProfileScreen extends StatelessWidget {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        // Custom Header
                         Padding(
                           padding: const EdgeInsets.fromLTRB(24, 12, 0, 0),
                           child: Row(
@@ -94,7 +82,6 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Profile Section
                         Column(
                           children: [
                             Text(
@@ -104,7 +91,7 @@ class ProfileScreen extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 24),
-                            // Avatar
+
                             Container(
                               width: 100,
                               height: 100,
@@ -148,7 +135,6 @@ class ProfileScreen extends StatelessWidget {
 
                         const SizedBox(height: AppSpacing.xl),
 
-                        // Action Buttons
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.xl,
@@ -174,7 +160,6 @@ class ProfileScreen extends StatelessWidget {
 
                         const SizedBox(height: AppSpacing.xl),
 
-                        // Options Card
                         Padding(
                           padding: const EdgeInsets.symmetric(
                             horizontal: AppSpacing.l,
@@ -270,7 +255,7 @@ class ProfileScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.xl),
-                        // Bottom Logo/Text
+
                         Image.asset(
                           'assets/Logo/Imagotipo_blanco.png',
                           height: 24,
@@ -292,7 +277,6 @@ class ProfileScreen extends StatelessWidget {
               },
             ),
 
-            // Loading Overlay
             BlocBuilder<AuthBloc, AuthState>(
               builder: (context, state) {
                 if (state is AuthLoading) {

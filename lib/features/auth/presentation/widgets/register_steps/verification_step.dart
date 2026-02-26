@@ -171,13 +171,10 @@ class _CodeInputField extends StatelessWidget {
   BorderRadius _getBorderRadius() {
     const radius = Radius.circular(8);
     if (index == 0) {
-      // First field: round left corners only
       return const BorderRadius.only(topLeft: radius, bottomLeft: radius);
     } else if (index == 4) {
-      // Last field: round right corners only
       return const BorderRadius.only(topRight: radius, bottomRight: radius);
     } else {
-      // Middle fields: no rounded corners
       return BorderRadius.zero;
     }
   }
@@ -220,13 +217,11 @@ class _CodeInputField extends StatelessWidget {
         inputFormatters: [FilteringTextInputFormatter.digitsOnly],
         textInputAction: TextInputAction.next,
         onTap: () {
-          // Clear the field when tapped to allow re-entering
           controller.clear();
         },
         onChanged: (value) {
           onChanged(value);
           if (value.isEmpty) {
-            // User pressed backspace
             onBackspace();
           }
         },

@@ -1,7 +1,7 @@
 import 'package:equatable/equatable.dart';
 
 class LoginParams extends Equatable {
-  final String identifier; // Email or phone
+  final String identifier;
   final String password;
 
   const LoginParams({required this.identifier, required this.password});

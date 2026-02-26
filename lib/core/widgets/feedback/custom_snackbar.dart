@@ -20,7 +20,7 @@ class CustomSnackBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final backgroundColor = isError
         ? AppColors.bgRosa
-        : const Color(0xFFF0FFF7); // Mint-ish green
+        : const Color(0xFFF0FFF7);
     final borderColor = isError
         ? AppColors.errorRojo
         : AppColors.successEsmeralda;
@@ -47,23 +47,18 @@ class CustomSnackBar extends StatelessWidget {
         ],
       ),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.center, // Center text vertically with icon
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Icon Container
-          Container(
-            // Margin removed as we want verified centering
-            child: Icon(iconData, color: iconColor, size: 24),
-          ),
+          Container(child: Icon(iconData, color: iconColor, size: 24)),
           const SizedBox(width: AppSpacing.m),
-          // check if message is short logic? For now standard
+
           Expanded(
             child: Text(
               message,
               style: AppTypography.body5.copyWith(
                 color: AppColors.greyNegro,
                 fontWeight: FontWeight.w600,
-                height: 1.5, // Added spacing between lines
+                height: 1.5,
               ),
             ),
           ),
@@ -74,18 +69,8 @@ class CustomSnackBar extends StatelessWidget {
               child: Icon(Icons.close, color: AppColors.greyIconos, size: 20),
             ),
           ] else
-            // Always show close button? User requested "close button" in screenshot is distinct.
-            // Screenshot has an 'X' on top right.
-            // Let's just always show it or auto-dismiss.
-            // But SnackBar handles dismissal.
-            // The close button is visual.
             const SizedBox(width: AppSpacing.s),
-          const Icon(
-            Icons.close,
-            color: Colors
-                .transparent, // Placeholder for alignment if needed or just remove
-            size: 20,
-          ),
+          const Icon(Icons.close, color: Colors.transparent, size: 20),
         ],
       ),
     );

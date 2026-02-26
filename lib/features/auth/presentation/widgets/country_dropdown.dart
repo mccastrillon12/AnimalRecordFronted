@@ -66,7 +66,6 @@ class _CountryDropdownState extends State<CountryDropdown> {
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
-          // Modal barrier to close on tap outside
           Positioned.fill(
             child: GestureDetector(
               onTap: _closeDropdown,
@@ -97,7 +96,6 @@ class _CountryDropdownState extends State<CountryDropdown> {
                     itemCount: validCountries.length,
                     itemBuilder: (context, index) {
                       final country = validCountries[index];
-                      // Flag logic based on standard country codes or API response
 
                       return InkWell(
                         onTap: () {
@@ -157,8 +155,6 @@ class _CountryDropdownState extends State<CountryDropdown> {
 
   @override
   Widget build(BuildContext context) {
-    // Find selected country
-    // Find selected country
     final CountryEntity selectedCountry = widget.countries
         .cast<CountryEntity>()
         .firstWhere(
@@ -176,7 +172,6 @@ class _CountryDropdownState extends State<CountryDropdown> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label
         SizedBox(
           height: 18,
           child: Align(
@@ -240,7 +235,7 @@ class _CountryDropdownState extends State<CountryDropdown> {
                       ),
                     ),
                   ],
-                  // Custom arrow icon to match design
+
                   Icon(
                     _isOpen
                         ? Icons.keyboard_arrow_up

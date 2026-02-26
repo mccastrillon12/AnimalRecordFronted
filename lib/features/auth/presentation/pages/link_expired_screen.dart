@@ -19,8 +19,7 @@ class LinkExpiredScreen extends StatelessWidget {
           const Spacer(),
           Image.asset(
             'assets/illustrations/Source-02.png',
-            height:
-                200, // Adjust height as needed based on the image aspect ratio
+            height: 200,
             fit: BoxFit.contain,
           ),
           const SizedBox(height: AppSpacing.xl),
@@ -41,7 +40,6 @@ class LinkExpiredScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.m),
           GestureDetector(
             onTap: () {
-              // Navigate to Login to restart the process
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/forgot-password',

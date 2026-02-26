@@ -49,13 +49,10 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     }
 
     if (_token != null && _token!.isNotEmpty && _identifier != null) {
-      // Token is already validated by DeepLinkService
       setState(() {
         _isValid = true;
       });
     } else {
-      // If data is missing (e.g. direct navigation), show error or redirect
-      // For now, we just leave _isValid false which shows loading/nothing
       Future.microtask(
         () => Navigator.pushReplacementNamed(context, '/link-expired'),
       );
@@ -130,9 +127,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         } else if (state is ResetTokenInvalid) {
           Navigator.pushReplacementNamed(context, '/link-expired');
         } else if (state is AuthError) {
-          // If it's a generic error during reset submit, show it.
-          // If it's related to token validation (though usually caught by ResetTokenInvalid),
-          // handle it.
           if (state.message.toLowerCase().contains('invalid') ||
               state.message.toLowerCase().contains('inválido') ||
               state.message.toLowerCase().contains('expired') ||
@@ -153,7 +147,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               child: SingleChildScrollView(
                 child: BlocBuilder<AuthBloc, AuthState>(
                   builder: (context, state) {
-                    // Initial loading or validating
                     if (!_isValid &&
                         (state is AuthInitial || state is AuthLoading)) {
                       return const Center(child: CircularProgressIndicator());
@@ -177,7 +170,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                           ),
                           const SizedBox(height: AppSpacing.m),
 
-                          // Reusable Password Validator
                           ValueListenableBuilder<TextEditingValue>(
                             valueListenable: _passwordController,
                             builder: (context, value, child) {

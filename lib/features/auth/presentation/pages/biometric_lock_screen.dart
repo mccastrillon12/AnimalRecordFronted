@@ -2,7 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-// import 'package:animate_do/animate_do.dart';
+
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -59,7 +59,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
         setState(() {
           _userName = userMap['name'] ?? '';
           _authMethod = userMap['authMethod'] ?? 'EMAIL';
-          // Use email as identifier, or phone if email is missing (though model prioritizes email usually)
+
           _userIdentifier = userMap['email'] ?? userMap['cellPhone'] ?? '';
         });
       } catch (_) {}
@@ -90,7 +90,6 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
   }
 
   void _goToLogin() {
-    // If standard auth (Email/Phone), go to Password Screen
     if (_authMethod == 'EMAIL' || _authMethod == 'PHONE') {
       Navigator.push(
         context,
@@ -99,7 +98,6 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
         ),
       );
     } else {
-      // If Social Auth (Google, etc.), go to PIN Entry Screen
       Navigator.push(
         context,
         MaterialPageRoute(
@@ -120,10 +118,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF539DF3), // Light Blue
-              Color(0xFF132D53), // Dark Blue
-            ],
+            colors: [Color(0xFF539DF3), Color(0xFF132D53)],
           ),
         ),
         child: SafeArea(
@@ -184,7 +179,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                       ElevatedButton(
                         onPressed: _authenticate,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF774F), // Orange
+                          backgroundColor: const Color(0xFFEF774F),
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 56),
                           shape: RoundedRectangleBorder(

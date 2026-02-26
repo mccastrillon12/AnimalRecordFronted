@@ -26,7 +26,7 @@ class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
   final String email;
   final String preAuthToken;
-  final String providerName; // e.g., 'Google'
+  final String providerName;
 
   const SocialRegisterCompletionScreen({
     super.key,
@@ -47,7 +47,6 @@ class _SocialRegisterCompletionScreenState
   final _idController = TextEditingController();
   final _phoneController = TextEditingController();
 
-  // Name and Email controllers for display (read-only)
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
 
@@ -63,7 +62,6 @@ class _SocialRegisterCompletionScreenState
     _nameController = TextEditingController(text: widget.name);
     _emailController = TextEditingController(text: widget.email);
 
-    // Fetch countries
     context.read<LocationsCubit>().fetchCountries();
   }
 
@@ -107,10 +105,8 @@ class _SocialRegisterCompletionScreenState
   void _onSubmit() {
     if (!_validateInternal()) return;
 
-    // Use phone number from controller directly
     String phoneWithDialCode = _phoneController.text.trim();
 
-    // Mapping display type to backend code
     String idType = 'CC';
     if (_selectedIdType == 'C.E.') idType = 'CE';
     if (_selectedIdType == 'Pasaporte') idType = 'PAS';
@@ -251,12 +247,6 @@ class _CountrySelectionSection extends StatefulWidget {
 }
 
 class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
-  // Accessing parent state is tricky without passing params.
-  // Better to look up the parent state or pass controllers.
-  // Given the constraints of the tool, I will use findAncestorStateOfType
-  // to imply a tight coupling which is acceptable for this private refactor
-  // to avoid changing the entire file signature.
-
   _SocialRegisterCompletionScreenState? get parent =>
       context.findAncestorStateOfType<_SocialRegisterCompletionScreenState>();
 

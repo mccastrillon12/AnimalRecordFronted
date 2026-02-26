@@ -14,13 +14,13 @@ import 'package:animal_record/features/auth/domain/usecases/get_user_profile_use
 import 'package:animal_record/features/auth/domain/usecases/update_profile_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/change_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/save_pin_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart'; // Added
-import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart'; // Added
+import 'package:animal_record/features/auth/domain/usecases/verify_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/change_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/update_biometric_status_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
 
@@ -43,13 +43,12 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:animal_record/core/network/api_log_interceptor.dart';
+import 'package:animal_record/core/network/api_client.dart';
 
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  //! Features - Auth
-
-  // Bloc
   sl.registerFactory(
     () => AuthBloc(
       registerUseCase: sl(),
@@ -62,14 +61,14 @@ Future<void> init() async {
       getUserProfileUseCase: sl(),
       updateProfileUseCase: sl(),
       changePasswordUseCase: sl(),
-      forgotPasswordUseCase: sl(), // Added
+      forgotPasswordUseCase: sl(),
       resetPasswordUseCase: sl(),
-      validatePasswordTokenUseCase: sl(), // Added
+      validatePasswordTokenUseCase: sl(),
       savePinUseCase: sl(),
-      verifyPinUseCase: sl(), // Added
-      changePinUseCase: sl(), // Added
-      updateBiometricStatusUseCase: sl(), // Added
-      getBiometricStatusUseCase: sl(), // Added
+      verifyPinUseCase: sl(),
+      changePinUseCase: sl(),
+      updateBiometricStatusUseCase: sl(),
+      getBiometricStatusUseCase: sl(),
       forgotPinUseCase: sl(),
       resetPinUseCase: sl(),
       logoutUseCase: sl(),
@@ -77,7 +76,6 @@ Future<void> init() async {
     ),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
@@ -90,30 +88,25 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));
   sl.registerLazySingleton(() => UpdateProfileUseCase(sl()));
   sl.registerLazySingleton(() => ChangePasswordUseCase(sl()));
-  sl.registerLazySingleton(() => ForgotPasswordUseCase(sl())); // Added
-  sl.registerLazySingleton(() => ResetPasswordUseCase(sl())); // Added
-  sl.registerLazySingleton(() => ValidatePasswordTokenUseCase(sl())); // Added
+  sl.registerLazySingleton(() => ForgotPasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ResetPasswordUseCase(sl()));
+  sl.registerLazySingleton(() => ValidatePasswordTokenUseCase(sl()));
   sl.registerLazySingleton(() => SavePinUseCase(sl()));
-  sl.registerLazySingleton(() => VerifyPinUseCase(sl())); // Added
-  sl.registerLazySingleton(() => ChangePinUseCase(sl())); // Added
-  sl.registerLazySingleton(() => UpdateBiometricStatusUseCase(sl())); // Added
-  sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl())); // Added
-  sl.registerLazySingleton(() => ForgotPinUseCase(sl())); // Added
-  sl.registerLazySingleton(() => ResetPinUseCase(sl())); // Added
+  sl.registerLazySingleton(() => VerifyPinUseCase(sl()));
+  sl.registerLazySingleton(() => ChangePinUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateBiometricStatusUseCase(sl()));
+  sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl()));
+  sl.registerLazySingleton(() => ForgotPinUseCase(sl()));
+  sl.registerLazySingleton(() => ResetPinUseCase(sl()));
 
-  // Repository
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl(), tokenStorage: sl()),
   );
 
-  // Data sources
   sl.registerLazySingleton<AuthRemoteDataSource>(
-    () => AuthRemoteDataSourceImpl(dio: sl(), logger: sl()),
+    () => AuthRemoteDataSourceImpl(apiClient: sl(), logger: sl()),
   );
 
-  //! Features - Locations
-
-  // Cubit
   sl.registerFactory(
     () => LocationsCubit(
       getCountriesUseCase: sl(),
@@ -122,7 +115,6 @@ Future<void> init() async {
     ),
   );
 
-  // Use cases
   sl.registerLazySingleton(() => GetCountriesUseCase(repository: sl()));
   sl.registerLazySingleton(
     () => GetDepartmentsByCountryUseCase(repository: sl()),
@@ -131,19 +123,14 @@ Future<void> init() async {
     () => GetCitiesByDepartmentUseCase(repository: sl()),
   );
 
-  // Repository
   sl.registerLazySingleton<LocationsRepository>(
     () => LocationsRepositoryImpl(remoteDataSource: sl()),
   );
 
-  // Data sources
   sl.registerLazySingleton<LocationsRemoteDataSource>(
-    () => LocationsRemoteDataSourceImpl(dio: sl()),
+    () => LocationsRemoteDataSourceImpl(apiClient: sl()),
   );
 
-  //! Core & External
-
-  // Token Storage
   sl.registerLazySingleton<TokenStorage>(
     () => TokenStorage(
       const FlutterSecureStorage(
@@ -153,12 +140,10 @@ Future<void> init() async {
     ),
   );
 
-  // Microsoft Auth Service
   sl.registerLazySingleton<MicrosoftAuthService>(
     () => MicrosoftAuthService(logger: sl()),
   );
 
-  // Apple Auth Service
   sl.registerLazySingleton<AppleAuthService>(
     () => AppleAuthService(logger: sl()),
   );
@@ -168,7 +153,8 @@ Future<void> init() async {
   final int receiveTimeout = int.parse(dotenv.env['RECEIVE_TIMEOUT'] ?? '60');
   final int sendTimeout = int.parse(dotenv.env['SEND_TIMEOUT'] ?? '60');
 
-  // Dio instance
+  sl.registerLazySingleton(() => Logger());
+
   final dio = Dio(
     BaseOptions(
       baseUrl: baseUrl,
@@ -178,13 +164,11 @@ Future<void> init() async {
     ),
   );
 
-  // Add Auth Interceptor
-  dio.interceptors.add(
+  dio.interceptors.addAll([
     AuthInterceptor(tokenStorage: sl<TokenStorage>(), dio: dio),
-  );
+    ApiLogInterceptor(logger: sl<Logger>()),
+  ]);
 
   sl.registerLazySingleton(() => dio);
-
-  // Logger
-  sl.registerLazySingleton(() => Logger());
+  sl.registerLazySingleton(() => ApiClient(dio: dio, logger: sl<Logger>()));
 }
