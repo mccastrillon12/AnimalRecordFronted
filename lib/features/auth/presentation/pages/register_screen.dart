@@ -489,7 +489,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             if (state.exists) {
               setState(() {
                 _idErrorText =
-                    'Este número de documento ya está registrado. Por favor inicia sesión.';
+                    'Parece que ya tienes una cuenta. Intenta iniciar sesión o restablecer tu contraseña.';
               });
             } else {
               _pageController.nextPage(

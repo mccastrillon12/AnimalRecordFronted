@@ -102,6 +102,14 @@ class CustomTextField extends StatelessWidget {
               keyboardType: keyboardType,
               validator: validator,
               maxLength: maxLength,
+              maxLengthEnforcement: MaxLengthEnforcement.enforced,
+              buildCounter:
+                  (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
               inputFormatters: inputFormatters,
               onFieldSubmitted: onSubmitted,
               onEditingComplete: onEditingComplete,
@@ -114,7 +122,6 @@ class CustomTextField extends StatelessWidget {
                   vertical: 10,
                   horizontal: 12,
                 ),
-                counterText: '',
                 prefixIconConstraints: const BoxConstraints(
                   minWidth: 0,
                   minHeight: 0,

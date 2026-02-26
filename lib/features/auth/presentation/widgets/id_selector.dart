@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -185,7 +186,20 @@ class _IdSelectorState extends State<IdSelector> {
                     height: AppSpacing.inputHeight,
                     child: TextFormField(
                       controller: widget.idController,
-                      keyboardType: TextInputType.number,
+                      keyboardType: TextInputType.text,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[a-zA-Z0-9]'),
+                        ),
+                      ],
+                      maxLength: 50,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                       style: AppTypography.body4,
                       decoration: InputDecoration(
                         hintText: '1234567890',

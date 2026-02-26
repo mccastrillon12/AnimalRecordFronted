@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
@@ -269,6 +270,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               CustomTextField(
                                                 controller: _emailController,
                                                 label: 'Correo electrónico',
+                                                maxLength: 50,
                                               ),
                                             ] else ...[
                                               Text(
@@ -339,6 +341,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                               _selectedPhoneCountryId =
                                                                   id,
                                                         ),
+                                                    maxLength: 15,
+                                                    inputFormatters: [
+                                                      FilteringTextInputFormatter
+                                                          .digitsOnly,
+                                                    ],
                                                     isOptional: true,
                                                   );
                                                 },
