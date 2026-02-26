@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -5,7 +6,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 
-class CustomTextField extends StatelessWidget {
+class CustomTextField extends StatefulWidget {
   final String label;
   final String? hint;
   final TextEditingController? controller;
@@ -60,6 +61,94 @@ class CustomTextField extends StatelessWidget {
   });
 
   @override
+  State<CustomTextField> createState() => _CustomTextFieldState();
+}
+
+class _CustomTextFieldState extends State<CustomTextField> {
+  late FocusNode _focusNode;
+  Timer? _debounceTimer;
+  String? _internalErrorText;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  bool _isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
+
+  bool _isValidPhone(String phone) {
+    final digits = phone.replaceAll(RegExp(r'\D'), '');
+    return digits.length >= 10;
+  }
+
+  void _runAutoValidation() {
+    if (!mounted) return;
+    final text = widget.controller?.text.trim() ?? '';
+    if (text.isEmpty) {
+      if (_internalErrorText != null) {
+        setState(() => _internalErrorText = null);
+      }
+      return;
+    }
+
+    String? error;
+    final labelLow = widget.label.toLowerCase();
+
+    if (widget.keyboardType == TextInputType.phone ||
+        (labelLow.contains('celular') && !labelLow.contains('correo'))) {
+      if (!_isValidPhone(text)) {
+        error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+      }
+    } else if (labelLow.contains('correo') && labelLow.contains('celular')) {
+      if (RegExp(r'^[0-9+\-\s]+$').hasMatch(text)) {
+        if (!_isValidPhone(text)) {
+          error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+        }
+      } else {
+        if (!_isValidEmail(text)) {
+          error = 'Introduzca una dirección de correo electrónico válida';
+        }
+      }
+    } else if (widget.keyboardType == TextInputType.emailAddress ||
+        labelLow.contains('correo')) {
+      if (!_isValidEmail(text)) {
+        error = 'Introduzca una dirección de correo electrónico válida';
+      }
+    }
+
+    if (_internalErrorText != error) {
+      setState(() => _internalErrorText = error);
+    }
+  }
+
+  void _onFocusChange() {
+    if (!_focusNode.hasFocus) {
+      _runAutoValidation();
+    }
+  }
+
+  void _onChanged(String val) {
+    if (_internalErrorText != null) {
+      _runAutoValidation();
+    } else {
+      _debounceTimer?.cancel();
+      _debounceTimer = Timer(const Duration(seconds: 2), _runAutoValidation);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final defaultBorder = OutlineInputBorder(
       borderRadius: AppBorders.small(),
@@ -71,24 +160,26 @@ class CustomTextField extends StatelessWidget {
       borderSide: const BorderSide(color: AppColors.error, width: 1.0),
     );
 
+    final currentErrorText = widget.errorText ?? _internalErrorText;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label.isNotEmpty)
+        if (widget.label.isNotEmpty)
           SizedBox(
             height: 18,
             child: Align(
               alignment: Alignment.centerLeft,
               child: Text(
-                label,
-                style: (labelStyle ?? AppTypography.body6).copyWith(
-                  color: labelStyle?.color ?? AppColors.greyNegroV2,
+                widget.label,
+                style: (widget.labelStyle ?? AppTypography.body6).copyWith(
+                  color: widget.labelStyle?.color ?? AppColors.greyNegroV2,
                 ),
               ),
             ),
           ),
 
-        if (label.isNotEmpty)
+        if (widget.label.isNotEmpty)
           const SizedBox(height: AppSpacing.inputTopPadding),
 
         Padding(
@@ -96,12 +187,14 @@ class CustomTextField extends StatelessWidget {
           child: SizedBox(
             height: AppSpacing.inputHeight,
             child: TextFormField(
-              controller: controller,
-              enabled: enabled,
-              obscureText: obscureText ?? isPassword,
-              keyboardType: keyboardType,
-              validator: validator,
-              maxLength: maxLength,
+              controller: widget.controller,
+              focusNode: _focusNode,
+              enabled: widget.enabled,
+              obscureText: widget.obscureText ?? widget.isPassword,
+              keyboardType: widget.keyboardType,
+              validator: widget.validator,
+              onChanged: _onChanged,
+              maxLength: widget.maxLength,
               maxLengthEnforcement: MaxLengthEnforcement.enforced,
               buildCounter:
                   (
@@ -110,10 +203,10 @@ class CustomTextField extends StatelessWidget {
                     required isFocused,
                     maxLength,
                   }) => null,
-              inputFormatters: inputFormatters,
-              onFieldSubmitted: onSubmitted,
-              onEditingComplete: onEditingComplete,
-              textInputAction: textInputAction,
+              inputFormatters: widget.inputFormatters,
+              onFieldSubmitted: widget.onSubmitted,
+              onEditingComplete: widget.onEditingComplete,
+              textInputAction: widget.textInputAction,
               textAlignVertical: TextAlignVertical.center,
               style: AppTypography.body4,
               decoration: InputDecoration(
@@ -126,55 +219,55 @@ class CustomTextField extends StatelessWidget {
                   minWidth: 0,
                   minHeight: 0,
                 ),
-                hintText: hint,
+                hintText: widget.hint,
 
                 errorText: null,
                 hintStyle:
-                    hintStyle ??
+                    widget.hintStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyMedio),
-                prefixIcon: prefixIcon,
+                prefixIcon: widget.prefixIcon,
 
-                prefix: prefixText != null
+                prefix: widget.prefixText != null
                     ? Text(
-                        '$prefixText ',
+                        '${widget.prefixText} ',
                         style: AppTypography.body4.copyWith(
                           color: AppColors.greyMedio,
                         ),
                       )
                     : null,
                 suffixIcon:
-                    suffixIcon ??
-                    (isPassword
+                    widget.suffixIcon ??
+                    (widget.isPassword
                         ? IconButton(
                             icon: Image.asset(
-                              (obscureText ?? true)
+                              (widget.obscureText ?? true)
                                   ? 'assets/icons/vuesax-bold-eye.png'
                                   : 'assets/icons/vuesax-bold-eye-slash.png',
                               width: 20,
                               height: 20,
                               color: AppColors.greyMedio,
                             ),
-                            onPressed: onToggleVisibility,
+                            onPressed: widget.onToggleVisibility,
                           )
                         : null),
-                border: errorText != null
+                border: currentErrorText != null
                     ? errorBorder
-                    : (border ?? defaultBorder),
-                enabledBorder: errorText != null
+                    : (widget.border ?? defaultBorder),
+                enabledBorder: currentErrorText != null
                     ? errorBorder
-                    : (enabledBorder ?? defaultBorder),
-                focusedBorder: errorText != null
+                    : (widget.enabledBorder ?? defaultBorder),
+                focusedBorder: currentErrorText != null
                     ? errorBorder
-                    : (focusedBorder ?? defaultBorder),
+                    : (widget.focusedBorder ?? defaultBorder),
               ),
             ),
           ),
         ),
 
-        if (errorText != null) ...[
+        if (currentErrorText != null) ...[
           const SizedBox(height: 4),
           Text(
-            errorText!,
+            currentErrorText,
             style: AppTypography.body6.copyWith(
               color: AppColors.error,
               height: 1.2,
