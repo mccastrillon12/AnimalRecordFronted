@@ -77,7 +77,7 @@ class PhoneInputField extends StatelessWidget {
                 hint: '310 123 45 67',
                 controller: controller,
                 keyboardType: TextInputType.phone,
-                maxLength: maxLength,
+                maxLength: 15,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
                 prefixIcon: countries.isNotEmpty

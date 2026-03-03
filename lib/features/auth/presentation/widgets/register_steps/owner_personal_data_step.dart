@@ -86,6 +86,11 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
               label: 'Nombre completo',
               hint: 'Jhon Doe',
               controller: widget.nameController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+                ),
+              ],
             ),
 
             const SizedBox(height: AppSpacing.m),

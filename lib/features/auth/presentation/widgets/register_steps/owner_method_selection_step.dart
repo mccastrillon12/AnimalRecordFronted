@@ -105,7 +105,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                       _selectedPhoneCountryId = value;
                     });
                   },
-                  maxLength: 15,
+                  maxLength: 50,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 );
               } else if (state is LocationsLoading) {

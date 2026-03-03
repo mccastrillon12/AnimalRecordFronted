@@ -102,11 +102,13 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
                       TextFormField(
                         controller: _identifierController,
                         style: AppTypography.body3,
+                        maxLength: 50,
                         decoration: InputDecoration(
                           hintText: 'Ingresa tu correo electrónico',
                           hintStyle: AppTypography.body3.copyWith(
                             color: AppColors.greyMedio,
                           ),
+                          counterText: '',
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(4),
                             borderSide: const BorderSide(

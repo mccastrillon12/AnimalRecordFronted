@@ -57,6 +57,11 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               label: 'Nombre completo',
               hint: 'Valentina Rios',
               controller: widget.nameController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             CustomTextField(
@@ -99,7 +104,11 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               label: 'Número de Identificación (C.C.)',
               hint: '1037123456',
               controller: widget.idController,
-              keyboardType: TextInputType.number,
+              keyboardType: TextInputType.text,
+              maxLength: 50,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              ],
             ),
             const SizedBox(height: 16),
             CustomTextField(

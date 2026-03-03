@@ -88,8 +88,15 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ),
               ),
             );
-          } else if (state is AuthError) {
-            ErrorDisplay.showError(context, state.message);
+          } else if (state is AuthError &&
+              (ModalRoute.of(context)?.isCurrent ?? false)) {
+            if (state.message.contains(
+              'No se pudo iniciar sesión. Verifica tus credenciales',
+            )) {
+              Navigator.pop(context, state.message);
+            } else {
+              ErrorDisplay.showError(context, state.message);
+            }
           }
         },
         child: SingleChildScrollView(

@@ -79,7 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
     return phoneRegex.hasMatch(value);
   }
 
-  void _handleContinue() {
+  Future<void> _handleContinue() async {
     final identifier = _identifierController.text.trim();
 
     if (identifier.isEmpty) {
@@ -87,12 +87,18 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => PasswordScreen(identifier: identifier),
       ),
     );
+
+    if (result != null && result is String) {
+      if (mounted) {
+        ErrorDisplay.showError(context, result);
+      }
+    }
   }
 
   final google_sign_in.GoogleSignIn _googleSignIn = google_sign_in.GoogleSignIn(
@@ -248,7 +254,8 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
             Navigator.pushReplacementNamed(context, '/home');
           }
-        } else if (state is AuthError) {
+        } else if (state is AuthError &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
           if (state.message.contains('¡Cuenta creada con éxito!')) {
             ErrorDisplay.showSuccess(context, state.message);
           } else {
