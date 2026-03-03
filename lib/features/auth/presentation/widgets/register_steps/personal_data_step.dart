@@ -57,6 +57,11 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               label: 'Nombre completo',
               hint: 'Valentina Rios',
               controller: widget.nameController,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(
+                  RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+                ),
+              ],
             ),
             const SizedBox(height: 16),
             CustomTextField(

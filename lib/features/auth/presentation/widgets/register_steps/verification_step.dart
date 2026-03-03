@@ -12,6 +12,8 @@ class VerificationStep extends StatefulWidget {
   final VoidCallback? onTimerChanged;
   final bool isResending;
   final int? initialTimeRemaining;
+  final bool hasError;
+  final String? errorMessage;
 
   const VerificationStep({
     super.key,
@@ -22,6 +24,8 @@ class VerificationStep extends StatefulWidget {
     this.onTimerChanged,
     this.isResending = false,
     this.initialTimeRemaining,
+    this.hasError = false,
+    this.errorMessage,
   });
 
   @override
@@ -145,9 +149,18 @@ class VerificationStepState extends State<VerificationStep> {
               focusNode: _focusNodes[index],
               onChanged: (value) => _onCodeChanged(index, value),
               onBackspace: () => _onBackspace(index),
+              hasError: widget.hasError,
             );
           }),
         ),
+        if (widget.hasError && widget.errorMessage != null) ...[
+          const SizedBox(height: 16),
+          Text(
+            widget.errorMessage!,
+            style: AppTypography.body4.copyWith(color: AppColors.error),
+            textAlign: TextAlign.center,
+          ),
+        ],
       ],
     );
   }
@@ -159,6 +172,7 @@ class _CodeInputField extends StatelessWidget {
   final FocusNode focusNode;
   final Function(String) onChanged;
   final VoidCallback onBackspace;
+  final bool hasError;
 
   const _CodeInputField({
     required this.index,
@@ -166,6 +180,7 @@ class _CodeInputField extends StatelessWidget {
     required this.focusNode,
     required this.onChanged,
     required this.onBackspace,
+    this.hasError = false,
   });
 
   BorderRadius _getBorderRadius() {
@@ -188,7 +203,8 @@ class _CodeInputField extends StatelessWidget {
         controller: controller,
         focusNode: focusNode,
         textAlign: TextAlign.center,
-        keyboardType: TextInputType.number,
+        keyboardType: TextInputType.text,
+        textCapitalization: TextCapitalization.characters,
         maxLength: 1,
         style: AppTypography.heading2,
         decoration: InputDecoration(
@@ -196,12 +212,15 @@ class _CodeInputField extends StatelessWidget {
           contentPadding: EdgeInsets.zero,
           enabledBorder: OutlineInputBorder(
             borderRadius: _getBorderRadius(),
-            borderSide: const BorderSide(color: AppColors.greyMedio, width: 1),
+            borderSide: BorderSide(
+              color: hasError ? AppColors.error : AppColors.greyMedio,
+              width: 1,
+            ),
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: _getBorderRadius(),
-            borderSide: const BorderSide(
-              color: AppColors.primaryAzulClaro,
+            borderSide: BorderSide(
+              color: hasError ? AppColors.error : AppColors.primaryAzulClaro,
               width: 2,
             ),
           ),
@@ -214,7 +233,9 @@ class _CodeInputField extends StatelessWidget {
             borderSide: const BorderSide(color: AppColors.error, width: 2),
           ),
         ),
-        inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+        ],
         textInputAction: TextInputAction.next,
         onTap: () {
           controller.clear();

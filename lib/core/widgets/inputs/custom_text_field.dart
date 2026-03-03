@@ -194,7 +194,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               keyboardType: widget.keyboardType,
               validator: widget.validator,
               onChanged: _onChanged,
-              maxLength: widget.maxLength,
+              maxLength: widget.maxLength ?? (widget.isPassword ? 20 : 50),
               maxLengthEnforcement: MaxLengthEnforcement.enforced,
               buildCounter:
                   (

@@ -254,7 +254,8 @@ class _LoginScreenState extends State<LoginScreen> {
           } else {
             Navigator.pushReplacementNamed(context, '/home');
           }
-        } else if (state is AuthError) {
+        } else if (state is AuthError &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
           if (state.message.contains('¡Cuenta creada con éxito!')) {
             ErrorDisplay.showSuccess(context, state.message);
           } else {

@@ -37,7 +37,6 @@ class _SecurityStepState extends State<SecurityStep> {
         CustomTextField(
           label: 'Contraseña',
           isPassword: true,
-          maxLength: 12,
           obscureText: _obscurePassword,
           controller: widget.passwordController,
           onToggleVisibility: () {
@@ -57,7 +56,6 @@ class _SecurityStepState extends State<SecurityStep> {
         CustomTextField(
           label: 'Confirmar contraseña',
           isPassword: true,
-          maxLength: 12,
           obscureText: _obscureConfirmPassword,
           controller: widget.confirmPasswordController,
           errorText: widget.confirmPasswordError,

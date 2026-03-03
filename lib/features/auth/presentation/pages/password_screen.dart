@@ -88,7 +88,8 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 ),
               ),
             );
-          } else if (state is AuthError) {
+          } else if (state is AuthError &&
+              (ModalRoute.of(context)?.isCurrent ?? false)) {
             if (state.message.contains(
               'No se pudo iniciar sesión. Verifica tus credenciales',
             )) {
@@ -109,7 +110,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
                   hint: '',
                   controller: _passwordController,
                   isPassword: true,
-                  maxLength: 12,
                   obscureText: _obscurePassword,
                   onToggleVisibility: () {
                     setState(() {

@@ -34,6 +34,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
   bool _isResending = false;
   bool _canResendLocally = true;
   bool _isNavigating = false;
+  String? _errorMessage;
 
   @override
   void initState() {
@@ -43,6 +44,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
   }
 
   void _onCodeChanged() {
+    if (_errorMessage != null) {
+      setState(() {
+        _errorMessage = null;
+      });
+    }
     setState(() {
       _isCodeComplete =
           _verificationKey.currentState?.isCodeComplete() ?? false;
@@ -59,17 +65,22 @@ class _VerificationScreenState extends State<VerificationScreen> {
     final code = _verificationKey.currentState?.getCode() ?? '';
 
     if (code.length != 5) {
-      ErrorDisplay.showError(
-        context,
-        'Por favor ingresa el código completo de 5 dígitos',
-      );
+      setState(() {
+        _errorMessage = 'Por favor ingresa el código completo de 5 dígitos';
+      });
       return;
     }
 
-    if (!RegExp(r'^\d{5}$').hasMatch(code)) {
-      ErrorDisplay.showError(context, 'El código debe contener solo números');
+    if (!RegExp(r'^[a-zA-Z0-9]{5}$').hasMatch(code)) {
+      setState(() {
+        _errorMessage = 'El código debe ser alfanumérico';
+      });
       return;
     }
+
+    setState(() {
+      _errorMessage = null;
+    });
 
     context.read<AuthBloc>().add(
       VerifyCodeSubmitted(VerifyCodeParams(email: widget.email, code: code)),
@@ -115,8 +126,9 @@ class _VerificationScreenState extends State<VerificationScreen> {
           } else if (state is AuthError) {
             setState(() {
               _isResending = false;
+              _errorMessage =
+                  'Código inválido.\nRevisa los dígitos y vuelve a intentarlo.';
             });
-            ErrorDisplay.showError(context, state.message);
           }
         },
         child: Column(
@@ -135,6 +147,8 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       onCodeChanged: _onCodeChanged,
                       onTimerChanged: _onTimerChanged,
                       isResending: _isResending,
+                      hasError: _errorMessage != null,
+                      errorMessage: _errorMessage,
                     ),
                     const SizedBox(height: 40),
                     BlocBuilder<AuthBloc, AuthState>(
