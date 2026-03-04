@@ -183,7 +183,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   const SizedBox(height: AppSpacing.xxl),
                   Text(
                     isStep1 ? 'Crear PIN' : 'Confirmar PIN',
-                    style: AppTypography.heading2,
+                    style: AppTypography.heading1,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -207,47 +207,60 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: TextField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            style: AppTypography.heading2,
-                            decoration: InputDecoration(
-                              counterText: '',
-                              contentPadding: EdgeInsets.zero,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.greyMedio,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primaryFrances,
-                                  width: 2,
-                                ),
+                      return SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: AppTypography.heading2,
+                          decoration: InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.zero,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: Color(0xFFA8AFBD),
                               ),
                             ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (value) {
-                              if (value.isEmpty) {
-                                _onBackspace(index);
-                              } else {
-                                _onCodeChanged(index, value);
-                              }
-                              setState(() {});
-                            },
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: AppColors.primaryFrances,
+                                width: 2,
+                              ),
+                            ),
                           ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onChanged: (value) {
+                            if (value.isEmpty) {
+                              _onBackspace(index);
+                            } else {
+                              _onCodeChanged(index, value);
+                            }
+                            setState(() {});
+                          },
                         ),
                       );
                     }),

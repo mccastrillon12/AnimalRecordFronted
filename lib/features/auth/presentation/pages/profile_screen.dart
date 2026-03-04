@@ -86,15 +86,15 @@ class ProfileScreen extends StatelessWidget {
                           children: [
                             Text(
                               role,
-                              style: AppTypography.body3.copyWith(
+                              style: AppTypography.body4.copyWith(
                                 color: Colors.white,
                               ),
                             ),
                             const SizedBox(height: AppSpacing.l),
 
                             Container(
-                              width: 100,
-                              height: 100,
+                              width: 96,
+                              height: 96,
                               decoration: BoxDecoration(
                                 color: AppColors.primaryIndigo,
                                 borderRadius: BorderRadius.circular(20),
@@ -126,7 +126,7 @@ class ProfileScreen extends StatelessWidget {
                               child: Text(
                                 email,
                                 style: AppTypography.body4.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -143,7 +143,7 @@ class ProfileScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _buildActionButton(
-                                icon: Icons.groups_outlined,
+                                icon: 'assets/icons/bold-people.svg',
                                 label: 'Cambiar perfil',
                                 onTap: () {},
                               ),
@@ -174,7 +174,7 @@ class ProfileScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 _buildOptionTile(
-                                  icon: Icons.person_outline,
+                                  icon: 'assets/icons/bold-frame.svg',
                                   label: 'Mi cuenta',
                                   onTap: () {
                                     Navigator.pushNamed(context, '/my-account');

@@ -57,7 +57,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                 const NavigationMenu(),
 
-                const SizedBox(height: 52),
+                const SizedBox(height: 24),
 
                 const Expanded(child: AnimalsSection()),
               ],

@@ -1,7 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -57,13 +56,24 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       try {
         final Map<String, dynamic> userMap = json.decode(userData);
         setState(() {
-          _userName = userMap['name'] ?? '';
+          _userName = _capitalizeWords(userMap['name'] ?? '');
           _authMethod = userMap['authMethod'] ?? 'EMAIL';
 
           _userIdentifier = userMap['email'] ?? userMap['cellPhone'] ?? '';
         });
       } catch (_) {}
     }
+  }
+
+  String _capitalizeWords(String input) {
+    if (input.isEmpty) return input;
+    return input
+        .split(' ')
+        .map((word) {
+          if (word.isEmpty) return word;
+          return word[0].toUpperCase() + word.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 
   Future<void> _authenticate() async {
@@ -132,21 +142,9 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                   const Spacer(),
                   Column(
                     children: [
-                      SvgPicture.asset(
-                        'assets/Logo/Imagotipo_blanco.png',
-                        height: 60,
-                        colorFilter: const ColorFilter.mode(
-                          Colors.white,
-                          BlendMode.srcIn,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.s),
-                      Text(
-                        'ANIMAL RECORD',
-                        style: AppTypography.heading1.copyWith(
-                          color: Colors.white,
-                          letterSpacing: 1.5,
-                        ),
+                      Image.asset(
+                        'assets/Logo/Logotipo_blanco.png',
+                        width: 296,
                       ),
                     ],
                   ),
@@ -156,20 +154,31 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                   if (_userName.isNotEmpty)
                     Text(
                       _userName,
-                      style: AppTypography.heading2.copyWith(
+                      style: AppTypography.heading1.copyWith(
                         color: Colors.white,
                       ),
                     ),
 
                   const SizedBox(height: AppSpacing.l),
 
-                  Text(
-                    'Tu cuenta sigue activa y tu información está segura con nosotros.\nIngresa con tu huella, FaceID o contraseña.',
-                    textAlign: TextAlign.center,
-                    style: AppTypography.body4.copyWith(
-                      color: Colors.white,
-                      height: 1.5,
-                    ),
+                  Column(
+                    children: [
+                      Text(
+                        'Tu cuenta sigue activa y tu información está \nsegura con nosotros.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.body4.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Ingresa con tu huella, FaceID o contraseña.',
+                        textAlign: TextAlign.center,
+                        style: AppTypography.body3.copyWith(
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
                   ),
 
                   const Spacer(),
@@ -181,7 +190,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFFEF774F),
                           foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 56),
+                          minimumSize: const Size(double.infinity, 36),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -196,7 +205,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                               isIOS
                                   ? 'Ingresar con FaceID'
                                   : 'Ingresar con Biometría',
-                              style: AppTypography.body1.copyWith(
+                              style: AppTypography.body3.copyWith(
                                 color: Colors.white,
                               ),
                             ),
@@ -210,7 +219,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: AppColors.primaryIndigo,
-                          minimumSize: const Size(double.infinity, 56),
+                          minimumSize: const Size(double.infinity, 36),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(8),
                           ),
@@ -218,7 +227,9 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                         ),
                         child: Text(
                           'Ingresa con contraseña o PIN',
-                          style: AppTypography.body1,
+                          style: AppTypography.body3.copyWith(
+                            color: AppColors.primaryIndigo,
+                          ),
                         ),
                       ),
                     ],

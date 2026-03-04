@@ -131,6 +131,7 @@ class _SocialRegisterCompletionScreenState
     return AuthFormContainer(
       showLogo: false,
       onBack: () => Navigator.pop(context),
+      addInternalPadding: false,
       child: MultiBlocListener(
         listeners: [
           BlocListener<AuthBloc, AuthState>(
@@ -173,73 +174,70 @@ class _SocialRegisterCompletionScreenState
             },
           ),
         ],
-        child: Column(
-          children: [
-            Expanded(
-              child: FixedBottomActionLayout(
-                padding: EdgeInsets.zero,
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: AppSpacing.xxl),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Finaliza tu registro - Propietario',
-                        style: AppTypography.heading1,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.xl),
-                      Text(
-                        'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                        style: AppTypography.body4,
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: AppSpacing.l),
+        child: FixedBottomActionLayout(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xxl,
+              left: AppSpacing.l,
+              right: AppSpacing.l,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Finaliza tu registro - Propietario',
+                  style: AppTypography.heading1,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                  style: AppTypography.body4,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.l),
 
-                      CustomTextField(
-                        label: 'Nombre completo',
-                        controller: _nameController,
-                        enabled: false,
-                        labelStyle: AppTypography.body6.copyWith(
-                          color: const Color(0xFF2E3949).withOpacity(0.3),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.m),
-
-                      CustomTextField(
-                        label: 'Correo electrónico',
-                        controller: _emailController,
-                        enabled: false,
-                        labelStyle: AppTypography.body6.copyWith(
-                          color: const Color(0xFF2E3949).withOpacity(0.3),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.m),
-
-                      const _CountrySelectionSection(),
-                      const KeyboardSpacer(),
-                    ],
+                CustomTextField(
+                  label: 'Nombre completo',
+                  controller: _nameController,
+                  enabled: false,
+                  labelStyle: AppTypography.body6.copyWith(
+                    color: const Color(0xFF2E3949).withOpacity(0.3),
                   ),
                 ),
-                bottomChild: BlocBuilder<AuthBloc, AuthState>(
-                  builder: (context, state) {
-                    return ValueListenableBuilder<TextEditingValue>(
-                      valueListenable: _idController,
-                      builder: (context, value, _) {
-                        final bool isIdFilled = value.text.trim().isNotEmpty;
+                const SizedBox(height: AppSpacing.m),
 
-                        return CustomButton(
-                          text: 'Finalizar',
-                          isLoading: state is AuthLoading,
-                          onPressed: isIdFilled ? _onSubmit : null,
-                        );
-                      },
-                    );
-                  },
+                CustomTextField(
+                  label: 'Correo electrónico',
+                  controller: _emailController,
+                  enabled: false,
+                  labelStyle: AppTypography.body6.copyWith(
+                    color: const Color(0xFF2E3949).withOpacity(0.3),
+                  ),
                 ),
-              ),
+                const SizedBox(height: AppSpacing.m),
+
+                const _CountrySelectionSection(),
+                const KeyboardSpacer(),
+              ],
             ),
-          ],
+          ),
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _idController,
+                builder: (context, value, _) {
+                  final bool isIdFilled = value.text.trim().isNotEmpty;
+
+                  return CustomButton(
+                    text: 'Finalizar',
+                    isLoading: state is AuthLoading,
+                    onPressed: isIdFilled ? _onSubmit : null,
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
     );

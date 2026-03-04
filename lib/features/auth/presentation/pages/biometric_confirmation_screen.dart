@@ -35,12 +35,12 @@ class BiometricConfirmationScreen extends StatelessWidget {
                   BlendMode.srcIn,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxxl),
+              const SizedBox(height: 98),
 
               Text(
                 '¡Falta poco!',
                 textAlign: TextAlign.center,
-                style: AppTypography.heading2.copyWith(
+                style: AppTypography.heading1.copyWith(
                   color: AppColors.primaryWhite,
                 ),
               ),
@@ -48,7 +48,7 @@ class BiometricConfirmationScreen extends StatelessWidget {
 
               Text(
                 'Sólo falta iniciar sesión para asociar el Face ID o huella a tu cuenta.',
-                textAlign: TextAlign.center,
+                textAlign: TextAlign.start,
                 style: AppTypography.body4.copyWith(
                   color: AppColors.primaryWhite,
                   height: 1.5,

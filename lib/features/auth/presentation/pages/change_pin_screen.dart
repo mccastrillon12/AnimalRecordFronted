@@ -140,7 +140,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         title: _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
         onBack: _currentStep == 2
             ? () => setState(() => _currentStep = 1)
-            : () => Navigator.pop(context),
+            : null,
         onCancel: () => Navigator.pop(context),
         addInternalPadding: false,
         child: FixedBottomActionLayout(
@@ -172,21 +172,21 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   Widget _buildStep1() {
     return Column(
       children: [
-        const SizedBox(height: 20),
-        Text('Ingrese su PIN actual', style: AppTypography.body3),
-        const SizedBox(height: AppSpacing.m),
+        const SizedBox(height: 56),
+        Text('Ingrese su PIN actual', style: AppTypography.body4),
+        const SizedBox(height: AppSpacing.l),
         _buildPinFields(
           _oldPinControllers,
           _oldPinFocusNodes,
           _onOldPinChanged,
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: 56),
         Text(
           'Escoja 4 números nuevos para cambiar tu PIN.',
-          style: AppTypography.body3,
+          style: AppTypography.body4,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppSpacing.m),
+        const SizedBox(height: AppSpacing.l),
         _buildPinFields(
           _newPinControllers,
           _newPinFocusNodes,
@@ -201,10 +201,10 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   Widget _buildStep2() {
     return Column(
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 56),
         Text(
           'Confirme los 4 números escogidos del nuevo PIN.',
-          style: AppTypography.body3,
+          style: AppTypography.body4,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.m),
@@ -227,10 +227,9 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
-        return Container(
-          width: 50,
-          height: 50,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+        return SizedBox(
+          width: 40,
+          height: 40,
           child: TextField(
             controller: controllers[index],
             focusNode: focusNodes[index],
@@ -240,12 +239,21 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             obscureText: true,
             decoration: InputDecoration(
               counterText: '',
+              contentPadding: EdgeInsets.zero,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.greyMedio),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
+                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
                 borderSide: const BorderSide(
                   color: AppColors.primaryFrances,
                   width: 2,

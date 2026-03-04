@@ -116,9 +116,9 @@ class _NavigationMenuState extends State<NavigationMenu> {
           child: SvgPicture.asset(
             _isExpanded ? 'assets/icons/Up.svg' : 'assets/icons/Down.svg',
             width: 24,
-            height: 16,
+            height: 24,
             colorFilter: const ColorFilter.mode(
-              AppColors.greyMedio,
+              AppColors.greyBordes,
               BlendMode.srcIn,
             ),
           ),

@@ -173,7 +173,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                   _buildHeader(context),
                                   const SizedBox(height: AppSpacing.l),
                                   _buildAvatar(user, context),
-                                  const SizedBox(height: AppSpacing.m),
+                                  const SizedBox(height: AppSpacing.l),
                                   Text(
                                     StringFormatters.formatName(user.name),
                                     style: AppTypography.heading2.copyWith(
@@ -207,7 +207,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               keyboardType:
                                                   TextInputType.emailAddress,
                                             ),
-                                            const SizedBox(height: AppSpacing.m),
+                                            const SizedBox(
+                                              height: AppSpacing.m,
+                                            ),
                                           ],
                                           _LocationSelector(
                                             user: user,
@@ -237,7 +239,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                             controller: _addressController,
                                             label:
                                                 'Dirección de residencia (Opcional)',
-                                            hint: 'Calle 123 # 45-67',
                                           ),
                                           const KeyboardSpacer(),
                                         ],
@@ -299,7 +300,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Stack(
       children: [
         Padding(
-          padding: const EdgeInsets.only(top: 57),
+          padding: const EdgeInsets.only(top: 80),
           child: Center(
             child: Text(
               'Perfil',

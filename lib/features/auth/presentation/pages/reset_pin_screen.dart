@@ -124,10 +124,9 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
-        return Container(
-          width: 50,
-          height: 50,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+        return SizedBox(
+          width: 40,
+          height: 40,
           child: TextField(
             controller: _pinControllers[index],
             focusNode: _pinFocusNodes[index],
@@ -137,12 +136,21 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
             obscureText: true,
             decoration: InputDecoration(
               counterText: '',
+              contentPadding: EdgeInsets.zero,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.greyMedio),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
+                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
                 borderSide: const BorderSide(
                   color: AppColors.primaryFrances,
                   width: 2,

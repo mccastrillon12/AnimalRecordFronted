@@ -189,7 +189,7 @@ class _CityDropdownState extends State<CityDropdown> {
                 border: Border.all(
                   color: _isOpen
                       ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
+                      : AppColors.greyBordes,
                 ),
                 borderRadius: BorderRadius.circular(4),
                 color: widget.enabled
@@ -203,7 +203,7 @@ class _CityDropdownState extends State<CityDropdown> {
                       selectedCity?.name ?? 'Selecciona una ciudad',
                       style: AppTypography.body4.copyWith(
                         color: selectedCity == null
-                            ? AppColors.greyMedio
+                            ? AppColors.greyBordes
                             : AppColors.greyTextos,
                       ),
                       overflow: TextOverflow.ellipsis,

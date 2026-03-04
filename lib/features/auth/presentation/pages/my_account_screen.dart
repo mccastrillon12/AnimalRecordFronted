@@ -240,7 +240,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               controller: _nameController,
                                               label: 'Nombre completo',
                                             ),
-                                            const SizedBox(height: AppSpacing.l),
+                                            const SizedBox(
+                                              height: AppSpacing.l,
+                                            ),
 
                                             if (isPhoneLogin) ...[
                                               Text(
@@ -251,13 +253,17 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: AppSpacing.xs),
+                                              const SizedBox(
+                                                height: AppSpacing.xs,
+                                              ),
                                               DataValueBox(
                                                 value: user.cellPhone.isNotEmpty
                                                     ? user.cellPhone
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(height: AppSpacing.s),
+                                              const SizedBox(
+                                                height: AppSpacing.s,
+                                              ),
                                               Text(
                                                 'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
                                                 style: AppTypography.body4
@@ -267,7 +273,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       fontSize: 13,
                                                     ),
                                               ),
-                                              const SizedBox(height: AppSpacing.l),
+                                              const SizedBox(
+                                                height: AppSpacing.l,
+                                              ),
                                               CustomTextField(
                                                 controller: _emailController,
                                                 label: 'Correo electrónico',
@@ -276,19 +284,23 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             ] else ...[
                                               Text(
                                                 'Correo electrónico',
-                                                style: AppTypography.body5
+                                                style: AppTypography.body6
                                                     .copyWith(
                                                       color: AppColors
                                                           .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: AppSpacing.xs),
+                                              const SizedBox(
+                                                height: AppSpacing.xs,
+                                              ),
                                               DataValueBox(
                                                 value: user.email.isNotEmpty
                                                     ? user.email
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(height: AppSpacing.s),
+                                              const SizedBox(
+                                                height: AppSpacing.s,
+                                              ),
                                               RichText(
                                                 text: TextSpan(
                                                   style: AppTypography.body4
@@ -305,7 +317,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                     TextSpan(
                                                       text:
                                                           'support@animalrecord.com',
-                                                      style: AppTypography.body4
+                                                      style: AppTypography.body6
                                                           .copyWith(
                                                             color: AppColors
                                                                 .primaryFrances,
@@ -317,7 +329,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(height: AppSpacing.l),
+                                              const SizedBox(
+                                                height: AppSpacing.l,
+                                              ),
                                               BlocBuilder<
                                                 LocationsCubit,
                                                 LocationsState
@@ -433,7 +447,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: AppSpacing.xs),
+                                                  const SizedBox(
+                                                    height: AppSpacing.xs,
+                                                  ),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4
@@ -529,7 +545,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: AppSpacing.xs),
+                                                  const SizedBox(
+                                                    height: AppSpacing.xs,
+                                                  ),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4

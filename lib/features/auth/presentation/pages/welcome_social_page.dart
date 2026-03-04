@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 
 class WelcomeSocialPage extends StatelessWidget {
   final String userName;
@@ -22,76 +23,74 @@ class WelcomeSocialPage extends StatelessWidget {
           ),
         ),
         child: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                const Spacer(flex: 1),
+          child: FixedBottomActionLayout(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 84),
 
-                Image.asset('assets/Logo/Logotipo_blanco.png', height: 80),
-                const SizedBox(height: AppSpacing.xxl),
-
-                Text(
-                  '¡Bienvenido $userName!',
-                  style: AppTypography.heading2.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
+                  Center(
+                    child: Image.asset(
+                      'assets/Logo/Logotipo_blanco.png',
+                      height: 85,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                  const SizedBox(height: 70),
 
-                Text(
-                  'Estamos complacidos de tenerte en este espacio.',
-                  style: AppTypography.body4.copyWith(color: Colors.white),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: AppSpacing.m),
-                Text(
-                  'En AnimalRecord podrás encontrar todo lo que necesites relacionado a tus animales.',
-                  style: AppTypography.body4.copyWith(color: Colors.white),
-                  textAlign: TextAlign.start,
-                ),
-                const SizedBox(height: AppSpacing.xl),
+                  Center(
+                    child: Text(
+                      '¡Bienvenido $userName!',
+                      style: AppTypography.heading1.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
 
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
+                  Text(
+                    'Estamos complacidos de tenerte en este espacio.',
+                    style: AppTypography.body4.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                  Text(
+                    'En AnimalRecord podrás encontrar todo lo que necesites relacionado a tus animales.',
+                    style: AppTypography.body4.copyWith(color: Colors.white),
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  Text(
                     'Contarás con información de:',
                     style: AppTypography.body4.copyWith(color: Colors.white),
                   ),
-                ),
-                const SizedBox(height: AppSpacing.m),
+                  const SizedBox(height: AppSpacing.m),
 
-                _buildFeatureItem('Historia clínica'),
-                _buildFeatureItem('Carné de vacunación'),
-                _buildFeatureItem('Agregar nuevos animales'),
-                _buildFeatureItem('Agenda'),
-                _buildFeatureItem('Transferencia de animales'),
-                const SizedBox(height: AppSpacing.s),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
+                  _buildFeatureItem('Historia clínica'),
+                  _buildFeatureItem('Carné de vacunación'),
+                  _buildFeatureItem('Agregar nuevos animales'),
+                  _buildFeatureItem('Agenda'),
+                  _buildFeatureItem('Transferencia de animales'),
+                  const SizedBox(height: AppSpacing.s),
+                  Text(
                     'Y mucho más...',
                     style: AppTypography.body4.copyWith(color: Colors.white),
                   ),
-                ),
-
-                const Spacer(flex: 2),
-
-                CustomButton(
-                  text: 'Comenzar',
-                  onPressed: () {
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/home',
-                      (route) => false,
-                    );
-                  },
-                ),
-                const SizedBox(height: AppSpacing.xl),
-              ],
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+              ),
+            ),
+            bottomChild: CustomButton(
+              text: 'Comenzar',
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false,
+                );
+              },
             ),
           ),
         ),
