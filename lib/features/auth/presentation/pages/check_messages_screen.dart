@@ -24,8 +24,8 @@ class CheckMessagesScreen extends StatelessWidget {
             children: [
               Image.asset(
                 'assets/illustrations/email.png',
-                width: 150,
-                height: 150,
+                width: 200,
+                height: 200,
                 fit: BoxFit.contain,
               ),
               const SizedBox(height: AppSpacing.xl),

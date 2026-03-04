@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -159,7 +160,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             body: SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.l),
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -225,7 +226,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 24),
+                                      const SizedBox(height: AppSpacing.l),
 
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -239,7 +240,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               controller: _nameController,
                                               label: 'Nombre completo',
                                             ),
-                                            const SizedBox(height: 24),
+                                            const SizedBox(height: AppSpacing.l),
 
                                             if (isPhoneLogin) ...[
                                               Text(
@@ -250,13 +251,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(height: AppSpacing.xs),
                                               DataValueBox(
                                                 value: user.cellPhone.isNotEmpty
                                                     ? user.cellPhone
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: AppSpacing.s),
                                               Text(
                                                 'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
                                                 style: AppTypography.body4
@@ -266,7 +267,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       fontSize: 13,
                                                     ),
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(height: AppSpacing.l),
                                               CustomTextField(
                                                 controller: _emailController,
                                                 label: 'Correo electrónico',
@@ -281,13 +282,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(height: AppSpacing.xs),
                                               DataValueBox(
                                                 value: user.email.isNotEmpty
                                                     ? user.email
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(height: 12),
+                                              const SizedBox(height: AppSpacing.s),
                                               RichText(
                                                 text: TextSpan(
                                                   style: AppTypography.body4
@@ -316,7 +317,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(height: AppSpacing.l),
                                               BlocBuilder<
                                                 LocationsCubit,
                                                 LocationsState
@@ -354,7 +355,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(height: 32),
+                                      const SizedBox(height: AppSpacing.xl),
 
                                       if (user.authMethod.toLowerCase() ==
                                           'email')
@@ -432,7 +433,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  const SizedBox(height: AppSpacing.xs),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4
@@ -528,7 +529,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  const SizedBox(height: AppSpacing.xs),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4
@@ -543,7 +544,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ],
                                         ),
 
-                                      const SizedBox(height: 40),
+                                      const SizedBox(height: AppSpacing.xxl),
                                     ],
                                   ),
                                 ),

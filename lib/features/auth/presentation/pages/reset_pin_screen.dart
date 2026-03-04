@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -97,7 +98,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
                   style: AppTypography.body3,
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 32),
+                const SizedBox(height: AppSpacing.xl),
                 _buildPinFields(),
                 if (_errorMessage != null) _buildError(),
                 const KeyboardSpacer(),
@@ -161,7 +162,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
       padding: const EdgeInsets.only(top: 16),
       child: Text(
         _errorMessage!,
-        style: AppTypography.body4.copyWith(color: AppColors.error),
+        style: AppTypography.body5.copyWith(color: AppColors.error),
         textAlign: TextAlign.center,
       ),
     );

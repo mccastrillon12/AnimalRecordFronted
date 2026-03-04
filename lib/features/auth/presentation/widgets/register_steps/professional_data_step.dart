@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import '../tag_input_widget.dart';
@@ -31,7 +32,7 @@ class ProfessionalDataStep extends StatelessWidget {
           hint: '123456789',
           controller: professionalCardController,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         TagInputWidget(
           key: animalTypesKey,
           label: 'Tipos de animales',
@@ -39,7 +40,7 @@ class ProfessionalDataStep extends StatelessWidget {
           tags: animalTypes,
           onTagsChanged: onAnimalTypesChanged,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         TagInputWidget(
           key: servicesKey,
           label: 'Servicios',

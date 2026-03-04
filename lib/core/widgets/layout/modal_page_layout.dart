@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -28,7 +29,7 @@ class ModalPageLayout extends StatelessWidget {
             SingleChildScrollView(
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.l),
 
                   Container(
                     width: double.infinity,

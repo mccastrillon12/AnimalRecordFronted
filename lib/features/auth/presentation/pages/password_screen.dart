@@ -63,6 +63,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
       showLogo: true,
       showCancelButton: false,
       title: 'Ingresa tu contraseña',
+      titleSpacing: AppSpacing.xs,
       subtitle: Text(
         widget.identifier,
         style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
@@ -117,9 +118,6 @@ class _PasswordScreenState extends State<PasswordScreen> {
                     });
                   },
                   labelStyle: AppTypography.body6,
-                  hintStyle: AppTypography.body4.copyWith(
-                    color: AppColors.greyMedio,
-                  ),
                   borderColor: AppColors.greyMedio,
                   onSubmitted: (_) => _handleLogin(),
                 ),

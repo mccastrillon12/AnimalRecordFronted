@@ -257,13 +257,13 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     const SizedBox(height: AppSpacing.m),
                     Text(
                       _errorMessage!,
-                      style: AppTypography.body4.copyWith(
+                      style: AppTypography.body5.copyWith(
                         color: AppColors.error,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ],
-                  const SizedBox(height: 40),
+                  const SizedBox(height: AppSpacing.xxl),
                   CustomButton(
                     text: isStep1 ? 'Continuar' : 'Verificar',
                     isLoading: isLoading,

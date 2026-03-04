@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AuthFormContainer extends StatelessWidget {
   final Widget child;
@@ -12,6 +13,7 @@ class AuthFormContainer extends StatelessWidget {
   final String? title;
   final Widget? subtitle;
   final bool addInternalPadding;
+  final double titleSpacing;
 
   const AuthFormContainer({
     super.key,
@@ -23,6 +25,7 @@ class AuthFormContainer extends StatelessWidget {
     this.title,
     this.subtitle,
     this.addInternalPadding = true,
+    this.titleSpacing = 1.0,
   });
 
   @override
@@ -43,7 +46,15 @@ class AuthFormContainer extends StatelessWidget {
                   children: [
                     if (onBack != null)
                       IconButton(
-                        icon: const Icon(Icons.arrow_back, color: Colors.white),
+                        icon: SvgPicture.asset(
+                          'assets/icons/arrow-left.svg',
+                          colorFilter: const ColorFilter.mode(
+                            Colors.white,
+                            BlendMode.srcIn,
+                          ),
+                          width: 24,
+                          height: 24,
+                        ),
                         onPressed: onBack,
                       )
                     else
@@ -127,11 +138,8 @@ class AuthFormContainer extends StatelessWidget {
                                   style: AppTypography.heading1,
                                 ),
                               ),
-                            if (subtitle != null)
-                              SizedBox(
-                                height: AppSpacing.registerSubtitleHeight,
-                                child: subtitle!,
-                              ),
+                            SizedBox(height: titleSpacing),
+                            if (subtitle != null) subtitle!,
                           ],
                         ),
                       ),

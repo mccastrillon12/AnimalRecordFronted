@@ -287,6 +287,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     padding: const EdgeInsets.only(top: AppSpacing.l),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
+                      spacing: AppSpacing.xs,
                       children: [
                         Text(
                           '¿No tienes una cuenta? ',
@@ -328,9 +329,6 @@ class _LoginScreenState extends State<LoginScreen> {
                       hint: 'Correo / Celular',
                       controller: _identifierController,
                       labelStyle: AppTypography.body6,
-                      hintStyle: AppTypography.body4.copyWith(
-                        color: AppColors.greyMedio,
-                      ),
                       borderColor: AppColors.greyMedio,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 50,
@@ -345,9 +343,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (!widget.hideBiometrics) ...[
                     Center(child: _BiometricButton()),
-                    const SizedBox(height: AppSpacing.xl),
                   ],
-                  const SizedBox(height: AppSpacing.xl),
+
                   Row(
                     children: [
                       const Expanded(child: Divider()),
@@ -474,10 +471,13 @@ class _BiometricButton extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              padding: const EdgeInsets.all(AppSpacing.xs),
+              width: AppSpacing.socialButtonSize,
+              height: AppSpacing.socialButtonSize,
+              padding: const EdgeInsets.all(AppSpacing.s),
               decoration: BoxDecoration(
                 color: AppColors.greyIconosBackground,
-                borderRadius: AppBorders.medium(),
+                border: Border.all(color: AppColors.border),
+                borderRadius: AppBorders.small(),
               ),
               child: SvgPicture.asset(
                 iconPath,
@@ -525,7 +525,7 @@ class _SocialButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.greyIconosBackground,
               border: Border.all(color: AppColors.border),
-              borderRadius: AppBorders.medium(),
+              borderRadius: AppBorders.small(),
             ),
             child: SvgPicture.asset(
               iconPath,

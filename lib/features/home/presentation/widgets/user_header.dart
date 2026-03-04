@@ -62,7 +62,7 @@ class UserHeader extends StatelessWidget {
                   ),
                 ),
 
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
 
                 Expanded(
                   child: BlocBuilder<AuthBloc, AuthState>(

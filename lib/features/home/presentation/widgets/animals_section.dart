@@ -63,7 +63,7 @@ class AnimalsSection extends StatelessWidget {
               style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
 
             SizedBox(
               width: 128,

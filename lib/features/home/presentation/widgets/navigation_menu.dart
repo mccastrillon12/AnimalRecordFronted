@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -71,7 +72,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: AppSpacing.l),
                         ],
                       )
                     : const SizedBox.shrink(),
@@ -104,7 +105,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
           ),
         ),
 
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
 
         GestureDetector(
           onTap: () {

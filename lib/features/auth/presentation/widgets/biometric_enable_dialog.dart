@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -25,7 +26,7 @@ class BiometricEnableDialog extends StatelessWidget {
                 constraints: const BoxConstraints(),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               'La biometría no está activa',
               style: AppTypography.heading2.copyWith(
@@ -34,13 +35,13 @@ class BiometricEnableDialog extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             Text(
               'Actualmente no tienes habilitado el ingreso con huella digital o reconocimiento facial en este dispositivo. Si decides activarlo, tu sesión se cerrará y deberás iniciar sesión nuevamente para completar la configuración.',
               style: AppTypography.body3.copyWith(color: AppColors.greyIconos),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
             Row(
               children: [
                 Expanded(
@@ -55,7 +56,7 @@ class BiometricEnableDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.m),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {

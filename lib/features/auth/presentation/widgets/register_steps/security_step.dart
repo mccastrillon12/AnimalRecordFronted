@@ -72,6 +72,7 @@ class _SecurityStepState extends State<SecurityStep> {
               width: 22,
               child: Checkbox(
                 value: widget.acceptTerms,
+                activeColor: AppColors.primaryFrances,
                 onChanged: (value) => widget.onTermsChanged(value ?? false),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(4),
@@ -91,18 +92,18 @@ class _SecurityStepState extends State<SecurityStep> {
                     TextSpan(
                       text: 'Términos de servicio',
                       style: AppTypography.body4.copyWith(
-                        color: AppColors.primaryAzulClaro,
+                        color: AppColors.primaryFrances,
                         decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primaryAzulClaro,
+                        decorationColor: AppColors.primaryFrances,
                       ),
                     ),
                     const TextSpan(text: ' y la '),
                     TextSpan(
                       text: 'Política de privacidad',
                       style: AppTypography.body4.copyWith(
-                        color: AppColors.primaryAzulClaro,
+                        color: AppColors.primaryFrances,
                         decoration: TextDecoration.underline,
-                        decorationColor: AppColors.primaryAzulClaro,
+                        decorationColor: AppColors.primaryFrances,
                       ),
                     ),
                     const TextSpan(text: ' de Animal Record.'),

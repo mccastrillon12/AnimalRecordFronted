@@ -155,7 +155,7 @@ class _IdSelectorState extends State<IdSelector> {
                           ? AppColors.primaryFrances
                           : (widget.errorText != null
                                 ? AppColors.error
-                                : AppColors.greyMedio),
+                                : AppColors.greyBordes),
                     ),
                     borderRadius: BorderRadius.circular(4),
                     color: Colors.white,
@@ -204,7 +204,7 @@ class _IdSelectorState extends State<IdSelector> {
                       decoration: InputDecoration(
                         hintText: '1234567890',
                         hintStyle: AppTypography.body4.copyWith(
-                          color: AppColors.textSecondary.withValues(alpha: 0.5),
+                          color: AppColors.greyBordes,
                         ),
                         contentPadding: const EdgeInsets.symmetric(
                           horizontal: AppSpacing.m,
@@ -215,7 +215,7 @@ class _IdSelectorState extends State<IdSelector> {
                           borderSide: BorderSide(
                             color: widget.errorText != null
                                 ? AppColors.error
-                                : AppColors.greyMedio,
+                                : AppColors.greyBordes,
                             width: 1.0,
                           ),
                         ),
@@ -224,7 +224,7 @@ class _IdSelectorState extends State<IdSelector> {
                           borderSide: BorderSide(
                             color: widget.errorText != null
                                 ? AppColors.error
-                                : AppColors.greyMedio,
+                                : AppColors.greyBordes,
                             width: 1.0,
                           ),
                         ),
@@ -233,8 +233,8 @@ class _IdSelectorState extends State<IdSelector> {
                           borderSide: BorderSide(
                             color: widget.errorText != null
                                 ? AppColors.error
-                                : AppColors.primaryFrances,
-                            width: 2.0,
+                                : AppColors.greyBordes,
+                            width: 1.0,
                           ),
                         ),
                       ),
@@ -244,7 +244,7 @@ class _IdSelectorState extends State<IdSelector> {
                     const SizedBox(height: 4),
                     Text(
                       widget.errorText!,
-                      style: AppTypography.body6.copyWith(
+                      style: AppTypography.body5.copyWith(
                         color: AppColors.error,
                         height: 1.2,
                       ),

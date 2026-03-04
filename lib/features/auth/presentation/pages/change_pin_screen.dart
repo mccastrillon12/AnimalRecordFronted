@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -173,7 +174,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
       children: [
         const SizedBox(height: 20),
         Text('Ingrese su PIN actual', style: AppTypography.body3),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         _buildPinFields(
           _oldPinControllers,
           _oldPinFocusNodes,
@@ -185,7 +186,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           style: AppTypography.body3,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         _buildPinFields(
           _newPinControllers,
           _newPinFocusNodes,
@@ -206,7 +207,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           style: AppTypography.body3,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         _buildPinFields(
           _confirmPinControllers,
           _confirmPinFocusNodes,
@@ -264,7 +265,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
       padding: const EdgeInsets.only(top: 16),
       child: Text(
         _errorMessage!,
-        style: AppTypography.body4.copyWith(color: AppColors.error),
+        style: AppTypography.body5.copyWith(color: AppColors.error),
         textAlign: TextAlign.center,
       ),
     );

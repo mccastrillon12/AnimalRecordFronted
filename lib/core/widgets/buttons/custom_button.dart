@@ -1,6 +1,7 @@
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 
 class CustomButton extends StatelessWidget {
   final String text;
@@ -30,6 +31,7 @@ class CustomButton extends StatelessWidget {
         elevation: 0,
         minimumSize: const Size(double.infinity, 36),
         textStyle: AppTypography.body3,
+        shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
       ),
       child: isLoading
           ? const SizedBox(

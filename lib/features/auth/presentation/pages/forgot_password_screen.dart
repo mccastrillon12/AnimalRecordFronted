@@ -6,6 +6,7 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/auth_form_container.dart';
+import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'check_messages_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
@@ -83,34 +84,34 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             showCancelButton: true,
             title: 'Cambiar contraseña',
             subtitle: Text(
-              'Te enviaremos las instrucciones para que puedas configurar una nueva contraseña.',
+              'Te enviaremos las instrucciones para que\npuedas configurar una nueva contraseña.',
               textAlign: TextAlign.center,
               style: AppTypography.body4,
             ),
-            child: SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  const SizedBox(height: AppSpacing.xxl),
-                  CustomTextField(
-                    label: 'Correo electrónico o celular',
-                    hint: 'marc_doe@hotmail.com',
-                    controller: _emailController,
-                    labelStyle: AppTypography.body6,
-                    hintStyle: AppTypography.body4.copyWith(
-                      color: AppColors.greyMedio,
+            addInternalPadding: false,
+            child: FixedBottomActionLayout(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    const SizedBox(height: AppSpacing.xxxl),
+                    CustomTextField(
+                      label: 'Correo electrónico o celular',
+                      hint: 'Correo / Celular',
+                      controller: _emailController,
+                      labelStyle: AppTypography.body6,
+                      borderColor: AppColors.greyMedio,
+                      keyboardType: TextInputType.emailAddress,
+                      maxLength: 50,
                     ),
-                    borderColor: AppColors.greyMedio,
-                    keyboardType: TextInputType.emailAddress,
-                    maxLength: 50,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  CustomButton(
-                    text: 'Enviar',
-                    isLoading: isLoading,
-                    onPressed: _isValidEmail && !isLoading ? _handleSend : null,
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              bottomChild: CustomButton(
+                text: 'Enviar',
+                isLoading: isLoading,
+                onPressed: _isValidEmail && !isLoading ? _handleSend : null,
               ),
             ),
           );

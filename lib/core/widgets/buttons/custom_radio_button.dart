@@ -39,7 +39,7 @@ class CustomRadioButton<T> extends StatelessWidget {
                 border: Border.all(
                   color: isSelected
                       ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
+                      : AppColors.greyBordes,
                   width: isSelected ? 7 : 2,
                 ),
               ),

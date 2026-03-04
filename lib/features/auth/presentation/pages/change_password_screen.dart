@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -103,7 +104,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.xxxl),
                 CustomTextField(
                   controller: _currentPasswordController,
                   label: 'Contraseña actual',
@@ -112,7 +113,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   onToggleVisibility: () =>
                       setState(() => _obscureCurrent = !_obscureCurrent),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.l),
                 CustomTextField(
                   controller: _newPasswordController,
                   label: 'Nueva contraseña',
@@ -121,7 +122,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   onToggleVisibility: () =>
                       setState(() => _obscureNew = !_obscureNew),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.m),
 
                 ValueListenableBuilder<TextEditingValue>(
                   valueListenable: _newPasswordController,
@@ -130,7 +131,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   },
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.l),
                 CustomTextField(
                   controller: _confirmPasswordController,
                   label: 'Confirmar nueva contraseña',

@@ -90,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppSpacing.l),
 
                             Container(
                               width: 100,
@@ -269,7 +269,7 @@ class ProfileScreen extends StatelessWidget {
                             letterSpacing: 2,
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: AppSpacing.xxl),
                       ],
                     ),
                   ),
@@ -325,7 +325,7 @@ class ProfileScreen extends StatelessWidget {
                   )
                 : Icon(icon, color: Colors.white),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(label, style: AppTypography.body6.copyWith(color: Colors.white)),
         ],
       ),

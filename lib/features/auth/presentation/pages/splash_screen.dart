@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/presentation/pages/biometric_lock_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -64,7 +65,7 @@ class _SplashScreenState extends State<SplashScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset('assets/Logo/Logotipo_blanco.png', height: 80),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.m),
             ],
           ),
         ),

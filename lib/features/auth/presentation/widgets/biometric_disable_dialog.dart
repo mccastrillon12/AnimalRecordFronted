@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -25,7 +26,7 @@ class BiometricDisableDialog extends StatelessWidget {
                 constraints: const BoxConstraints(),
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: AppSpacing.xs),
             Text(
               '¿Desea desactivar la biometría?',
               style: AppTypography.heading2.copyWith(
@@ -34,13 +35,13 @@ class BiometricDisableDialog extends StatelessWidget {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             Text(
               'Actualmente tienes activado el ingreso con huella o Face ID. Si lo desactivas, podrás volver a activarlo más adelante.',
               style: AppTypography.body3.copyWith(color: AppColors.greyIconos),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: AppSpacing.l),
             Row(
               children: [
                 Expanded(
@@ -55,7 +56,7 @@ class BiometricDisableDialog extends StatelessWidget {
                     ),
                   ),
                 ),
-                const SizedBox(width: 16),
+                const SizedBox(width: AppSpacing.m),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: () {

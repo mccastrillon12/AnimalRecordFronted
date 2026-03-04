@@ -106,7 +106,7 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
                         decoration: InputDecoration(
                           hintText: 'Ingresa tu correo electrónico',
                           hintStyle: AppTypography.body3.copyWith(
-                            color: AppColors.greyMedio,
+                            color: AppColors.greyBordes,
                           ),
                           counterText: '',
                           border: OutlineInputBorder(

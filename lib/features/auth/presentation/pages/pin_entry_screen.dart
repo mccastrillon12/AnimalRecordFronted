@@ -180,7 +180,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                     const SizedBox(height: AppSpacing.m),
                     Text(
                       _errorMessage!,
-                      style: AppTypography.body4.copyWith(
+                      style: AppTypography.body5.copyWith(
                         color: AppColors.error,
                       ),
                       textAlign: TextAlign.center,

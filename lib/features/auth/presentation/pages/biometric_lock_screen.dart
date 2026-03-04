@@ -183,7 +183,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                           foregroundColor: Colors.white,
                           minimumSize: const Size(double.infinity, 56),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           elevation: 0,
                         ),
@@ -191,7 +191,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(isIOS ? Icons.face : Icons.fingerprint),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: AppSpacing.xs),
                             Text(
                               isIOS
                                   ? 'Ingresar con FaceID'
@@ -212,17 +212,13 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                           foregroundColor: AppColors.primaryIndigo,
                           minimumSize: const Size(double.infinity, 56),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           elevation: 0,
                         ),
-                        child: const Text(
+                        child: Text(
                           'Ingresa con contraseña o PIN',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            fontFamily: 'Outfit',
-                          ),
+                          style: AppTypography.body1,
                         ),
                       ),
                     ],

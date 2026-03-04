@@ -61,10 +61,26 @@ class PhoneInputField extends StatelessWidget {
                 height: 18,
                 child: Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    label,
-                    style: (labelStyle ?? AppTypography.body6).copyWith(
-                      color: labelStyle?.color ?? AppColors.greyNegroV2,
+                  child: RichText(
+                    text: TextSpan(
+                      children: [
+                        TextSpan(
+                          text: label
+                              .replaceAll(' (Opcional)', '')
+                              .replaceAll('(Opcional)', '')
+                              .trim(),
+                          style: (labelStyle ?? AppTypography.body6).copyWith(
+                            color: labelStyle?.color ?? AppColors.greyNegroV2,
+                          ),
+                        ),
+                        if (label.contains('(Opcional)'))
+                          TextSpan(
+                            text: ' (Opcional)',
+                            style: (labelStyle ?? AppTypography.body6).copyWith(
+                              color: AppColors.greyBordes,
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ),
@@ -74,7 +90,7 @@ class PhoneInputField extends StatelessWidget {
 
               CustomTextField(
                 label: '',
-                hint: '310 123 45 67',
+
                 controller: controller,
                 keyboardType: TextInputType.phone,
                 maxLength: 15,
@@ -86,7 +102,7 @@ class PhoneInputField extends StatelessWidget {
                         child: Text(
                           '(${countries.cast<CountryEntity>().firstWhere((c) => c.id == selectedCountryId, orElse: () => countries.first).dialCode})',
                           style: AppTypography.body4.copyWith(
-                            color: AppColors.greyMedio,
+                            color: AppColors.greyBordes,
                           ),
                         ),
                       )

@@ -129,6 +129,8 @@ class _SocialRegisterCompletionScreenState
   @override
   Widget build(BuildContext context) {
     return AuthFormContainer(
+      showLogo: false,
+      onBack: () => Navigator.pop(context),
       child: MultiBlocListener(
         listeners: [
           BlocListener<AuthBloc, AuthState>(
@@ -177,27 +179,30 @@ class _SocialRegisterCompletionScreenState
               child: FixedBottomActionLayout(
                 padding: EdgeInsets.zero,
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.only(top: AppSpacing.s),
+                  padding: const EdgeInsets.only(top: AppSpacing.xxl),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(
                         'Finaliza tu registro - Propietario',
-                        style: AppTypography.heading2,
+                        style: AppTypography.heading1,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppSpacing.m),
+                      const SizedBox(height: AppSpacing.xl),
                       Text(
                         'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
                         style: AppTypography.body4,
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: AppSpacing.xl),
+                      const SizedBox(height: AppSpacing.l),
 
                       CustomTextField(
                         label: 'Nombre completo',
                         controller: _nameController,
                         enabled: false,
+                        labelStyle: AppTypography.body6.copyWith(
+                          color: const Color(0xFF2E3949).withOpacity(0.3),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.m),
 
@@ -205,6 +210,9 @@ class _SocialRegisterCompletionScreenState
                         label: 'Correo electrónico',
                         controller: _emailController,
                         enabled: false,
+                        labelStyle: AppTypography.body6.copyWith(
+                          color: const Color(0xFF2E3949).withOpacity(0.3),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.m),
 

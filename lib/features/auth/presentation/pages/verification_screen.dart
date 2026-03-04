@@ -150,7 +150,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       hasError: _errorMessage != null,
                       errorMessage: _errorMessage,
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppSpacing.xxl),
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         final isLoading = state is AuthLoading;
@@ -163,7 +163,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: AppSpacing.l),
+                    const SizedBox(height: AppSpacing.xxl),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

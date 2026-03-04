@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -133,7 +134,7 @@ class VerificationStepState extends State<VerificationStep> {
           style: AppTypography.heading1,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           'Ingresa el código de verificación que\nhemos enviado a $displayContact',
           style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
@@ -154,10 +155,10 @@ class VerificationStepState extends State<VerificationStep> {
           }),
         ),
         if (widget.hasError && widget.errorMessage != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           Text(
             widget.errorMessage!,
-            style: AppTypography.body4.copyWith(color: AppColors.error),
+            style: AppTypography.body5.copyWith(color: AppColors.error),
             textAlign: TextAlign.center,
           ),
         ],
@@ -213,7 +214,7 @@ class _CodeInputField extends StatelessWidget {
           enabledBorder: OutlineInputBorder(
             borderRadius: _getBorderRadius(),
             borderSide: BorderSide(
-              color: hasError ? AppColors.error : AppColors.greyMedio,
+              color: hasError ? AppColors.error : AppColors.greyBordes,
               width: 1,
             ),
           ),

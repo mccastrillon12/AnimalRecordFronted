@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -150,7 +151,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             body: SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.l),
 
                   Expanded(
                     child: Container(
@@ -170,23 +171,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               child: Column(
                                 children: [
                                   _buildHeader(context),
-                                  const SizedBox(height: 24),
+                                  const SizedBox(height: AppSpacing.l),
                                   _buildAvatar(user, context),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: AppSpacing.m),
                                   Text(
                                     StringFormatters.formatName(user.name),
                                     style: AppTypography.heading2.copyWith(
                                       color: AppColors.textPrimary,
                                     ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: AppSpacing.xs),
                                   Text(
                                     '${user.identificationType} ${user.identificationNumber}',
                                     style: AppTypography.body4.copyWith(
                                       color: AppColors.greyMedio,
                                     ),
                                   ),
-                                  const SizedBox(height: 32),
+                                  const SizedBox(height: AppSpacing.xl),
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 24,
@@ -206,7 +207,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               keyboardType:
                                                   TextInputType.emailAddress,
                                             ),
-                                            const SizedBox(height: 16),
+                                            const SizedBox(height: AppSpacing.m),
                                           ],
                                           _LocationSelector(
                                             user: user,
@@ -413,7 +414,7 @@ class _LocationSelector extends StatelessWidget {
                 onCountryChanged: onPhoneCountryChanged,
                 isOptional: true,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: AppSpacing.m),
             ],
 
             if (countries.isNotEmpty)
@@ -425,7 +426,7 @@ class _LocationSelector extends StatelessWidget {
                 enabled: false,
                 width: double.infinity,
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
 
             if (locationsState is LocationsLoaded)
               DepartmentDropdown(
@@ -440,7 +441,7 @@ class _LocationSelector extends StatelessWidget {
                 departments: locationsState.departments,
                 enabled: true,
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
 
             if (locationsState is LocationsLoaded)
               CityDropdown(
@@ -450,7 +451,7 @@ class _LocationSelector extends StatelessWidget {
                 cities: locationsState.cities,
                 enabled: selectedDepartmentId != null,
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
           ],
         );
       },
