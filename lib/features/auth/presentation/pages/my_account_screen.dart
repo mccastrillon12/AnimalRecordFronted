@@ -264,14 +264,33 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               const SizedBox(
                                                 height: AppSpacing.s,
                                               ),
-                                              Text(
-                                                'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
-                                                style: AppTypography.body4
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                      fontSize: 13,
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: AppTypography.body6
+                                                      .copyWith(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                        height: 1.5,
+                                                      ),
+                                                  children: [
+                                                    const TextSpan(
+                                                      text:
+                                                          'Si necesitas cambiar el celular de tu cuenta, escríbenos a ',
                                                     ),
+                                                    TextSpan(
+                                                      text:
+                                                          'support@animalrecord.com',
+                                                      style: AppTypography.body6
+                                                          .copyWith(
+                                                            color: AppColors
+                                                                .primaryFrances,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                               const SizedBox(
                                                 height: AppSpacing.l,
@@ -303,11 +322,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               ),
                                               RichText(
                                                 text: TextSpan(
-                                                  style: AppTypography.body4
+                                                  style: AppTypography.body6
                                                       .copyWith(
                                                         color: AppColors
                                                             .textSecondary,
-                                                        fontSize: 13,
+                                                        height: 1.5,
                                                       ),
                                                   children: [
                                                     const TextSpan(

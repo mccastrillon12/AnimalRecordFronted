@@ -6,6 +6,8 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:animal_record/core/services/token_storage.dart';
 
 class BiometricConfirmationScreen extends StatelessWidget {
   const BiometricConfirmationScreen({super.key});
@@ -100,8 +102,11 @@ class BiometricConfirmationScreen extends StatelessWidget {
               CustomButton(
                 text: 'Cancelar',
                 isSecondary: true,
-                onPressed: () {
-                  Navigator.of(context).popUntil((route) => route.isFirst);
+                onPressed: () async {
+                  await sl<TokenStorage>().setBiometricActivationPending(false);
+                  if (context.mounted) {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  }
                 },
               ),
               const SizedBox(height: AppSpacing.xxl),

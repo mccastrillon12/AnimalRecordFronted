@@ -140,20 +140,26 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
           if (isBiometricPending) {
             await sl<TokenStorage>().setBiometricActivationPending(false);
+            if (context.mounted) {
+              ErrorDisplay.showSecondSuccess(
+                context,
+                'Biometría activada exitosamente',
+              );
+            }
+            if (context.mounted) {
+              context.read<AuthBloc>().add(
+                UpdateBiometricStatusRequested(true),
+              );
+            }
           }
 
           if (context.mounted) {
-            ErrorDisplay.showSecondSuccess(
+            Navigator.pushNamedAndRemoveUntil(
               context,
-              'Biometría activada exitosamente',
+              '/home',
+              (route) => false,
             );
           }
-
-          if (mounted) {
-            context.read<AuthBloc>().add(UpdateBiometricStatusRequested(true));
-          }
-
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -163,7 +169,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           return AuthFormContainer(
             showLogo: false,
             showCancelButton: false,
-            onBack: () {
+            onBack: () async {
               if (_currentStep == 2) {
                 setState(() {
                   _currentStep = 1;
@@ -173,7 +179,27 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   }
                 });
               } else {
-                Navigator.pop(context);
+                final isBiometricPending = await sl<TokenStorage>()
+                    .isBiometricActivationPending();
+                if (isBiometricPending) {
+                  await sl<TokenStorage>().setBiometricActivationPending(false);
+                  if (context.mounted) {
+                    context.read<AuthBloc>().add(LogoutRequested());
+                    ErrorDisplay.showError(
+                      context,
+                      'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+                    );
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                      (route) => false,
+                    );
+                  }
+                } else {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                }
               }
             },
             child: SingleChildScrollView(
@@ -202,7 +228,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       color: AppColors.greyNegroV2,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxxl),
+                  const SizedBox(height: 80),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,

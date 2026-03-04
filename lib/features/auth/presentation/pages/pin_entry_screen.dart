@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 
@@ -30,8 +31,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
   String _currentPin = '';
-  String? _errorMessage;
-
   @override
   void dispose() {
     for (var controller in _controllers) {
@@ -52,7 +51,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
     setState(() {
       _currentPin = pin;
-      _errorMessage = null;
     });
   }
 
@@ -70,10 +68,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   void _handleVerify() {
     if (_currentPin.length != 4) return;
 
-    setState(() {
-      _errorMessage = null;
-    });
-
     context.read<AuthBloc>().add(VerifyPinSubmitted(_currentPin));
   }
 
@@ -82,9 +76,11 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
+          ErrorDisplay.showError(
+            context,
+            'PIN incorrecto. Intente nuevamente.',
+          );
           setState(() {
-            _errorMessage = state.message;
-
             for (var c in _controllers) {
               c.clear();
             }
@@ -188,17 +184,6 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                       );
                     }),
                   ),
-
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.m),
-                    Text(
-                      _errorMessage!,
-                      style: AppTypography.body5.copyWith(
-                        color: AppColors.error,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
 
                   const SizedBox(height: 40),
 
