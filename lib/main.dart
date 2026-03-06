@@ -67,7 +67,12 @@ class MyApp extends StatelessWidget {
           '/my-account': (context) => const MyAccountScreen(),
           '/welcome-social': (context) => const WelcomeSocialPage(),
           '/reset-password': (context) => const ResetPasswordScreen(),
-          '/link-expired': (context) => const LinkExpiredScreen(),
+          '/link-expired': (context) {
+            final args =
+                ModalRoute.of(context)?.settings.arguments
+                    as Map<String, dynamic>?;
+            return LinkExpiredScreen(isPinFlow: args?['isPinFlow'] == true);
+          },
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/forgot-pin': (context) => const ForgotPinScreen(identifier: ''),
           '/reset-pin': (context) {

@@ -391,7 +391,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                       const SizedBox(height: AppSpacing.xl),
 
                                       if (user.authMethod.toLowerCase() ==
-                                          'email')
+                                              'email' ||
+                                          user.authMethod.toLowerCase() ==
+                                              'phone')
                                         Column(
                                           children: [
                                             Container(

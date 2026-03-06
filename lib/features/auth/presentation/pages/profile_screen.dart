@@ -47,12 +47,17 @@ class ProfileScreen extends StatelessWidget {
               },
               builder: (context, state) {
                 String name = 'Usuario';
-                String email = '';
+                String displayContact = '';
                 String role = 'Propietario';
 
                 if (state is AuthSuccess) {
                   name = state.user.name;
-                  email = state.user.email;
+                  if (state.user.authMethod == 'PHONE') {
+                    displayContact = state.user.cellPhone;
+                  } else {
+                    displayContact = state.user.email;
+                  }
+
                   if (state.user.roles.isNotEmpty) {
                     role = state.user.roles.first == 'PROPIETARIO_MASCOTA'
                         ? 'Propietario'
@@ -124,7 +129,7 @@ class ProfileScreen extends StatelessWidget {
                               height: 21,
                               alignment: Alignment.center,
                               child: Text(
-                                email,
+                                displayContact,
                                 style: AppTypography.body4.copyWith(
                                   color: Colors.white,
                                 ),

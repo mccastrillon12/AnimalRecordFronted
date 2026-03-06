@@ -61,8 +61,10 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  CheckMessagesScreen(email: _identifierController.text.trim()),
+              builder: (context) => CheckMessagesScreen(
+                email: _identifierController.text.trim(),
+                isPinFlow: true,
+              ),
             ),
           );
         }

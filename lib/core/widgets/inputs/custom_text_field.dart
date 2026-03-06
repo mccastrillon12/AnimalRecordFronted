@@ -112,7 +112,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
       }
     } else if (labelLow.contains('correo') && labelLow.contains('celular')) {
-      if (RegExp(r'^[0-9+\-\s]+$').hasMatch(text)) {
+      if (RegExp(r'^[0-9+\-\s()]+$').hasMatch(text)) {
         if (!_isValidPhone(text)) {
           error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
         }

@@ -107,6 +107,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
         title: 'Confirmar PIN',
         showCancelButton: true,
         addInternalPadding: false,
+        onCancel: () =>
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: FixedBottomActionLayout(
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),

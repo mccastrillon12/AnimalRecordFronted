@@ -6,8 +6,13 @@ import '../widgets/auth_form_container.dart';
 
 class CheckMessagesScreen extends StatelessWidget {
   final String email;
+  final bool isPinFlow;
 
-  const CheckMessagesScreen({super.key, required this.email});
+  const CheckMessagesScreen({
+    super.key,
+    required this.email,
+    this.isPinFlow = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -43,7 +48,10 @@ class CheckMessagesScreen extends StatelessWidget {
               const SizedBox(height: AppSpacing.m),
               GestureDetector(
                 onTap: () {
-                  Navigator.pushNamed(context, '/forgot-password');
+                  Navigator.pushNamed(
+                    context,
+                    isPinFlow ? '/forgot-pin' : '/forgot-password',
+                  );
                 },
                 child: Text(
                   'Reenviar',
