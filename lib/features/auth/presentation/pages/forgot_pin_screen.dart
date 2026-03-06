@@ -11,6 +11,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/auth/presentation/widgets/auth_form_container.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
+import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
 
 class ForgotPinScreen extends StatefulWidget {
   final String identifier;
@@ -103,8 +104,10 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
                         controller: _identifierController,
                         style: AppTypography.body3,
                         maxLength: 50,
+                        keyboardType: TextInputType.emailAddress,
+                        inputFormatters: [MixedEmailPhoneInputFormatter()],
                         decoration: InputDecoration(
-                          hintText: 'Ingresa tu correo electrónico',
+                          hintText: 'Ingresa tu correo o celular',
                           hintStyle: AppTypography.body3.copyWith(
                             color: AppColors.greyBordes,
                           ),

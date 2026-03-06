@@ -28,6 +28,8 @@ import '../bloc/auth_state.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/utils/string_formatters.dart';
+import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
 import 'package:animal_record/core/services/apple_auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -75,17 +77,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
   bool _isValidPhone(String value) {
     if (value.isEmpty) return false;
-    final phoneRegex = RegExp(r'^[0-9]{10,}$');
-    return phoneRegex.hasMatch(value);
+    final cleanValue = StringFormatters.cleanMixedIdentifier(value);
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,}$');
+    return phoneRegex.hasMatch(cleanValue);
   }
 
   Future<void> _handleContinue() async {
-    final identifier = _identifierController.text.trim();
+    final rawIdentifier = _identifierController.text.trim();
 
-    if (identifier.isEmpty) {
+    if (rawIdentifier.isEmpty) {
       ErrorDisplay.showError(context, 'Por favor ingresa tu correo o celular');
       return;
     }
+
+    final identifier = StringFormatters.cleanMixedIdentifier(rawIdentifier);
 
     final result = await Navigator.push(
       context,
@@ -332,6 +337,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderColor: AppColors.greyMedio,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 50,
+                      inputFormatters: [MixedEmailPhoneInputFormatter()],
                     ),
                   ),
                   Padding(

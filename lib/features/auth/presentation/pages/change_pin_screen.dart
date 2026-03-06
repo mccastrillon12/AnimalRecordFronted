@@ -54,6 +54,40 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _setupFocusNodes(_oldPinFocusNodes, _oldPinControllers, _onOldPinChanged);
+    _setupFocusNodes(_newPinFocusNodes, _newPinControllers, _onNewPinChanged);
+    _setupFocusNodes(
+      _confirmPinFocusNodes,
+      _confirmPinControllers,
+      _onConfirmPinChanged,
+    );
+  }
+
+  void _setupFocusNodes(
+    List<FocusNode> nodes,
+    List<TextEditingController> controllers,
+    Function(int, String) onChanged,
+  ) {
+    for (int i = 0; i < 4; i++) {
+      nodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (controllers[i].text.isEmpty && i > 0) {
+            nodes[i - 1].requestFocus();
+            controllers[i - 1].clear();
+            onChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  @override
   void dispose() {
     for (var c in _oldPinControllers) c.dispose();
     for (var c in _newPinControllers) c.dispose();
@@ -262,6 +296,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (value) => onChanged(index, value),
+            onTap: () {
+              controllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: controllers[index].text.length),
+              );
+            },
           ),
         );
       }),

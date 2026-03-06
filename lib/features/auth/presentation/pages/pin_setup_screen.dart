@@ -35,6 +35,26 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    for (int i = 0; i < 4; i++) {
+      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_controllers[i].text.isEmpty && i > 0) {
+            _focusNodes[i - 1].requestFocus();
+            _controllers[i - 1].clear();
+            _onCodeChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  @override
   void dispose() {
     for (var controller in _controllers) {
       controller.dispose();
@@ -55,17 +75,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     setState(() {
       _currentPin = pin;
       _errorMessage = null;
-    });
-  }
-
-  void _onBackspace(int index) {
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-
-    final pin = _controllers.map((c) => c.text).join();
-    setState(() {
-      _currentPin = pin;
     });
   }
 
@@ -280,12 +289,15 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                             FilteringTextInputFormatter.digitsOnly,
                           ],
                           onChanged: (value) {
-                            if (value.isEmpty) {
-                              _onBackspace(index);
-                            } else {
-                              _onCodeChanged(index, value);
-                            }
-                            setState(() {});
+                            _onCodeChanged(index, value);
+                          },
+                          onTap: () {
+                            _controllers[index].selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: _controllers[index].text.length,
+                                  ),
+                                );
                           },
                         ),
                       );

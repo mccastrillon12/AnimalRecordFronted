@@ -60,10 +60,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> verifyCode(String email, String code) async {
+  Future<Map<String, dynamic>> verifyCode(
+    String identifier,
+    String code,
+  ) async {
     final response = await apiClient.post(
       '/auth/verify',
-      data: {'email': email, 'code': code},
+      data: {'identifier': identifier, 'code': code},
     );
     return response.data is Map<String, dynamic> ? response.data : {};
   }

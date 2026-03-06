@@ -83,8 +83,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
               context,
               MaterialPageRoute(
                 builder: (context) => VerificationScreen(
-                  email: widget.identifier,
-                  phoneNumber: null,
+                  identifier: widget.identifier,
                   timeRemaining: state.timeRemaining,
                 ),
               ),

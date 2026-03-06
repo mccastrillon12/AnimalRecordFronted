@@ -135,7 +135,7 @@ class AuthRepositoryImpl implements AuthRepository {
   ) async {
     try {
       final response = await remoteDataSource.verifyCode(
-        params.email,
+        params.identifier,
         params.code,
       );
 

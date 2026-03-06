@@ -8,6 +8,8 @@ import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'check_messages_screen.dart';
+import 'package:animal_record/core/utils/string_formatters.dart';
+import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -22,24 +24,24 @@ class ForgotPasswordScreen extends StatefulWidget {
 
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
-  bool _isValidEmail = false;
+  bool _isValidInput = false;
   @override
   void initState() {
     super.initState();
-    _emailController.addListener(_validateEmail);
+    _emailController.addListener(_validateInput);
   }
 
   @override
   void dispose() {
-    _emailController.removeListener(_validateEmail);
+    _emailController.removeListener(_validateInput);
     _emailController.dispose();
     super.dispose();
   }
 
-  void _validateEmail() {
+  void _validateInput() {
     final value = _emailController.text.trim();
     setState(() {
-      _isValidEmail = _isValidEmailFormat(value);
+      _isValidInput = _isValidEmailFormat(value) || _isValidPhoneFormat(value);
     });
   }
 
@@ -51,11 +53,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     return emailRegex.hasMatch(value);
   }
 
+  bool _isValidPhoneFormat(String value) {
+    if (value.isEmpty) return false;
+    final cleanValue = StringFormatters.cleanMixedIdentifier(value);
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,}$');
+    return phoneRegex.hasMatch(cleanValue);
+  }
+
   void _handleSend() {
-    if (_isValidEmail) {
-      context.read<AuthBloc>().add(
-        ForgotPasswordRequested(_emailController.text.trim()),
+    if (_isValidInput) {
+      final identifier = StringFormatters.cleanMixedIdentifier(
+        _emailController.text.trim(),
       );
+      context.read<AuthBloc>().add(ForgotPasswordRequested(identifier));
     }
   }
 
@@ -66,11 +76,13 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         if (state is AuthError) {
           ErrorDisplay.showError(context, state.message);
         } else if (state is ForgotPasswordSuccess) {
+          final identifier = StringFormatters.cleanMixedIdentifier(
+            _emailController.text.trim(),
+          );
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) =>
-                  CheckMessagesScreen(email: _emailController.text.trim()),
+              builder: (context) => CheckMessagesScreen(email: identifier),
             ),
           );
         }
@@ -104,6 +116,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       borderColor: AppColors.greyMedio,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 50,
+                      inputFormatters: [MixedEmailPhoneInputFormatter()],
                     ),
                   ],
                 ),
@@ -111,7 +124,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
               bottomChild: CustomButton(
                 text: 'Enviar',
                 isLoading: isLoading,
-                onPressed: _isValidEmail && !isLoading ? _handleSend : null,
+                onPressed: _isValidInput && !isLoading ? _handleSend : null,
               ),
             ),
           );

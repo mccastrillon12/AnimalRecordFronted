@@ -17,7 +17,9 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/register_params.dart';
-
+import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
+import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
+import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -389,6 +391,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
     }
 
     String cellPhone = getFieldValue(phoneController);
+    if (cellPhone.isNotEmpty && !cellPhone.startsWith('+')) {
+      final state = context.read<LocationsCubit>().state;
+      if (state is LocationsLoaded) {
+        final countryId = getFieldValue(countryController);
+        if (countryId.isNotEmpty) {
+          final country = state.countries.cast<CountryEntity>().firstWhere(
+            (c) => c.id == countryId,
+            orElse: () => state.countries.first,
+          );
+          cellPhone = '${country.dialCode}$cellPhone'.replaceAll(' ', '');
+        }
+      }
+    }
 
     context.read<AuthBloc>().add(
       SignUpSubmitted(

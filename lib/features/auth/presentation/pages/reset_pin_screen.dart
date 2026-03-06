@@ -38,6 +38,26 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    for (int i = 0; i < 4; i++) {
+      _pinFocusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_pinControllers[i].text.isEmpty && i > 0) {
+            _pinFocusNodes[i - 1].requestFocus();
+            _pinControllers[i - 1].clear();
+            _onPinChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  @override
   void dispose() {
     for (var c in _pinControllers) c.dispose();
     for (var f in _pinFocusNodes) f.dispose();
@@ -159,6 +179,11 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
             ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (value) => _onPinChanged(index, value),
+            onTap: () {
+              _pinControllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: _pinControllers[index].text.length),
+              );
+            },
           ),
         );
       }),
@@ -170,7 +195,10 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
       padding: const EdgeInsets.only(top: 16),
       child: Text(
         _errorMessage!,
-        style: AppTypography.body5.copyWith(color: AppColors.error),
+        style: AppTypography.body5.copyWith(
+          color: AppColors.error,
+          height: 1.5,
+        ),
         textAlign: TextAlign.center,
       ),
     );

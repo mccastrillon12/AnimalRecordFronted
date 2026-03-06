@@ -259,6 +259,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               isLoading: isUpdating,
                               onPressed: () {
                                 if (_formKey.currentState!.validate()) {
+                                  String cellPhone = _phoneController.text
+                                      .trim();
+                                  if (cellPhone.isNotEmpty &&
+                                      !cellPhone.startsWith('+')) {
+                                    final state = context
+                                        .read<LocationsCubit>()
+                                        .state;
+                                    if (state is LocationsLoaded) {
+                                      final countryId =
+                                          _selectedPhoneCountryId ??
+                                          user.countryId;
+                                      if (countryId.isNotEmpty) {
+                                        final country = state.countries
+                                            .cast<CountryEntity>()
+                                            .firstWhere(
+                                              (c) => c.id == countryId,
+                                              orElse: () =>
+                                                  state.countries.first,
+                                            );
+                                        cellPhone =
+                                            '${country.dialCode}$cellPhone'
+                                                .replaceAll(' ', '');
+                                      }
+                                    }
+                                  }
+
                                   final updatedData = <String, dynamic>{
                                     'name': _nameController.text,
                                     'address': _addressController.text,
@@ -266,7 +292,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       'email': _emailController.text,
                                     if (user.authMethod == 'EMAIL' ||
                                         user.authMethod == 'GOOGLE')
-                                      'cellPhone': _phoneController.text,
+                                      'cellPhone': cellPhone,
                                     if (_selectedCityId != null)
                                       'cityId': _selectedCityId,
                                     if (_selectedDepartmentId != null)
