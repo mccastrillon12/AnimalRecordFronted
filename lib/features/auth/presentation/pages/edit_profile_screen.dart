@@ -44,14 +44,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   final ImagePicker _imagePicker = ImagePicker();
 
+  void _onFieldChanged() {
+    setState(() {});
+  }
+
+  bool _hasChangesAndValid(UserEntity user) {
+    if (_addressController.text.trim() != user.address) return true;
+
+    if (_phoneController.text.trim() != user.cellPhone) return true;
+
+    final currentCountryId = _selectedPhoneCountryId ?? '';
+    if (currentCountryId != user.countryId &&
+        !(currentCountryId.isEmpty && user.countryId.isEmpty))
+      return true;
+
+    final currentDeptId = _selectedDepartmentId ?? '';
+    if (currentDeptId != user.departmentId &&
+        !(currentDeptId.isEmpty && user.departmentId.isEmpty))
+      return true;
+
+    final currentCityId = _selectedCityId ?? '';
+    if (currentCityId != user.cityId &&
+        !(currentCityId.isEmpty && user.cityId.isEmpty))
+      return true;
+
+    if (user.authMethod == 'PHONE') {
+      if (_emailController.text.trim() != user.email) return true;
+    }
+
+    return false;
+  }
+
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController();
-    _emailController = TextEditingController();
-    _idNumberController = TextEditingController();
-    _phoneController = TextEditingController();
-    _addressController = TextEditingController();
+    _nameController = TextEditingController()..addListener(_onFieldChanged);
+    _emailController = TextEditingController()..addListener(_onFieldChanged);
+    _idNumberController = TextEditingController()..addListener(_onFieldChanged);
+    _phoneController = TextEditingController()..addListener(_onFieldChanged);
+    _addressController = TextEditingController()..addListener(_onFieldChanged);
 
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
@@ -93,6 +124,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   void dispose() {
+    _nameController.removeListener(_onFieldChanged);
+    _emailController.removeListener(_onFieldChanged);
+    _idNumberController.removeListener(_onFieldChanged);
+    _phoneController.removeListener(_onFieldChanged);
+    _addressController.removeListener(_onFieldChanged);
     _nameController.dispose();
     _emailController.dispose();
     _idNumberController.dispose();
@@ -355,56 +391,60 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             child: CustomButton(
                               text: 'Guardar cambios',
                               isLoading: isUpdating,
-                              onPressed: () {
-                                if (_formKey.currentState!.validate()) {
-                                  String cellPhone = _phoneController.text
-                                      .trim();
-                                  if (cellPhone.isNotEmpty &&
-                                      !cellPhone.startsWith('+')) {
-                                    final state = context
-                                        .read<LocationsCubit>()
-                                        .state;
-                                    if (state is LocationsLoaded) {
-                                      final countryId =
-                                          _selectedPhoneCountryId ??
-                                          user.countryId;
-                                      if (countryId.isNotEmpty) {
-                                        final country = state.countries
-                                            .cast<CountryEntity>()
-                                            .firstWhere(
-                                              (c) => c.id == countryId,
-                                              orElse: () =>
-                                                  state.countries.first,
-                                            );
-                                        cellPhone =
-                                            '${country.dialCode}$cellPhone'
-                                                .replaceAll(' ', '');
+                              onPressed:
+                                  (isUpdating || !_hasChangesAndValid(user))
+                                  ? null
+                                  : () {
+                                      if (_formKey.currentState!.validate()) {
+                                        String cellPhone = _phoneController.text
+                                            .trim();
+                                        if (cellPhone.isNotEmpty &&
+                                            !cellPhone.startsWith('+')) {
+                                          final state = context
+                                              .read<LocationsCubit>()
+                                              .state;
+                                          if (state is LocationsLoaded) {
+                                            final countryId =
+                                                _selectedPhoneCountryId ??
+                                                user.countryId;
+                                            if (countryId.isNotEmpty) {
+                                              final country = state.countries
+                                                  .cast<CountryEntity>()
+                                                  .firstWhere(
+                                                    (c) => c.id == countryId,
+                                                    orElse: () =>
+                                                        state.countries.first,
+                                                  );
+                                              cellPhone =
+                                                  '${country.dialCode}$cellPhone'
+                                                      .replaceAll(' ', '');
+                                            }
+                                          }
+                                        }
+
+                                        final updatedData = <String, dynamic>{
+                                          'name': _nameController.text,
+                                          'address': _addressController.text,
+                                          if (user.authMethod == 'PHONE')
+                                            'email': _emailController.text,
+                                          if (user.authMethod == 'EMAIL' ||
+                                              user.authMethod == 'GOOGLE')
+                                            'cellPhone': cellPhone,
+                                          if (_selectedCityId != null)
+                                            'cityId': _selectedCityId,
+                                          if (_selectedDepartmentId != null)
+                                            'departmentId':
+                                                _selectedDepartmentId,
+                                        };
+
+                                        context.read<AuthBloc>().add(
+                                          UpdateProfileRequested(
+                                            userId: user.id,
+                                            data: updatedData,
+                                          ),
+                                        );
                                       }
-                                    }
-                                  }
-
-                                  final updatedData = <String, dynamic>{
-                                    'name': _nameController.text,
-                                    'address': _addressController.text,
-                                    if (user.authMethod == 'PHONE')
-                                      'email': _emailController.text,
-                                    if (user.authMethod == 'EMAIL' ||
-                                        user.authMethod == 'GOOGLE')
-                                      'cellPhone': cellPhone,
-                                    if (_selectedCityId != null)
-                                      'cityId': _selectedCityId,
-                                    if (_selectedDepartmentId != null)
-                                      'departmentId': _selectedDepartmentId,
-                                  };
-
-                                  context.read<AuthBloc>().add(
-                                    UpdateProfileRequested(
-                                      userId: user.id,
-                                      data: updatedData,
-                                    ),
-                                  );
-                                }
-                              },
+                                    },
                             ),
                           ),
                         ],

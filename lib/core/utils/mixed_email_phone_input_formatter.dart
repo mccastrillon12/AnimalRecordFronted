@@ -6,76 +6,73 @@ class MixedEmailPhoneInputFormatter extends TextInputFormatter {
     TextEditingValue oldValue,
     TextEditingValue newValue,
   ) {
+    if (newValue.text.isEmpty) {
+      return newValue;
+    }
+
+    // Determine if we should handle it as an email because it contains '@'
+    if (newValue.text.contains('@') && !oldValue.text.contains('@')) {
+      String text = newValue.text.replaceFirst(
+        RegExp(r'^(\(\+57\)\s?|\+57\s?|\+\d*\s?)'),
+        '',
+      );
+      int offsetDiff = newValue.text.length - text.length;
+      int newOffset = newValue.selection.baseOffset - offsetDiff;
+      if (newOffset < 0) newOffset = 0;
+
+      return TextEditingValue(
+        text: text,
+        selection: TextSelection.collapsed(offset: newOffset),
+      );
+    }
+
+    // If it's empty and user types a digit, add '+57 '
     if (oldValue.text.isEmpty && newValue.text.isNotEmpty) {
       if (RegExp(r'^[0-9]').hasMatch(newValue.text)) {
-        final newText = '(+57) ${newValue.text}';
+        final newText = '+57 ${newValue.text}';
         return TextEditingValue(
           text: newText,
           selection: TextSelection.collapsed(offset: newText.length),
         );
       }
+    }
+
+    // Deletion logic
+    if (oldValue.text.length > newValue.text.length) {
+      // If they delete the '+', we clear everything assuming they want to wipe the phone number
+      if (!newValue.text.contains('+') && oldValue.text.contains('+')) {
+        if (newValue.text.replaceAll(RegExp(r'[0-9 ]'), '').isEmpty) {
+          return const TextEditingValue(
+            text: '',
+            selection: TextSelection.collapsed(offset: 0),
+          );
+        }
+      }
       return newValue;
     }
 
-    final bool wasPhone = oldValue.text.startsWith('(+');
+    // If they are adding characters and it starts with '+'
+    if (newValue.text.startsWith('+')) {
+      bool hasNonPhoneChars = newValue.text
+          .replaceAll(RegExp(r'[0-9\+ ]'), '')
+          .isNotEmpty;
 
-    if (wasPhone) {
-      if (newValue.text.isEmpty) return newValue;
+      if (hasNonPhoneChars) {
+        // They typed a letter or symbol. Transitioning to email format.
+        // Strip the phone prefix.
+        String text = newValue.text.replaceFirst(
+          RegExp(r'^(\(\+57\)\s?|\+57\s?|\+\d*\s?)'),
+          '',
+        );
+        int offsetDiff = newValue.text.length - text.length;
+        int newOffset = newValue.selection.baseOffset - offsetDiff;
+        if (newOffset < 0) newOffset = 0;
 
-      int digitsCount = newValue.text.replaceAll(RegExp(r'[^0-9]'), '').length;
-      if (digitsCount == 0 ||
-          (newValue.text.length < 5 && newValue.text.startsWith('(+'))) {
-        return const TextEditingValue(
-          text: '',
-          selection: TextSelection.collapsed(offset: 0),
+        return TextEditingValue(
+          text: text,
+          selection: TextSelection.collapsed(offset: newOffset),
         );
       }
-
-      int diff = oldValue.text.length - newValue.text.length;
-      if (diff == 1 && newValue.selection.isCollapsed) {
-        int deletedIndex = newValue.selection.baseOffset;
-        String deletedChar = oldValue.text[deletedIndex];
-
-        if (deletedChar == ' ' ||
-            deletedChar == ')' ||
-            deletedChar == '+' ||
-            deletedChar == '(') {
-          int targetDeleteIndex = deletedIndex - 1;
-          while (targetDeleteIndex >= 0 &&
-              !RegExp(r'[0-9]').hasMatch(oldValue.text[targetDeleteIndex])) {
-            targetDeleteIndex--;
-          }
-
-          if (targetDeleteIndex >= 0) {
-            String newText =
-                oldValue.text.substring(0, targetDeleteIndex) +
-                oldValue.text.substring(targetDeleteIndex + 1);
-            if (newText.replaceAll(RegExp(r'[^0-9]'), '').isEmpty ||
-                newText == '(+57) ') {
-              return const TextEditingValue(
-                text: '',
-                selection: TextSelection.collapsed(offset: 0),
-              );
-            }
-            return TextEditingValue(
-              text: newText,
-              selection: TextSelection.collapsed(offset: targetDeleteIndex),
-            );
-          } else {
-            return oldValue;
-          }
-        }
-      }
-
-      if (!newValue.text.startsWith('(+') || !newValue.text.contains(')')) {
-        return oldValue;
-      }
-
-      if (newValue.text.replaceAll(RegExp(r'[0-9\+\(\) ]'), '').isNotEmpty) {
-        return oldValue;
-      }
-
-      return newValue;
     }
 
     return newValue;

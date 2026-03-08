@@ -136,6 +136,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             ErrorDisplay.showError(context, 'Error: ${state.updateError}');
           } else if (state.isUpdating == false && state.updateError == null) {
             ErrorDisplay.showSuccess(context, 'Cambios guardados');
+            Navigator.pop(context);
           }
         }
       },
