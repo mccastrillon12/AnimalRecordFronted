@@ -84,48 +84,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
     super.dispose();
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
-
-  bool _isValidPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 10;
-  }
-
   void _runAutoValidation() {
     if (!mounted) return;
     final text = widget.controller?.text.trim() ?? '';
-    if (text.isEmpty) {
-      if (_internalErrorText != null) {
-        setState(() => _internalErrorText = null);
-      }
-      return;
-    }
 
     String? error;
-    final labelLow = widget.label.toLowerCase();
-
-    if (widget.keyboardType == TextInputType.phone ||
-        (labelLow.contains('celular') && !labelLow.contains('correo'))) {
-      if (!_isValidPhone(text)) {
-        error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
-      }
-    } else if (labelLow.contains('correo') && labelLow.contains('celular')) {
-      if (RegExp(r'^[0-9+\-\s()]+$').hasMatch(text)) {
-        if (!_isValidPhone(text)) {
-          error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
-        }
-      } else {
-        if (!_isValidEmail(text)) {
-          error = 'Introduzca una dirección de correo electrónico válida';
-        }
-      }
-    } else if (widget.keyboardType == TextInputType.emailAddress ||
-        labelLow.contains('correo')) {
-      if (!_isValidEmail(text)) {
-        error = 'Introduzca una dirección de correo electrónico válida';
-      }
+    if (widget.validator != null) {
+      error = widget.validator!(text);
     }
 
     if (_internalErrorText != error) {

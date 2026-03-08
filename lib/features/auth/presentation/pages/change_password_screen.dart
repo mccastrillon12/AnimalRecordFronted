@@ -93,6 +93,29 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       },
       child: ModalPageLayout(
         title: 'Cambiar contraseña',
+        bottomChild: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            return CustomButton(
+              text: 'Cambiar',
+              isLoading:
+                  state is AuthLoading ||
+                  (state is AuthSuccess && state.isUpdating),
+              onPressed:
+                  canSubmit &&
+                      state is! AuthLoading &&
+                      !(state is AuthSuccess && state.isUpdating)
+                  ? () {
+                      context.read<AuthBloc>().add(
+                        ChangePasswordRequested(
+                          oldPassword: _currentPasswordController.text,
+                          newPassword: _newPasswordController.text,
+                        ),
+                      );
+                    }
+                  : null,
+            );
+          },
+        ),
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24),
           child: Column(
@@ -138,29 +161,6 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               const SizedBox(height: AppSpacing.l),
             ],
           ),
-        ),
-        bottomChild: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            return CustomButton(
-              text: 'Cambiar',
-              isLoading:
-                  state is AuthLoading ||
-                  (state is AuthSuccess && state.isUpdating),
-              onPressed:
-                  canSubmit &&
-                      state is! AuthLoading &&
-                      !(state is AuthSuccess && state.isUpdating)
-                  ? () {
-                      context.read<AuthBloc>().add(
-                        ChangePasswordRequested(
-                          oldPassword: _currentPasswordController.text,
-                          newPassword: _newPasswordController.text,
-                        ),
-                      );
-                    }
-                  : null,
-            );
-          },
         ),
       ),
     );

@@ -19,6 +19,7 @@ import 'change_pin_screen.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -204,6 +205,32 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
                           Expanded(
                             child: FixedBottomActionLayout(
+                              bottomChild: CustomButton(
+                                text: 'Guardar cambios',
+                                isLoading: isUpdating,
+                                onPressed:
+                                    (isUpdating || !_hasChangesAndValid(user))
+                                    ? null
+                                    : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          final updatedData = <String, dynamic>{
+                                            'name': _nameController.text,
+                                            if (isPhoneLogin)
+                                              'email': _emailController.text,
+                                            if (!isPhoneLogin)
+                                              'cellPhone':
+                                                  _phoneController.text,
+                                            'countryId': user.countryId,
+                                          };
+                                          context.read<AuthBloc>().add(
+                                            UpdateProfileRequested(
+                                              userId: user.id,
+                                              data: updatedData,
+                                            ),
+                                          );
+                                        }
+                                      },
+                              ),
                               child: SingleChildScrollView(
                                 child: Form(
                                   key: _formKey,
@@ -299,6 +326,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                 controller: _emailController,
                                                 label: 'Correo electrónico',
                                                 maxLength: 50,
+                                                validator: ValidationUtils
+                                                    .validateEmail,
                                               ),
                                             ] else ...[
                                               Text(
@@ -587,33 +616,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ],
                                   ),
                                 ),
-                              ),
-
-                              bottomChild: CustomButton(
-                                text: 'Guardar cambios',
-                                isLoading: isUpdating,
-                                onPressed:
-                                    (isUpdating || !_hasChangesAndValid(user))
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          final updatedData = <String, dynamic>{
-                                            'name': _nameController.text,
-                                            if (isPhoneLogin)
-                                              'email': _emailController.text,
-                                            if (!isPhoneLogin)
-                                              'cellPhone':
-                                                  _phoneController.text,
-                                            'countryId': user.countryId,
-                                          };
-                                          context.read<AuthBloc>().add(
-                                            UpdateProfileRequested(
-                                              userId: user.id,
-                                              data: updatedData,
-                                            ),
-                                          );
-                                        }
-                                      },
                               ),
                             ),
                           ),

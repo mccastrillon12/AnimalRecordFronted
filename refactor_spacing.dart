@@ -44,8 +44,7 @@ void main() async {
           if (!content.contains('app_spacing.dart')) {
             // heuristica simple para agregar el import al inicio
             content =
-                "import 'package:animal_record/core/theme/app_spacing.dart';\n" +
-                content;
+                "import 'package:animal_record/core/theme/app_spacing.dart';\n$content";
           }
           await entity.writeAsString(content);
           spacingModified++;

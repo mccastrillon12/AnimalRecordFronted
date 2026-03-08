@@ -10,7 +10,6 @@ import 'package:animal_record/core/services/token_storage.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:local_auth/error_codes.dart' as auth_error;
 import 'dart:convert';
-import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.dart';
 import 'package:animal_record/core/utils/error_display.dart';

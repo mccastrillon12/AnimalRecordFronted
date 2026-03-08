@@ -516,22 +516,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           }
         },
         child: FixedBottomActionLayout(
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xl,
-              right: AppSpacing.l,
-              left: AppSpacing.l,
-            ),
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: steps.map((step) {
-                return SingleChildScrollView(
-                  child: Column(children: [step, const KeyboardSpacer()]),
-                );
-              }).toList(),
-            ),
-          ),
           bottomChild: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               return AnimatedBuilder(
@@ -553,6 +537,22 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 },
               );
             },
+          ),
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xl,
+              right: AppSpacing.l,
+              left: AppSpacing.l,
+            ),
+            child: PageView(
+              controller: _pageController,
+              physics: const NeverScrollableScrollPhysics(),
+              children: steps.map((step) {
+                return SingleChildScrollView(
+                  child: Column(children: [step, const KeyboardSpacer()]),
+                );
+              }).toList(),
+            ),
           ),
         ),
       ),

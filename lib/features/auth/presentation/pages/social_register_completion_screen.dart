@@ -20,6 +20,7 @@ import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 import 'welcome_social_page.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
@@ -175,6 +176,22 @@ class _SocialRegisterCompletionScreenState
           ),
         ],
         child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _idController,
+                builder: (context, value, _) {
+                  final bool isIdFilled = value.text.trim().isNotEmpty;
+
+                  return CustomButton(
+                    text: 'Finalizar',
+                    isLoading: state is AuthLoading,
+                    onPressed: isIdFilled ? _onSubmit : null,
+                  );
+                },
+              );
+            },
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.only(
               top: AppSpacing.xxl,
@@ -211,6 +228,7 @@ class _SocialRegisterCompletionScreenState
                   label: 'Correo electrónico',
                   controller: _emailController,
                   enabled: false,
+                  validator: ValidationUtils.validateEmail,
                   labelStyle: AppTypography.body6.copyWith(
                     color: const Color(0xFF2E3949).withOpacity(0.3),
                   ),
@@ -221,22 +239,6 @@ class _SocialRegisterCompletionScreenState
                 const KeyboardSpacer(),
               ],
             ),
-          ),
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              return ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _idController,
-                builder: (context, value, _) {
-                  final bool isIdFilled = value.text.trim().isNotEmpty;
-
-                  return CustomButton(
-                    text: 'Finalizar',
-                    isLoading: state is AuthLoading,
-                    onPressed: isIdFilled ? _onSubmit : null,
-                  );
-                },
-              );
-            },
           ),
         ),
       ),

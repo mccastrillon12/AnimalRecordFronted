@@ -24,6 +24,16 @@ class WelcomeSocialPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(
+            bottomChild: CustomButton(
+              text: 'Comenzar',
+              onPressed: () {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false,
+                );
+              },
+            ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
@@ -81,16 +91,6 @@ class WelcomeSocialPage extends StatelessWidget {
                   const SizedBox(height: AppSpacing.xl),
                 ],
               ),
-            ),
-            bottomChild: CustomButton(
-              text: 'Comenzar',
-              onPressed: () {
-                Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  '/home',
-                  (route) => false,
-                );
-              },
             ),
           ),
         ),

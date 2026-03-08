@@ -85,7 +85,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return response.statusCode == 200;
     } catch (e) {
       if (e.toString().contains('404')) return false;
-      throw e;
+      rethrow;
     }
   }
 
@@ -103,16 +103,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       '/auth/social/check',
       data: {'provider': provider, 'token': token},
     );
-    if (response.data is List)
+    if (response.data is List) {
       throw Exception('Error del servidor: formato de respuesta inválido');
+    }
     return response.data;
   }
 
   @override
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data) async {
     final response = await apiClient.post('/auth/social/register', data: data);
-    if (response.data is List)
+    if (response.data is List) {
       throw Exception('Error del servidor: formato de respuesta inválido');
+    }
     return response.data;
   }
 
@@ -218,7 +220,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (e.toString().contains('400') || e.toString().contains('401')) {
         return false;
       }
-      throw e;
+      rethrow;
     }
   }
 

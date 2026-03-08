@@ -59,8 +59,12 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
 
   @override
   void dispose() {
-    for (var c in _pinControllers) c.dispose();
-    for (var f in _pinFocusNodes) f.dispose();
+    for (var c in _pinControllers) {
+      c.dispose();
+    }
+    for (var f in _pinFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -110,6 +114,16 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
         onCancel: () =>
             Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              final isLoading = state is AuthLoading;
+              return CustomButton(
+                text: 'Cambiar',
+                isLoading: isLoading,
+                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
+              );
+            },
+          ),
           child: SingleChildScrollView(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Column(
@@ -126,16 +140,6 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
                 const KeyboardSpacer(),
               ],
             ),
-          ),
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              final isLoading = state is AuthLoading;
-              return CustomButton(
-                text: 'Cambiar',
-                isLoading: isLoading,
-                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
-              );
-            },
           ),
         ),
       ),

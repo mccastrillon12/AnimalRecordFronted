@@ -89,12 +89,24 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
 
   @override
   void dispose() {
-    for (var c in _oldPinControllers) c.dispose();
-    for (var c in _newPinControllers) c.dispose();
-    for (var c in _confirmPinControllers) c.dispose();
-    for (var f in _oldPinFocusNodes) f.dispose();
-    for (var f in _newPinFocusNodes) f.dispose();
-    for (var f in _confirmPinFocusNodes) f.dispose();
+    for (var c in _oldPinControllers) {
+      c.dispose();
+    }
+    for (var c in _newPinControllers) {
+      c.dispose();
+    }
+    for (var c in _confirmPinControllers) {
+      c.dispose();
+    }
+    for (var f in _oldPinFocusNodes) {
+      f.dispose();
+    }
+    for (var f in _newPinFocusNodes) {
+      f.dispose();
+    }
+    for (var f in _confirmPinFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -178,10 +190,6 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         onCancel: () => Navigator.pop(context),
         addInternalPadding: false,
         child: FixedBottomActionLayout(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
-          ),
           bottomChild: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               final isLoading = state is AuthSuccess && state.isUpdating;
@@ -197,6 +205,10 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
                     : (_currentStep == 1 ? _handleContinue : _handleChange),
               );
             },
+          ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
           ),
         ),
       ),

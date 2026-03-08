@@ -10,6 +10,7 @@ import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'check_messages_screen.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -102,6 +103,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             ),
             addInternalPadding: false,
             child: FixedBottomActionLayout(
+              bottomChild: CustomButton(
+                text: 'Enviar',
+                isLoading: isLoading,
+                onPressed: _isValidInput && !isLoading ? _handleSend : null,
+              ),
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
@@ -116,15 +122,11 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       borderColor: AppColors.greyMedio,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 50,
+                      validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
                     ),
                   ],
                 ),
-              ),
-              bottomChild: CustomButton(
-                text: 'Enviar',
-                isLoading: isLoading,
-                onPressed: _isValidInput && !isLoading ? _handleSend : null,
               ),
             ),
           );

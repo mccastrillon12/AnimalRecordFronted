@@ -94,8 +94,8 @@ class ModalPageLayout extends StatelessWidget {
                       _buildHeader(context),
                       Expanded(
                         child: FixedBottomActionLayout(
-                          child: child,
                           bottomChild: bottomChild!,
+                          child: child,
                         ),
                       ),
                     ],

@@ -31,6 +31,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
 import 'package:animal_record/core/services/apple_auth_service.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool hideBiometrics;
@@ -337,6 +338,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       borderColor: AppColors.greyMedio,
                       keyboardType: TextInputType.emailAddress,
                       maxLength: 50,
+                      validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
                     ),
                   ),
