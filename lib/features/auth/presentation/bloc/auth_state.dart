@@ -19,6 +19,8 @@ class AuthSuccess extends AuthState {
   final bool pinChangeSuccess;
   final bool isBiometricEnabled;
   final bool biometricUpdateSuccess;
+  final bool isUploadingPicture;
+  final String? profilePictureError;
 
   AuthSuccess(
     this.user, {
@@ -29,6 +31,8 @@ class AuthSuccess extends AuthState {
     this.pinChangeSuccess = false,
     this.isBiometricEnabled = false,
     this.biometricUpdateSuccess = false,
+    this.isUploadingPicture = false,
+    this.profilePictureError,
   });
 
   @override
@@ -41,6 +45,8 @@ class AuthSuccess extends AuthState {
     pinChangeSuccess,
     isBiometricEnabled,
     biometricUpdateSuccess,
+    isUploadingPicture,
+    profilePictureError,
   ];
 
   AuthSuccess copyWith({
@@ -52,6 +58,8 @@ class AuthSuccess extends AuthState {
     bool? pinChangeSuccess,
     bool? isBiometricEnabled,
     bool? biometricUpdateSuccess,
+    bool? isUploadingPicture,
+    String? profilePictureError,
   }) {
     return AuthSuccess(
       user ?? this.user,
@@ -63,6 +71,8 @@ class AuthSuccess extends AuthState {
       isBiometricEnabled: isBiometricEnabled ?? this.isBiometricEnabled,
       biometricUpdateSuccess:
           biometricUpdateSuccess ?? this.biometricUpdateSuccess,
+      isUploadingPicture: isUploadingPicture ?? this.isUploadingPicture,
+      profilePictureError: profilePictureError ?? this.profilePictureError,
     );
   }
 }

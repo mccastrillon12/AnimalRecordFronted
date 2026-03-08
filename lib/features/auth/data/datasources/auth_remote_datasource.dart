@@ -29,6 +29,11 @@ abstract class AuthRemoteDataSource {
   );
   Future<void> resetPin(String identifier, String token, String newPin);
   Future<bool> validatePasswordToken(String identifier, String token);
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  );
+  Future<UserModel> confirmProfilePicture(String finalUrl);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -223,5 +228,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       '/auth/reset-pin',
       data: {'identifier': identifier, 'token': token, 'newPin': newPin},
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  ) async {
+    final response = await apiClient.get(
+      '/users/me/profile-picture/upload-url',
+      queryParameters: {'mimeType': mimeType, 'fileSize': fileSize.toString()},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<UserModel> confirmProfilePicture(String finalUrl) async {
+    final response = await apiClient.patch(
+      '/users/me/profile-picture',
+      data: {'finalUrl': finalUrl},
+    );
+    return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

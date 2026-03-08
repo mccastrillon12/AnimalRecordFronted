@@ -56,6 +56,9 @@ dependencies:
   sign_in_with_apple: ^7.0.1
   crypto: ^3.0.7
   app_links: ^6.3.0
+  image_picker: ^1.1.2              # Selector de galería/cámara
+  flutter_image_compress: ^2.3.0    # Compresión antes de subir a S3
+  cached_network_image: ^3.4.1
 
 dev_dependencies:
   flutter_test:

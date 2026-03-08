@@ -23,6 +23,9 @@ import 'package:animal_record/features/auth/domain/usecases/reset_password_useca
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_profile_picture_upload_url_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/confirm_profile_picture_usecase.dart';
+import 'package:animal_record/core/services/s3_upload_service.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -49,7 +52,7 @@ import 'package:animal_record/core/network/api_client.dart';
 final sl = GetIt.instance;
 
 Future<void> init() async {
-  sl.registerFactory(
+  sl.registerLazySingleton(
     () => AuthBloc(
       registerUseCase: sl(),
       loginUseCase: sl(),
@@ -73,6 +76,9 @@ Future<void> init() async {
       resetPinUseCase: sl(),
       logoutUseCase: sl(),
       tokenStorage: sl(),
+      getProfilePictureUploadUrlUseCase: sl(),
+      confirmProfilePictureUseCase: sl(),
+      s3UploadService: sl(),
     ),
   );
 
@@ -98,6 +104,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl()));
   sl.registerLazySingleton(() => ForgotPinUseCase(sl()));
   sl.registerLazySingleton(() => ResetPinUseCase(sl()));
+  sl.registerLazySingleton(() => GetProfilePictureUploadUrlUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmProfilePictureUseCase(sl()));
+  sl.registerLazySingleton(() => S3UploadService());
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl(), tokenStorage: sl()),

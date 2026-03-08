@@ -438,4 +438,34 @@ class AuthRepositoryImpl implements AuthRepository {
       return Left(ServerFailure(errorMsg));
     }
   }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  ) async {
+    try {
+      final data = await remoteDataSource.getProfilePictureUploadUrl(
+        mimeType,
+        fileSize,
+      );
+      return Right(data);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> confirmProfilePicture(
+    String finalUrl,
+  ) async {
+    try {
+      final user = await remoteDataSource.confirmProfilePicture(finalUrl);
+      return Right(user);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

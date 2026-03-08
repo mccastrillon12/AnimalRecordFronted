@@ -2,6 +2,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
@@ -40,6 +41,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedPhoneCountryId;
   String? _selectedDepartmentId;
   String? _selectedCityId;
+
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   void initState() {
@@ -110,30 +113,120 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? picked = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1920,
+        maxHeight: 1920,
+        imageQuality:
+            95, // calidad original — la compresión real la hace flutter_image_compress en el bloc
+      );
+      if (picked != null && mounted) {
+        context.read<AuthBloc>().add(
+          UpdateProfilePictureRequested(picked.path),
+        );
+      }
+    } catch (_) {}
+  }
+
+  void _showImageSourceSheet() {
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.greyBordes,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const Text(
+                'Cambiar foto de perfil',
+                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+              ),
+              const SizedBox(height: 16),
+              ListTile(
+                leading: const Icon(Icons.camera_alt_outlined),
+                title: const Text('Tomar foto'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
+                title: const Text('Elegir de la galería'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        if (state is AuthSuccess) {
-          if (state.updateError != null) {
-            ErrorDisplay.showError(
-              context,
-              'Error al actualizar: ${state.updateError}',
-            );
-          } else if (state.isUpdating == false && state.updateError == null) {
-            ErrorDisplay.showSuccess(
-              context,
-              'Perfil actualizado correctamente',
-            );
-          }
-        }
-      },
-      listenWhen: (previous, current) {
-        if (previous is AuthSuccess && current is AuthSuccess) {
-          return previous.isUpdating == true && current.isUpdating == false;
-        }
-        return false;
-      },
+    return MultiBlocListener(
+      listeners: [
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) {
+            if (previous is AuthSuccess && current is AuthSuccess) {
+              return previous.isUpdating == true && current.isUpdating == false;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is AuthSuccess) {
+              if (state.updateError != null) {
+                ErrorDisplay.showError(
+                  context,
+                  'Error al actualizar: ${state.updateError}',
+                );
+              } else {
+                ErrorDisplay.showSuccess(
+                  context,
+                  'Cambios guardados correctamente',
+                );
+                Navigator.pop(context);
+              }
+            }
+          },
+        ),
+        BlocListener<AuthBloc, AuthState>(
+          listenWhen: (previous, current) {
+            if (previous is AuthSuccess && current is AuthSuccess) {
+              return previous.isUploadingPicture == true &&
+                  current.isUploadingPicture == false;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is AuthSuccess) {
+              if (state.profilePictureError != null) {
+                ErrorDisplay.showError(
+                  context,
+                  'Error al subir imagen: ${state.profilePictureError}',
+                );
+              }
+            }
+          },
+        ),
+      ],
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! AuthSuccess) {
@@ -144,6 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
           final UserEntity user = state.user;
           final bool isUpdating = state.isUpdating;
+          final bool isUploadingPicture = state.isUploadingPicture;
 
           return Scaffold(
             resizeToAvoidBottomInset: false,
@@ -172,7 +266,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 children: [
                                   _buildHeader(context),
                                   const SizedBox(height: AppSpacing.l),
-                                  _buildAvatar(user, context),
+                                  _buildAvatar(
+                                    user,
+                                    isUploadingPicture,
+                                    context,
+                                  ),
                                   const SizedBox(height: AppSpacing.l),
                                   Text(
                                     StringFormatters.formatName(user.name),
@@ -350,50 +448,94 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildAvatar(UserEntity user, BuildContext context) {
-    return Stack(
-      children: [
-        Container(
-          width: 96,
-          height: 96,
-          decoration: BoxDecoration(
-            color: AppColors.primaryIndigo,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Center(
-            child: Text(
-              _getInitials(user.name),
-              style: AppTypography.heading1.copyWith(
-                color: Colors.white,
-                fontSize: 40,
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 8,
-          right: 8,
-          child: Container(
-            width: 32,
-            height: 32,
+  Widget _buildAvatar(
+    UserEntity user,
+    bool isUploadingPicture,
+    BuildContext context,
+  ) {
+    return GestureDetector(
+      onTap: isUploadingPicture ? null : _showImageSourceSheet,
+      child: Stack(
+        children: [
+          // Avatar principal: foto real o iniciales
+          Container(
+            width: 96,
+            height: 96,
             decoration: BoxDecoration(
-              color: Colors.black.withOpacity(0.6),
-              borderRadius: BorderRadius.circular(4),
+              color: AppColors.primaryIndigo,
+              borderRadius: BorderRadius.circular(8),
             ),
-            child: Center(
-              child: SvgPicture.asset(
-                'assets/icons/Edit.svg',
-                width: 24,
-                height: 24,
-                colorFilter: const ColorFilter.mode(
-                  Colors.white,
-                  BlendMode.srcIn,
+            clipBehavior: Clip.antiAlias,
+            child:
+                user.profilePicture != null && user.profilePicture!.isNotEmpty
+                ? Image.network(
+                    user.profilePicture!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(
+                        _getInitials(user.name),
+                        style: AppTypography.heading1.copyWith(
+                          color: Colors.white,
+                          fontSize: 40,
+                        ),
+                      ),
+                    ),
+                  )
+                : Center(
+                    child: Text(
+                      _getInitials(user.name),
+                      style: AppTypography.heading1.copyWith(
+                        color: Colors.white,
+                        fontSize: 40,
+                      ),
+                    ),
+                  ),
+          ),
+
+          // Loading overlay cuando se está subiendo
+          if (isUploadingPicture)
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2.5,
+                  ),
                 ),
               ),
             ),
-          ),
-        ),
-      ],
+
+          // Botón de edición (lápiz) en la esquina
+          if (!isUploadingPicture)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.6),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Center(
+                  child: SvgPicture.asset(
+                    'assets/icons/Edit.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter: const ColorFilter.mode(
+                      Colors.white,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 }

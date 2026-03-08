@@ -1,3 +1,5 @@
+import 'dart:ui';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -104,14 +106,44 @@ class ProfileScreen extends StatelessWidget {
                                 color: AppColors.primaryIndigo,
                                 borderRadius: BorderRadius.circular(20),
                               ),
+                              clipBehavior: Clip.antiAlias,
                               child: Center(
-                                child: Text(
-                                  _getInitials(name),
-                                  style: AppTypography.heading1.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                  ),
-                                ),
+                                child:
+                                    state is AuthSuccess &&
+                                        state.user.profilePicture != null &&
+                                        state.user.profilePicture!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: state.user.profilePicture!,
+                                        fit: BoxFit.cover,
+                                        width: 96,
+                                        height: 96,
+                                        fadeInDuration: Duration.zero,
+                                        fadeOutDuration: Duration.zero,
+                                        placeholder: (context, url) => Text(
+                                          _getInitials(name),
+                                          style: AppTypography.heading1
+                                              .copyWith(
+                                                color: Colors.white,
+                                                fontSize: 32,
+                                              ),
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            Text(
+                                              _getInitials(name),
+                                              style: AppTypography.heading1
+                                                  .copyWith(
+                                                    color: Colors.white,
+                                                    fontSize: 32,
+                                                  ),
+                                            ),
+                                      )
+                                    : Text(
+                                        _getInitials(name),
+                                        style: AppTypography.heading1.copyWith(
+                                          color: Colors.white,
+                                          fontSize: 32,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: AppSpacing.m),
