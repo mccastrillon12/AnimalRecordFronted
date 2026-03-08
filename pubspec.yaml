@@ -59,6 +59,7 @@ dependencies:
   image_picker: ^1.1.2              # Selector de galería/cámara
   flutter_image_compress: ^2.3.0    # Compresión antes de subir a S3
   cached_network_image: ^3.4.1
+  shared_preferences: ^2.5.4
 
 dev_dependencies:
   flutter_test:
