@@ -44,7 +44,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> signUp(UserModel user) async {
-    final response = await apiClient.post('/users', data: user.toJson());
+    final body = user.toJson();
+    // ignore: avoid_print
+    print('📤 POST /users body: $body');
+    final response = await apiClient.post('/users', data: body);
     return UserModel.fromJson(response.data);
   }
 

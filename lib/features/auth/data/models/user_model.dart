@@ -85,7 +85,7 @@ class UserModel extends UserEntity {
     final Map<String, dynamic> json = {
       'id': id,
       'name': name,
-      'identificationType': identificationType,
+      'identificationType': identificationType.toLowerCase(),
       'identificationNumber': identificationNumber,
       'countryId': countryId,
       'roles': roles,
@@ -93,7 +93,6 @@ class UserModel extends UserEntity {
       'animalTypes': animalTypes,
       'services': services,
       'isHomeDelivery': isHomeDelivery,
-      'profilePicture': profilePicture,
     };
 
     if (email.isNotEmpty) {
