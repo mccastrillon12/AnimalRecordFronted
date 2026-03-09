@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 class VerificationStep extends StatefulWidget {
   final String identifier;
@@ -31,7 +32,7 @@ class VerificationStep extends StatefulWidget {
   State<VerificationStep> createState() => VerificationStepState();
 }
 
-class VerificationStepState extends State<VerificationStep> {
+class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
   final List<TextEditingController> _controllers = List.generate(
     5,
     (_) => TextEditingController(),
@@ -47,6 +48,7 @@ class VerificationStepState extends State<VerificationStep> {
     if (widget.initialTimeRemaining != null) {
       _startTimer(widget.initialTimeRemaining!);
     }
+
     for (int i = 0; i < 5; i++) {
       _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
         if (event is KeyDownEvent &&
@@ -61,6 +63,23 @@ class VerificationStepState extends State<VerificationStep> {
         }
         return KeyEventResult.ignored;
       };
+    }
+
+    // Start listening for SMS if the identifier is a phone number
+    if (!widget.identifier.contains('@')) {
+      listenForCode();
+    }
+  }
+
+  @override
+  void codeUpdated() {
+    if (code != null && code!.length == 5) {
+      setState(() {
+        for (int i = 0; i < 5; i++) {
+          _controllers[i].text = code![i];
+        }
+      });
+      widget.onCodeChanged?.call();
     }
   }
 
@@ -92,6 +111,9 @@ class VerificationStepState extends State<VerificationStep> {
   @override
   void dispose() {
     _timer?.cancel();
+    if (!widget.identifier.contains('@')) {
+      cancel(); // Cancel SmsAutoFill listener
+    }
     for (var controller in _controllers) {
       controller.dispose();
     }
