@@ -124,8 +124,7 @@ app.*.symbols
 .metadata
 
 # Environment files (keep .env.example)
-.env.development
-.env.physical
-.env.production
-.env
-!.env.example
+#.env.development
+#.env.physical
+#.env.production
+#.env
