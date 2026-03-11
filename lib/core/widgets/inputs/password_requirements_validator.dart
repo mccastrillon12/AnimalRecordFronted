@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -33,14 +34,14 @@ class PasswordRequirementsValidator extends StatelessWidget {
             'Usa al menos:',
             style: AppTypography.body6.copyWith(color: AppColors.greyNegro),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: AppSpacing.s),
         ],
         _buildRequirementItem('8 caracteres mínimo', _hasMinLength),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         _buildRequirementItem('1 minúscula y 1 mayúscula', _hasUpperLower),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         _buildRequirementItem('1 número', _hasNumber),
-        const SizedBox(height: 8),
+        const SizedBox(height: AppSpacing.xs),
         _buildRequirementItem('1 carácter especial', _hasSpecialChar),
       ],
     );
@@ -54,7 +55,7 @@ class PasswordRequirementsValidator extends StatelessWidget {
           size: 16,
           color: met ? AppColors.successEsmeralda : AppColors.greyIconos,
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: AppSpacing.xs),
         Text(
           text,
           style: AppTypography.body6.copyWith(color: AppColors.greyIconos),

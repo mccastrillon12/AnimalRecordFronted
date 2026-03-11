@@ -189,7 +189,7 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
                 border: Border.all(
                   color: _isOpen
                       ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
+                      : AppColors.greyBordes,
                 ),
                 borderRadius: BorderRadius.circular(4),
                 color: widget.enabled
@@ -203,7 +203,7 @@ class _DepartmentDropdownState extends State<DepartmentDropdown> {
                       selectedDepartment?.name ?? 'Selecciona un departamento',
                       style: AppTypography.body4.copyWith(
                         color: selectedDepartment == null
-                            ? AppColors.greyMedio
+                            ? AppColors.greyBordes
                             : AppColors.greyTextos,
                       ),
                       overflow: TextOverflow.ellipsis,

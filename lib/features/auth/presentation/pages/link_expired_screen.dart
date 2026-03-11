@@ -5,7 +5,9 @@ import 'package:animal_record/features/auth/presentation/widgets/auth_form_conta
 import 'package:flutter/material.dart';
 
 class LinkExpiredScreen extends StatelessWidget {
-  const LinkExpiredScreen({super.key});
+  final bool isPinFlow;
+
+  const LinkExpiredScreen({super.key, this.isPinFlow = false});
 
   @override
   Widget build(BuildContext context) {
@@ -25,16 +27,15 @@ class LinkExpiredScreen extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
           Text(
             'Este enlace ha expirado',
-            style: AppTypography.heading2.copyWith(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.bold,
-            ),
+            style: AppTypography.heading1.copyWith(color: AppColors.greyNegro),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.m),
+          const SizedBox(height: AppSpacing.l),
           Text(
-            'El enlace para cambiar la contraseña ha expirado, reintenta:',
-            style: AppTypography.body1.copyWith(color: AppColors.textSecondary),
+            isPinFlow
+                ? 'El enlace para cambiar el PIN ha expirado, reintenta:'
+                : 'El enlace para cambiar la contraseña ha expirado, reintenta:',
+            style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: AppSpacing.m),
@@ -42,15 +43,14 @@ class LinkExpiredScreen extends StatelessWidget {
             onTap: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                '/forgot-password',
+                isPinFlow ? '/forgot-pin' : '/forgot-password',
                 (route) => false,
               );
             },
             child: Text(
-              'Cambiar contraseña',
-              style: AppTypography.body1.copyWith(
+              isPinFlow ? 'Cambiar PIN' : 'Cambiar contraseña',
+              style: AppTypography.body3.copyWith(
                 color: AppColors.primaryFrances,
-                fontWeight: FontWeight.bold,
               ),
             ),
           ),

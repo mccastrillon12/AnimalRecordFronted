@@ -103,8 +103,14 @@ class ApiClient {
       if (e.response?.statusCode == 404) {
         throw Exception('Recurso no encontrado (404)');
       }
+      if (e.response?.statusCode == 409) {
+        throw Exception(
+          'El correo/celular ya se encuentra registrado, por favor inicie sesión',
+        );
+      }
       throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
     } catch (e) {
+      if (e is Exception) rethrow;
       throw Exception('Error inesperado: \$e');
     }
   }

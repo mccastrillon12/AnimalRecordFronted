@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -18,6 +19,7 @@ import 'change_pin_screen.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -134,6 +136,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             ErrorDisplay.showError(context, 'Error: ${state.updateError}');
           } else if (state.isUpdating == false && state.updateError == null) {
             ErrorDisplay.showSuccess(context, 'Cambios guardados');
+            Navigator.pop(context);
           }
         }
       },
@@ -159,7 +162,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
             body: SafeArea(
               child: Column(
                 children: [
-                  const SizedBox(height: 24),
+                  const SizedBox(height: AppSpacing.l),
                   Expanded(
                     child: Container(
                       width: double.infinity,
@@ -203,6 +206,32 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
                           Expanded(
                             child: FixedBottomActionLayout(
+                              bottomChild: CustomButton(
+                                text: 'Guardar cambios',
+                                isLoading: isUpdating,
+                                onPressed:
+                                    (isUpdating || !_hasChangesAndValid(user))
+                                    ? null
+                                    : () {
+                                        if (_formKey.currentState!.validate()) {
+                                          final updatedData = <String, dynamic>{
+                                            'name': _nameController.text,
+                                            if (isPhoneLogin)
+                                              'email': _emailController.text,
+                                            if (!isPhoneLogin)
+                                              'cellPhone':
+                                                  _phoneController.text,
+                                            'countryId': user.countryId,
+                                          };
+                                          context.read<AuthBloc>().add(
+                                            UpdateProfileRequested(
+                                              userId: user.id,
+                                              data: updatedData,
+                                            ),
+                                          );
+                                        }
+                                      },
+                              ),
                               child: SingleChildScrollView(
                                 child: Form(
                                   key: _formKey,
@@ -225,7 +254,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ),
                                         ),
                                       ),
-                                      const SizedBox(height: 24),
+                                      const SizedBox(height: AppSpacing.l),
 
                                       Padding(
                                         padding: const EdgeInsets.symmetric(
@@ -239,7 +268,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               controller: _nameController,
                                               label: 'Nombre completo',
                                             ),
-                                            const SizedBox(height: 24),
+                                            const SizedBox(
+                                              height: AppSpacing.l,
+                                            ),
 
                                             if (isPhoneLogin) ...[
                                               Text(
@@ -250,61 +281,34 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .textSecondary,
                                                     ),
                                               ),
-                                              const SizedBox(height: 8),
+                                              const SizedBox(
+                                                height: AppSpacing.xs,
+                                              ),
                                               DataValueBox(
                                                 value: user.cellPhone.isNotEmpty
                                                     ? user.cellPhone
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(height: 12),
-                                              Text(
-                                                'Si necesitas cambiar el celular de tu cuenta, escríbenos a support@animalrecord.com',
-                                                style: AppTypography.body4
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                      fontSize: 13,
-                                                    ),
+                                              const SizedBox(
+                                                height: AppSpacing.s,
                                               ),
-                                              const SizedBox(height: 24),
-                                              CustomTextField(
-                                                controller: _emailController,
-                                                label: 'Correo electrónico',
-                                                maxLength: 50,
-                                              ),
-                                            ] else ...[
-                                              Text(
-                                                'Correo electrónico',
-                                                style: AppTypography.body5
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
-                                              ),
-                                              const SizedBox(height: 8),
-                                              DataValueBox(
-                                                value: user.email.isNotEmpty
-                                                    ? user.email
-                                                    : 'No registrado',
-                                              ),
-                                              const SizedBox(height: 12),
                                               RichText(
                                                 text: TextSpan(
-                                                  style: AppTypography.body4
+                                                  style: AppTypography.body6
                                                       .copyWith(
                                                         color: AppColors
                                                             .textSecondary,
-                                                        fontSize: 13,
+                                                        height: 1.5,
                                                       ),
                                                   children: [
                                                     const TextSpan(
                                                       text:
-                                                          'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
+                                                          'Si necesitas cambiar el celular de tu cuenta, escríbenos a ',
                                                     ),
                                                     TextSpan(
                                                       text:
                                                           'support@animalrecord.com',
-                                                      style: AppTypography.body4
+                                                      style: AppTypography.body6
                                                           .copyWith(
                                                             color: AppColors
                                                                 .primaryFrances,
@@ -316,7 +320,67 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(height: 24),
+                                              const SizedBox(
+                                                height: AppSpacing.l,
+                                              ),
+                                              CustomTextField(
+                                                controller: _emailController,
+                                                label: 'Correo electrónico',
+                                                maxLength: 50,
+                                                validator: ValidationUtils
+                                                    .validateEmail,
+                                              ),
+                                            ] else ...[
+                                              Text(
+                                                'Correo electrónico',
+                                                style: AppTypography.body6
+                                                    .copyWith(
+                                                      color: AppColors
+                                                          .textSecondary,
+                                                    ),
+                                              ),
+                                              const SizedBox(
+                                                height: AppSpacing.xs,
+                                              ),
+                                              DataValueBox(
+                                                value: user.email.isNotEmpty
+                                                    ? user.email
+                                                    : 'No registrado',
+                                              ),
+                                              const SizedBox(
+                                                height: AppSpacing.s,
+                                              ),
+                                              RichText(
+                                                text: TextSpan(
+                                                  style: AppTypography.body6
+                                                      .copyWith(
+                                                        color: AppColors
+                                                            .textSecondary,
+                                                        height: 1.5,
+                                                      ),
+                                                  children: [
+                                                    const TextSpan(
+                                                      text:
+                                                          'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
+                                                    ),
+                                                    TextSpan(
+                                                      text:
+                                                          'support@animalrecord.com',
+                                                      style: AppTypography.body6
+                                                          .copyWith(
+                                                            color: AppColors
+                                                                .primaryFrances,
+                                                            decoration:
+                                                                TextDecoration
+                                                                    .underline,
+                                                          ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              const SizedBox(
+                                                height: AppSpacing.l,
+                                              ),
                                               BlocBuilder<
                                                 LocationsCubit,
                                                 LocationsState
@@ -354,10 +418,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(height: 32),
+                                      const SizedBox(height: AppSpacing.xl),
 
                                       if (user.authMethod.toLowerCase() ==
-                                          'email')
+                                              'email' ||
+                                          user.authMethod.toLowerCase() ==
+                                              'phone')
                                         Column(
                                           children: [
                                             Container(
@@ -432,7 +498,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  const SizedBox(
+                                                    height: AppSpacing.xs,
+                                                  ),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4
@@ -528,7 +596,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                       ),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 8),
+                                                  const SizedBox(
+                                                    height: AppSpacing.xs,
+                                                  ),
                                                   Text(
                                                     'Última modificación: month, dd, yyyy',
                                                     style: AppTypography.body4
@@ -543,37 +613,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                           ],
                                         ),
 
-                                      const SizedBox(height: 40),
+                                      const SizedBox(height: AppSpacing.xxl),
                                     ],
                                   ),
                                 ),
-                              ),
-
-                              bottomChild: CustomButton(
-                                text: 'Guardar cambios',
-                                isLoading: isUpdating,
-                                onPressed:
-                                    (isUpdating || !_hasChangesAndValid(user))
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          final updatedData = <String, dynamic>{
-                                            'name': _nameController.text,
-                                            if (isPhoneLogin)
-                                              'email': _emailController.text,
-                                            if (!isPhoneLogin)
-                                              'cellPhone':
-                                                  _phoneController.text,
-                                            'countryId': user.countryId,
-                                          };
-                                          context.read<AuthBloc>().add(
-                                            UpdateProfileRequested(
-                                              userId: user.id,
-                                              data: updatedData,
-                                            ),
-                                          );
-                                        }
-                                      },
                               ),
                             ),
                           ),

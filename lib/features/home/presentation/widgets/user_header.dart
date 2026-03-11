@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -46,23 +47,37 @@ class UserHeader extends StatelessWidget {
                     child: BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         String name = '';
+                        String? profilePic;
                         if (state is AuthSuccess) {
                           name = state.user.name;
+                          profilePic = state.user.profilePicture;
                         }
-                        return Center(
-                          child: Text(
-                            _getInitials(name),
-                            style: AppTypography.heading1.copyWith(
-                              color: AppColors.white,
+
+                        if (profilePic != null && profilePic.isNotEmpty) {
+                          return ClipRRect(
+                            borderRadius: BorderRadius.circular(12),
+                            child: CachedNetworkImage(
+                              imageUrl: profilePic,
+                              fit: BoxFit.cover,
+                              width: 52,
+                              height: 52,
+                              fadeInDuration: Duration.zero,
+                              fadeOutDuration: Duration.zero,
+                              placeholder: (context, url) =>
+                                  _buildInitials(name),
+                              errorWidget: (context, url, error) =>
+                                  _buildInitials(name),
                             ),
-                          ),
-                        );
+                          );
+                        }
+
+                        return _buildInitials(name);
                       },
                     ),
                   ),
                 ),
 
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.xs),
 
                 Expanded(
                   child: BlocBuilder<AuthBloc, AuthState>(
@@ -189,5 +204,14 @@ class UserHeader extends StatelessWidget {
     });
 
     return formattedParts.join(' ');
+  }
+
+  Widget _buildInitials(String name) {
+    return Center(
+      child: Text(
+        _getInitials(name),
+        style: AppTypography.heading1.copyWith(color: AppColors.white),
+      ),
+    );
   }
 }

@@ -186,3 +186,11 @@ class ForgotPasswordRequested extends AuthEvent {
   @override
   List<Object> get props => [identifier];
 }
+
+class UpdateProfilePictureRequested extends AuthEvent {
+  final String imagePath;
+  UpdateProfilePictureRequested(this.imagePath);
+
+  @override
+  List<Object?> get props => [imagePath];
+}

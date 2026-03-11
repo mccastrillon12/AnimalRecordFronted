@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -96,7 +97,7 @@ class TagInputWidgetState extends State<TagInputWidget> {
                               color: AppColors.textPrimary,
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: AppSpacing.xs),
                           GestureDetector(
                             onTap: () => _removeTag(tag),
                             child: Icon(
@@ -111,7 +112,7 @@ class TagInputWidgetState extends State<TagInputWidget> {
                   }).toList(),
                 ),
 
-              if (widget.tags.isNotEmpty) const SizedBox(height: 8),
+              if (widget.tags.isNotEmpty) const SizedBox(height: AppSpacing.xs),
 
               Row(
                 children: [
@@ -123,7 +124,7 @@ class TagInputWidgetState extends State<TagInputWidget> {
                       decoration: InputDecoration(
                         hintText: widget.hint,
                         hintStyle: AppTypography.body4.copyWith(
-                          color: AppColors.greyMedio,
+                          color: AppColors.greyBordes,
                         ),
                         border: InputBorder.none,
                         enabledBorder: InputBorder.none,

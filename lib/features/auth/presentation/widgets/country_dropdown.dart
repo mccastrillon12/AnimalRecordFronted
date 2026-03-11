@@ -128,7 +128,7 @@ class _CountryDropdownState extends State<CountryDropdown> {
                                       ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
+                              const SizedBox(width: AppSpacing.xs),
                               Expanded(
                                 child: Text(
                                   widget.showIsoCodeAsValue
@@ -198,12 +198,10 @@ class _CountryDropdownState extends State<CountryDropdown> {
                 border: Border.all(
                   color: _isOpen
                       ? AppColors.primaryFrances
-                      : AppColors.greyMedio,
+                      : AppColors.greyBordes,
                 ),
                 borderRadius: BorderRadius.circular(4),
-                color: widget.enabled
-                    ? Colors.white
-                    : AppColors.bgBlancoAntiFlash,
+                color: Colors.white,
               ),
               child: Row(
                 children: [
@@ -224,7 +222,7 @@ class _CountryDropdownState extends State<CountryDropdown> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: AppSpacing.xs),
                     Expanded(
                       child: Text(
                         widget.showIsoCodeAsValue

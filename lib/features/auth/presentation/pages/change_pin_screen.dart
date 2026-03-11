@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -53,13 +54,59 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    _setupFocusNodes(_oldPinFocusNodes, _oldPinControllers, _onOldPinChanged);
+    _setupFocusNodes(_newPinFocusNodes, _newPinControllers, _onNewPinChanged);
+    _setupFocusNodes(
+      _confirmPinFocusNodes,
+      _confirmPinControllers,
+      _onConfirmPinChanged,
+    );
+  }
+
+  void _setupFocusNodes(
+    List<FocusNode> nodes,
+    List<TextEditingController> controllers,
+    Function(int, String) onChanged,
+  ) {
+    for (int i = 0; i < 4; i++) {
+      nodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (controllers[i].text.isEmpty && i > 0) {
+            nodes[i - 1].requestFocus();
+            controllers[i - 1].clear();
+            onChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  @override
   void dispose() {
-    for (var c in _oldPinControllers) c.dispose();
-    for (var c in _newPinControllers) c.dispose();
-    for (var c in _confirmPinControllers) c.dispose();
-    for (var f in _oldPinFocusNodes) f.dispose();
-    for (var f in _newPinFocusNodes) f.dispose();
-    for (var f in _confirmPinFocusNodes) f.dispose();
+    for (var c in _oldPinControllers) {
+      c.dispose();
+    }
+    for (var c in _newPinControllers) {
+      c.dispose();
+    }
+    for (var c in _confirmPinControllers) {
+      c.dispose();
+    }
+    for (var f in _oldPinFocusNodes) {
+      f.dispose();
+    }
+    for (var f in _newPinFocusNodes) {
+      f.dispose();
+    }
+    for (var f in _confirmPinFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
@@ -139,14 +186,10 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         title: _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
         onBack: _currentStep == 2
             ? () => setState(() => _currentStep = 1)
-            : () => Navigator.pop(context),
+            : null,
         onCancel: () => Navigator.pop(context),
         addInternalPadding: false,
         child: FixedBottomActionLayout(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
-          ),
           bottomChild: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
               final isLoading = state is AuthSuccess && state.isUpdating;
@@ -163,6 +206,10 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
               );
             },
           ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: _currentStep == 1 ? _buildStep1() : _buildStep2(),
+          ),
         ),
       ),
     );
@@ -171,21 +218,21 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   Widget _buildStep1() {
     return Column(
       children: [
-        const SizedBox(height: 20),
-        Text('Ingrese su PIN actual', style: AppTypography.body3),
-        const SizedBox(height: 16),
+        const SizedBox(height: 56),
+        Text('Ingrese su PIN actual', style: AppTypography.body4),
+        const SizedBox(height: AppSpacing.l),
         _buildPinFields(
           _oldPinControllers,
           _oldPinFocusNodes,
           _onOldPinChanged,
         ),
-        const SizedBox(height: 48),
+        const SizedBox(height: 56),
         Text(
           'Escoja 4 números nuevos para cambiar tu PIN.',
-          style: AppTypography.body3,
+          style: AppTypography.body4,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.l),
         _buildPinFields(
           _newPinControllers,
           _newPinFocusNodes,
@@ -200,13 +247,13 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   Widget _buildStep2() {
     return Column(
       children: [
-        const SizedBox(height: 20),
+        const SizedBox(height: 56),
         Text(
           'Confirme los 4 números escogidos del nuevo PIN.',
-          style: AppTypography.body3,
+          style: AppTypography.body4,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.m),
         _buildPinFields(
           _confirmPinControllers,
           _confirmPinFocusNodes,
@@ -226,10 +273,9 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(4, (index) {
-        return Container(
-          width: 50,
-          height: 50,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+        return SizedBox(
+          width: 40,
+          height: 40,
           child: TextField(
             controller: controllers[index],
             focusNode: focusNodes[index],
@@ -239,12 +285,21 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             obscureText: true,
             decoration: InputDecoration(
               counterText: '',
+              contentPadding: EdgeInsets.zero,
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-                borderSide: const BorderSide(color: AppColors.greyMedio),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
+                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
                 borderSide: const BorderSide(
                   color: AppColors.primaryFrances,
                   width: 2,
@@ -253,6 +308,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             ),
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
             onChanged: (value) => onChanged(index, value),
+            onTap: () {
+              controllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: controllers[index].text.length),
+              );
+            },
           ),
         );
       }),
@@ -264,7 +324,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
       padding: const EdgeInsets.only(top: 16),
       child: Text(
         _errorMessage!,
-        style: AppTypography.body4.copyWith(color: AppColors.error),
+        style: AppTypography.body5.copyWith(color: AppColors.error),
         textAlign: TextAlign.center,
       ),
     );

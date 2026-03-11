@@ -48,7 +48,8 @@ class AuthRepositoryImpl implements AuthRepository {
       final result = await remoteDataSource.signUp(userModel);
       return Right(result);
     } catch (e) {
-      return Left(ServerFailure(e.toString()));
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
     }
   }
 
@@ -135,7 +136,7 @@ class AuthRepositoryImpl implements AuthRepository {
   ) async {
     try {
       final response = await remoteDataSource.verifyCode(
-        params.email,
+        params.identifier,
         params.code,
       );
 
@@ -433,6 +434,36 @@ class AuthRepositoryImpl implements AuthRepository {
         token,
       );
       return Right(isValid);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  ) async {
+    try {
+      final data = await remoteDataSource.getProfilePictureUploadUrl(
+        mimeType,
+        fileSize,
+      );
+      return Right(data);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, UserEntity>> confirmProfilePicture(
+    String finalUrl,
+  ) async {
+    try {
+      final user = await remoteDataSource.confirmProfilePicture(finalUrl);
+      return Right(user);
     } catch (e) {
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));

@@ -54,7 +54,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       });
     } else {
       Future.microtask(
-        () => Navigator.pushReplacementNamed(context, '/link-expired'),
+        () => Navigator.pushReplacementNamed(
+          context,
+          '/link-expired',
+          arguments: {'isPinFlow': false},
+        ),
       );
     }
   }
@@ -125,13 +129,21 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         } else if (state is ResetTokenInvalid) {
-          Navigator.pushReplacementNamed(context, '/link-expired');
+          Navigator.pushReplacementNamed(
+            context,
+            '/link-expired',
+            arguments: {'isPinFlow': false},
+          );
         } else if (state is AuthError) {
           if (state.message.toLowerCase().contains('invalid') ||
               state.message.toLowerCase().contains('inválido') ||
               state.message.toLowerCase().contains('expired') ||
               state.message.toLowerCase().contains('expirado')) {
-            Navigator.pushReplacementNamed(context, '/link-expired');
+            Navigator.pushReplacementNamed(
+              context,
+              '/link-expired',
+              arguments: {'isPinFlow': false},
+            );
           } else {
             ErrorDisplay.showError(context, state.message);
           }
@@ -141,6 +153,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         showCancelButton: true,
         showLogo: false,
         title: 'Cambiar contraseña',
+        onCancel: () =>
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: Column(
           children: [
             Expanded(

@@ -50,4 +50,9 @@ abstract class AuthRepository {
     String identifier,
     String token,
   );
+  Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  );
+  Future<Either<Failure, UserEntity>> confirmProfilePicture(String finalUrl);
 }

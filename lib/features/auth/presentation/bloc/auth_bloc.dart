@@ -24,7 +24,12 @@ import 'package:animal_record/features/auth/domain/usecases/forgot_password_usec
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
 import 'package:animal_record/core/services/token_storage.dart';
+import 'package:animal_record/features/auth/domain/usecases/get_profile_picture_upload_url_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/confirm_profile_picture_usecase.dart';
+import 'package:animal_record/core/services/s3_upload_service.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:convert';
+
 import 'package:animal_record/features/auth/data/models/user_model.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
@@ -50,6 +55,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ResetPinUseCase resetPinUseCase;
   final LogoutUseCase logoutUseCase;
   final TokenStorage tokenStorage;
+  final GetProfilePictureUploadUrlUseCase getProfilePictureUploadUrlUseCase;
+  final ConfirmProfilePictureUseCase confirmProfilePictureUseCase;
+  final S3UploadService s3UploadService;
 
   AuthBloc({
     required this.registerUseCase,
@@ -74,6 +82,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.resetPinUseCase,
     required this.logoutUseCase,
     required this.tokenStorage,
+    required this.getProfilePictureUploadUrlUseCase,
+    required this.confirmProfilePictureUseCase,
+    required this.s3UploadService,
   }) : super(AuthInitial()) {
     on<FetchUserRequested>(_onFetchUserRequested);
 
@@ -116,6 +127,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<UpdateBiometricStatusRequested>(_onUpdateBiometricStatusRequested);
 
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
+
+    on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
   }
 
   Future<void> _onFetchUserRequested(
@@ -207,10 +220,40 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         }
       },
       (user) async {
-        await _saveUserToCache(user);
+        // El backend podría no devolver profilePicture en el endpoint de actualizar perfil.
+        // Si el usuario resultante no tiene profilePicture, pero nosotros sí lo teníamos, lo preservamos.
+        UserEntity finalUser = user;
+        if (user.profilePicture == null &&
+            currentUser != null &&
+            currentUser.profilePicture != null) {
+          finalUser = UserModel(
+            id: user.id,
+            name: user.name,
+            identificationType: user.identificationType,
+            identificationNumber: user.identificationNumber,
+            country: user.country,
+            countryId: user.countryId,
+            departmentId: user.departmentId,
+            city: user.city,
+            cityId: user.cityId,
+            address: user.address,
+            email: user.email,
+            cellPhone: user.cellPhone,
+            professionalCard: user.professionalCard,
+            animalTypes: user.animalTypes,
+            services: user.services,
+            isHomeDelivery: user.isHomeDelivery,
+            roles: user.roles,
+            authMethod: user.authMethod,
+            isVerified: user.isVerified,
+            profilePicture: currentUser.profilePicture,
+          );
+        }
+
+        await _saveUserToCache(finalUser);
         emit(
           AuthSuccess(
-            user,
+            finalUser,
             isUpdating: false,
             isBiometricEnabled: currentState is AuthSuccess
                 ? currentState.isBiometricEnabled
@@ -674,6 +717,141 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       (failure) async => emit(AuthError(failure.message)),
       (_) async => emit(ForgotPasswordSuccess()),
     );
+  }
+
+  Future<void> _onUpdateProfilePicture(
+    UpdateProfilePictureRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccess) return;
+
+    emit(
+      currentState.copyWith(
+        isUploadingPicture: true,
+        profilePictureError: null,
+      ),
+    );
+
+    try {
+      // Paso 1: Comprimir imagen en el celular (sin gastar datos aún)
+      final compressedBytes = await FlutterImageCompress.compressWithFile(
+        event.imagePath,
+        minWidth: 800,
+        minHeight: 800,
+        quality: 80,
+        format: CompressFormat.jpeg,
+      );
+
+      if (compressedBytes == null) {
+        emit(
+          currentState.copyWith(
+            isUploadingPicture: false,
+            profilePictureError: 'No se pudo comprimir la imagen',
+          ),
+        );
+        return;
+      }
+
+      const mimeType = 'image/jpeg';
+      final fileSize = compressedBytes.length;
+
+      // Paso 2: Obtener URL pre-firmada del backend
+      final urlResult = await getProfilePictureUploadUrlUseCase(
+        mimeType: mimeType,
+        fileSize: fileSize,
+      );
+
+      await urlResult.fold(
+        (failure) async {
+          emit(
+            currentState.copyWith(
+              isUploadingPicture: false,
+              profilePictureError: failure.message,
+            ),
+          );
+        },
+        (urlData) async {
+          final uploadUrl = urlData['uploadUrl'] as String?;
+          final finalUrl = urlData['finalUrl'] as String?;
+
+          if (uploadUrl == null || finalUrl == null) {
+            emit(
+              currentState.copyWith(
+                isUploadingPicture: false,
+                profilePictureError: 'Respuesta inválida del servidor',
+              ),
+            );
+            return;
+          }
+
+          // Paso 3: Subir directo a S3 (sin JWT, sin pasar por Lightsail)
+          await s3UploadService.uploadFileToS3(
+            presignedUrl: uploadUrl,
+            bytes: compressedBytes,
+            mimeType: mimeType,
+          );
+
+          // Paso 4: Confirmar al backend con la URL pública final
+          final confirmResult = await confirmProfilePictureUseCase(finalUrl);
+
+          await confirmResult.fold(
+            (failure) async {
+              emit(
+                currentState.copyWith(
+                  isUploadingPicture: false,
+                  profilePictureError: failure.message,
+                ),
+              );
+            },
+            (_) async {
+              // El backend a veces devuelve una respuesta parcial en el PATCH.
+              // Para no perder los datos del usuario, clonamos el usuario actual
+              // y le inyectamos la nueva URL de la foto:
+              final oldUser = currentState.user;
+              final accurateUser = UserModel(
+                id: oldUser.id,
+                name: oldUser.name,
+                identificationType: oldUser.identificationType,
+                identificationNumber: oldUser.identificationNumber,
+                country: oldUser.country,
+                countryId: oldUser.countryId,
+                departmentId: oldUser.departmentId,
+                city: oldUser.city,
+                cityId: oldUser.cityId,
+                address: oldUser.address,
+                email: oldUser.email,
+                cellPhone: oldUser.cellPhone,
+                professionalCard: oldUser.professionalCard,
+                animalTypes: oldUser.animalTypes,
+                services: oldUser.services,
+                isHomeDelivery: oldUser.isHomeDelivery,
+                roles: oldUser.roles,
+                authMethod: oldUser.authMethod,
+                isVerified: oldUser.isVerified,
+                profilePicture: finalUrl,
+              );
+
+              await _saveUserToCache(accurateUser);
+              emit(
+                AuthSuccess(
+                  accurateUser,
+                  isUploadingPicture: false,
+                  isBiometricEnabled: currentState.isBiometricEnabled,
+                ),
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      emit(
+        currentState.copyWith(
+          isUploadingPicture: false,
+          profilePictureError: 'Error inesperado: ${e.toString()}',
+        ),
+      );
+    }
   }
 
   Future<void> _saveUserToCache(UserEntity user) async {

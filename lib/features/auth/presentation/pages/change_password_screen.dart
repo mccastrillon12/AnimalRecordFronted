@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -7,10 +8,9 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../widgets/auth_form_container.dart';
-import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
+
 import 'package:animal_record/core/utils/password_validator.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 class ChangePasswordScreen extends StatefulWidget {
   const ChangePasswordScreen({super.key});
@@ -91,81 +91,75 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           );
         }
       },
-      child: AuthFormContainer(
-        showLogo: false,
+      child: ModalPageLayout(
         title: 'Cambiar contraseña',
-        onBack: () => Navigator.pop(context),
-        onCancel: () => Navigator.pop(context),
-        addInternalPadding: false,
-        child: FixedBottomActionLayout(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const SizedBox(height: 24),
-                CustomTextField(
-                  controller: _currentPasswordController,
-                  label: 'Contraseña actual',
-                  isPassword: true,
-                  obscureText: _obscureCurrent,
-                  onToggleVisibility: () =>
-                      setState(() => _obscureCurrent = !_obscureCurrent),
-                ),
-                const SizedBox(height: 24),
-                CustomTextField(
-                  controller: _newPasswordController,
-                  label: 'Nueva contraseña',
-                  isPassword: true,
-                  obscureText: _obscureNew,
-                  onToggleVisibility: () =>
-                      setState(() => _obscureNew = !_obscureNew),
-                ),
-                const SizedBox(height: 16),
+        bottomChild: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            return CustomButton(
+              text: 'Cambiar',
+              isLoading:
+                  state is AuthLoading ||
+                  (state is AuthSuccess && state.isUpdating),
+              onPressed:
+                  canSubmit &&
+                      state is! AuthLoading &&
+                      !(state is AuthSuccess && state.isUpdating)
+                  ? () {
+                      context.read<AuthBloc>().add(
+                        ChangePasswordRequested(
+                          oldPassword: _currentPasswordController.text,
+                          newPassword: _newPasswordController.text,
+                        ),
+                      );
+                    }
+                  : null,
+            );
+          },
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: AppSpacing.l),
+              CustomTextField(
+                controller: _currentPasswordController,
+                label: 'Contraseña actual',
+                isPassword: true,
+                obscureText: _obscureCurrent,
+                onToggleVisibility: () =>
+                    setState(() => _obscureCurrent = !_obscureCurrent),
+              ),
+              const SizedBox(height: AppSpacing.l),
+              CustomTextField(
+                controller: _newPasswordController,
+                label: 'Nueva contraseña',
+                isPassword: true,
+                obscureText: _obscureNew,
+                onToggleVisibility: () =>
+                    setState(() => _obscureNew = !_obscureNew),
+              ),
+              const SizedBox(height: AppSpacing.m),
 
-                ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _newPasswordController,
-                  builder: (context, value, child) {
-                    return PasswordRequirementsValidator(password: value.text);
-                  },
-                ),
+              ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _newPasswordController,
+                builder: (context, value, child) {
+                  return PasswordRequirementsValidator(password: value.text);
+                },
+              ),
 
-                const SizedBox(height: 24),
-                CustomTextField(
-                  controller: _confirmPasswordController,
-                  label: 'Confirmar nueva contraseña',
-                  isPassword: true,
-                  obscureText: _obscureConfirm,
-                  errorText: _confirmPasswordError,
-                  onToggleVisibility: () =>
-                      setState(() => _obscureConfirm = !_obscureConfirm),
-                ),
-                const KeyboardSpacer(),
-              ],
-            ),
-          ),
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              return CustomButton(
-                text: 'Cambiar',
-                isLoading:
-                    state is AuthLoading ||
-                    (state is AuthSuccess && state.isUpdating),
-                onPressed:
-                    canSubmit &&
-                        state is! AuthLoading &&
-                        !(state is AuthSuccess && state.isUpdating)
-                    ? () {
-                        context.read<AuthBloc>().add(
-                          ChangePasswordRequested(
-                            oldPassword: _currentPasswordController.text,
-                            newPassword: _newPasswordController.text,
-                          ),
-                        );
-                      }
-                    : null,
-              );
-            },
+              const SizedBox(height: AppSpacing.l),
+              CustomTextField(
+                controller: _confirmPasswordController,
+                label: 'Confirmar nueva contraseña',
+                isPassword: true,
+                obscureText: _obscureConfirm,
+                errorText: _confirmPasswordError,
+                onToggleVisibility: () =>
+                    setState(() => _obscureConfirm = !_obscureConfirm),
+              ),
+              const SizedBox(height: AppSpacing.l),
+            ],
           ),
         ),
       ),

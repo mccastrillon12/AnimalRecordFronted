@@ -84,48 +84,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
     super.dispose();
   }
 
-  bool _isValidEmail(String email) {
-    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
-  }
-
-  bool _isValidPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 10;
-  }
-
   void _runAutoValidation() {
     if (!mounted) return;
     final text = widget.controller?.text.trim() ?? '';
-    if (text.isEmpty) {
-      if (_internalErrorText != null) {
-        setState(() => _internalErrorText = null);
-      }
-      return;
-    }
 
     String? error;
-    final labelLow = widget.label.toLowerCase();
-
-    if (widget.keyboardType == TextInputType.phone ||
-        (labelLow.contains('celular') && !labelLow.contains('correo'))) {
-      if (!_isValidPhone(text)) {
-        error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
-      }
-    } else if (labelLow.contains('correo') && labelLow.contains('celular')) {
-      if (RegExp(r'^[0-9+\-\s]+$').hasMatch(text)) {
-        if (!_isValidPhone(text)) {
-          error = 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
-        }
-      } else {
-        if (!_isValidEmail(text)) {
-          error = 'Introduzca una dirección de correo electrónico válida';
-        }
-      }
-    } else if (widget.keyboardType == TextInputType.emailAddress ||
-        labelLow.contains('correo')) {
-      if (!_isValidEmail(text)) {
-        error = 'Introduzca una dirección de correo electrónico válida';
-      }
+    if (widget.validator != null) {
+      error = widget.validator!(text);
     }
 
     if (_internalErrorText != error) {
@@ -152,7 +117,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     final defaultBorder = OutlineInputBorder(
       borderRadius: AppBorders.small(),
-      borderSide: const BorderSide(color: AppColors.greyMedio, width: 1.0),
+      borderSide: const BorderSide(color: AppColors.greyBordes, width: 1.0),
     );
 
     final errorBorder = OutlineInputBorder(
@@ -170,10 +135,28 @@ class _CustomTextFieldState extends State<CustomTextField> {
             height: 18,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                widget.label,
-                style: (widget.labelStyle ?? AppTypography.body6).copyWith(
-                  color: widget.labelStyle?.color ?? AppColors.greyNegroV2,
+              child: RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: widget.label
+                          .replaceAll(' (Opcional)', '')
+                          .replaceAll('(Opcional)', '')
+                          .trim(),
+                      style: (widget.labelStyle ?? AppTypography.body6)
+                          .copyWith(
+                            color:
+                                widget.labelStyle?.color ??
+                                AppColors.greyNegroV2,
+                          ),
+                    ),
+                    if (widget.label.contains('(Opcional)'))
+                      TextSpan(
+                        text: ' (Opcional)',
+                        style: (widget.labelStyle ?? AppTypography.body6)
+                            .copyWith(color: AppColors.greyBordes),
+                      ),
+                  ],
                 ),
               ),
             ),
@@ -208,8 +191,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
               onEditingComplete: widget.onEditingComplete,
               textInputAction: widget.textInputAction,
               textAlignVertical: TextAlignVertical.center,
-              style: AppTypography.body4,
+              style: AppTypography.body4.copyWith(
+                color: (widget.enabled ?? true)
+                    ? AppColors.greyNegroV2
+                    : const Color(0xFF2E3949).withOpacity(0.3),
+              ),
               decoration: InputDecoration(
+                filled: true,
+                fillColor: (widget.enabled ?? true)
+                    ? AppColors.white
+                    : const Color(0xFFF5F6FA),
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(
                   vertical: 10,
@@ -219,12 +210,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   minWidth: 0,
                   minHeight: 0,
                 ),
-                hintText: widget.hint,
+                hintText: (widget.enabled ?? true) ? widget.hint : null,
 
                 errorText: null,
                 hintStyle:
                     widget.hintStyle ??
-                    AppTypography.body4.copyWith(color: AppColors.greyMedio),
+                    AppTypography.body4.copyWith(
+                      color: AppColors.greyDelineante,
+                    ),
                 prefixIcon: widget.prefixIcon,
 
                 prefix: widget.prefixText != null
@@ -252,13 +245,28 @@ class _CustomTextFieldState extends State<CustomTextField> {
                         : null),
                 border: currentErrorText != null
                     ? errorBorder
-                    : (widget.border ?? defaultBorder),
+                    : (widget.enabled ?? true)
+                    ? (widget.border ?? defaultBorder)
+                    : OutlineInputBorder(
+                        borderRadius: AppBorders.small(),
+                        borderSide: const BorderSide(
+                          color: Color(0xFFE8E9EC),
+                          width: 1.0,
+                        ),
+                      ),
                 enabledBorder: currentErrorText != null
                     ? errorBorder
                     : (widget.enabledBorder ?? defaultBorder),
                 focusedBorder: currentErrorText != null
                     ? errorBorder
                     : (widget.focusedBorder ?? defaultBorder),
+                disabledBorder: OutlineInputBorder(
+                  borderRadius: AppBorders.small(),
+                  borderSide: const BorderSide(
+                    color: Color(0xFFE8E9EC),
+                    width: 1.0,
+                  ),
+                ),
               ),
             ),
           ),
@@ -268,7 +276,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           const SizedBox(height: 4),
           Text(
             currentErrorText,
-            style: AppTypography.body6.copyWith(
+            style: AppTypography.body5.copyWith(
               color: AppColors.error,
               height: 1.2,
             ),

@@ -29,6 +29,11 @@ abstract class AuthRemoteDataSource {
   );
   Future<void> resetPin(String identifier, String token, String newPin);
   Future<bool> validatePasswordToken(String identifier, String token);
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  );
+  Future<UserModel> confirmProfilePicture(String finalUrl);
 }
 
 class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
@@ -39,7 +44,10 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> signUp(UserModel user) async {
-    final response = await apiClient.post('/users', data: user.toJson());
+    final body = user.toJson();
+    // ignore: avoid_print
+    print('📤 POST /users body: $body');
+    final response = await apiClient.post('/users', data: body);
     return UserModel.fromJson(response.data);
   }
 
@@ -60,10 +68,13 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
-  Future<Map<String, dynamic>> verifyCode(String email, String code) async {
+  Future<Map<String, dynamic>> verifyCode(
+    String identifier,
+    String code,
+  ) async {
     final response = await apiClient.post(
       '/auth/verify',
-      data: {'email': email, 'code': code},
+      data: {'identifier': identifier, 'code': code},
     );
     return response.data is Map<String, dynamic> ? response.data : {};
   }
@@ -77,7 +88,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return response.statusCode == 200;
     } catch (e) {
       if (e.toString().contains('404')) return false;
-      throw e;
+      rethrow;
     }
   }
 
@@ -95,16 +106,18 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       '/auth/social/check',
       data: {'provider': provider, 'token': token},
     );
-    if (response.data is List)
+    if (response.data is List) {
       throw Exception('Error del servidor: formato de respuesta inválido');
+    }
     return response.data;
   }
 
   @override
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data) async {
     final response = await apiClient.post('/auth/social/register', data: data);
-    if (response.data is List)
+    if (response.data is List) {
       throw Exception('Error del servidor: formato de respuesta inválido');
+    }
     return response.data;
   }
 
@@ -210,7 +223,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (e.toString().contains('400') || e.toString().contains('401')) {
         return false;
       }
-      throw e;
+      rethrow;
     }
   }
 
@@ -220,5 +233,26 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       '/auth/reset-pin',
       data: {'identifier': identifier, 'token': token, 'newPin': newPin},
     );
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String mimeType,
+    int fileSize,
+  ) async {
+    final response = await apiClient.get(
+      '/users/me/profile-picture/upload-url',
+      queryParameters: {'mimeType': mimeType, 'fileSize': fileSize.toString()},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<UserModel> confirmProfilePicture(String finalUrl) async {
+    final response = await apiClient.patch(
+      '/users/me/profile-picture',
+      data: {'finalUrl': finalUrl},
+    );
+    return UserModel.fromJson(response.data as Map<String, dynamic>);
   }
 }

@@ -19,6 +19,7 @@ class UserEntity extends Equatable {
   final bool isHomeDelivery;
   final List<String> roles;
   final String authMethod;
+  final String? profilePicture;
 
   final bool isVerified;
 
@@ -42,6 +43,7 @@ class UserEntity extends Equatable {
     required this.roles,
     required this.authMethod,
     required this.isVerified,
+    this.profilePicture,
   });
 
   @override
@@ -65,5 +67,6 @@ class UserEntity extends Equatable {
     roles,
     authMethod,
     isVerified,
+    profilePicture,
   ];
 }

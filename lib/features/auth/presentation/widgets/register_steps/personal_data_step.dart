@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -63,14 +64,14 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Correo electrónico',
               hint: 'ejemplo@correo.com',
               controller: widget.emailController,
               maxLength: 50,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             if (state is LocationsLoaded)
               CountryDropdown(
                 label: 'País de residencia',
@@ -93,13 +94,13 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                 controller: widget.countryController,
                 enabled: false,
               ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Ciudad de residencia',
               hint: 'Medellín, Antioquia',
               controller: widget.cityController,
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Número de Identificación (C.C.)',
               hint: '1037123456',
@@ -110,7 +111,7 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                 FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Número de celular',
               hint: '3001234567',

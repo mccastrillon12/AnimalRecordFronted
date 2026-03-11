@@ -10,6 +10,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 
@@ -30,7 +31,25 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
   final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
 
   String _currentPin = '';
-  String? _errorMessage;
+  @override
+  void initState() {
+    super.initState();
+    for (int i = 0; i < 4; i++) {
+      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_controllers[i].text.isEmpty && i > 0) {
+            _focusNodes[i - 1].requestFocus();
+            _controllers[i - 1].clear();
+            _onCodeChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
 
   @override
   void dispose() {
@@ -52,27 +71,11 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
     setState(() {
       _currentPin = pin;
-      _errorMessage = null;
-    });
-  }
-
-  void _onBackspace(int index) {
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-
-    final pin = _controllers.map((c) => c.text).join();
-    setState(() {
-      _currentPin = pin;
     });
   }
 
   void _handleVerify() {
     if (_currentPin.length != 4) return;
-
-    setState(() {
-      _errorMessage = null;
-    });
 
     context.read<AuthBloc>().add(VerifyPinSubmitted(_currentPin));
   }
@@ -82,9 +85,11 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
+          ErrorDisplay.showError(
+            context,
+            'PIN incorrecto. Intente nuevamente.',
+          );
           setState(() {
-            _errorMessage = state.message;
-
             for (var c in _controllers) {
               c.clear();
             }
@@ -116,7 +121,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
               child: Column(
                 children: [
                   const SizedBox(height: AppSpacing.xxl),
-                  Text('Ingresa tu PIN', style: AppTypography.heading2),
+                  Text('Ingresa tu PIN', style: AppTypography.heading1),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
                     widget.identifier,
@@ -125,69 +130,74 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: AppSpacing.xxxl),
+                  const SizedBox(height: 100),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: TextField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            style: AppTypography.heading2,
-                            decoration: InputDecoration(
-                              counterText: '',
-                              contentPadding: EdgeInsets.zero,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.greyMedio,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primaryFrances,
-                                  width: 2,
-                                ),
+                      return SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: AppTypography.heading2,
+                          decoration: InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.zero,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: Color(0xFFA8AFBD),
                               ),
                             ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (value) {
-                              if (value.isEmpty) {
-                                _onBackspace(index);
-                              } else {
-                                _onCodeChanged(index, value);
-                              }
-                              setState(() {});
-                            },
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: AppColors.primaryFrances,
+                                width: 2,
+                              ),
+                            ),
                           ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onChanged: (value) {
+                            _onCodeChanged(index, value);
+                          },
+                          onTap: () {
+                            _controllers[index].selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: _controllers[index].text.length,
+                                  ),
+                                );
+                          },
                         ),
                       );
                     }),
                   ),
 
-                  if (_errorMessage != null) ...[
-                    const SizedBox(height: AppSpacing.m),
-                    Text(
-                      _errorMessage!,
-                      style: AppTypography.body4.copyWith(
-                        color: AppColors.error,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-
-                  const Spacer(),
+                  const SizedBox(height: 40),
 
                   CustomButton(
                     text: 'Ingresar',

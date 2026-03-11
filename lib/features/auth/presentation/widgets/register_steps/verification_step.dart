@@ -1,12 +1,13 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 class VerificationStep extends StatefulWidget {
-  final String email;
-  final String? phoneNumber;
+  final String identifier;
   final VoidCallback onResendCode;
   final VoidCallback? onCodeChanged;
   final VoidCallback? onTimerChanged;
@@ -17,8 +18,7 @@ class VerificationStep extends StatefulWidget {
 
   const VerificationStep({
     super.key,
-    required this.email,
-    this.phoneNumber,
+    required this.identifier,
     required this.onResendCode,
     this.onCodeChanged,
     this.onTimerChanged,
@@ -32,7 +32,7 @@ class VerificationStep extends StatefulWidget {
   State<VerificationStep> createState() => VerificationStepState();
 }
 
-class VerificationStepState extends State<VerificationStep> {
+class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
   final List<TextEditingController> _controllers = List.generate(
     5,
     (_) => TextEditingController(),
@@ -47,6 +47,39 @@ class VerificationStepState extends State<VerificationStep> {
     super.initState();
     if (widget.initialTimeRemaining != null) {
       _startTimer(widget.initialTimeRemaining!);
+    }
+
+    for (int i = 0; i < 5; i++) {
+      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_controllers[i].text.isEmpty && i > 0) {
+            _focusNodes[i - 1].requestFocus();
+            _controllers[i - 1].clear();
+            widget.onCodeChanged?.call();
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+
+    // Start listening for SMS if the identifier is a phone number
+    if (!widget.identifier.contains('@')) {
+      listenForCode();
+    }
+  }
+
+  @override
+  void codeUpdated() {
+    if (code != null && code!.length == 5) {
+      setState(() {
+        for (int i = 0; i < 5; i++) {
+          _controllers[i].text = code![i];
+        }
+      });
+      widget.onCodeChanged?.call();
     }
   }
 
@@ -78,6 +111,9 @@ class VerificationStepState extends State<VerificationStep> {
   @override
   void dispose() {
     _timer?.cancel();
+    if (!widget.identifier.contains('@')) {
+      cancel(); // Cancel SmsAutoFill listener
+    }
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -120,20 +156,18 @@ class VerificationStepState extends State<VerificationStep> {
 
   @override
   Widget build(BuildContext context) {
-    final displayContact =
-        widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty
-        ? widget.phoneNumber!
-        : widget.email;
+    final isEmail = widget.identifier.contains('@');
+    final displayContact = widget.identifier;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
-          'Verifica tu ${widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty ? "número celular" : "correo"}',
+          'Verifica tu ${isEmail ? "correo" : "número celular"}',
           style: AppTypography.heading1,
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: AppSpacing.xs),
         Text(
           'Ingresa el código de verificación que\nhemos enviado a $displayContact',
           style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
@@ -154,10 +188,13 @@ class VerificationStepState extends State<VerificationStep> {
           }),
         ),
         if (widget.hasError && widget.errorMessage != null) ...[
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           Text(
             widget.errorMessage!,
-            style: AppTypography.body4.copyWith(color: AppColors.error),
+            style: AppTypography.body5.copyWith(
+              color: AppColors.error,
+              height: 1.5,
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -213,7 +250,7 @@ class _CodeInputField extends StatelessWidget {
           enabledBorder: OutlineInputBorder(
             borderRadius: _getBorderRadius(),
             borderSide: BorderSide(
-              color: hasError ? AppColors.error : AppColors.greyMedio,
+              color: hasError ? AppColors.error : AppColors.greyBordes,
               width: 1,
             ),
           ),
@@ -238,13 +275,14 @@ class _CodeInputField extends StatelessWidget {
         ],
         textInputAction: TextInputAction.next,
         onTap: () {
-          controller.clear();
+          // Allow tapping to act fluidly for overwriting,
+          // but if we want them to clear on tap, we can keep it.
+          controller.selection = TextSelection.fromPosition(
+            TextPosition(offset: controller.text.length),
+          );
         },
         onChanged: (value) {
           onChanged(value);
-          if (value.isEmpty) {
-            onBackspace();
-          }
         },
       ),
     );

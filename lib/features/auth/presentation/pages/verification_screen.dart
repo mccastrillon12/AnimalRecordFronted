@@ -13,14 +13,12 @@ import '../widgets/register_steps/verification_step.dart';
 import '../widgets/auth_form_container.dart';
 
 class VerificationScreen extends StatefulWidget {
-  final String email;
-  final String? phoneNumber;
+  final String identifier;
   final int? timeRemaining;
 
   const VerificationScreen({
     super.key,
-    required this.email,
-    this.phoneNumber,
+    required this.identifier,
     this.timeRemaining,
   });
 
@@ -83,21 +81,18 @@ class _VerificationScreenState extends State<VerificationScreen> {
     });
 
     context.read<AuthBloc>().add(
-      VerifyCodeSubmitted(VerifyCodeParams(email: widget.email, code: code)),
+      VerifyCodeSubmitted(
+        VerifyCodeParams(identifier: widget.identifier, code: code),
+      ),
     );
   }
 
   void _resendVerificationCode() {
-    final identifier =
-        widget.phoneNumber != null && widget.phoneNumber!.isNotEmpty
-        ? widget.phoneNumber!
-        : widget.email;
-
     setState(() {
       _isResending = true;
     });
 
-    context.read<AuthBloc>().add(ResendCodeSubmitted(identifier));
+    context.read<AuthBloc>().add(ResendCodeSubmitted(widget.identifier));
   }
 
   @override
@@ -140,8 +135,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                     const SizedBox(height: AppSpacing.xxl),
                     VerificationStep(
                       key: _verificationKey,
-                      email: widget.email,
-                      phoneNumber: widget.phoneNumber,
+                      identifier: widget.identifier,
                       onResendCode: _resendVerificationCode,
                       initialTimeRemaining: widget.timeRemaining,
                       onCodeChanged: _onCodeChanged,
@@ -150,7 +144,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                       hasError: _errorMessage != null,
                       errorMessage: _errorMessage,
                     ),
-                    const SizedBox(height: 40),
+                    const SizedBox(height: AppSpacing.xxl),
                     BlocBuilder<AuthBloc, AuthState>(
                       builder: (context, state) {
                         final isLoading = state is AuthLoading;
@@ -163,7 +157,7 @@ class _VerificationScreenState extends State<VerificationScreen> {
                         );
                       },
                     ),
-                    const SizedBox(height: AppSpacing.l),
+                    const SizedBox(height: AppSpacing.xxl),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [

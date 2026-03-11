@@ -24,7 +24,7 @@ class DataValueBox extends StatelessWidget {
       ),
       child: Text(
         value,
-        style: AppTypography.body2.copyWith(color: AppColors.textSecondary),
+        style: AppTypography.body4.copyWith(color: AppColors.textSecondary),
       ),
     );
   }

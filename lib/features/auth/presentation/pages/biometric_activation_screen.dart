@@ -126,12 +126,12 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
                   BlendMode.srcIn,
                 ),
               ),
-              const SizedBox(height: AppSpacing.xxxl),
+              const SizedBox(height: 98),
 
               Text(
                 'Activar biometría',
                 textAlign: TextAlign.center,
-                style: AppTypography.heading2.copyWith(
+                style: AppTypography.heading1.copyWith(
                   color: AppColors.primaryWhite,
                 ),
               ),
@@ -139,7 +139,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
 
               Text(
                 'Habilita esta opción para que puedas ingresar de forma más rápida y segura usando la huella o el rostro registrado en tu dispositivo.',
-                textAlign: TextAlign.center,
+                textAlign: TextAlign.start,
                 style: AppTypography.body4.copyWith(
                   color: AppColors.primaryWhite,
                   height: 1.5,

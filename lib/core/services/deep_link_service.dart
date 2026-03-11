@@ -84,8 +84,12 @@ class DeepLinkService {
     if (isPasswordReset || isPinReset) {
       final token = uri.queryParameters['token'];
       if (token != null && token.isNotEmpty) {
-        final identifier =
+        var identifier =
             uri.queryParameters['identifier'] ?? uri.queryParameters['email'];
+
+        if (identifier != null) {
+          identifier = identifier.replaceAll(' ', '+');
+        }
 
         if (navigatorKey.currentState != null) {
           if (isPinReset) {
@@ -120,7 +124,10 @@ class DeepLinkService {
 
             result.fold(
               (failure) {
-                navigatorKey.currentState?.pushNamed('/link-expired');
+                navigatorKey.currentState?.pushNamed(
+                  '/link-expired',
+                  arguments: {'isPinFlow': isPinReset},
+                );
               },
               (isValid) {
                 if (isValid) {
@@ -132,7 +139,10 @@ class DeepLinkService {
                     arguments: {'token': token, 'identifier': identifier},
                   );
                 } else {
-                  navigatorKey.currentState?.pushNamed('/link-expired');
+                  navigatorKey.currentState?.pushNamed(
+                    '/link-expired',
+                    arguments: {'isPinFlow': isPinReset},
+                  );
                 }
               },
             );

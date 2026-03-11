@@ -10,4 +10,10 @@ class StringFormatters {
 
     return formattedParts.join(' ');
   }
+
+  static String cleanMixedIdentifier(String value) {
+    if (value.contains('@')) return value.trim();
+    // It's a phone number, keep digits and '+'
+    return value.replaceAll(RegExp(r'[^\+0-9]'), '');
+  }
 }

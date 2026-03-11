@@ -35,6 +35,26 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
   String? _errorMessage;
 
   @override
+  void initState() {
+    super.initState();
+    for (int i = 0; i < 4; i++) {
+      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_controllers[i].text.isEmpty && i > 0) {
+            _focusNodes[i - 1].requestFocus();
+            _controllers[i - 1].clear();
+            _onCodeChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
+          }
+        }
+        return KeyEventResult.ignored;
+      };
+    }
+  }
+
+  @override
   void dispose() {
     for (var controller in _controllers) {
       controller.dispose();
@@ -55,17 +75,6 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     setState(() {
       _currentPin = pin;
       _errorMessage = null;
-    });
-  }
-
-  void _onBackspace(int index) {
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
-
-    final pin = _controllers.map((c) => c.text).join();
-    setState(() {
-      _currentPin = pin;
     });
   }
 
@@ -140,20 +149,26 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
           if (isBiometricPending) {
             await sl<TokenStorage>().setBiometricActivationPending(false);
+            if (context.mounted) {
+              ErrorDisplay.showSecondSuccess(
+                context,
+                'Biometría activada exitosamente',
+              );
+            }
+            if (context.mounted) {
+              context.read<AuthBloc>().add(
+                UpdateBiometricStatusRequested(true),
+              );
+            }
           }
 
           if (context.mounted) {
-            ErrorDisplay.showSecondSuccess(
+            Navigator.pushNamedAndRemoveUntil(
               context,
-              'Biometría activada exitosamente',
+              '/home',
+              (route) => false,
             );
           }
-
-          if (mounted) {
-            context.read<AuthBloc>().add(UpdateBiometricStatusRequested(true));
-          }
-
-          Navigator.pushNamedAndRemoveUntil(context, '/home', (route) => false);
         }
       },
       child: BlocBuilder<AuthBloc, AuthState>(
@@ -163,7 +178,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           return AuthFormContainer(
             showLogo: false,
             showCancelButton: false,
-            onBack: () {
+            onBack: () async {
               if (_currentStep == 2) {
                 setState(() {
                   _currentStep = 1;
@@ -173,7 +188,27 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   }
                 });
               } else {
-                Navigator.pop(context);
+                final isBiometricPending = await sl<TokenStorage>()
+                    .isBiometricActivationPending();
+                if (isBiometricPending) {
+                  await sl<TokenStorage>().setBiometricActivationPending(false);
+                  if (context.mounted) {
+                    context.read<AuthBloc>().add(LogoutRequested());
+                    ErrorDisplay.showError(
+                      context,
+                      'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+                    );
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/login',
+                      (route) => false,
+                    );
+                  }
+                } else {
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+                }
               }
             },
             child: SingleChildScrollView(
@@ -183,7 +218,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   const SizedBox(height: AppSpacing.xxl),
                   Text(
                     isStep1 ? 'Crear PIN' : 'Confirmar PIN',
-                    style: AppTypography.heading2,
+                    style: AppTypography.heading1,
                   ),
                   const SizedBox(height: AppSpacing.xs),
                   Text(
@@ -202,52 +237,68 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       color: AppColors.greyNegroV2,
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.xxxl),
+                  const SizedBox(height: 80),
 
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                        child: SizedBox(
-                          width: 50,
-                          height: 50,
-                          child: TextField(
-                            controller: _controllers[index],
-                            focusNode: _focusNodes[index],
-                            textAlign: TextAlign.center,
-                            keyboardType: TextInputType.number,
-                            maxLength: 1,
-                            style: AppTypography.heading2,
-                            decoration: InputDecoration(
-                              counterText: '',
-                              contentPadding: EdgeInsets.zero,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.greyMedio,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(8),
-                                borderSide: const BorderSide(
-                                  color: AppColors.primaryFrances,
-                                  width: 2,
-                                ),
+                      return SizedBox(
+                        width: 40,
+                        height: 40,
+                        child: TextField(
+                          controller: _controllers[index],
+                          focusNode: _focusNodes[index],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: AppTypography.heading2,
+                          decoration: InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.zero,
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: Color(0xFFA8AFBD),
                               ),
                             ),
-                            inputFormatters: [
-                              FilteringTextInputFormatter.digitsOnly,
-                            ],
-                            onChanged: (value) {
-                              if (value.isEmpty) {
-                                _onBackspace(index);
-                              } else {
-                                _onCodeChanged(index, value);
-                              }
-                              setState(() {});
-                            },
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: index == 0
+                                  ? const BorderRadius.horizontal(
+                                      left: Radius.circular(8),
+                                    )
+                                  : index == 3
+                                  ? const BorderRadius.horizontal(
+                                      right: Radius.circular(8),
+                                    )
+                                  : BorderRadius.zero,
+                              borderSide: const BorderSide(
+                                color: AppColors.primaryFrances,
+                                width: 2,
+                              ),
+                            ),
                           ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.digitsOnly,
+                          ],
+                          onChanged: (value) {
+                            _onCodeChanged(index, value);
+                          },
+                          onTap: () {
+                            _controllers[index].selection =
+                                TextSelection.fromPosition(
+                                  TextPosition(
+                                    offset: _controllers[index].text.length,
+                                  ),
+                                );
+                          },
                         ),
                       );
                     }),
@@ -257,13 +308,13 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     const SizedBox(height: AppSpacing.m),
                     Text(
                       _errorMessage!,
-                      style: AppTypography.body4.copyWith(
+                      style: AppTypography.body5.copyWith(
                         color: AppColors.error,
                       ),
                       textAlign: TextAlign.center,
                     ),
                   ],
-                  const SizedBox(height: 40),
+                  const SizedBox(height: AppSpacing.xxl),
                   CustomButton(
                     text: isStep1 ? 'Continuar' : 'Verificar',
                     isLoading: isLoading,

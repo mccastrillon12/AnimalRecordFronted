@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -47,12 +48,17 @@ class ProfileScreen extends StatelessWidget {
               },
               builder: (context, state) {
                 String name = 'Usuario';
-                String email = '';
+                String displayContact = '';
                 String role = 'Propietario';
 
                 if (state is AuthSuccess) {
                   name = state.user.name;
-                  email = state.user.email;
+                  if (state.user.authMethod == 'PHONE') {
+                    displayContact = state.user.cellPhone;
+                  } else {
+                    displayContact = state.user.email;
+                  }
+
                   if (state.user.roles.isNotEmpty) {
                     role = state.user.roles.first == 'PROPIETARIO_MASCOTA'
                         ? 'Propietario'
@@ -86,27 +92,57 @@ class ProfileScreen extends StatelessWidget {
                           children: [
                             Text(
                               role,
-                              style: AppTypography.body3.copyWith(
+                              style: AppTypography.body4.copyWith(
                                 color: Colors.white,
                               ),
                             ),
-                            const SizedBox(height: 24),
+                            const SizedBox(height: AppSpacing.l),
 
                             Container(
-                              width: 100,
-                              height: 100,
+                              width: 96,
+                              height: 96,
                               decoration: BoxDecoration(
                                 color: AppColors.primaryIndigo,
                                 borderRadius: BorderRadius.circular(20),
                               ),
+                              clipBehavior: Clip.antiAlias,
                               child: Center(
-                                child: Text(
-                                  _getInitials(name),
-                                  style: AppTypography.heading1.copyWith(
-                                    color: Colors.white,
-                                    fontSize: 32,
-                                  ),
-                                ),
+                                child:
+                                    state is AuthSuccess &&
+                                        state.user.profilePicture != null &&
+                                        state.user.profilePicture!.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: state.user.profilePicture!,
+                                        fit: BoxFit.cover,
+                                        width: 96,
+                                        height: 96,
+                                        fadeInDuration: Duration.zero,
+                                        fadeOutDuration: Duration.zero,
+                                        placeholder: (context, url) => Text(
+                                          _getInitials(name),
+                                          style: AppTypography.heading1
+                                              .copyWith(
+                                                color: Colors.white,
+                                                fontSize: 32,
+                                              ),
+                                        ),
+                                        errorWidget: (context, url, error) =>
+                                            Text(
+                                              _getInitials(name),
+                                              style: AppTypography.heading1
+                                                  .copyWith(
+                                                    color: Colors.white,
+                                                    fontSize: 32,
+                                                  ),
+                                            ),
+                                      )
+                                    : Text(
+                                        _getInitials(name),
+                                        style: AppTypography.heading1.copyWith(
+                                          color: Colors.white,
+                                          fontSize: 32,
+                                        ),
+                                      ),
                               ),
                             ),
                             const SizedBox(height: AppSpacing.m),
@@ -124,9 +160,9 @@ class ProfileScreen extends StatelessWidget {
                               height: 21,
                               alignment: Alignment.center,
                               child: Text(
-                                email,
+                                displayContact,
                                 style: AppTypography.body4.copyWith(
-                                  color: Colors.white.withValues(alpha: 0.7),
+                                  color: Colors.white,
                                 ),
                               ),
                             ),
@@ -143,7 +179,7 @@ class ProfileScreen extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
                               _buildActionButton(
-                                icon: Icons.groups_outlined,
+                                icon: 'assets/icons/bold-people.svg',
                                 label: 'Cambiar perfil',
                                 onTap: () {},
                               ),
@@ -174,7 +210,7 @@ class ProfileScreen extends StatelessWidget {
                             child: Column(
                               children: [
                                 _buildOptionTile(
-                                  icon: Icons.person_outline,
+                                  icon: 'assets/icons/bold-frame.svg',
                                   label: 'Mi cuenta',
                                   onTap: () {
                                     Navigator.pushNamed(context, '/my-account');
@@ -269,7 +305,7 @@ class ProfileScreen extends StatelessWidget {
                             letterSpacing: 2,
                           ),
                         ),
-                        const SizedBox(height: 40),
+                        const SizedBox(height: AppSpacing.xxl),
                       ],
                     ),
                   ),
@@ -325,7 +361,7 @@ class ProfileScreen extends StatelessWidget {
                   )
                 : Icon(icon, color: Colors.white),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(label, style: AppTypography.body6.copyWith(color: Colors.white)),
         ],
       ),
