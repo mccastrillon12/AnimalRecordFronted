@@ -118,25 +118,42 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     await cubit.fetchCountries();
     
-    // Strip dial code asynchronously after countries are loaded
     final locState = cubit.state;
-    if (locState is LocationsLoaded && user.countryId.isNotEmpty && mounted) {
+    String? colombiaId;
+
+    if (locState is LocationsLoaded) {
       try {
-        final country = locState.countries.cast<CountryEntity>().firstWhere(
-              (c) => c.id == user.countryId,
-            );
-        final purePrefix = country.dialCode.replaceAll('+', '');
-        
-        if (_phoneController.text.startsWith(purePrefix)) {
-          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+        colombiaId = locState.countries
+            .cast<CountryEntity>()
+            .firstWhere(
+              (c) =>
+                  c.dialCode == '+57' ||
+                  c.name.toLowerCase().contains('colombia'),
+            )
+            .id;
+      } catch (_) {}
+
+      // Strip dial code asynchronously after countries are loaded
+      if (user.countryId.isNotEmpty && mounted) {
+        try {
+          final country = locState.countries.cast<CountryEntity>().firstWhere(
+                (c) => c.id == user.countryId,
+              );
+          final purePrefix = country.dialCode.replaceAll('+', '');
+
+          if (_phoneController.text.startsWith(purePrefix)) {
+            _phoneController.text =
+                _phoneController.text.substring(purePrefix.length);
+          }
+        } catch (_) {
+          // Country not found in list yet, silently continue
         }
-      } catch (_) {
-        // Country not found in list yet, silently continue
       }
     }
 
-    if (user.countryId.isNotEmpty && mounted) {
-      await cubit.fetchDepartments(user.countryId);
+    // Always fetch departments for Colombia (Residence country)
+    if (colombiaId != null && mounted) {
+      await cubit.fetchDepartments(colombiaId);
     }
 
     if (user.departmentId.isNotEmpty && mounted) {
@@ -286,6 +303,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                   'Error al subir imagen: ${state.profilePictureError}',
                 );
               }
+            }
+          },
+        ),
+        BlocListener<LocationsCubit, LocationsState>(
+          listenWhen: (previous, current) {
+            // Trigger when countries are loaded but departments are empty
+            if (current is LocationsLoaded && current.departments.isEmpty) {
+              return true;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is LocationsLoaded) {
+              final countries = state.countries.cast<CountryEntity>();
+              try {
+                final colombia = countries.firstWhere(
+                  (c) =>
+                      c.dialCode == '+57' ||
+                      c.name.toLowerCase().contains('colombia'),
+                );
+                context.read<LocationsCubit>().fetchDepartments(colombia.id);
+              } catch (_) {
+                // Colombia not found, can't auto-load departments
+              }
+            }
+          },
+        ),
+        BlocListener<LocationsCubit, LocationsState>(
+          listenWhen: (previous, current) {
+            // Trigger when departments are loaded and we have a selected department but empty cities
+            if (current is LocationsLoaded &&
+                current.departments.isNotEmpty &&
+                _selectedDepartmentId != null &&
+                current.cities.isEmpty) {
+              return true;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (_selectedDepartmentId != null) {
+              context.read<LocationsCubit>().fetchCities(_selectedDepartmentId!);
             }
           },
         ),
@@ -689,11 +747,16 @@ class _LocationSelector extends StatelessWidget {
             : <CountryEntity>[];
 
         final colombiaId = countries.isNotEmpty
-            ? (countries
-                  .where((c) => c.dialCode == '+57')
-                  .isNotEmpty
-              ? countries.firstWhere((c) => c.dialCode == '+57').id
-              : countries.first.id)
+            ? (countries.cast<CountryEntity>().any((c) =>
+                    c.dialCode == '+57' ||
+                    c.name.toLowerCase().contains('colombia'))
+                ? countries
+                    .cast<CountryEntity>()
+                    .firstWhere((c) =>
+                        c.dialCode == '+57' ||
+                        c.name.toLowerCase().contains('colombia'))
+                    .id
+                : countries.first.id)
             : '';
 
         return Column(
