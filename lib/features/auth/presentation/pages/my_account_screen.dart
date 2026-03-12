@@ -20,6 +20,8 @@ import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import '../../../../core/constants/country_constants.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -34,6 +36,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  
+  late FocusNode _phoneFocusNode;
 
   String? _selectedPhoneCountryId;
 
@@ -43,8 +47,29 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _nameController = TextEditingController()..addListener(_onFieldChanged);
     _emailController = TextEditingController()..addListener(_onFieldChanged);
     _phoneController = TextEditingController()..addListener(_onFieldChanged);
+    _phoneFocusNode = FocusNode();
 
     context.read<LocationsCubit>().fetchCountries();
+    
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess) {
+      final user = authState.user;
+      _nameController.text = StringFormatters.formatName(user.name);
+
+      if (user.authMethod == 'PHONE') {
+        _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+        if (user.email.isNotEmpty) _emailController.text = user.email;
+        _selectedPhoneCountryId = user.countryId;
+      } else {
+        _emailController.text = user.email;
+        if (user.cellPhone.isNotEmpty) {
+            _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+        }
+        if (user.countryId.isNotEmpty) {
+          _selectedPhoneCountryId = user.countryId;
+        }
+      }
+    }
   }
 
   void _onFieldChanged() {
@@ -71,11 +96,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     bool phoneChanged = false;
     bool isPhoneValid = true;
 
+    bool countryChanged = false;
+
     if (!isPhoneLogin) {
       final currentPhone = _phoneController.text.trim();
-      final originalPhone = user.cellPhone;
-      phoneChanged = currentPhone != originalPhone;
+      final originalCleanPhone = user.cellPhone.isNotEmpty ? CountryConstants.stripDialCode(user.cellPhone) : '';
+      phoneChanged = currentPhone != originalCleanPhone;
       isPhoneValid = currentPhone.isEmpty || _isValidPhone(currentPhone);
+      
+      countryChanged = _selectedPhoneCountryId != null && _selectedPhoneCountryId != user.countryId;
     }
 
     bool emailChanged = false;
@@ -88,7 +117,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       isEmailValid = currentEmail.isEmpty || _isValidEmail(currentEmail);
     }
 
-    final hasAnyChange = nameChanged || phoneChanged || emailChanged;
+    final hasAnyChange = nameChanged || phoneChanged || emailChanged || countryChanged;
     final areAllFieldsValid = isNameValid && isPhoneValid && isEmailValid;
 
     return hasAnyChange && areAllFieldsValid;
@@ -96,24 +125,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   @override
   void didChangeDependencies() {
+    // Moved to initState
     super.didChangeDependencies();
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthSuccess) {
-      final user = authState.user;
-      _nameController.text = StringFormatters.formatName(user.name);
-
-      if (user.authMethod == 'PHONE') {
-        _phoneController.text = user.cellPhone;
-        if (user.email.isNotEmpty) _emailController.text = user.email;
-        _selectedPhoneCountryId = user.countryId;
-      } else {
-        _emailController.text = user.email;
-        if (user.cellPhone.isNotEmpty) _phoneController.text = user.cellPhone;
-        if (user.countryId.isNotEmpty) {
-          _selectedPhoneCountryId = user.countryId;
-        }
-      }
-    }
   }
 
   @override
@@ -124,6 +137,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -156,12 +170,44 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           final bool isUpdating = state.isUpdating;
           final bool isPhoneLogin = user.authMethod == 'PHONE';
 
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: AppColors.bgOxford,
-            body: SafeArea(
-              child: Column(
-                children: [
+          return KeyboardActions(
+            disableScroll: true,
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  ],
+                ),
+              ],
+            ),
+            child: Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: AppColors.bgOxford,
+              body: SafeArea(
+                child: Column(
+                  children: [
                   const SizedBox(height: AppSpacing.l),
                   Expanded(
                     child: Container(
@@ -214,14 +260,42 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ? null
                                     : () {
                                         if (_formKey.currentState!.validate()) {
+                                          
+                                          String cellPhone = _phoneController.text.trim();
+                                          
+                                          if (!isPhoneLogin && cellPhone.isNotEmpty) {
+                                            final state = context.read<LocationsCubit>().state;
+                                            if (state is LocationsLoaded) {
+                                              final countryId = _selectedPhoneCountryId ?? user.countryId;
+                                              if (countryId.isNotEmpty) {
+                                                final country = state.countries
+                                                    .firstWhere(
+                                                      (c) => c.id == countryId,
+                                                      orElse: () => state.countries.first,
+                                                    );
+                                                
+                                                final prefix = country.dialCode;
+                                                final purePrefix = prefix.replaceAll('+', '');
+                                                
+                                                String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+                                                
+                                                if (numbersOnly.startsWith(purePrefix)) {
+                                                  numbersOnly = numbersOnly.substring(purePrefix.length);
+                                                }
+                                                
+                                                cellPhone = '$prefix$numbersOnly';
+                                              }
+                                            }
+                                          }
+                                          
                                           final updatedData = <String, dynamic>{
                                             'name': _nameController.text,
                                             if (isPhoneLogin)
                                               'email': _emailController.text,
                                             if (!isPhoneLogin)
-                                              'cellPhone':
-                                                  _phoneController.text,
-                                            'countryId': user.countryId,
+                                              'cellPhone': cellPhone,
+                                            if (_selectedPhoneCountryId != null)
+                                              'countryId': _selectedPhoneCountryId,
                                           };
                                           context.read<AuthBloc>().add(
                                             UpdateProfileRequested(
@@ -391,6 +465,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                         'Número celular (Opcional)',
                                                     controller:
                                                         _phoneController,
+                                                    focusNode: _phoneFocusNode,
                                                     countries:
                                                         locationState
                                                             is LocationsLoaded
@@ -627,9 +702,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
   }
 }
+
