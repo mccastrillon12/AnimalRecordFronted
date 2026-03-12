@@ -56,6 +56,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       final user = authState.user;
       _nameController.text = StringFormatters.formatName(user.name);
 
+      // Quick sync strip (works without countries list)
       if (user.authMethod == 'PHONE') {
         _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
         if (user.email.isNotEmpty) _emailController.text = user.email;
@@ -63,12 +64,36 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       } else {
         _emailController.text = user.email;
         if (user.cellPhone.isNotEmpty) {
-            _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+          _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
         }
         if (user.countryId.isNotEmpty) {
           _selectedPhoneCountryId = user.countryId;
         }
       }
+      
+      // Async: strip again more precisely once countries are loaded
+      _stripDialCodeAsync(user);
+    }
+  }
+
+  /// After fetching countries we can strip the exact country dialCode,
+  /// e.g. both Colombia (+57) and US (+1) are stripped correctly.
+  Future<void> _stripDialCodeAsync(UserEntity user) async {
+    final cubit = context.read<LocationsCubit>();
+    await cubit.fetchCountries();
+    if (!mounted) return;
+    
+    final locState = cubit.state;
+    if (locState is LocationsLoaded && user.countryId.isNotEmpty) {
+      try {
+        final country = locState.countries.firstWhere(
+          (c) => c.id == user.countryId,
+        );
+        final purePrefix = country.dialCode.replaceAll('+', '');
+        if (_phoneController.text.startsWith(purePrefix)) {
+          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+        }
+      } catch (_) {}
     }
   }
 
@@ -76,10 +101,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     setState(() {});
   }
 
-  bool _isValidPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 10;
-  }
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -93,31 +114,31 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final nameChanged = currentName != originalName;
     final isNameValid = currentName.isNotEmpty;
 
-    bool phoneChanged = false;
-    bool isPhoneValid = true;
+    // Phone/country change — applicable to all auth methods
+    final currentPhone = _phoneController.text.trim();
+    final originalCleanPhone = user.cellPhone.isNotEmpty
+        ? CountryConstants.stripDialCode(user.cellPhone)
+        : '';
+    final phoneChanged = !isPhoneLogin && currentPhone != originalCleanPhone;
+    final countryChanged =
+        _selectedPhoneCountryId != null &&
+        _selectedPhoneCountryId != user.countryId;
+    final isPhoneValid =
+        isPhoneLogin ||
+        currentPhone.isEmpty ||
+        currentPhone.replaceAll(RegExp(r'\D'), '').length >= 6;
 
-    bool countryChanged = false;
-
-    if (!isPhoneLogin) {
-      final currentPhone = _phoneController.text.trim();
-      final originalCleanPhone = user.cellPhone.isNotEmpty ? CountryConstants.stripDialCode(user.cellPhone) : '';
-      phoneChanged = currentPhone != originalCleanPhone;
-      isPhoneValid = currentPhone.isEmpty || _isValidPhone(currentPhone);
-      
-      countryChanged = _selectedPhoneCountryId != null && _selectedPhoneCountryId != user.countryId;
-    }
-
+    // Email change (phone-login users can update email)
     bool emailChanged = false;
     bool isEmailValid = true;
-
     if (isPhoneLogin) {
       final currentEmail = _emailController.text.trim();
-      final originalEmail = user.email;
-      emailChanged = currentEmail != originalEmail;
+      emailChanged = currentEmail != user.email;
       isEmailValid = currentEmail.isEmpty || _isValidEmail(currentEmail);
     }
 
-    final hasAnyChange = nameChanged || phoneChanged || emailChanged || countryChanged;
+    final hasAnyChange =
+        nameChanged || phoneChanged || emailChanged || countryChanged;
     final areAllFieldsValid = isNameValid && isPhoneValid && isEmailValid;
 
     return hasAnyChange && areAllFieldsValid;
@@ -260,31 +281,24 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ? null
                                     : () {
                                         if (_formKey.currentState!.validate()) {
-                                          
                                           String cellPhone = _phoneController.text.trim();
+                                          String? finalCountryId = _selectedPhoneCountryId ?? (user.countryId.isNotEmpty ? user.countryId : null);
                                           
-                                          if (!isPhoneLogin && cellPhone.isNotEmpty) {
-                                            final state = context.read<LocationsCubit>().state;
-                                            if (state is LocationsLoaded) {
-                                              final countryId = _selectedPhoneCountryId ?? user.countryId;
-                                              if (countryId.isNotEmpty) {
-                                                final country = state.countries
-                                                    .firstWhere(
-                                                      (c) => c.id == countryId,
-                                                      orElse: () => state.countries.first,
-                                                    );
-                                                
+                                          if (cellPhone.isNotEmpty && finalCountryId != null) {
+                                            final locState = context.read<LocationsCubit>().state;
+                                            if (locState is LocationsLoaded) {
+                                              try {
+                                                final country = locState.countries.firstWhere(
+                                                  (c) => c.id == finalCountryId,
+                                                );
                                                 final prefix = country.dialCode;
                                                 final purePrefix = prefix.replaceAll('+', '');
-                                                
                                                 String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
-                                                
                                                 if (numbersOnly.startsWith(purePrefix)) {
                                                   numbersOnly = numbersOnly.substring(purePrefix.length);
                                                 }
-                                                
                                                 cellPhone = '$prefix$numbersOnly';
-                                              }
+                                              } catch (_) {}
                                             }
                                           }
                                           
@@ -292,10 +306,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             'name': _nameController.text,
                                             if (isPhoneLogin)
                                               'email': _emailController.text,
-                                            if (!isPhoneLogin)
+                                            if (!isPhoneLogin && cellPhone.isNotEmpty)
                                               'cellPhone': cellPhone,
-                                            if (_selectedPhoneCountryId != null)
-                                              'countryId': _selectedPhoneCountryId,
+                                            if (finalCountryId != null)
+                                              'countryId': finalCountryId,
                                           };
                                           context.read<AuthBloc>().add(
                                             UpdateProfileRequested(
