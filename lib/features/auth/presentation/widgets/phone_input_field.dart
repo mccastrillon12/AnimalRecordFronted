@@ -15,6 +15,7 @@ class PhoneInputField extends StatelessWidget {
   final ValueChanged<String?>? onCountryChanged;
   final bool isOptional;
   final int? maxLength;
+  final FocusNode? focusNode;
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
   final TextStyle? labelStyle;
@@ -27,6 +28,7 @@ class PhoneInputField extends StatelessWidget {
     this.selectedCountryId,
     this.onCountryChanged,
     this.isOptional = false,
+    this.focusNode,
     this.maxLength,
     this.inputFormatters,
     this.errorText,
@@ -92,6 +94,7 @@ class PhoneInputField extends StatelessWidget {
                 label: '',
 
                 controller: controller,
+                focusNode: focusNode,
                 keyboardType: TextInputType.phone,
                 textInputAction: TextInputAction.done,
                 maxLength: 15,

@@ -12,6 +12,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -70,7 +71,9 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
 
   void _onPinChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
-      _pinFocusNodes[index + 1].requestFocus();
+      Future.microtask(() => _pinFocusNodes[index + 1].requestFocus());
+    } else if (value.isEmpty && index > 0) {
+      Future.microtask(() => _pinFocusNodes[index - 1].requestFocus());
     }
     _updatePin();
   }
@@ -106,13 +109,43 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },
-      child: AuthFormContainer(
-        showLogo: false,
-        title: 'Confirmar PIN',
-        showCancelButton: true,
-        addInternalPadding: false,
-        onCancel: () =>
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+      child: KeyboardActions(
+        disableScroll: true,
+        config: KeyboardActionsConfig(
+          keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+          keyboardBarColor: const Color(0xFFD1D5DF),
+          nextFocus: false,
+          actions: _pinFocusNodes.map((node) => KeyboardActionsItem(
+            focusNode: node,
+            displayArrows: false,
+            displayDoneButton: false,
+            toolbarButtons: [
+              (node) {
+                return GestureDetector(
+                  onTap: () => node.unfocus(),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      "Aceptar",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            ],
+          )).toList(),
+        ),
+        child: AuthFormContainer(
+          showLogo: false,
+          title: 'Confirmar PIN',
+          showCancelButton: true,
+          addInternalPadding: false,
+          onCancel: () =>
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: FixedBottomActionLayout(
           bottomChild: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
@@ -143,8 +176,9 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPinFields() {
     return Row(
@@ -158,7 +192,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
             focusNode: _pinFocusNodes[index],
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
-            textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+            textInputAction: TextInputAction.done,
             autofocus: index == 0,
             maxLength: 1,
             obscureText: true,

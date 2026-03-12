@@ -21,6 +21,7 @@ import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -41,6 +42,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedPhoneCountryId;
   String? _selectedDepartmentId;
   String? _selectedCityId;
+
+  final FocusNode _phoneFocusNode = FocusNode();
 
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -90,16 +93,28 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameController.text = StringFormatters.formatName(user.name);
       _emailController.text = user.email;
       _idNumberController.text = user.identificationNumber;
-      // Remove any previously saved dial code to avoid returning '+57+57...' in the input value
-      String phoneWithoutCode = user.cellPhone;
-      // We will let the user's phone field just show the rest of the numbers if we can safely guess the code.
-      // But for simplicity, we first just assign it (we will clean it up on save).
-      // However, if the UI prefix is '+57', and the text is '+57300...', the user sees the prefix twice.
-      if (user.cellPhone.startsWith('+')) {
-        // Find the country code if possible, or just strip the '+' for now, 
-        // but better yet, we'll handle the deduplication on save as planned in implementation_plan.md.
+      // Clean up the initial phone value by stripping anything that isn't a digit
+      String cleanRawPhone = user.cellPhone.replaceAll(RegExp(r'\D'), '');
+      
+      // If we have a country code, we want to strip the matching digits from the start
+      if (user.countryId.isNotEmpty && context.mounted) {
+        final locState = context.read<LocationsCubit>().state;
+        if (locState is LocationsLoaded) {
+          try {
+            final country = locState.countries.cast<CountryEntity>().firstWhere(
+                  (c) => c.id == user.countryId,
+                );
+            final purePrefix = country.dialCode.replaceAll('+', '');
+            if (cleanRawPhone.startsWith(purePrefix)) {
+              cleanRawPhone = cleanRawPhone.substring(purePrefix.length);
+            }
+          } catch (_) {
+            // Country not found in list yet, silently continue
+          }
+        }
       }
-      _phoneController.text = phoneWithoutCode;
+      
+      _phoneController.text = cleanRawPhone;
       _addressController.text = user.address;
 
       _loadUserLocations(user);
@@ -143,6 +158,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController.dispose();
     _idNumberController.dispose();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -285,9 +301,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final bool isUpdating = state.isUpdating;
           final bool isUploadingPicture = state.isUploadingPicture;
 
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: AppColors.bgOxford,
+          return KeyboardActions(
+            disableScroll: true,
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  ],
+                ),
+              ],
+            ),
+            child: Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: AppColors.bgOxford,
             body: SafeArea(
               child: Column(
                 children: [
@@ -358,6 +406,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           _LocationSelector(
                                             user: user,
                                             phoneController: _phoneController,
+                                            phoneFocusNode: _phoneFocusNode,
                                             selectedPhoneCountryId:
                                                 _selectedPhoneCountryId,
                                             selectedDepartmentId:
@@ -426,24 +475,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                         state.countries.first,
                                                   );
                                               
-                                              // If the user appended the prefix inside the textfield or we are prepending it:
                                               final prefix = country.dialCode;
                                               final purePrefix = prefix.replaceAll('+', '');
                                               
-                                              // Clean up the cellPhone to avoid double '+' or double '57'
-                                              if (cellPhone.startsWith(prefix)) {
-                                                cellPhone = cellPhone.substring(prefix.length);
-                                              } else if (cellPhone.startsWith(purePrefix)) {
-                                                cellPhone = cellPhone.substring(purePrefix.length);
-                                              } else if (cellPhone.startsWith('+')) {
-                                                // It starts with a different plus code, maybe they changed it, we leave it or replace it? 
-                                                // Assuming they meant to just type the number.
-                                                cellPhone = cellPhone; // let it be, but below we add prefix if it doesn't have '+'
+                                              // Clean the user input string to numbers only to avoid (+57) spaces etc
+                                              String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+                                              
+                                              // Remove prefix if typed
+                                              if (numbersOnly.startsWith(purePrefix)) {
+                                                numbersOnly = numbersOnly.substring(purePrefix.length);
                                               }
                                               
-                                              if (!cellPhone.startsWith('+')) {
-                                                cellPhone = '$prefix$cellPhone'.replaceAll(' ', '');
-                                              }
+                                              // Reconstruct standard format
+                                              cellPhone = '$prefix$numbersOnly';
                                             }
                                           }
                                         }
@@ -480,13 +524,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 
-  Widget _buildHeader(BuildContext context) {
+Widget _buildHeader(BuildContext context) {
     return Stack(
       children: [
         Padding(
@@ -612,6 +657,7 @@ class _LocationSelector extends StatelessWidget {
   final String? selectedPhoneCountryId;
   final String? selectedDepartmentId;
   final String? selectedCityId;
+  final FocusNode? phoneFocusNode;
   final ValueChanged<String?> onPhoneCountryChanged;
   final ValueChanged<String?> onDepartmentChanged;
   final ValueChanged<String?> onCityChanged;
@@ -622,6 +668,7 @@ class _LocationSelector extends StatelessWidget {
     required this.selectedPhoneCountryId,
     required this.selectedDepartmentId,
     required this.selectedCityId,
+    this.phoneFocusNode,
     required this.onPhoneCountryChanged,
     required this.onDepartmentChanged,
     required this.onCityChanged,
@@ -644,6 +691,7 @@ class _LocationSelector extends StatelessWidget {
               PhoneInputField(
                 label: 'Número de celular (Opcional)',
                 controller: phoneController,
+                focusNode: phoneFocusNode,
                 countries: countries,
                 selectedCountryId: selectedPhoneCountryId,
                 onCountryChanged: onPhoneCountryChanged,

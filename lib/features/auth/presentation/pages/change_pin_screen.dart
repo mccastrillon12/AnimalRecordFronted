@@ -12,6 +12,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class ChangePinScreen extends StatefulWidget {
   const ChangePinScreen({super.key});
@@ -112,23 +113,31 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
 
   void _onOldPinChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
-      _oldPinFocusNodes[index + 1].requestFocus();
+      Future.microtask(() => _oldPinFocusNodes[index + 1].requestFocus());
     } else if (value.isNotEmpty && index == 3) {
-      _newPinFocusNodes[0].requestFocus();
+      Future.microtask(() => _newPinFocusNodes[0].requestFocus());
+    } else if (value.isEmpty && index > 0) {
+      Future.microtask(() => _oldPinFocusNodes[index - 1].requestFocus());
     }
     _updatePins();
   }
 
   void _onNewPinChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
-      _newPinFocusNodes[index + 1].requestFocus();
+      Future.microtask(() => _newPinFocusNodes[index + 1].requestFocus());
+    } else if (value.isEmpty && index > 0) {
+      Future.microtask(() => _newPinFocusNodes[index - 1].requestFocus());
+    } else if (value.isEmpty && index == 0) {
+      Future.microtask(() => _oldPinFocusNodes[3].requestFocus());
     }
     _updatePins();
   }
 
   void _onConfirmPinChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
-      _confirmPinFocusNodes[index + 1].requestFocus();
+      Future.microtask(() => _confirmPinFocusNodes[index + 1].requestFocus());
+    } else if (value.isEmpty && index > 0) {
+      Future.microtask(() => _confirmPinFocusNodes[index - 1].requestFocus());
     }
     _updatePins();
   }
@@ -181,9 +190,39 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           Navigator.pop(context);
         }
       },
-      child: AuthFormContainer(
-        showLogo: false,
-        title: _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
+      child: KeyboardActions(
+        disableScroll: true,
+        config: KeyboardActionsConfig(
+          keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+          keyboardBarColor: const Color(0xFFD1D5DF),
+          nextFocus: false,
+          actions: [..._oldPinFocusNodes, ..._newPinFocusNodes, ..._confirmPinFocusNodes].map((node) => KeyboardActionsItem(
+            focusNode: node,
+            displayArrows: false,
+            displayDoneButton: false,
+            toolbarButtons: [
+              (node) {
+                return GestureDetector(
+                  onTap: () => node.unfocus(),
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    child: Text(
+                      "Aceptar",
+                      style: TextStyle(
+                        color: Colors.blue,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                );
+              }
+            ],
+          )).toList(),
+        ),
+        child: AuthFormContainer(
+          showLogo: false,
+          title: _currentStep == 1 ? 'Cambiar PIN' : 'Confirmar PIN',
         onBack: _currentStep == 2
             ? () => setState(() => _currentStep = 1)
             : null,
@@ -212,8 +251,9 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildStep1() {
     return Column(
@@ -281,7 +321,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             focusNode: focusNodes[index],
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
-            textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+            textInputAction: TextInputAction.done,
             autofocus: controllers == _oldPinControllers && index == 0,
             maxLength: 1,
             obscureText: true,

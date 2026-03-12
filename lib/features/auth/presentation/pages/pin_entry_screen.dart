@@ -11,7 +11,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-
+import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {
@@ -64,7 +64,9 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
   void _onCodeChanged(int index, String value) {
     if (value.isNotEmpty && index < 3) {
-      _focusNodes[index + 1].requestFocus();
+      Future.microtask(() => _focusNodes[index + 1].requestFocus());
+    } else if (value.isEmpty && index > 0) {
+      Future.microtask(() => _focusNodes[index - 1].requestFocus());
     }
 
     final pin = _controllers.map((c) => c.text).join();
@@ -112,10 +114,40 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         builder: (context, state) {
           final isLoading = state is AuthLoading;
 
-          return AuthFormContainer(
-            showLogo: true,
-            showCancelButton: false,
-            onBack: () => Navigator.pop(context),
+          return KeyboardActions(
+            disableScroll: true,
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: _focusNodes.map((node) => KeyboardActionsItem(
+                focusNode: node,
+                displayArrows: false,
+                displayDoneButton: false,
+                toolbarButtons: [
+                  (node) {
+                    return GestureDetector(
+                      onTap: () => node.unfocus(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Text(
+                          "Aceptar",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                ],
+              )).toList(),
+            ),
+            child: AuthFormContainer(
+              showLogo: true,
+              showCancelButton: false,
+              onBack: () => Navigator.pop(context),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
@@ -143,7 +175,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                           focusNode: _focusNodes[index],
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
-                          textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+                          textInputAction: TextInputAction.done,
                           autofocus: index == 0,
                           maxLength: 1,
                           style: AppTypography.heading2,
@@ -234,8 +266,9 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                 ],
               ),
             ),
-          );
-        },
+          ),
+        );
+      },
       ),
     );
   }
