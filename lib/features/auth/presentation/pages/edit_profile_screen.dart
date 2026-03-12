@@ -703,15 +703,25 @@ class _LocationSelector extends StatelessWidget {
               const SizedBox(height: AppSpacing.m),
             ],
 
-            if (countries.isNotEmpty)
-              CountryDropdown(
-                label: 'País de residencia',
-                value: user.countryId,
-                onChanged: null,
-                countries: countries,
-                enabled: false,
-                width: double.infinity,
-              ),
+            if (countries.isNotEmpty) ...(() {
+                // Always show Colombia as the fixed residence country
+                final colombiaId = countries
+                    .firstWhere(
+                      (c) => c.dialCode == '+57' || c.name.toLowerCase().contains('colombia'),
+                      orElse: () => countries.first,
+                    )
+                    .id;
+                return [
+                  CountryDropdown(
+                    label: 'País de residencia',
+                    value: colombiaId,
+                    onChanged: null,
+                    countries: countries,
+                    enabled: false,
+                    width: double.infinity,
+                  ),
+                ];
+              })(),
             const SizedBox(height: AppSpacing.m),
 
             if (locationsState is LocationsLoaded)
