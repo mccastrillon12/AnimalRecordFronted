@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
+import '../../../../core/constants/country_constants.dart';
 import '../../../../core/utils/string_formatters.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -93,8 +94,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _nameController.text = StringFormatters.formatName(user.name);
       _emailController.text = user.email;
       _idNumberController.text = user.identificationNumber;
-      // Clean up the initial phone value by stripping anything that isn't a digit
-      String cleanRawPhone = user.cellPhone.replaceAll(RegExp(r'\D'), '');
+      // Clean up the initial phone value explicitly removing known exact prefixes
+      String cleanRawPhone = CountryConstants.stripDialCode(user.cellPhone);
+      
       _phoneController.text = cleanRawPhone;
       
       _addressController.text = user.address;
@@ -504,6 +506,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           if (_selectedDepartmentId != null)
                                             'departmentId':
                                                 _selectedDepartmentId,
+                                          if (_selectedPhoneCountryId != null)
+                                            'countryId': _selectedPhoneCountryId,
                                         };
 
                                         context.read<AuthBloc>().add(
