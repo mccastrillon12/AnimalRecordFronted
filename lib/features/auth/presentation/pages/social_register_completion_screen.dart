@@ -113,7 +113,6 @@ class _SocialRegisterCompletionScreenState
     if (_selectedIdType == 'Pasaporte') idType = 'PAS';
 
     final Map<String, dynamic> data = {
-      'name': _nameController.text.trim(),
       'preAuthToken': widget.preAuthToken,
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
@@ -125,7 +124,12 @@ class _SocialRegisterCompletionScreenState
       'roles': ['PROPIETARIO_MASCOTA'],
     };
 
-    context.read<AuthBloc>().add(SocialRegisterSubmitted(data));
+    context.read<AuthBloc>().add(
+          SocialRegisterSubmitted(
+            data,
+            nameToUpdate: _nameController.text.trim(),
+          ),
+        );
   }
 
   @override

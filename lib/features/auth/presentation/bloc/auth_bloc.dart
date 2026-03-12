@@ -31,6 +31,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:convert';
 
 import 'package:animal_record/features/auth/data/models/user_model.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:logger/logger.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -475,13 +477,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await registerSocialUseCase(event.data);
+    
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (user) async {
+        // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
+        if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
+          try {
+            final updateResult = await updateProfileUseCase(
+              id: user.id,
+              data: {'name': event.nameToUpdate},
+            );
+            
+            // Si la actualización tuvo éxito, usamos el nuevo usuario con el nombre corregido
+            await updateResult.fold(
+              (f) async {
+                // Si falla el update, procedemos con el usuario original pero logueamos el error
+                sl<Logger>().e('Error actualizando nombre post-registro social: ${f.message}');
+                await _saveUserToCache(user);
+                await _emitAuthSuccessWithBiometrics(user, emit);
+              },
+              (updatedUser) async {
+                await _saveUserToCache(updatedUser);
+                await _emitAuthSuccessWithBiometrics(updatedUser, emit);
+              },
+            );
+            return;
+          } catch (e) {
+            sl<Logger>().e('Error inesperado actualizando nombre: $e');
+          }
+        }
 
-    await result.fold((failure) async => emit(AuthError(failure.message)), (
-      user,
-    ) async {
-      await _saveUserToCache(user);
-      await _emitAuthSuccessWithBiometrics(user, emit);
-    });
+        await _saveUserToCache(user);
+        await _emitAuthSuccessWithBiometrics(user, emit);
+      },
+    );
   }
 
   Future<void> _onSavePinSubmitted(

@@ -67,11 +67,12 @@ class SocialAuthChecked extends AuthEvent {
 
 class SocialRegisterSubmitted extends AuthEvent {
   final Map<String, dynamic> data;
+  final String? nameToUpdate;
 
-  SocialRegisterSubmitted(this.data);
+  SocialRegisterSubmitted(this.data, {this.nameToUpdate});
 
   @override
-  List<Object?> get props => [data];
+  List<Object?> get props => [data, nameToUpdate];
 }
 
 class FetchUserRequested extends AuthEvent {}
