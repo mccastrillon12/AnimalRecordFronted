@@ -688,6 +688,14 @@ class _LocationSelector extends StatelessWidget {
             ? locationsState.countries
             : <CountryEntity>[];
 
+        final colombiaId = countries.isNotEmpty
+            ? (countries
+                  .where((c) => c.dialCode == '+57')
+                  .isNotEmpty
+              ? countries.firstWhere((c) => c.dialCode == '+57').id
+              : countries.first.id)
+            : '';
+
         return Column(
           children: [
             if (showPhoneField && countries.isNotEmpty) ...[
@@ -706,13 +714,7 @@ class _LocationSelector extends StatelessWidget {
             if (countries.isNotEmpty)
               CountryDropdown(
                 label: 'País de residencia',
-                value: countries
-                    .firstWhere(
-                      (c) => c.dialCode == '+57' ||
-                          c.name.toLowerCase().contains('colombia'),
-                      orElse: () => countries.first,
-                    )
-                    .id,
+                value: colombiaId,
                 onChanged: null,
                 countries: countries,
                 enabled: false,
