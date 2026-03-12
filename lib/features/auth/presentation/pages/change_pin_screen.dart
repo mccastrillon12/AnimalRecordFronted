@@ -12,6 +12,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 
 class ChangePinScreen extends StatefulWidget {
@@ -23,31 +24,9 @@ class ChangePinScreen extends StatefulWidget {
 
 class _ChangePinScreenState extends State<ChangePinScreen> {
   int _currentStep = 1;
-  final List<TextEditingController> _oldPinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<TextEditingController> _newPinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<TextEditingController> _confirmPinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-
-  final List<FocusNode> _oldPinFocusNodes = List.generate(
-    4,
-    (_) => FocusNode(),
-  );
-  final List<FocusNode> _newPinFocusNodes = List.generate(
-    4,
-    (_) => FocusNode(),
-  );
-  final List<FocusNode> _confirmPinFocusNodes = List.generate(
-    4,
-    (_) => FocusNode(),
-  );
+  final FocusNode _oldPinFocusNode = FocusNode();
+  final FocusNode _newPinFocusNode = FocusNode();
+  final FocusNode _confirmPinFocusNode = FocusNode();
 
   String _oldPin = '';
   String _newPin = '';
@@ -55,98 +34,36 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-    _setupFocusNodes(_oldPinFocusNodes, _oldPinControllers, _onOldPinChanged);
-    _setupFocusNodes(_newPinFocusNodes, _newPinControllers, _onNewPinChanged);
-    _setupFocusNodes(
-      _confirmPinFocusNodes,
-      _confirmPinControllers,
-      _onConfirmPinChanged,
-    );
-  }
-
-  void _setupFocusNodes(
-    List<FocusNode> nodes,
-    List<TextEditingController> controllers,
-    Function(int, String) onChanged,
-  ) {
-    for (int i = 0; i < 4; i++) {
-      nodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (controllers[i].text.isEmpty && i > 0) {
-            nodes[i - 1].requestFocus();
-            controllers[i - 1].clear();
-            onChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-  }
-
-  @override
   void dispose() {
-    for (var c in _oldPinControllers) {
-      c.dispose();
-    }
-    for (var c in _newPinControllers) {
-      c.dispose();
-    }
-    for (var c in _confirmPinControllers) {
-      c.dispose();
-    }
-    for (var f in _oldPinFocusNodes) {
-      f.dispose();
-    }
-    for (var f in _newPinFocusNodes) {
-      f.dispose();
-    }
-    for (var f in _confirmPinFocusNodes) {
-      f.dispose();
-    }
+    _oldPinFocusNode.dispose();
+    _newPinFocusNode.dispose();
+    _confirmPinFocusNode.dispose();
     super.dispose();
   }
 
-  void _onOldPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _oldPinFocusNodes[index + 1].requestFocus());
-    } else if (value.isNotEmpty && index == 3) {
-      Future.microtask(() => _newPinFocusNodes[0].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _oldPinFocusNodes[index - 1].requestFocus());
+  void _onOldPinChanged(String value) {
+    if (value.length == 4 && _oldPin.length < 4) {
+      Future.microtask(() => _newPinFocusNode.requestFocus());
     }
-    _updatePins();
-  }
-
-  void _onNewPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _newPinFocusNodes[index + 1].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _newPinFocusNodes[index - 1].requestFocus());
-    } else if (value.isEmpty && index == 0) {
-      Future.microtask(() => _oldPinFocusNodes[3].requestFocus());
-    }
-    _updatePins();
-  }
-
-  void _onConfirmPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _confirmPinFocusNodes[index + 1].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _confirmPinFocusNodes[index - 1].requestFocus());
-    }
-    _updatePins();
-  }
-
-  void _updatePins() {
     setState(() {
-      _oldPin = _oldPinControllers.map((c) => c.text).join();
-      _newPin = _newPinControllers.map((c) => c.text).join();
-      _confirmPin = _confirmPinControllers.map((c) => c.text).join();
+      _oldPin = value;
+      _errorMessage = null;
+    });
+  }
+
+  void _onNewPinChanged(String value) {
+    if (value.isEmpty && _newPin.length == 1) {
+      Future.microtask(() => _oldPinFocusNode.requestFocus());
+    }
+    setState(() {
+      _newPin = value;
+      _errorMessage = null;
+    });
+  }
+
+  void _onConfirmPinChanged(String value) {
+    setState(() {
+      _confirmPin = value;
       _errorMessage = null;
     });
   }
@@ -157,7 +74,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         _currentStep = 2;
       });
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _confirmPinFocusNodes[0].requestFocus();
+        _confirmPinFocusNode.requestFocus();
       });
     }
   }
@@ -196,7 +113,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
           keyboardBarColor: const Color(0xFFD1D5DF),
           nextFocus: false,
-          actions: [..._oldPinFocusNodes, ..._newPinFocusNodes, ..._confirmPinFocusNodes].map((node) => KeyboardActionsItem(
+          actions: [_oldPinFocusNode, _newPinFocusNode, _confirmPinFocusNode].map((node) => KeyboardActionsItem(
             focusNode: node,
             displayArrows: false,
             displayDoneButton: false,
@@ -261,10 +178,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
         const SizedBox(height: 56),
         Text('Ingrese su PIN actual', style: AppTypography.body4),
         const SizedBox(height: AppSpacing.l),
-        _buildPinFields(
-          _oldPinControllers,
-          _oldPinFocusNodes,
-          _onOldPinChanged,
+        PinInputField(
+          pin: _oldPin,
+          onChanged: _onOldPinChanged,
+          focusNode: _oldPinFocusNode,
+          obscureText: true,
         ),
         const SizedBox(height: 56),
         Text(
@@ -273,10 +191,11 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.l),
-        _buildPinFields(
-          _newPinControllers,
-          _newPinFocusNodes,
-          _onNewPinChanged,
+        PinInputField(
+          pin: _newPin,
+          onChanged: _onNewPinChanged,
+          focusNode: _newPinFocusNode,
+          obscureText: true,
         ),
         if (_errorMessage != null) _buildError(),
         const KeyboardSpacer(),
@@ -294,70 +213,15 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: AppSpacing.m),
-        _buildPinFields(
-          _confirmPinControllers,
-          _confirmPinFocusNodes,
-          _onConfirmPinChanged,
+        PinInputField(
+          pin: _confirmPin,
+          onChanged: _onConfirmPinChanged,
+          focusNode: _confirmPinFocusNode,
+          obscureText: true,
         ),
         if (_errorMessage != null) _buildError(),
         const KeyboardSpacer(),
       ],
-    );
-  }
-
-  Widget _buildPinFields(
-    List<TextEditingController> controllers,
-    List<FocusNode> focusNodes,
-    Function(int, String) onChanged,
-  ) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(4, (index) {
-        return SizedBox(
-          width: 40,
-          height: 40,
-          child: TextField(
-            controller: controllers[index],
-            focusNode: focusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            autofocus: controllers == _oldPinControllers && index == 0,
-            maxLength: 1,
-            obscureText: true,
-            decoration: InputDecoration(
-              counterText: '',
-              contentPadding: EdgeInsets.zero,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(
-                  color: AppColors.primaryFrances,
-                  width: 2,
-                ),
-              ),
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) => onChanged(index, value),
-            onTap: () {
-              controllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: controllers[index].text.length),
-              );
-            },
-          ),
-        );
-      }),
     );
   }
 

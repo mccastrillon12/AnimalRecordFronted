@@ -15,6 +15,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
 
 class PinSetupScreen extends StatefulWidget {
   const PinSetupScreen({super.key});
@@ -25,58 +26,21 @@ class PinSetupScreen extends StatefulWidget {
 
 class _PinSetupScreenState extends State<PinSetupScreen> {
   int _currentStep = 1;
-  final List<TextEditingController> _controllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  final FocusNode _focusNode = FocusNode();
 
   String _firstPin = '';
   String _currentPin = '';
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 4; i++) {
-      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_controllers[i].text.isEmpty && i > 0) {
-            _focusNodes[i - 1].requestFocus();
-            _controllers[i - 1].clear();
-            _onCodeChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-  }
-
-  @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _onCodeChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _focusNodes[index + 1].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _focusNodes[index - 1].requestFocus());
-    }
-
-    final pin = _controllers.map((c) => c.text).join();
-
+  void _onCodeChanged(String value) {
     setState(() {
-      _currentPin = pin;
+      _currentPin = value;
       _errorMessage = null;
     });
   }
@@ -91,11 +55,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         _currentPin = '';
         _errorMessage = null;
 
-        for (var c in _controllers) {
-          c.clear();
-        }
-
-        _focusNodes[0].requestFocus();
+        _focusNode.requestFocus();
       });
     } else {
       if (_currentPin == _firstPin) {
@@ -104,11 +64,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         setState(() {
           _errorMessage = 'Los PIN no coinciden. Inténtalo de nuevo.';
 
-          for (var c in _controllers) {
-            c.clear();
-          }
           _currentPin = '';
-          _focusNodes[0].requestFocus();
+          _focusNode.requestFocus();
         });
       }
     }
@@ -184,11 +141,12 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
               keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
               keyboardBarColor: const Color(0xFFD1D5DF),
               nextFocus: false,
-              actions: _focusNodes.map((node) => KeyboardActionsItem(
-                focusNode: node,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _focusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
                   (node) {
                     return GestureDetector(
                       onTap: () => node.unfocus(),
@@ -206,19 +164,17 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     );
                   }
                 ],
-              )).toList(),
-            ),
-            child: AuthFormContainer(
-              showLogo: false,
-              showCancelButton: false,
+              )
+            ],
+          ),
+          child: AuthFormContainer(
+            showLogo: false,
+            showCancelButton: false,
             onBack: () async {
               if (_currentStep == 2) {
                 setState(() {
                   _currentStep = 1;
                   _currentPin = '';
-                  for (var c in _controllers) {
-                    c.clear();
-                  }
                 });
               } else {
                 final isBiometricPending = await sl<TokenStorage>()
@@ -272,71 +228,11 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   ),
                   const SizedBox(height: 80),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      return SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: TextField(
-                          controller: _controllers[index],
-                          focusNode: _focusNodes[index],
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done,
-                          autofocus: index == 0,
-                          maxLength: 1,
-                          style: AppTypography.heading2,
-                          decoration: InputDecoration(
-                            counterText: '',
-                            contentPadding: EdgeInsets.zero,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: index == 0
-                                  ? const BorderRadius.horizontal(
-                                      left: Radius.circular(8),
-                                    )
-                                  : index == 3
-                                  ? const BorderRadius.horizontal(
-                                      right: Radius.circular(8),
-                                    )
-                                  : BorderRadius.zero,
-                              borderSide: const BorderSide(
-                                color: Color(0xFFA8AFBD),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: index == 0
-                                  ? const BorderRadius.horizontal(
-                                      left: Radius.circular(8),
-                                    )
-                                  : index == 3
-                                  ? const BorderRadius.horizontal(
-                                      right: Radius.circular(8),
-                                    )
-                                  : BorderRadius.zero,
-                              borderSide: const BorderSide(
-                                color: AppColors.primaryFrances,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          onChanged: (value) {
-                            _onCodeChanged(index, value);
-                          },
-                          onTap: () {
-                            _controllers[index].selection =
-                                TextSelection.fromPosition(
-                                  TextPosition(
-                                    offset: _controllers[index].text.length,
-                                  ),
-                                );
-                          },
-                        ),
-                      );
-                    }),
+                  PinInputField(
+                    pin: _currentPin,
+                    onChanged: _onCodeChanged,
+                    focusNode: _focusNode,
+                    obscureText: true,
                   ),
 
                   if (_errorMessage != null) ...[

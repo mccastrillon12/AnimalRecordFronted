@@ -95,26 +95,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       _idNumberController.text = user.identificationNumber;
       // Clean up the initial phone value by stripping anything that isn't a digit
       String cleanRawPhone = user.cellPhone.replaceAll(RegExp(r'\D'), '');
-      
-      // If we have a country code, we want to strip the matching digits from the start
-      if (user.countryId.isNotEmpty && context.mounted) {
-        final locState = context.read<LocationsCubit>().state;
-        if (locState is LocationsLoaded) {
-          try {
-            final country = locState.countries.cast<CountryEntity>().firstWhere(
-                  (c) => c.id == user.countryId,
-                );
-            final purePrefix = country.dialCode.replaceAll('+', '');
-            if (cleanRawPhone.startsWith(purePrefix)) {
-              cleanRawPhone = cleanRawPhone.substring(purePrefix.length);
-            }
-          } catch (_) {
-            // Country not found in list yet, silently continue
-          }
-        }
-      }
-      
       _phoneController.text = cleanRawPhone;
+      
       _addressController.text = user.address;
 
       _loadUserLocations(user);
@@ -133,6 +115,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final cubit = context.read<LocationsCubit>();
 
     await cubit.fetchCountries();
+    
+    // Strip dial code asynchronously after countries are loaded
+    final locState = cubit.state;
+    if (locState is LocationsLoaded && user.countryId.isNotEmpty && mounted) {
+      try {
+        final country = locState.countries.cast<CountryEntity>().firstWhere(
+              (c) => c.id == user.countryId,
+            );
+        final purePrefix = country.dialCode.replaceAll('+', '');
+        
+        if (_phoneController.text.startsWith(purePrefix)) {
+          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+        }
+      } catch (_) {
+        // Country not found in list yet, silently continue
+      }
+    }
 
     if (user.countryId.isNotEmpty && mounted) {
       await cubit.fetchDepartments(user.countryId);

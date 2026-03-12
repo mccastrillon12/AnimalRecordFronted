@@ -6,6 +6,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
@@ -24,57 +25,23 @@ class PinEntryScreen extends StatefulWidget {
 }
 
 class _PinEntryScreenState extends State<PinEntryScreen> {
-  final List<TextEditingController> _controllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  final FocusNode _focusNode = FocusNode();
 
   String _currentPin = '';
-  @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 4; i++) {
-      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_controllers[i].text.isEmpty && i > 0) {
-            _focusNodes[i - 1].requestFocus();
-            _controllers[i - 1].clear();
-            _onCodeChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-  }
 
   @override
   void dispose() {
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _onCodeChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _focusNodes[index + 1].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _focusNodes[index - 1].requestFocus());
-    }
-
-    final pin = _controllers.map((c) => c.text).join();
-
+  void _onCodeChanged(String value) {
     setState(() {
-      _currentPin = pin;
+      _currentPin = value;
     });
   }
+
+
 
   void _handleVerify() {
     if (_currentPin.length != 4) return;
@@ -92,12 +59,8 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
             'PIN incorrecto. Intente nuevamente.',
           );
           setState(() {
-            for (var c in _controllers) {
-              c.clear();
-            }
             _currentPin = '';
-
-            _focusNodes[0].requestFocus();
+            _focusNode.requestFocus();
           });
         }
         if (state is AuthSuccess) {
@@ -120,11 +83,12 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
               keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
               keyboardBarColor: const Color(0xFFD1D5DF),
               nextFocus: false,
-              actions: _focusNodes.map((node) => KeyboardActionsItem(
-                focusNode: node,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _focusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
                   (node) {
                     return GestureDetector(
                       onTap: () => node.unfocus(),
@@ -142,7 +106,8 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
                     );
                   }
                 ],
-              )).toList(),
+              ),
+              ],
             ),
             child: AuthFormContainer(
               showLogo: true,
@@ -164,71 +129,11 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
 
                   const SizedBox(height: 100),
 
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      return SizedBox(
-                        width: 40,
-                        height: 40,
-                        child: TextField(
-                          controller: _controllers[index],
-                          focusNode: _focusNodes[index],
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          textInputAction: TextInputAction.done,
-                          autofocus: index == 0,
-                          maxLength: 1,
-                          style: AppTypography.heading2,
-                          decoration: InputDecoration(
-                            counterText: '',
-                            contentPadding: EdgeInsets.zero,
-                            enabledBorder: OutlineInputBorder(
-                              borderRadius: index == 0
-                                  ? const BorderRadius.horizontal(
-                                      left: Radius.circular(8),
-                                    )
-                                  : index == 3
-                                  ? const BorderRadius.horizontal(
-                                      right: Radius.circular(8),
-                                    )
-                                  : BorderRadius.zero,
-                              borderSide: const BorderSide(
-                                color: Color(0xFFA8AFBD),
-                              ),
-                            ),
-                            focusedBorder: OutlineInputBorder(
-                              borderRadius: index == 0
-                                  ? const BorderRadius.horizontal(
-                                      left: Radius.circular(8),
-                                    )
-                                  : index == 3
-                                  ? const BorderRadius.horizontal(
-                                      right: Radius.circular(8),
-                                    )
-                                  : BorderRadius.zero,
-                              borderSide: const BorderSide(
-                                color: AppColors.primaryFrances,
-                                width: 2,
-                              ),
-                            ),
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          onChanged: (value) {
-                            _onCodeChanged(index, value);
-                          },
-                          onTap: () {
-                            _controllers[index].selection =
-                                TextSelection.fromPosition(
-                                  TextPosition(
-                                    offset: _controllers[index].text.length,
-                                  ),
-                                );
-                          },
-                        ),
-                      );
-                    }),
+                  PinInputField(
+                    pin: _currentPin,
+                    onChanged: _onCodeChanged,
+                    focusNode: _focusNode,
+                    obscureText: true,
                   ),
 
                   const SizedBox(height: 40),

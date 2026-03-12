@@ -12,6 +12,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 
 class ResetPinScreen extends StatefulWidget {
@@ -29,58 +30,20 @@ class ResetPinScreen extends StatefulWidget {
 }
 
 class _ResetPinScreenState extends State<ResetPinScreen> {
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
+  final FocusNode _pinFocusNode = FocusNode();
 
   String _pin = '';
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 4; i++) {
-      _pinFocusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_pinControllers[i].text.isEmpty && i > 0) {
-            _pinFocusNodes[i - 1].requestFocus();
-            _pinControllers[i - 1].clear();
-            _onPinChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-  }
-
-  @override
   void dispose() {
-    for (var c in _pinControllers) {
-      c.dispose();
-    }
-    for (var f in _pinFocusNodes) {
-      f.dispose();
-    }
+    _pinFocusNode.dispose();
     super.dispose();
   }
 
-  void _onPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      Future.microtask(() => _pinFocusNodes[index + 1].requestFocus());
-    } else if (value.isEmpty && index > 0) {
-      Future.microtask(() => _pinFocusNodes[index - 1].requestFocus());
-    }
-    _updatePin();
-  }
-
-  void _updatePin() {
+  void _onPinChanged(String value) {
     setState(() {
-      _pin = _pinControllers.map((c) => c.text).join();
+      _pin = value;
       _errorMessage = null;
     });
   }
@@ -115,29 +78,31 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
           keyboardBarColor: const Color(0xFFD1D5DF),
           nextFocus: false,
-          actions: _pinFocusNodes.map((node) => KeyboardActionsItem(
-            focusNode: node,
-            displayArrows: false,
-            displayDoneButton: false,
-            toolbarButtons: [
-              (node) {
-                return GestureDetector(
-                  onTap: () => node.unfocus(),
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    child: Text(
-                      "Aceptar",
-                      style: TextStyle(
-                        color: Colors.blue,
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
+          actions: [
+            KeyboardActionsItem(
+              focusNode: _pinFocusNode,
+              displayArrows: false,
+              displayDoneButton: false,
+              toolbarButtons: [
+                (node) {
+                  return GestureDetector(
+                    onTap: () => node.unfocus(),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Text(
+                        "Aceptar",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }
-            ],
-          )).toList(),
+                  );
+                }
+              ],
+            )
+          ],
         ),
         child: AuthFormContainer(
           showLogo: false,
@@ -181,54 +146,11 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
 }
 
   Widget _buildPinFields() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(4, (index) {
-        return SizedBox(
-          width: 40,
-          height: 40,
-          child: TextField(
-            controller: _pinControllers[index],
-            focusNode: _pinFocusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            textInputAction: TextInputAction.done,
-            autofocus: index == 0,
-            maxLength: 1,
-            obscureText: true,
-            decoration: InputDecoration(
-              counterText: '',
-              contentPadding: EdgeInsets.zero,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(
-                  color: AppColors.primaryFrances,
-                  width: 2,
-                ),
-              ),
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) => _onPinChanged(index, value),
-            onTap: () {
-              _pinControllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: _pinControllers[index].text.length),
-              );
-            },
-          ),
-        );
-      }),
+    return PinInputField(
+      pin: _pin,
+      onChanged: _onPinChanged,
+      focusNode: _pinFocusNode,
+      obscureText: true,
     );
   }
 
