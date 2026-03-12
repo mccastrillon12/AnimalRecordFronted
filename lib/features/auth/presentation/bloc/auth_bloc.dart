@@ -435,6 +435,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       response,
     ) async {
       if (response['status'] == 'NEED_REGISTER') {
+        // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
+        // pero el backend no los tiene (porque no los enviamos en el check)
+        if (event.firstName != null || event.lastName != null) {
+          final profile =
+              (response['profile'] as Map<String, dynamic>?) ?? {};
+          profile['firstName'] = event.firstName ?? profile['firstName'];
+          profile['lastName'] = event.lastName ?? profile['lastName'];
+
+          // Asegurar que el mapa de respuesta tenga el perfil actualizado
+          final newResponse = Map<String, dynamic>.from(response);
+          newResponse['profile'] = profile;
+
+          emit(SocialAuthNeedRegister(newResponse, provider: event.provider));
+          return;
+        }
+
         emit(SocialAuthNeedRegister(response, provider: event.provider));
       } else if (response['status'] == 'SUCCESS') {
         final user = response['user'];

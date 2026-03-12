@@ -174,7 +174,12 @@ class _LoginScreenState extends State<LoginScreen> {
         if (token != null) {
           setState(() => _isSocialLoading = true);
           context.read<AuthBloc>().add(
-            SocialAuthChecked(provider: 'APPLE', token: token),
+            SocialAuthChecked(
+              provider: 'APPLE',
+              token: token,
+              firstName: credential.givenName,
+              lastName: credential.familyName,
+            ),
           );
         } else {
           sl<Logger>().e('Apple Sign-In failed: Identity Token is null');
