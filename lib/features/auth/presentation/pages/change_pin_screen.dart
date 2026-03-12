@@ -281,6 +281,8 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
             focusNode: focusNodes[index],
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
+            textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+            autofocus: controllers == _oldPinControllers && index == 0,
             maxLength: 1,
             obscureText: true,
             decoration: InputDecoration(

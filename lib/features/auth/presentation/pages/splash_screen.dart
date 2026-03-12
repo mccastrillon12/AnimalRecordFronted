@@ -16,6 +16,8 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
@@ -29,11 +31,14 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        if (_hasNavigated) return;
+
         if (state is AuthSuccess) {
           sl<TokenStorage>().getBiometricsEnabledForUser(state.user.id).then((
             enabled,
           ) {
-            if (mounted) {
+            if (mounted && !_hasNavigated) {
+              _hasNavigated = true;
               if (enabled) {
                 Navigator.pushReplacement(
                   context,
@@ -47,7 +52,10 @@ class _SplashScreenState extends State<SplashScreen> {
             }
           });
         } else if (state is AuthError) {
-          Navigator.pushReplacementNamed(context, '/login');
+          if (!_hasNavigated) {
+            _hasNavigated = true;
+            Navigator.pushReplacementNamed(context, '/login');
+          }
         }
       },
       child: Scaffold(

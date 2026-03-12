@@ -93,6 +93,7 @@ class PhoneInputField extends StatelessWidget {
 
                 controller: controller,
                 keyboardType: TextInputType.phone,
+                textInputAction: TextInputAction.done,
                 maxLength: 15,
                 inputFormatters: inputFormatters,
                 errorText: errorText,

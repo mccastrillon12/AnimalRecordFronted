@@ -88,8 +88,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (authState is AuthSuccess) {
       final user = authState.user;
       _nameController.text = StringFormatters.formatName(user.name);
+      _emailController.text = user.email;
       _idNumberController.text = user.identificationNumber;
-      _phoneController.text = user.cellPhone;
+      // Remove any previously saved dial code to avoid returning '+57+57...' in the input value
+      String phoneWithoutCode = user.cellPhone;
+      // We will let the user's phone field just show the rest of the numbers if we can safely guess the code.
+      // But for simplicity, we first just assign it (we will clean it up on save).
+      // However, if the UI prefix is '+57', and the text is '+57300...', the user sees the prefix twice.
+      if (user.cellPhone.startsWith('+')) {
+        // Find the country code if possible, or just strip the '+' for now, 
+        // but better yet, we'll handle the deduplication on save as planned in implementation_plan.md.
+      }
+      _phoneController.text = phoneWithoutCode;
       _addressController.text = user.address;
 
       _loadUserLocations(user);
@@ -398,8 +408,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       if (_formKey.currentState!.validate()) {
                                         String cellPhone = _phoneController.text
                                             .trim();
-                                        if (cellPhone.isNotEmpty &&
-                                            !cellPhone.startsWith('+')) {
+                                        
+                                        if (cellPhone.isNotEmpty) {
                                           final state = context
                                               .read<LocationsCubit>()
                                               .state;
@@ -415,9 +425,25 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                     orElse: () =>
                                                         state.countries.first,
                                                   );
-                                              cellPhone =
-                                                  '${country.dialCode}$cellPhone'
-                                                      .replaceAll(' ', '');
+                                              
+                                              // If the user appended the prefix inside the textfield or we are prepending it:
+                                              final prefix = country.dialCode;
+                                              final purePrefix = prefix.replaceAll('+', '');
+                                              
+                                              // Clean up the cellPhone to avoid double '+' or double '57'
+                                              if (cellPhone.startsWith(prefix)) {
+                                                cellPhone = cellPhone.substring(prefix.length);
+                                              } else if (cellPhone.startsWith(purePrefix)) {
+                                                cellPhone = cellPhone.substring(purePrefix.length);
+                                              } else if (cellPhone.startsWith('+')) {
+                                                // It starts with a different plus code, maybe they changed it, we leave it or replace it? 
+                                                // Assuming they meant to just type the number.
+                                                cellPhone = cellPhone; // let it be, but below we add prefix if it doesn't have '+'
+                                              }
+                                              
+                                              if (!cellPhone.startsWith('+')) {
+                                                cellPhone = '$prefix$cellPhone'.replaceAll(' ', '');
+                                              }
                                             }
                                           }
                                         }

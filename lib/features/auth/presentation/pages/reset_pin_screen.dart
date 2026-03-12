@@ -158,6 +158,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
             focusNode: _pinFocusNodes[index],
             textAlign: TextAlign.center,
             keyboardType: TextInputType.number,
+            textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+            autofocus: index == 0,
             maxLength: 1,
             obscureText: true,
             decoration: InputDecoration(

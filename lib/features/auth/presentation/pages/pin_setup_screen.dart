@@ -250,6 +250,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                           focusNode: _focusNodes[index],
                           textAlign: TextAlign.center,
                           keyboardType: TextInputType.number,
+                          textInputAction: index < 3 ? TextInputAction.next : TextInputAction.done,
+                          autofocus: index == 0,
                           maxLength: 1,
                           style: AppTypography.heading2,
                           decoration: InputDecoration(
