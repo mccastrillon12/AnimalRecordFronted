@@ -113,6 +113,7 @@ class _SocialRegisterCompletionScreenState
     if (_selectedIdType == 'Pasaporte') idType = 'PAS';
 
     final Map<String, dynamic> data = {
+      'name': _nameController.text.trim(),
       'preAuthToken': widget.preAuthToken,
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
@@ -217,7 +218,7 @@ class _SocialRegisterCompletionScreenState
                 CustomTextField(
                   label: 'Nombre completo',
                   controller: _nameController,
-                  enabled: false,
+                  enabled: true,
                   labelStyle: AppTypography.body6.copyWith(
                     color: const Color(0xFF2E3949).withOpacity(0.3),
                   ),

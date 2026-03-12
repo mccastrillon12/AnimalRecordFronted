@@ -208,7 +208,8 @@ class _LoginScreenState extends State<LoginScreen> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             SocialRegisterCompletionScreen(
-              name: profile?['firstName'] ?? '',
+              name: profile?['name'] ?? 
+                    '${profile?['firstName'] ?? ''} ${profile?['lastName'] ?? ''}'.trim(),
               email: profile?['email'] ?? '',
               preAuthToken: preAuthToken ?? '',
               providerName: providerName,

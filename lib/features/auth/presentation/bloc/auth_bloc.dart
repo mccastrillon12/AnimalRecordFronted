@@ -442,6 +442,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
               (response['profile'] as Map<String, dynamic>?) ?? {};
           profile['firstName'] = event.firstName ?? profile['firstName'];
           profile['lastName'] = event.lastName ?? profile['lastName'];
+          
+          // Crear campo 'name' combinado para compatibilidad con la UI
+          final combinedName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+          if (combinedName.isNotEmpty) {
+            profile['name'] = combinedName;
+          }
 
           // Asegurar que el mapa de respuesta tenga el perfil actualizado
           final newResponse = Map<String, dynamic>.from(response);
