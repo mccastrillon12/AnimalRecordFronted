@@ -13,8 +13,6 @@ class MicrosoftAuthService {
   static const List<String> _scopes = [
     'User.Read',
     'email',
-    'openid',
-    'profile',
   ];
 
   MicrosoftAuthService({required this.logger});
