@@ -11,72 +11,75 @@ class DeepLinkService {
   final _appLinks = AppLinks();
   StreamSubscription<Uri>? _linkSubscription;
 
-  Future<void> initDeepLinks(GlobalKey<NavigatorState> navigatorKey) async {
-    try {
-      // FIX 1: getInitialLink() is the correct API for this version of app_links
-      final initialLink = await _appLinks.getInitialLink();
-      if (initialLink != null) {
-        _waitForNavigatorAndHandle(initialLink, navigatorKey);
-      }
-    } catch (e) {
-      debugPrint('Error getting initial link: $e');
-    }
-
-    _linkSubscription = _appLinks.uriLinkStream.listen(
-      (uri) => _waitForNavigatorAndHandle(uri, navigatorKey),
-      onError: (err) => debugPrint('Deep Link Error: $err'),
-    );
-  }
+  // URI captured on cold start, waiting for the navigator to be ready.
+  // SplashScreen calls consumePendingLink() when it finishes so there are
+  // NO while-loops / delays that would trip iOS's ~1 s Universal Link timeout.
+  Uri? _pendingUri;
 
   // Keep setValidatePasswordTokenUseCase for compatibility with main.dart
-  // (no longer used inside the service but kept to avoid breaking main.dart)
   ValidatePasswordTokenUseCase? _validatePasswordTokenUseCase;
 
   void setValidatePasswordTokenUseCase(ValidatePasswordTokenUseCase useCase) {
     _validatePasswordTokenUseCase = useCase;
   }
 
-  bool _isHandlingLink = false;
-  bool get isHandlingDeepLink => _isHandlingLink;
-  Uri? _processedUri;
+  // ─────────────────────────────────────────────────────────────────────────
+  // Init
+  // ─────────────────────────────────────────────────────────────────────────
 
-  void _waitForNavigatorAndHandle(
-    Uri uri,
-    GlobalKey<NavigatorState> navigatorKey,
-  ) async {
-    // FIX 2: mark as handling BEFORE any await so iOS doesn't timeout and open Safari
-    if (_isHandlingLink) return;
-    if (uri == _processedUri) return;
-    _isHandlingLink = true;
-    _processedUri = uri;
-
-    debugPrint('Received Deep Link: $uri');
-
-    int retries = 0;
-    while (navigatorKey.currentState == null && retries < 50) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      retries++;
+  Future<void> initDeepLinks(GlobalKey<NavigatorState> navigatorKey) async {
+    // Cold-start: capture the link that launched the app.
+    // We store it as _pendingUri — SplashScreen will call consumePendingLink()
+    // once it pushes the next route so we can navigate immediately, without any
+    // busy-waiting that would cause iOS to fall back to Safari.
+    try {
+      final initialLink = await _appLinks.getInitialLink();
+      if (initialLink != null) {
+        debugPrint('[DeepLink] Cold-start link captured: $initialLink');
+        _pendingUri = initialLink;
+      }
+    } catch (e) {
+      debugPrint('[DeepLink] Error reading initial link: $e');
     }
 
+    // Warm-start / foreground: process links while the app is running.
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (uri) => _handleUri(uri, navigatorKey),
+      onError: (err) => debugPrint('[DeepLink] Stream error: $err'),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Public API used by SplashScreen
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Call this from SplashScreen (or wherever the navigator first stabilises)
+  /// to process the cold-start link immediately with zero delays.
+  bool consumePendingLink(GlobalKey<NavigatorState> navigatorKey) {
+    if (_pendingUri == null) return false;
+    final uri = _pendingUri!;
+    _pendingUri = null;
+    debugPrint('[DeepLink] Consuming pending cold-start link: $uri');
+    return _processLink(uri, navigatorKey);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Internal
+  // ─────────────────────────────────────────────────────────────────────────
+
+  void _handleUri(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
+    debugPrint('[DeepLink] Warm-start link received: $uri');
+    if (navigatorKey.currentState == null) {
+      // Navigator not ready yet (very unlikely on warm-start); store as pending.
+      _pendingUri = uri;
+      return;
+    }
     _processLink(uri, navigatorKey);
   }
 
-  void _processLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) async {
-    bool isSplashTop() {
-      bool isSplash = false;
-      navigatorKey.currentState?.popUntil((route) {
-        isSplash = route.settings.name == '/';
-        return true;
-      });
-      return isSplash;
-    }
-
-    int splashRetries = 0;
-    while (isSplashTop() && splashRetries < 50) {
-      await Future.delayed(const Duration(milliseconds: 100));
-      splashRetries++;
-    }
-
+  /// Navigates to the appropriate screen for [uri].
+  /// Returns true if the link was handled.
+  bool _processLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
     final isPasswordReset = uri.path == '/reset-password';
     final isPinReset =
         uri.path == '/reset-pin' || uri.queryParameters['type'] == 'pin';
@@ -86,28 +89,24 @@ class DeepLinkService {
       if (token != null && token.isNotEmpty) {
         var identifier =
             uri.queryParameters['identifier'] ?? uri.queryParameters['email'];
-
         if (identifier != null) {
           identifier = identifier.replaceAll(' ', '+');
         }
 
-        if (navigatorKey.currentState != null) {
-          // FIX 3: Navigate immediately — no Future.delayed before pushNamed.
-          // iOS requires the link to be consumed instantly to avoid Safari fallback.
-          // Token validation can happen inside the target screen.
-          final routeName = isPinReset ? '/reset-pin' : '/reset-password';
-          navigatorKey.currentState?.pushNamed(
-            routeName,
-            arguments: {'token': token, 'identifier': identifier},
-          );
-        }
+        final routeName = isPinReset ? '/reset-pin' : '/reset-password';
+        debugPrint('[DeepLink] Navigating to $routeName');
+
+        navigatorKey.currentState?.pushNamedAndRemoveUntil(
+          routeName,
+          (route) => route.settings.name == '/login' || route.isFirst,
+          arguments: {'token': token, 'identifier': identifier},
+        );
+        return true;
       }
     }
 
-    Future.delayed(const Duration(seconds: 2), () {
-      _isHandlingLink = false;
-      _processedUri = null;
-    });
+    debugPrint('[DeepLink] Link not handled: $uri');
+    return false;
   }
 
   void dispose() {

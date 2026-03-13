@@ -4,9 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
+import 'package:animal_record/core/services/deep_link_service.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/main.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -23,7 +25,14 @@ class _SplashScreenState extends State<SplashScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<AuthBloc>().add(FetchUserRequested());
+      // Try to consume a cold-start deep link immediately when the navigator
+      // is first available. If handled, skip the normal auth flow.
+      final handled = DeepLinkService().consumePendingLink(navigatorKey);
+      if (!handled) {
+        context.read<AuthBloc>().add(FetchUserRequested());
+      } else {
+        _hasNavigated = true;
+      }
     });
   }
 
@@ -39,22 +48,31 @@ class _SplashScreenState extends State<SplashScreen> {
           ) {
             if (mounted && !_hasNavigated) {
               _hasNavigated = true;
-              if (enabled) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const BiometricLockScreen(),
-                  ),
-                );
-              } else {
-                Navigator.pushReplacementNamed(context, '/home');
+              // If a deep link is pending (e.g. reset-password cold start),
+              // let DeepLinkService handle navigation and skip the normal flow.
+              final handled = DeepLinkService().consumePendingLink(navigatorKey);
+              if (!handled) {
+                if (enabled) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BiometricLockScreen(),
+                    ),
+                  );
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
               }
             }
           });
         } else if (state is AuthError) {
           if (!_hasNavigated) {
             _hasNavigated = true;
-            Navigator.pushReplacementNamed(context, '/login');
+            // If a deep link is pending, handle it instead of showing login.
+            final handled = DeepLinkService().consumePendingLink(navigatorKey);
+            if (!handled) {
+              Navigator.pushReplacementNamed(context, '/login');
+            }
           }
         }
       },

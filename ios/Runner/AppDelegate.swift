@@ -25,7 +25,6 @@ import MSAL
       continue userActivity: NSUserActivity,
       restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
   ) -> Bool {
-      _ = super.application(application, continue: userActivity, restorationHandler: restorationHandler)
-      return true
+      return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
 }
