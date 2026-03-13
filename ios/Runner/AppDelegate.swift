@@ -19,4 +19,12 @@ import MSAL
   ) -> Bool {
       return MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String) || super.application(app, open: url, options: options)
   }
+
+  override func application(
+      _ application: UIApplication,
+      continue userActivity: NSUserActivity,
+      restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+      return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
+  }
 }
