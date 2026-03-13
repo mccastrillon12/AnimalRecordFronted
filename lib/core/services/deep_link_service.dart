@@ -33,7 +33,11 @@ class DeepLinkService {
     // once it pushes the next route so we can navigate immediately, without any
     // busy-waiting that would cause iOS to fall back to Safari.
     try {
-      final initialLink = await _appLinks.getInitialLink();
+      // getInitialLink() is the standard cold-start link for app_links v6.x.
+      // getLatestLink() is used as a fallback — on iOS, Universal Links sometimes
+      // arrive via getLatestLink() when getInitialLink() returns null.
+      final initialLink =
+          await _appLinks.getInitialLink() ?? await _appLinks.getLatestLink();
       if (initialLink != null) {
         debugPrint('[DeepLink] Cold-start link captured: $initialLink');
         _pendingUri = initialLink;
