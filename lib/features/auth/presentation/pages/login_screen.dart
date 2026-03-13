@@ -392,12 +392,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: 'Microsoft',
                         onTap: _handleMicrosoftSignIn,
                       ),
-                      const SizedBox(width: AppSpacing.socialButtonGap),
-                      _SocialButton(
-                        iconPath: 'assets/icons/Apple_icon.svg',
-                        label: 'Apple',
-                        onTap: _handleAppleSignIn,
-                      ),
+                      if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                        const SizedBox(width: AppSpacing.socialButtonGap),
+                        _SocialButton(
+                          iconPath: 'assets/icons/Apple_icon.svg',
+                          label: 'Apple',
+                          onTap: _handleAppleSignIn,
+                        ),
+                      ],
                     ],
                   ),
                   const KeyboardSpacer(),
