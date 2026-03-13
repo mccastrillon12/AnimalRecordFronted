@@ -10,5 +10,9 @@
 	<array>
 		<string>$(AppIdentifierPrefix)com.microsoft.adalcache</string>
 	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:animalrecord.app</string>
+	</array>
 </dict>
 </plist>

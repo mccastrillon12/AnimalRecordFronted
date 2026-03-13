@@ -155,9 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Microsoft Sign-In failed: $error');
       if (mounted) {
+        String errorMessage = error.toString().replaceAll('Exception: ', '');
         ErrorDisplay.showError(
           context,
-          'Error al iniciar sesión con Microsoft',
+          'Error al iniciar con Microsoft: $errorMessage',
         );
       }
     }
