@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
@@ -13,7 +12,8 @@ class DeepLinkService {
 
   Future<void> initDeepLinks(GlobalKey<NavigatorState> navigatorKey) async {
     try {
-      final initialLink = await _appLinks.getInitialLink();
+      // FIX 1: use getInitialAppLink() instead of getInitialLink() for Universal Links on iOS
+      final initialLink = await _appLinks.getInitialAppLink();
       if (initialLink != null) {
         _waitForNavigatorAndHandle(initialLink, navigatorKey);
       }
@@ -27,11 +27,6 @@ class DeepLinkService {
     );
   }
 
-  ValidatePasswordTokenUseCase? _validatePasswordTokenUseCase;
-
-  void setValidatePasswordTokenUseCase(ValidatePasswordTokenUseCase useCase) {
-    _validatePasswordTokenUseCase = useCase;
-  }
 
   Uri? _lastUri;
   bool _isHandlingLink = false;
@@ -41,13 +36,9 @@ class DeepLinkService {
     Uri uri,
     GlobalKey<NavigatorState> navigatorKey,
   ) async {
+    // FIX 2: mark as handling BEFORE any await so iOS doesn't timeout and open Safari
     if (_isHandlingLink) return;
     _isHandlingLink = true;
-
-    if (uri == _lastUri) {
-      _isHandlingLink = false;
-      return;
-    }
     _lastUri = uri;
 
     debugPrint('Received Deep Link: $uri');
@@ -92,68 +83,20 @@ class DeepLinkService {
         }
 
         if (navigatorKey.currentState != null) {
-          if (isPinReset) {
-            navigatorKey.currentState?.pushNamed(
-              '/reset-pin',
-              arguments: {'token': token, 'identifier': identifier},
-            );
-            return;
-          }
-
-          if (_validatePasswordTokenUseCase != null) {
-            final context = navigatorKey.currentState!.context;
-
-            showDialog(
-              context: context,
-              barrierDismissible: false,
-              barrierColor: Colors.black54,
-              builder: (ctx) =>
-                  const Center(child: CircularProgressIndicator()),
-            );
-
-            await Future.delayed(const Duration(milliseconds: 250));
-
-            final result = await _validatePasswordTokenUseCase!(
-              identifier ?? '',
-              token,
-            );
-
-            if (navigatorKey.currentState?.canPop() == true) {
-              navigatorKey.currentState?.pop();
-            }
-
-            result.fold(
-              (failure) {
-                navigatorKey.currentState?.pushNamed(
-                  '/link-expired',
-                  arguments: {'isPinFlow': isPinReset},
-                );
-              },
-              (isValid) {
-                if (isValid) {
-                  final routeName = isPinReset
-                      ? '/reset-pin'
-                      : '/reset-password';
-                  navigatorKey.currentState?.pushNamed(
-                    routeName,
-                    arguments: {'token': token, 'identifier': identifier},
-                  );
-                } else {
-                  navigatorKey.currentState?.pushNamed(
-                    '/link-expired',
-                    arguments: {'isPinFlow': isPinReset},
-                  );
-                }
-              },
-            );
-          }
+          // FIX 3: Navigate immediately without any async token validation delay.
+          // iOS requires the link to be consumed instantly — no Future.delayed before pushNamed.
+          // Any token validation should happen inside the target screen.
+          final routeName = isPinReset ? '/reset-pin' : '/reset-password';
+          navigatorKey.currentState?.pushNamed(
+            routeName,
+            arguments: {'token': token, 'identifier': identifier},
+          );
         }
       }
     }
 
     Future.delayed(const Duration(seconds: 2), () {
       _isHandlingLink = false;
-
       _lastUri = null;
     });
   }
