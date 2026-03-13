@@ -84,9 +84,13 @@ class DeepLinkService {
   /// Navigates to the appropriate screen for [uri].
   /// Returns true if the link was handled.
   bool _processLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
-    final isPasswordReset = uri.path == '/reset-password';
+    final path = uri.path.endsWith('/')
+        ? uri.path.substring(0, uri.path.length - 1)
+        : uri.path;
+
+    final isPasswordReset = path == '/reset-password';
     final isPinReset =
-        uri.path == '/reset-pin' || uri.queryParameters['type'] == 'pin';
+        path == '/reset-pin' || uri.queryParameters['type'] == 'pin';
 
     if (isPasswordReset || isPinReset) {
       final token = uri.queryParameters['token'];

@@ -14,6 +14,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:app_links/app_links.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -34,6 +35,35 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
 
   String _pin = '';
   String? _errorMessage;
+  late String _currentIdentifier;
+  late String _currentToken;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIdentifier = widget.identifier;
+    _currentToken = widget.token;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Safety Net: if args are missing, try to recover from URI
+    if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
+      AppLinks().getLatestLink().then((value) {
+        if (value != null && mounted) {
+          setState(() {
+            if (_currentToken.isEmpty) _currentToken = value.queryParameters['token'] ?? '';
+            if (_currentIdentifier.isEmpty) {
+              _currentIdentifier = value.queryParameters['identifier'] ?? 
+                                   value.queryParameters['email'] ?? '';
+              _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
+            }
+          });
+        }
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -52,8 +82,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     if (_pin.length == 4) {
       context.read<AuthBloc>().add(
         ResetPinSubmitted(
-          identifier: widget.identifier,
-          token: widget.token,
+          identifier: _currentIdentifier,
+          token: _currentToken,
           newPin: _pin,
         ),
       );

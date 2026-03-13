@@ -9,6 +9,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:app_links/app_links.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -46,6 +47,26 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _identifier = args['identifier'] as String?;
     } else if (args is String) {
       _token = args;
+    }
+
+    // iOS Safety Net: If arguments are missing, try to extract from current URI as fallback
+    if ((_token == null || _identifier == null)) {
+      final uri = AppLinks().getLatestLink();
+      uri.then((value) {
+        if (value != null && mounted) {
+          setState(() {
+            _token ??= value.queryParameters['token'];
+            _identifier ??= value.queryParameters['identifier'] ?? 
+                           value.queryParameters['email'];
+            if (_identifier != null) {
+              _identifier = _identifier!.replaceAll(' ', '+');
+            }
+            if (_token != null && _identifier != null) {
+              _isValid = true;
+            }
+          });
+        }
+      });
     }
 
     if (_token != null && _token!.isNotEmpty && _identifier != null) {
