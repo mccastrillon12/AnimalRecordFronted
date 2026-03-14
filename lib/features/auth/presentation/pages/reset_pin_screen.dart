@@ -60,9 +60,23 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
               _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
             }
           });
+          
+          if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
+             _redirectToExpired();
+          }
+        } else if (mounted) {
+          _redirectToExpired();
         }
       });
     }
+  }
+
+  void _redirectToExpired() {
+    Navigator.pushReplacementNamed(
+      context,
+      '/link-expired',
+      arguments: {'isPinFlow': true},
+    );
   }
 
   @override
@@ -95,7 +109,14 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          setState(() => _errorMessage = state.message);
+          if (state.message.toLowerCase().contains('invalid') ||
+              state.message.toLowerCase().contains('inválido') ||
+              state.message.toLowerCase().contains('expired') ||
+              state.message.toLowerCase().contains('expirado')) {
+            _redirectToExpired();
+          } else {
+            setState(() => _errorMessage = state.message);
+          }
         }
         if (state is ResetPinSuccess) {
           ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
