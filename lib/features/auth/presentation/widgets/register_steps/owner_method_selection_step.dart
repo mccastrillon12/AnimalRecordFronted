@@ -1,3 +1,4 @@
+import 'package:animal_record/features/auth/presentation/pages/register_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -107,6 +108,14 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                   },
                   maxLength: 50,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  onSubmitted: (_) {
+                    final registerState = context
+                        .findAncestorStateOfType<State<RegisterScreen>>();
+                    if (registerState != null) {
+                      // ignore: avoid_dynamic_calls
+                      (registerState as dynamic)._nextStep();
+                    }
+                  },
                 );
               } else if (state is LocationsLoading) {
                 return const Center(child: CircularProgressIndicator());

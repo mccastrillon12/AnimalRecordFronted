@@ -19,6 +19,8 @@ class PhoneInputField extends StatelessWidget {
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
   final TextStyle? labelStyle;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   const PhoneInputField({
     super.key,
@@ -33,6 +35,8 @@ class PhoneInputField extends StatelessWidget {
     this.inputFormatters,
     this.errorText,
     this.labelStyle,
+    this.textInputAction,
+    this.onSubmitted,
   });
 
   @override
@@ -96,7 +100,8 @@ class PhoneInputField extends StatelessWidget {
                 controller: controller,
                 focusNode: focusNode,
                 keyboardType: TextInputType.phone,
-                textInputAction: TextInputAction.done,
+                textInputAction: textInputAction ?? TextInputAction.done,
+                onSubmitted: onSubmitted,
                 maxLength: 15,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
