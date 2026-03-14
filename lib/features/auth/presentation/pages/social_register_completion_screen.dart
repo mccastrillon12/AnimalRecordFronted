@@ -21,6 +21,7 @@ import '../../../locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 import 'welcome_social_page.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
@@ -56,6 +57,7 @@ class _SocialRegisterCompletionScreenState
   String? _idErrorText;
   String? _phoneErrorText;
   bool _isNavigating = false;
+  final FocusNode _phoneFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -73,6 +75,7 @@ class _SocialRegisterCompletionScreenState
     _phoneController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -180,69 +183,101 @@ class _SocialRegisterCompletionScreenState
             },
           ),
         ],
-        child: FixedBottomActionLayout(
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              return ValueListenableBuilder<TextEditingValue>(
-                valueListenable: _idController,
-                builder: (context, value, _) {
-                  final bool isIdFilled = value.text.trim().isNotEmpty;
-
-                  return CustomButton(
-                    text: 'Finalizar',
-                    isLoading: state is AuthLoading,
-                    onPressed: isIdFilled ? _onSubmit : null,
-                  );
-                },
-              );
-            },
+        child: KeyboardActions(
+          config: KeyboardActionsConfig(
+            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+            keyboardBarColor: const Color(0xFFD1D5DF),
+            nextFocus: false,
+            actions: [
+              KeyboardActionsItem(
+                focusNode: _phoneFocusNode,
+                displayArrows: false,
+                displayDoneButton: false,
+                toolbarButtons: [
+                  (node) {
+                    return GestureDetector(
+                      onTap: () => node.unfocus(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Text(
+                          "Aceptar",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                ],
+              ),
+            ],
           ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xxl,
-              left: AppSpacing.l,
-              right: AppSpacing.l,
+          child: FixedBottomActionLayout(
+            bottomChild: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                return ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: _idController,
+                  builder: (context, value, _) {
+                    final bool isIdFilled = value.text.trim().isNotEmpty;
+
+                    return CustomButton(
+                      text: 'Finalizar',
+                      isLoading: state is AuthLoading,
+                      onPressed: isIdFilled ? _onSubmit : null,
+                    );
+                  },
+                );
+              },
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Finaliza tu registro - Propietario',
-                  style: AppTypography.heading1,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                  style: AppTypography.body4,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.l),
-
-                CustomTextField(
-                  label: 'Nombre completo',
-                  controller: _nameController,
-                  enabled: true,
-                  labelStyle: AppTypography.body6.copyWith(
-                    color: const Color(0xFF2E3949).withOpacity(0.3),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xxl,
+                left: AppSpacing.l,
+                right: AppSpacing.l,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Finaliza tu registro - Propietario',
+                    style: AppTypography.heading1,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                CustomTextField(
-                  label: 'Correo electrónico',
-                  controller: _emailController,
-                  enabled: false,
-                  validator: ValidationUtils.validateEmail,
-                  labelStyle: AppTypography.body6.copyWith(
-                    color: const Color(0xFF2E3949).withOpacity(0.3),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                    style: AppTypography.body4,
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: AppSpacing.m),
+                  const SizedBox(height: AppSpacing.l),
 
-                const _CountrySelectionSection(),
-                const KeyboardSpacer(),
-              ],
+                  CustomTextField(
+                    label: 'Nombre completo',
+                    controller: _nameController,
+                    enabled: true,
+                    labelStyle: AppTypography.body6.copyWith(
+                      color: const Color(0xFF2E3949).withOpacity(0.3),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  CustomTextField(
+                    label: 'Correo electrónico',
+                    controller: _emailController,
+                    enabled: false,
+                    validator: ValidationUtils.validateEmail,
+                    labelStyle: AppTypography.body6.copyWith(
+                      color: const Color(0xFF2E3949).withOpacity(0.3),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  _CountrySelectionSection(phoneFocusNode: _phoneFocusNode),
+                  const KeyboardSpacer(),
+                ],
+              ),
             ),
           ),
         ),
@@ -252,7 +287,8 @@ class _SocialRegisterCompletionScreenState
 }
 
 class _CountrySelectionSection extends StatefulWidget {
-  const _CountrySelectionSection();
+  final FocusNode phoneFocusNode;
+  const _CountrySelectionSection({required this.phoneFocusNode});
 
   @override
   State<_CountrySelectionSection> createState() =>
@@ -303,6 +339,7 @@ class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
               PhoneInputField(
                 label: 'Número de celular (Opcional)',
                 controller: parent!._phoneController,
+                focusNode: widget.phoneFocusNode,
                 countries: state.countries,
                 selectedCountryId:
                     parent!._selectedPhoneCountryId ??

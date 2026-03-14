@@ -18,6 +18,7 @@ class OwnerMethodSelectionStep extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController phoneController;
   final TextEditingController countryController;
+  final FocusNode? phoneFocusNode;
   final ValueChanged<AccessMethod> onMethodChanged;
 
   const OwnerMethodSelectionStep({
@@ -26,6 +27,7 @@ class OwnerMethodSelectionStep extends StatefulWidget {
     required this.phoneController,
     required this.countryController,
     required this.onMethodChanged,
+    this.phoneFocusNode,
   });
 
   @override
@@ -99,6 +101,7 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                 return PhoneInputField(
                   label: 'Número de celular',
                   controller: widget.phoneController,
+                  focusNode: widget.phoneFocusNode,
                   countries: state.countries,
                   selectedCountryId: _selectedPhoneCountryId,
                   onCountryChanged: (value) {

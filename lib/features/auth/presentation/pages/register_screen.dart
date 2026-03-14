@@ -23,6 +23,7 @@ import 'package:animal_record/features/locations/domain/entities/country_entity.
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class RegisterScreen extends StatefulWidget {
   final String role;
@@ -45,6 +46,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final professionalCardController = TextEditingController();
   final countryController = TextEditingController();
   final cityController = TextEditingController();
+  final FocusNode _phoneFocusNode = FocusNode();
 
   bool _acceptTerms = false;
   String? _confirmPasswordError;
@@ -80,6 +82,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           emailController: emailController,
           phoneController: phoneController,
           countryController: countryController,
+          phoneFocusNode: _phoneFocusNode,
           onMethodChanged: (method) {
             setState(() {
               _selectedAccessMethod = method;
@@ -97,6 +100,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             phoneController: phoneController,
             countryController: countryController,
             idController: idController,
+            phoneFocusNode: _phoneFocusNode,
             showOptionalEmail: _selectedAccessMethod == AccessMethod.phone,
             showOptionalPhone: _selectedAccessMethod == AccessMethod.email,
             phoneErrorText: _phoneErrorText,
@@ -118,6 +122,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           cityController: cityController,
           idController: idController,
           phoneController: phoneController,
+          phoneFocusNode: _phoneFocusNode,
         ),
       );
     }
@@ -243,6 +248,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     professionalCardController.dispose();
     countryController.dispose();
     cityController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -515,43 +521,75 @@ class _RegisterScreenState extends State<RegisterScreen> {
             }
           }
         },
-        child: FixedBottomActionLayout(
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              return AnimatedBuilder(
-                animation: Listenable.merge(_getStepListenables()),
-                builder: (context, _) {
-                  final buttonText = _currentStep == steps.length - 1
-                      ? 'Crear cuenta'
-                      : 'Continuar';
-
-                  final isValid = _isStepValid();
-
-                  return CustomButton(
-                    text: buttonText,
-                    isLoading: state is AuthLoading,
-                    onPressed: state is AuthLoading || !isValid
-                        ? null
-                        : _nextStep,
-                  );
-                },
-              );
-            },
+        child: KeyboardActions(
+          config: KeyboardActionsConfig(
+            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+            keyboardBarColor: const Color(0xFFD1D5DF),
+            nextFocus: false,
+            actions: [
+              KeyboardActionsItem(
+                focusNode: _phoneFocusNode,
+                displayArrows: false,
+                displayDoneButton: false,
+                toolbarButtons: [
+                  (node) {
+                    return GestureDetector(
+                      onTap: () => node.unfocus(),
+                      child: const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                        child: Text(
+                          "Aceptar",
+                          style: TextStyle(
+                            color: Colors.blue,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+                ],
+              ),
+            ],
           ),
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xl,
-              right: AppSpacing.l,
-              left: AppSpacing.l,
-            ),
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              children: steps.map((step) {
-                return SingleChildScrollView(
-                  child: Column(children: [step, const KeyboardSpacer()]),
+          child: FixedBottomActionLayout(
+            bottomChild: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                return AnimatedBuilder(
+                  animation: Listenable.merge(_getStepListenables()),
+                  builder: (context, _) {
+                    final buttonText = _currentStep == steps.length - 1
+                        ? 'Crear cuenta'
+                        : 'Continuar';
+
+                    final isValid = _isStepValid();
+
+                    return CustomButton(
+                      text: buttonText,
+                      isLoading: state is AuthLoading,
+                      onPressed: state is AuthLoading || !isValid
+                          ? null
+                          : _nextStep,
+                    );
+                  },
                 );
-              }).toList(),
+              },
+            ),
+            child: Padding(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xl,
+                right: AppSpacing.l,
+                left: AppSpacing.l,
+              ),
+              child: PageView(
+                controller: _pageController,
+                physics: const NeverScrollableScrollPhysics(),
+                children: steps.map((step) {
+                  return SingleChildScrollView(
+                    child: Column(children: [step, const KeyboardSpacer()]),
+                  );
+                }).toList(),
+              ),
             ),
           ),
         ),
