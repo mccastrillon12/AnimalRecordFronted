@@ -15,6 +15,7 @@ class PersonalDataStep extends StatefulWidget {
   final TextEditingController cityController;
   final TextEditingController idController;
   final TextEditingController phoneController;
+  final FocusNode? phoneFocusNode;
 
   const PersonalDataStep({
     super.key,
@@ -24,6 +25,7 @@ class PersonalDataStep extends StatefulWidget {
     required this.cityController,
     required this.idController,
     required this.phoneController,
+    this.phoneFocusNode,
   });
 
   @override
@@ -116,6 +118,7 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               label: 'Número de celular',
               hint: '3001234567',
               controller: widget.phoneController,
+              focusNode: widget.phoneFocusNode,
               keyboardType: TextInputType.phone,
               maxLength: 15,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],

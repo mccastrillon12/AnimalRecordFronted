@@ -132,7 +132,18 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
   }
 
   void _onCodeChanged(int index, String value) {
-    if (value.isNotEmpty && index < 4) {
+    if (value.length > 1) {
+      // Handle pasting or autofill of multiple characters
+      final code = value.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+      for (int i = 0; i < code.length && (index + i) < 5; i++) {
+        _controllers[index + i].text = code[i];
+      }
+
+      // Move focus to the last filled field or the next one
+      int nextIndex = index + code.length;
+      if (nextIndex > 4) nextIndex = 4;
+      _focusNodes[nextIndex].requestFocus();
+    } else if (value.isNotEmpty && index < 4) {
       _focusNodes[index + 1].requestFocus();
     }
     setState(() {});
@@ -242,8 +253,20 @@ class _CodeInputField extends StatelessWidget {
         textAlign: TextAlign.center,
         keyboardType: TextInputType.text,
         textCapitalization: TextCapitalization.characters,
-        maxLength: 1,
+        // Removed maxLength: 1 to allow iOS to "type" or "paste" the full code.
+        // We handle the length and distribution in _onCodeChanged.
         style: AppTypography.heading2,
+        contextMenuBuilder: (context, editableTextState) {
+          // Standard context menu for pasting
+          return AdaptiveTextSelectionToolbar.buttonItems(
+            anchors: editableTextState.contextMenuAnchors,
+            buttonItems: editableTextState.contextMenuButtonItems,
+          );
+        },
+        obscureText: false,
+        autocorrect: false,
+        enableSuggestions: false,
+        autofillHints: const [AutofillHints.oneTimeCode],
         decoration: InputDecoration(
           counterText: '',
           contentPadding: EdgeInsets.zero,

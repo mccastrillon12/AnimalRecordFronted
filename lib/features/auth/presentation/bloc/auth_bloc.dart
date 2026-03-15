@@ -31,6 +31,8 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'dart:convert';
 
 import 'package:animal_record/features/auth/data/models/user_model.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:logger/logger.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -435,6 +437,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       response,
     ) async {
       if (response['status'] == 'NEED_REGISTER') {
+        // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
+        // pero el backend no los tiene (porque no los enviamos en el check)
+        if (event.firstName != null || event.lastName != null) {
+          final profile =
+              (response['profile'] as Map<String, dynamic>?) ?? {};
+          profile['firstName'] = event.firstName ?? profile['firstName'];
+          profile['lastName'] = event.lastName ?? profile['lastName'];
+          
+          // Crear campo 'name' combinado para compatibilidad con la UI
+          final combinedName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+          if (combinedName.isNotEmpty) {
+            profile['name'] = combinedName;
+          }
+
+          // Asegurar que el mapa de respuesta tenga el perfil actualizado
+          final newResponse = Map<String, dynamic>.from(response);
+          newResponse['profile'] = profile;
+
+          emit(SocialAuthNeedRegister(newResponse, provider: event.provider));
+          return;
+        }
+
         emit(SocialAuthNeedRegister(response, provider: event.provider));
       } else if (response['status'] == 'SUCCESS') {
         final user = response['user'];
@@ -453,13 +477,41 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await registerSocialUseCase(event.data);
+    
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (user) async {
+        // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
+        if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
+          try {
+            final updateResult = await updateProfileUseCase(
+              id: user.id,
+              data: {'name': event.nameToUpdate},
+            );
+            
+            // Si la actualización tuvo éxito, usamos el nuevo usuario con el nombre corregido
+            await updateResult.fold(
+              (f) async {
+                // Si falla el update, procedemos con el usuario original pero logueamos el error
+                sl<Logger>().e('Error actualizando nombre post-registro social: ${f.message}');
+                await _saveUserToCache(user);
+                await _emitAuthSuccessWithBiometrics(user, emit);
+              },
+              (updatedUser) async {
+                await _saveUserToCache(updatedUser);
+                await _emitAuthSuccessWithBiometrics(updatedUser, emit);
+              },
+            );
+            return;
+          } catch (e) {
+            sl<Logger>().e('Error inesperado actualizando nombre: $e');
+          }
+        }
 
-    await result.fold((failure) async => emit(AuthError(failure.message)), (
-      user,
-    ) async {
-      await _saveUserToCache(user);
-      await _emitAuthSuccessWithBiometrics(user, emit);
-    });
+        await _saveUserToCache(user);
+        await _emitAuthSuccessWithBiometrics(user, emit);
+      },
+    );
   }
 
   Future<void> _onSavePinSubmitted(

@@ -1,5 +1,6 @@
 import Flutter
 import UIKit
+import MSAL
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -9,5 +10,29 @@ import UIKit
   ) -> Bool {
     GeneratedPluginRegistrant.register(with: self)
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
+  }
+
+  override func application(
+      _ app: UIApplication,
+      open url: URL,
+      options: [UIApplication.OpenURLOptionsKey : Any] = [:]
+  ) -> Bool {
+      return MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String) || super.application(app, open: url, options: options)
+  }
+
+  override func application(
+      _ application: UIApplication,
+      continue userActivity: NSUserActivity,
+      restorationHandler: @escaping ([UIUserActivityRestoring]?) -> Void
+  ) -> Bool {
+      // Explicitly claim Universal Links for our domain to prevent Safari fallback
+      if userActivity.activityType == NSUserActivityTypeBrowsingWeb,
+         let url = userActivity.webpageURL,
+         let host = url.host,
+         host.contains("animalrecord.app") {
+          _ = super.application(application, continue: userActivity, restorationHandler: restorationHandler)
+          return true
+      }
+      return super.application(application, continue: userActivity, restorationHandler: restorationHandler)
   }
 }

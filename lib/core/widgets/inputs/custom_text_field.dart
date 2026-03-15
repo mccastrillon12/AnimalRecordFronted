@@ -31,6 +31,7 @@ class CustomTextField extends StatefulWidget {
   final String? errorText;
   final bool? enabled;
   final ValueChanged<String>? onSubmitted;
+  final FocusNode? focusNode;
 
   const CustomTextField({
     super.key,
@@ -58,6 +59,7 @@ class CustomTextField extends StatefulWidget {
     this.errorText,
     this.enabled,
     this.onSubmitted,
+    this.focusNode,
   });
 
   @override
@@ -72,14 +74,16 @@ class _CustomTextFieldState extends State<CustomTextField> {
   @override
   void initState() {
     super.initState();
-    _focusNode = FocusNode();
+    _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(_onFocusChange);
   }
 
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
-    _focusNode.dispose();
+    if (widget.focusNode == null) {
+      _focusNode.dispose();
+    }
     _debounceTimer?.cancel();
     super.dispose();
   }

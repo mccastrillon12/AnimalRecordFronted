@@ -6,6 +6,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
+import '../../../../core/constants/country_constants.dart';
 import '../../../../core/utils/string_formatters.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -21,6 +22,7 @@ import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -41,6 +43,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _selectedPhoneCountryId;
   String? _selectedDepartmentId;
   String? _selectedCityId;
+
+  final FocusNode _phoneFocusNode = FocusNode();
 
   final ImagePicker _imagePicker = ImagePicker();
 
@@ -88,8 +92,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (authState is AuthSuccess) {
       final user = authState.user;
       _nameController.text = StringFormatters.formatName(user.name);
+      _emailController.text = user.email;
       _idNumberController.text = user.identificationNumber;
-      _phoneController.text = user.cellPhone;
+      // Clean up the initial phone value explicitly removing known exact prefixes
+      String cleanRawPhone = CountryConstants.stripDialCode(user.cellPhone);
+      
+      _phoneController.text = cleanRawPhone;
+      
       _addressController.text = user.address;
 
       _loadUserLocations(user);
@@ -108,9 +117,43 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final cubit = context.read<LocationsCubit>();
 
     await cubit.fetchCountries();
+    
+    final locState = cubit.state;
+    String? colombiaId;
 
-    if (user.countryId.isNotEmpty && mounted) {
-      await cubit.fetchDepartments(user.countryId);
+    if (locState is LocationsLoaded) {
+      try {
+        colombiaId = locState.countries
+            .cast<CountryEntity>()
+            .firstWhere(
+              (c) =>
+                  c.dialCode == '+57' ||
+                  c.name.toLowerCase().contains('colombia'),
+            )
+            .id;
+      } catch (_) {}
+
+      // Strip dial code asynchronously after countries are loaded
+      if (user.countryId.isNotEmpty && mounted) {
+        try {
+          final country = locState.countries.cast<CountryEntity>().firstWhere(
+                (c) => c.id == user.countryId,
+              );
+          final purePrefix = country.dialCode.replaceAll('+', '');
+
+          if (_phoneController.text.startsWith(purePrefix)) {
+            _phoneController.text =
+                _phoneController.text.substring(purePrefix.length);
+          }
+        } catch (_) {
+          // Country not found in list yet, silently continue
+        }
+      }
+    }
+
+    // Always fetch departments for Colombia (Residence country)
+    if (colombiaId != null && mounted) {
+      await cubit.fetchDepartments(colombiaId);
     }
 
     if (user.departmentId.isNotEmpty && mounted) {
@@ -133,6 +176,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _emailController.dispose();
     _idNumberController.dispose();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -262,6 +306,47 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             }
           },
         ),
+        BlocListener<LocationsCubit, LocationsState>(
+          listenWhen: (previous, current) {
+            // Trigger when countries are loaded but departments are empty
+            if (current is LocationsLoaded && current.departments.isEmpty) {
+              return true;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (state is LocationsLoaded) {
+              final countries = state.countries.cast<CountryEntity>();
+              try {
+                final colombia = countries.firstWhere(
+                  (c) =>
+                      c.dialCode == '+57' ||
+                      c.name.toLowerCase().contains('colombia'),
+                );
+                context.read<LocationsCubit>().fetchDepartments(colombia.id);
+              } catch (_) {
+                // Colombia not found, can't auto-load departments
+              }
+            }
+          },
+        ),
+        BlocListener<LocationsCubit, LocationsState>(
+          listenWhen: (previous, current) {
+            // Trigger when departments are loaded and we have a selected department but empty cities
+            if (current is LocationsLoaded &&
+                current.departments.isNotEmpty &&
+                _selectedDepartmentId != null &&
+                current.cities.isEmpty) {
+              return true;
+            }
+            return false;
+          },
+          listener: (context, state) {
+            if (_selectedDepartmentId != null) {
+              context.read<LocationsCubit>().fetchCities(_selectedDepartmentId!);
+            }
+          },
+        ),
       ],
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
@@ -275,9 +360,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           final bool isUpdating = state.isUpdating;
           final bool isUploadingPicture = state.isUploadingPicture;
 
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: AppColors.bgOxford,
+          return KeyboardActions(
+            disableScroll: true,
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  ],
+                ),
+              ],
+            ),
+            child: Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: AppColors.bgOxford,
             body: SafeArea(
               child: Column(
                 children: [
@@ -348,6 +465,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           _LocationSelector(
                                             user: user,
                                             phoneController: _phoneController,
+                                            phoneFocusNode: _phoneFocusNode,
                                             selectedPhoneCountryId:
                                                 _selectedPhoneCountryId,
                                             selectedDepartmentId:
@@ -398,8 +516,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       if (_formKey.currentState!.validate()) {
                                         String cellPhone = _phoneController.text
                                             .trim();
-                                        if (cellPhone.isNotEmpty &&
-                                            !cellPhone.startsWith('+')) {
+                                        
+                                        if (cellPhone.isNotEmpty) {
                                           final state = context
                                               .read<LocationsCubit>()
                                               .state;
@@ -415,9 +533,20 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                                     orElse: () =>
                                                         state.countries.first,
                                                   );
-                                              cellPhone =
-                                                  '${country.dialCode}$cellPhone'
-                                                      .replaceAll(' ', '');
+                                              
+                                              final prefix = country.dialCode;
+                                              final purePrefix = prefix.replaceAll('+', '');
+                                              
+                                              // Clean the user input string to numbers only to avoid (+57) spaces etc
+                                              String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+                                              
+                                              // Remove prefix if typed
+                                              if (numbersOnly.startsWith(purePrefix)) {
+                                                numbersOnly = numbersOnly.substring(purePrefix.length);
+                                              }
+                                              
+                                              // Reconstruct standard format
+                                              cellPhone = '$prefix$numbersOnly';
                                             }
                                           }
                                         }
@@ -435,6 +564,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           if (_selectedDepartmentId != null)
                                             'departmentId':
                                                 _selectedDepartmentId,
+                                          if (_selectedPhoneCountryId != null)
+                                            'countryId': _selectedPhoneCountryId,
                                         };
 
                                         context.read<AuthBloc>().add(
@@ -454,13 +585,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
-  }
+          ),
+        );
+      },
+    ),
+  );
+}
 
-  Widget _buildHeader(BuildContext context) {
+Widget _buildHeader(BuildContext context) {
     return Stack(
       children: [
         Padding(
@@ -586,6 +718,7 @@ class _LocationSelector extends StatelessWidget {
   final String? selectedPhoneCountryId;
   final String? selectedDepartmentId;
   final String? selectedCityId;
+  final FocusNode? phoneFocusNode;
   final ValueChanged<String?> onPhoneCountryChanged;
   final ValueChanged<String?> onDepartmentChanged;
   final ValueChanged<String?> onCityChanged;
@@ -596,6 +729,7 @@ class _LocationSelector extends StatelessWidget {
     required this.selectedPhoneCountryId,
     required this.selectedDepartmentId,
     required this.selectedCityId,
+    this.phoneFocusNode,
     required this.onPhoneCountryChanged,
     required this.onDepartmentChanged,
     required this.onCityChanged,
@@ -612,12 +746,26 @@ class _LocationSelector extends StatelessWidget {
             ? locationsState.countries
             : <CountryEntity>[];
 
+        final colombiaId = countries.isNotEmpty
+            ? (countries.cast<CountryEntity>().any((c) =>
+                    c.dialCode == '+57' ||
+                    c.name.toLowerCase().contains('colombia'))
+                ? countries
+                    .cast<CountryEntity>()
+                    .firstWhere((c) =>
+                        c.dialCode == '+57' ||
+                        c.name.toLowerCase().contains('colombia'))
+                    .id
+                : countries.first.id)
+            : '';
+
         return Column(
           children: [
             if (showPhoneField && countries.isNotEmpty) ...[
               PhoneInputField(
                 label: 'Número de celular (Opcional)',
                 controller: phoneController,
+                focusNode: phoneFocusNode,
                 countries: countries,
                 selectedCountryId: selectedPhoneCountryId,
                 onCountryChanged: onPhoneCountryChanged,
@@ -629,7 +777,7 @@ class _LocationSelector extends StatelessWidget {
             if (countries.isNotEmpty)
               CountryDropdown(
                 label: 'País de residencia',
-                value: user.countryId,
+                value: colombiaId,
                 onChanged: null,
                 countries: countries,
                 enabled: false,

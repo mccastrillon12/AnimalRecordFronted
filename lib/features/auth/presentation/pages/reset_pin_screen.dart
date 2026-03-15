@@ -12,6 +12,9 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:app_links/app_links.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -28,56 +31,63 @@ class ResetPinScreen extends StatefulWidget {
 }
 
 class _ResetPinScreenState extends State<ResetPinScreen> {
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
+  final FocusNode _pinFocusNode = FocusNode();
 
   String _pin = '';
   String? _errorMessage;
+  late String _currentIdentifier;
+  late String _currentToken;
 
   @override
   void initState() {
     super.initState();
-    for (int i = 0; i < 4; i++) {
-      _pinFocusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_pinControllers[i].text.isEmpty && i > 0) {
-            _pinFocusNodes[i - 1].requestFocus();
-            _pinControllers[i - 1].clear();
-            _onPinChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
+    _currentIdentifier = widget.identifier;
+    _currentToken = widget.token;
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Safety Net: if args are missing, try to recover from URI
+    if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
+      AppLinks().getLatestLink().then((value) {
+        if (value != null && mounted) {
+          setState(() {
+            if (_currentToken.isEmpty) _currentToken = value.queryParameters['token'] ?? '';
+            if (_currentIdentifier.isEmpty) {
+              _currentIdentifier = value.queryParameters['identifier'] ?? 
+                                   value.queryParameters['email'] ?? '';
+              _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
+            }
+          });
+          
+          if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
+             _redirectToExpired();
           }
+        } else if (mounted) {
+          _redirectToExpired();
         }
-        return KeyEventResult.ignored;
-      };
+      });
     }
+  }
+
+  void _redirectToExpired() {
+    Navigator.pushReplacementNamed(
+      context,
+      '/link-expired',
+      arguments: {'isPinFlow': true},
+    );
   }
 
   @override
   void dispose() {
-    for (var c in _pinControllers) {
-      c.dispose();
-    }
-    for (var f in _pinFocusNodes) {
-      f.dispose();
-    }
+    _pinFocusNode.dispose();
     super.dispose();
   }
 
-  void _onPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      _pinFocusNodes[index + 1].requestFocus();
-    }
-    _updatePin();
-  }
-
-  void _updatePin() {
+  void _onPinChanged(String value) {
     setState(() {
-      _pin = _pinControllers.map((c) => c.text).join();
+      _pin = value;
       _errorMessage = null;
     });
   }
@@ -86,8 +96,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     if (_pin.length == 4) {
       context.read<AuthBloc>().add(
         ResetPinSubmitted(
-          identifier: widget.identifier,
-          token: widget.token,
+          identifier: _currentIdentifier,
+          token: _currentToken,
           newPin: _pin,
         ),
       );
@@ -99,20 +109,59 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          setState(() => _errorMessage = state.message);
+          if (state.message.toLowerCase().contains('invalid') ||
+              state.message.toLowerCase().contains('inválido') ||
+              state.message.toLowerCase().contains('expired') ||
+              state.message.toLowerCase().contains('expirado')) {
+            _redirectToExpired();
+          } else {
+            setState(() => _errorMessage = state.message);
+          }
         }
         if (state is ResetPinSuccess) {
           ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },
-      child: AuthFormContainer(
-        showLogo: false,
-        title: 'Confirmar PIN',
-        showCancelButton: true,
-        addInternalPadding: false,
-        onCancel: () =>
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+      child: KeyboardActions(
+        disableScroll: true,
+        config: KeyboardActionsConfig(
+          keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+          keyboardBarColor: const Color(0xFFD1D5DF),
+          nextFocus: false,
+          actions: [
+            KeyboardActionsItem(
+              focusNode: _pinFocusNode,
+              displayArrows: false,
+              displayDoneButton: false,
+              toolbarButtons: [
+                (node) {
+                  return GestureDetector(
+                    onTap: () => node.unfocus(),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Text(
+                        "Aceptar",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              ],
+            )
+          ],
+        ),
+        child: AuthFormContainer(
+          showLogo: false,
+          title: 'Confirmar PIN',
+          showCancelButton: true,
+          addInternalPadding: false,
+          onCancel: () =>
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: FixedBottomActionLayout(
           bottomChild: BlocBuilder<AuthBloc, AuthState>(
             builder: (context, state) {
@@ -143,56 +192,16 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildPinFields() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(4, (index) {
-        return SizedBox(
-          width: 40,
-          height: 40,
-          child: TextField(
-            controller: _pinControllers[index],
-            focusNode: _pinFocusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            maxLength: 1,
-            obscureText: true,
-            decoration: InputDecoration(
-              counterText: '',
-              contentPadding: EdgeInsets.zero,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(
-                  color: AppColors.primaryFrances,
-                  width: 2,
-                ),
-              ),
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) => _onPinChanged(index, value),
-            onTap: () {
-              _pinControllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: _pinControllers[index].text.length),
-              );
-            },
-          ),
-        );
-      }),
+    return PinInputField(
+      pin: _pin,
+      onChanged: _onPinChanged,
+      focusNode: _pinFocusNode,
+      obscureText: true,
     );
   }
 

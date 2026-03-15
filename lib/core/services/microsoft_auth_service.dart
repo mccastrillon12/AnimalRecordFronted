@@ -13,8 +13,6 @@ class MicrosoftAuthService {
   static const List<String> _scopes = [
     'User.Read',
     'email',
-    'openid',
-    'profile',
   ];
 
   MicrosoftAuthService({required this.logger});
@@ -55,13 +53,13 @@ class MicrosoftAuthService {
       return result.accessToken;
     } on MsalException catch (e) {
       logger.e("MSAL Exception: ${e.message}");
-      return null;
+      throw Exception("Error de Microsoft: ${e.message}");
     } on PlatformException catch (e) {
       logger.e("Platform Exception during MSAL Sign In: ${e.message}");
-      return null;
+      throw Exception("Error de Plataforma: ${e.message}");
     } catch (e) {
       logger.e("Unexpected error during Microsoft Sign In: $e");
-      return null;
+      throw Exception("Error inesperado al iniciar sesión con Microsoft");
     }
   }
 

@@ -155,9 +155,10 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Microsoft Sign-In failed: $error');
       if (mounted) {
+        String errorMessage = error.toString().replaceAll('Exception: ', '');
         ErrorDisplay.showError(
           context,
-          'Error al iniciar sesión con Microsoft',
+          'Error al iniciar con Microsoft: $errorMessage',
         );
       }
     }
@@ -174,7 +175,12 @@ class _LoginScreenState extends State<LoginScreen> {
         if (token != null) {
           setState(() => _isSocialLoading = true);
           context.read<AuthBloc>().add(
-            SocialAuthChecked(provider: 'APPLE', token: token),
+            SocialAuthChecked(
+              provider: 'APPLE',
+              token: token,
+              firstName: credential.givenName,
+              lastName: credential.familyName,
+            ),
           );
         } else {
           sl<Logger>().e('Apple Sign-In failed: Identity Token is null');
@@ -203,7 +209,8 @@ class _LoginScreenState extends State<LoginScreen> {
       PageRouteBuilder(
         pageBuilder: (context, animation, secondaryAnimation) =>
             SocialRegisterCompletionScreen(
-              name: profile?['firstName'] ?? '',
+              name: profile?['name'] ?? 
+                    '${profile?['firstName'] ?? ''} ${profile?['lastName'] ?? ''}'.trim(),
               email: profile?['email'] ?? '',
               preAuthToken: preAuthToken ?? '',
               providerName: providerName,
@@ -386,12 +393,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: 'Microsoft',
                         onTap: _handleMicrosoftSignIn,
                       ),
-                      const SizedBox(width: AppSpacing.socialButtonGap),
-                      _SocialButton(
-                        iconPath: 'assets/icons/Apple_icon.svg',
-                        label: 'Apple',
-                        onTap: _handleAppleSignIn,
-                      ),
+                      if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                        const SizedBox(width: AppSpacing.socialButtonGap),
+                        _SocialButton(
+                          iconPath: 'assets/icons/Apple_icon.svg',
+                          label: 'Apple',
+                          onTap: _handleAppleSignIn,
+                        ),
+                      ],
                     ],
                   ),
                   const KeyboardSpacer(),

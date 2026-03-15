@@ -20,6 +20,8 @@ import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import '../../../../core/constants/country_constants.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -34,6 +36,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
+  
+  late FocusNode _phoneFocusNode;
 
   String? _selectedPhoneCountryId;
 
@@ -43,18 +47,60 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _nameController = TextEditingController()..addListener(_onFieldChanged);
     _emailController = TextEditingController()..addListener(_onFieldChanged);
     _phoneController = TextEditingController()..addListener(_onFieldChanged);
+    _phoneFocusNode = FocusNode();
 
     context.read<LocationsCubit>().fetchCountries();
+    
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess) {
+      final user = authState.user;
+      _nameController.text = StringFormatters.formatName(user.name);
+
+      // Quick sync strip (works without countries list)
+      if (user.authMethod == 'PHONE') {
+        _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+        if (user.email.isNotEmpty) _emailController.text = user.email;
+        _selectedPhoneCountryId = user.countryId;
+      } else {
+        _emailController.text = user.email;
+        if (user.cellPhone.isNotEmpty) {
+          _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+        }
+        if (user.countryId.isNotEmpty) {
+          _selectedPhoneCountryId = user.countryId;
+        }
+      }
+      
+      // Async: strip again more precisely once countries are loaded
+      _stripDialCodeAsync(user);
+    }
+  }
+
+  /// After fetching countries we can strip the exact country dialCode,
+  /// e.g. both Colombia (+57) and US (+1) are stripped correctly.
+  Future<void> _stripDialCodeAsync(UserEntity user) async {
+    final cubit = context.read<LocationsCubit>();
+    await cubit.fetchCountries();
+    if (!mounted) return;
+    
+    final locState = cubit.state;
+    if (locState is LocationsLoaded && user.countryId.isNotEmpty) {
+      try {
+        final country = locState.countries.firstWhere(
+          (c) => c.id == user.countryId,
+        );
+        final purePrefix = country.dialCode.replaceAll('+', '');
+        if (_phoneController.text.startsWith(purePrefix)) {
+          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+        }
+      } catch (_) {}
+    }
   }
 
   void _onFieldChanged() {
     setState(() {});
   }
 
-  bool _isValidPhone(String phone) {
-    final digits = phone.replaceAll(RegExp(r'\D'), '');
-    return digits.length >= 10;
-  }
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -68,27 +114,31 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final nameChanged = currentName != originalName;
     final isNameValid = currentName.isNotEmpty;
 
-    bool phoneChanged = false;
-    bool isPhoneValid = true;
+    // Phone/country change — applicable to all auth methods
+    final currentPhone = _phoneController.text.trim();
+    final originalCleanPhone = user.cellPhone.isNotEmpty
+        ? CountryConstants.stripDialCode(user.cellPhone)
+        : '';
+    final phoneChanged = !isPhoneLogin && currentPhone != originalCleanPhone;
+    final countryChanged =
+        _selectedPhoneCountryId != null &&
+        _selectedPhoneCountryId != user.countryId;
+    final isPhoneValid =
+        isPhoneLogin ||
+        currentPhone.isEmpty ||
+        currentPhone.replaceAll(RegExp(r'\D'), '').length >= 6;
 
-    if (!isPhoneLogin) {
-      final currentPhone = _phoneController.text.trim();
-      final originalPhone = user.cellPhone;
-      phoneChanged = currentPhone != originalPhone;
-      isPhoneValid = currentPhone.isEmpty || _isValidPhone(currentPhone);
-    }
-
+    // Email change (phone-login users can update email)
     bool emailChanged = false;
     bool isEmailValid = true;
-
     if (isPhoneLogin) {
       final currentEmail = _emailController.text.trim();
-      final originalEmail = user.email;
-      emailChanged = currentEmail != originalEmail;
+      emailChanged = currentEmail != user.email;
       isEmailValid = currentEmail.isEmpty || _isValidEmail(currentEmail);
     }
 
-    final hasAnyChange = nameChanged || phoneChanged || emailChanged;
+    final hasAnyChange =
+        nameChanged || phoneChanged || emailChanged || countryChanged;
     final areAllFieldsValid = isNameValid && isPhoneValid && isEmailValid;
 
     return hasAnyChange && areAllFieldsValid;
@@ -96,24 +146,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   @override
   void didChangeDependencies() {
+    // Moved to initState
     super.didChangeDependencies();
-    final authState = context.read<AuthBloc>().state;
-    if (authState is AuthSuccess) {
-      final user = authState.user;
-      _nameController.text = StringFormatters.formatName(user.name);
-
-      if (user.authMethod == 'PHONE') {
-        _phoneController.text = user.cellPhone;
-        if (user.email.isNotEmpty) _emailController.text = user.email;
-        _selectedPhoneCountryId = user.countryId;
-      } else {
-        _emailController.text = user.email;
-        if (user.cellPhone.isNotEmpty) _phoneController.text = user.cellPhone;
-        if (user.countryId.isNotEmpty) {
-          _selectedPhoneCountryId = user.countryId;
-        }
-      }
-    }
   }
 
   @override
@@ -124,6 +158,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -156,12 +191,44 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
           final bool isUpdating = state.isUpdating;
           final bool isPhoneLogin = user.authMethod == 'PHONE';
 
-          return Scaffold(
-            resizeToAvoidBottomInset: false,
-            backgroundColor: AppColors.bgOxford,
-            body: SafeArea(
-              child: Column(
-                children: [
+          return KeyboardActions(
+            disableScroll: true,
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
+                    }
+                  ],
+                ),
+              ],
+            ),
+            child: Scaffold(
+              resizeToAvoidBottomInset: false,
+              backgroundColor: AppColors.bgOxford,
+              body: SafeArea(
+                child: Column(
+                  children: [
                   const SizedBox(height: AppSpacing.l),
                   Expanded(
                     child: Container(
@@ -214,14 +281,35 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ? null
                                     : () {
                                         if (_formKey.currentState!.validate()) {
+                                          String cellPhone = _phoneController.text.trim();
+                                          String? finalCountryId = _selectedPhoneCountryId ?? (user.countryId.isNotEmpty ? user.countryId : null);
+                                          
+                                          if (cellPhone.isNotEmpty && finalCountryId != null) {
+                                            final locState = context.read<LocationsCubit>().state;
+                                            if (locState is LocationsLoaded) {
+                                              try {
+                                                final country = locState.countries.firstWhere(
+                                                  (c) => c.id == finalCountryId,
+                                                );
+                                                final prefix = country.dialCode;
+                                                final purePrefix = prefix.replaceAll('+', '');
+                                                String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+                                                if (numbersOnly.startsWith(purePrefix)) {
+                                                  numbersOnly = numbersOnly.substring(purePrefix.length);
+                                                }
+                                                cellPhone = '$prefix$numbersOnly';
+                                              } catch (_) {}
+                                            }
+                                          }
+                                          
                                           final updatedData = <String, dynamic>{
                                             'name': _nameController.text,
                                             if (isPhoneLogin)
                                               'email': _emailController.text,
-                                            if (!isPhoneLogin)
-                                              'cellPhone':
-                                                  _phoneController.text,
-                                            'countryId': user.countryId,
+                                            if (!isPhoneLogin && cellPhone.isNotEmpty)
+                                              'cellPhone': cellPhone,
+                                            if (finalCountryId != null)
+                                              'countryId': finalCountryId,
                                           };
                                           context.read<AuthBloc>().add(
                                             UpdateProfileRequested(
@@ -391,6 +479,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                         'Número celular (Opcional)',
                                                     controller:
                                                         _phoneController,
+                                                    focusNode: _phoneFocusNode,
                                                     countries:
                                                         locationState
                                                             is LocationsLoaded
@@ -627,9 +716,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                 ],
               ),
             ),
-          );
-        },
-      ),
-    );
+          ),
+        );
+      },
+    ),
+  );
   }
 }
+

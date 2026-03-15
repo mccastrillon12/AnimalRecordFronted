@@ -61,6 +61,7 @@ dependencies:
   cached_network_image: ^3.4.1
   shared_preferences: ^2.5.4
   sms_autofill: ^2.4.1
+  keyboard_actions: ^4.2.1
 
 dev_dependencies:
   flutter_test:

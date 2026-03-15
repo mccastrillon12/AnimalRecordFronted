@@ -38,7 +38,7 @@ Future<void> main() async {
   deepLinkService.setValidatePasswordTokenUseCase(
     di.sl<ValidatePasswordTokenUseCase>(),
   );
-  deepLinkService.initDeepLinks(navigatorKey);
+  await deepLinkService.initDeepLinks(navigatorKey);
 
   runApp(const MyApp());
 }

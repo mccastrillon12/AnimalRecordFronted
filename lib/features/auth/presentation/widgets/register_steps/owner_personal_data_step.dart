@@ -30,6 +30,7 @@ class OwnerPersonalDataStep extends StatefulWidget {
   final ValueChanged<String>? onIdTypeChanged;
 
   final String? initialIdType;
+  final FocusNode? phoneFocusNode;
 
   const OwnerPersonalDataStep({
     super.key,
@@ -45,6 +46,7 @@ class OwnerPersonalDataStep extends StatefulWidget {
     this.idErrorText,
     this.onIdTypeChanged,
     this.initialIdType,
+    this.phoneFocusNode,
   });
 
   @override
@@ -148,6 +150,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                 PhoneInputField(
                   label: 'Número de celular (Opcional)',
                   controller: widget.phoneController,
+                  focusNode: widget.phoneFocusNode,
                   countries: state.countries,
                   selectedCountryId:
                       _selectedPhoneCountryId ??
