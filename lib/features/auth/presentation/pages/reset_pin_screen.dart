@@ -61,13 +61,21 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
             }
           });
           
-          if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
+          if (_currentToken.isNotEmpty && _currentIdentifier.isNotEmpty) {
+            context.read<AuthBloc>().add(
+              ValidateResetToken(identifier: _currentIdentifier, token: _currentToken),
+            );
+          } else {
              _redirectToExpired();
           }
         } else if (mounted) {
           _redirectToExpired();
         }
       });
+    } else {
+       // If tokens were passed as arguments, we theoretically trust them because DeepLinkService validated them.
+       // However, ResetTokenValid state will set _isValid if we wanted to be stricter.
+       // For PIN, _isValid isn't explicitly used for the visibility of the whole screen but for error handling.
     }
   }
 

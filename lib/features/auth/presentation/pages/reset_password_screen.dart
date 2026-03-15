@@ -51,8 +51,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
     // iOS Safety Net: If arguments are missing, try to extract from current URI as fallback
     if ((_token == null || _identifier == null)) {
-      final uri = AppLinks().getLatestLink();
-      uri.then((value) {
+      AppLinks().getLatestLink().then((value) {
         if (value != null && mounted) {
           setState(() {
             _token ??= value.queryParameters['token'];
@@ -61,27 +60,43 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             if (_identifier != null) {
               _identifier = _identifier!.replaceAll(' ', '+');
             }
-            if (_token != null && _identifier != null) {
-              _isValid = true;
-            }
           });
+          
+          if (_token != null && _identifier != null) {
+            context.read<AuthBloc>().add(
+              ValidateResetToken(identifier: _identifier!, token: _token!),
+            );
+          } else {
+             _redirectToExpired();
+          }
+        } else if (mounted) {
+          _redirectToExpired();
         }
       });
-    }
-
-    if (_token != null && _token!.isNotEmpty && _identifier != null) {
+    } else if (_token != null && _identifier != null) {
+      // Arguments were provided via route, but we still want to be sure it's valid if we didn't come from DeepLinkService
+      // or just to be safe. 
+      // However, DeepLinkService already validates. To avoid double validation, 
+      // we can just trust the arguments for now, but let's at least not show the form 
+      // if it was somehow reachable without validation.
+      // For now, let's keep it simple: if we have tokens, we show the form.
+      // The BlocListener will handle the ResetTokenInvalid state if it was triggered elsewhere.
       setState(() {
         _isValid = true;
       });
     } else {
-      Future.microtask(
-        () => Navigator.pushReplacementNamed(
-          context,
-          '/link-expired',
-          arguments: {'isPinFlow': false},
-        ),
-      );
+      _redirectToExpired();
     }
+  }
+
+  void _redirectToExpired() {
+    Future.microtask(
+      () => Navigator.pushReplacementNamed(
+        context,
+        '/link-expired',
+        arguments: {'isPinFlow': false},
+      ),
+    );
   }
 
   @override
