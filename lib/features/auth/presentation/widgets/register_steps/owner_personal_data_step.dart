@@ -16,6 +16,8 @@ class OwnerPersonalDataStep extends StatefulWidget {
   final TextEditingController phoneController;
   final TextEditingController countryController;
   final TextEditingController idController;
+  final String? selectedPhoneCountryId;
+  final ValueChanged<String?>? onPhoneCountryChanged;
 
   final bool showOptionalEmail;
 
@@ -39,6 +41,8 @@ class OwnerPersonalDataStep extends StatefulWidget {
     required this.phoneController,
     required this.countryController,
     required this.idController,
+    this.selectedPhoneCountryId,
+    this.onPhoneCountryChanged,
     this.showOptionalEmail = false,
     this.showOptionalPhone = false,
     this.phoneErrorText,
@@ -61,8 +65,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
     context.read<LocationsCubit>().fetchCountries();
   }
 
-  String? _selectedPhoneCountryId;
-
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<LocationsCubit, LocationsState>(
@@ -74,9 +76,6 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
               orElse: () => state.countries.first,
             );
             widget.countryController.text = colombia.id;
-            setState(() {
-              _selectedPhoneCountryId = colombia.id;
-            });
           }
         }
       },
@@ -152,16 +151,11 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                   controller: widget.phoneController,
                   focusNode: widget.phoneFocusNode,
                   countries: state.countries,
-                  selectedCountryId:
-                      _selectedPhoneCountryId ??
+                  selectedCountryId: widget.selectedPhoneCountryId ??
                       (state.countries.isNotEmpty
                           ? state.countries.first.id
                           : null),
-                  onCountryChanged: (value) {
-                    setState(() {
-                      _selectedPhoneCountryId = value;
-                    });
-                  },
+                  onCountryChanged: widget.onPhoneCountryChanged,
                   maxLength: 15,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                   errorText: widget.phoneErrorText,

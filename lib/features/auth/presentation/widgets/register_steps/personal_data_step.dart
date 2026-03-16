@@ -7,6 +7,7 @@ import 'package:animal_record/features/locations/presentation/cubit/locations_cu
 import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
 import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
 import '../country_dropdown.dart';
+import '../phone_input_field.dart';
 
 class PersonalDataStep extends StatefulWidget {
   final TextEditingController nameController;
@@ -15,6 +16,8 @@ class PersonalDataStep extends StatefulWidget {
   final TextEditingController cityController;
   final TextEditingController idController;
   final TextEditingController phoneController;
+  final String? selectedPhoneCountryId;
+  final ValueChanged<String?>? onPhoneCountryChanged;
   final FocusNode? phoneFocusNode;
 
   const PersonalDataStep({
@@ -25,6 +28,8 @@ class PersonalDataStep extends StatefulWidget {
     required this.cityController,
     required this.idController,
     required this.phoneController,
+    this.selectedPhoneCountryId,
+    this.onPhoneCountryChanged,
     this.phoneFocusNode,
   });
 
@@ -79,8 +84,8 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                 label: 'País de residencia',
                 value: widget.countryController.text.isEmpty
                     ? (state.countries.isNotEmpty
-                          ? state.countries.first.id
-                          : null)
+                        ? state.countries.first.id
+                        : null)
                     : widget.countryController.text,
                 countries: state.countries,
                 enabled: false,
@@ -114,15 +119,28 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
               ],
             ),
             const SizedBox(height: AppSpacing.m),
-            CustomTextField(
-              label: 'Número de celular',
-              hint: '3001234567',
-              controller: widget.phoneController,
-              focusNode: widget.phoneFocusNode,
-              keyboardType: TextInputType.phone,
-              maxLength: 15,
-              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            ),
+            if (state is LocationsLoaded)
+              PhoneInputField(
+                label: 'Número de celular',
+                controller: widget.phoneController,
+                countries: state.countries,
+                selectedCountryId: widget.selectedPhoneCountryId ??
+                    (state.countries.isNotEmpty ? state.countries.first.id : null),
+                onCountryChanged: widget.onPhoneCountryChanged,
+                focusNode: widget.phoneFocusNode,
+                maxLength: 15,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              )
+            else
+              CustomTextField(
+                label: 'Número de celular',
+                hint: '3001234567',
+                controller: widget.phoneController,
+                focusNode: widget.phoneFocusNode,
+                keyboardType: TextInputType.phone,
+                maxLength: 15,
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              ),
           ],
         );
       },
