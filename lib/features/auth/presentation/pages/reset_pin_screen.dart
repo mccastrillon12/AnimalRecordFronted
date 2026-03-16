@@ -12,6 +12,8 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
+import '../../../../core/widgets/inputs/pin_input_field.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -28,56 +30,19 @@ class ResetPinScreen extends StatefulWidget {
 }
 
 class _ResetPinScreenState extends State<ResetPinScreen> {
-  final List<TextEditingController> _pinControllers = List.generate(
-    4,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
-
+  final FocusNode _focusNode = FocusNode();
   String _pin = '';
   String? _errorMessage;
 
   @override
-  void initState() {
-    super.initState();
-    for (int i = 0; i < 4; i++) {
-      _pinFocusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_pinControllers[i].text.isEmpty && i > 0) {
-            _pinFocusNodes[i - 1].requestFocus();
-            _pinControllers[i - 1].clear();
-            _onPinChanged(i - 1, '');
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
-  }
-
-  @override
   void dispose() {
-    for (var c in _pinControllers) {
-      c.dispose();
-    }
-    for (var f in _pinFocusNodes) {
-      f.dispose();
-    }
+    _focusNode.dispose();
     super.dispose();
   }
 
-  void _onPinChanged(int index, String value) {
-    if (value.isNotEmpty && index < 3) {
-      _pinFocusNodes[index + 1].requestFocus();
-    }
-    _updatePin();
-  }
-
-  void _updatePin() {
+  void _onPinChanged(String value) {
     setState(() {
-      _pin = _pinControllers.map((c) => c.text).join();
+      _pin = value;
       _errorMessage = null;
     });
   }
@@ -106,93 +71,81 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },
-      child: AuthFormContainer(
-        showLogo: false,
-        title: 'Confirmar PIN',
-        showCancelButton: true,
-        addInternalPadding: false,
-        onCancel: () =>
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
-        child: FixedBottomActionLayout(
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              final isLoading = state is AuthLoading;
-              return CustomButton(
-                text: 'Cambiar',
-                isLoading: isLoading,
-                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
-              );
-            },
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 48),
-                Text(
-                  'Confirme los 4 números escogidos del nuevo PIN.',
-                  style: AppTypography.body3,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _buildPinFields(),
-                if (_errorMessage != null) _buildError(),
-                const KeyboardSpacer(),
+      child: KeyboardActions(
+        disableScroll: true,
+        config: KeyboardActionsConfig(
+          keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+          keyboardBarColor: const Color(0xFFD1D5DF),
+          nextFocus: false,
+          actions: [
+            KeyboardActionsItem(
+              focusNode: _focusNode,
+              displayArrows: false,
+              displayDoneButton: false,
+              toolbarButtons: [
+                (node) {
+                  return GestureDetector(
+                    onTap: () => node.unfocus(),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      child: Text(
+                        "Aceptar",
+                        style: TextStyle(
+                          color: Colors.blue,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  );
+                }
               ],
+            ),
+          ],
+        ),
+        child: AuthFormContainer(
+          showLogo: false,
+          title: 'Confirmar PIN',
+          showCancelButton: true,
+          addInternalPadding: false,
+          onCancel: () =>
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+          child: FixedBottomActionLayout(
+            bottomChild: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isLoading = state is AuthLoading;
+                return CustomButton(
+                  text: 'Cambiar',
+                  isLoading: isLoading,
+                  onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
+                );
+              },
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  Text(
+                    'Confirme los 4 números escogidos del nuevo PIN.',
+                    style: AppTypography.body3,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  PinInputField(
+                    pin: _pin,
+                    onChanged: _onPinChanged,
+                    focusNode: _focusNode,
+                    obscureText: true,
+                  ),
+                  if (_errorMessage != null) _buildError(),
+                  const KeyboardSpacer(),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildPinFields() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(4, (index) {
-        return SizedBox(
-          width: 40,
-          height: 40,
-          child: TextField(
-            controller: _pinControllers[index],
-            focusNode: _pinFocusNodes[index],
-            textAlign: TextAlign.center,
-            keyboardType: TextInputType.number,
-            maxLength: 1,
-            obscureText: true,
-            decoration: InputDecoration(
-              counterText: '',
-              contentPadding: EdgeInsets.zero,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: index == 0
-                    ? const BorderRadius.horizontal(left: Radius.circular(8))
-                    : index == 3
-                    ? const BorderRadius.horizontal(right: Radius.circular(8))
-                    : BorderRadius.zero,
-                borderSide: const BorderSide(
-                  color: AppColors.primaryFrances,
-                  width: 2,
-                ),
-              ),
-            ),
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            onChanged: (value) => _onPinChanged(index, value),
-            onTap: () {
-              _pinControllers[index].selection = TextSelection.fromPosition(
-                TextPosition(offset: _pinControllers[index].text.length),
-              );
-            },
-          ),
-        );
-      }),
     );
   }
 
