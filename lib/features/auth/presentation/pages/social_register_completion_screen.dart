@@ -21,6 +21,7 @@ import '../../../locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import 'package:keyboard_actions/keyboard_actions.dart';
 import 'welcome_social_page.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
@@ -60,6 +61,7 @@ class _SocialRegisterCompletionScreenState
   String? _idErrorText;
   String? _phoneErrorText;
   bool _isNavigating = false;
+  final FocusNode _phoneFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -77,6 +79,7 @@ class _SocialRegisterCompletionScreenState
     _phoneController.dispose();
     _nameController.dispose();
     _emailController.dispose();
+    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -233,117 +236,151 @@ class _SocialRegisterCompletionScreenState
               );
             },
           ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xxl,
-              left: AppSpacing.l,
-              right: AppSpacing.l,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Text(
-                  'Finaliza tu registro - Propietario',
-                  style: AppTypography.heading1,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                Text(
-                  'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                  style: AppTypography.body4,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.l),
-
-                CustomTextField(
-                  label: 'Nombre completo',
-                  controller: _nameController,
-                  enabled: true,
-                  labelStyle: AppTypography.body6.copyWith(
-                    color: const Color(0xFF2E3949).withOpacity(0.3),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                CustomTextField(
-                  label: 'Correo electrónico',
-                  controller: _emailController,
-                  enabled: false,
-                  validator: ValidationUtils.validateEmail,
-                  labelStyle: AppTypography.body6.copyWith(
-                    color: const Color(0xFF2E3949).withOpacity(0.3),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.m),
-
-                // Sección de país/ID/teléfono integrada directamente
-                // igual que _LocationSelector en edit_profile_screen
-                BlocBuilder<LocationsCubit, LocationsState>(
-                  builder: (context, state) {
-                    if (state is LocationsLoading) {
-                      return const Center(child: CircularProgressIndicator());
+          child: KeyboardActions(
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      );
                     }
-
-                    if (state is! LocationsLoaded) {
-                      return const Text('Error cargando países');
-                    }
-
-                    final countries = state.countries;
-
-                    // País de residencia: siempre Colombia, disabled
-                    final colombiaId = _colombiaId ??
-                        (countries.isNotEmpty ? countries.first.id : null);
-
-                    return Column(
-                      children: [
-                        // País de residencia — siempre Colombia, no editable
-                        CountryDropdown(
-                          label: 'País de residencia',
-                          value: colombiaId,
-                          countries: countries,
-                          enabled: false,
-                          width: double.infinity,
-                          onChanged: null,
-                        ),
-                        const SizedBox(height: AppSpacing.m),
-
-                        // Identificación
-                        IdSelector(
-                          idController: _idController,
-                          initialIdType: _selectedIdType,
-                          onIdTypeChanged: (val) {
-                            setState(() => _selectedIdType = val);
-                          },
-                          errorText: _idErrorText,
-                        ),
-                        const SizedBox(height: AppSpacing.m),
-
-                        // Teléfono con selector de país interactivo
-                        PhoneInputField(
-                          label: 'Número de celular (Opcional)',
-                          controller: _phoneController,
-                          countries: countries,
-                          selectedCountryId:
-                              _selectedPhoneCountryId ??
-                              (countries.isNotEmpty
-                                  ? countries.first.id
-                                  : null),
-                          onCountryChanged: (val) {
-                            setState(() => _selectedPhoneCountryId = val);
-                          },
-                          maxLength: 15,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          errorText: _phoneErrorText,
-                        ),
-                      ],
-                    );
-                  },
+                  ],
                 ),
-
-                const KeyboardSpacer(),
               ],
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.only(
+                top: AppSpacing.xxl,
+                left: AppSpacing.l,
+                right: AppSpacing.l,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Finaliza tu registro - Propietario',
+                    style: AppTypography.heading1,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  Text(
+                    'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                    style: AppTypography.body4,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.l),
+
+                  CustomTextField(
+                    label: 'Nombre completo',
+                    controller: _nameController,
+                    enabled: true,
+                    labelStyle: AppTypography.body6.copyWith(
+                      color: const Color(0xFF2E3949).withOpacity(0.3),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  CustomTextField(
+                    label: 'Correo electrónico',
+                    controller: _emailController,
+                    enabled: false,
+                    validator: ValidationUtils.validateEmail,
+                    labelStyle: AppTypography.body6.copyWith(
+                      color: const Color(0xFF2E3949).withOpacity(0.3),
+                    ),
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+
+                  // Sección de país/ID/teléfono integrada directamente
+                  // igual que _LocationSelector en edit_profile_screen
+                  BlocBuilder<LocationsCubit, LocationsState>(
+                    builder: (context, state) {
+                      if (state is LocationsLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (state is! LocationsLoaded) {
+                        return const Text('Error cargando países');
+                      }
+
+                      final countries = state.countries;
+
+                      // País de residencia: siempre Colombia, disabled
+                      final colombiaId = _colombiaId ??
+                          (countries.isNotEmpty ? countries.first.id : null);
+
+                      return Column(
+                        children: [
+                          // País de residencia — siempre Colombia, no editable
+                          CountryDropdown(
+                            label: 'País de residencia',
+                            value: colombiaId,
+                            countries: countries,
+                            enabled: false,
+                            width: double.infinity,
+                            onChanged: null,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Identificación
+                          IdSelector(
+                            idController: _idController,
+                            initialIdType: _selectedIdType,
+                            onIdTypeChanged: (val) {
+                              setState(() => _selectedIdType = val);
+                            },
+                            errorText: _idErrorText,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Teléfono con selector de país interactivo
+                          PhoneInputField(
+                            label: 'Número de celular (Opcional)',
+                            controller: _phoneController,
+                            countries: countries,
+                            focusNode: _phoneFocusNode,
+                            selectedCountryId:
+                                _selectedPhoneCountryId ??
+                                (countries.isNotEmpty
+                                    ? countries.first.id
+                                    : null),
+                            onCountryChanged: (val) {
+                              setState(() => _selectedPhoneCountryId = val);
+                            },
+                            maxLength: 15,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            errorText: _phoneErrorText,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
+                  const KeyboardSpacer(),
+                ],
+              ),
             ),
           ),
         ),

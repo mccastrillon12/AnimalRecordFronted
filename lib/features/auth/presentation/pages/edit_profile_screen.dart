@@ -560,8 +560,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           'address': _addressController.text,
                                           if (user.authMethod == 'PHONE')
                                             'email': _emailController.text.trim(),
-                                          if (user.authMethod == 'EMAIL' ||
-                                              user.authMethod == 'GOOGLE')
+                                          if (user.authMethod != 'PHONE')
                                             'cellPhone': cellPhone,
                                           // Siempre incluir cityId y departmentId (incluso vacío)
                                           // para que el backend limpie el valor si el usuario
@@ -742,7 +741,7 @@ class _LocationSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final showPhoneField =
-        user.authMethod == 'EMAIL' || user.authMethod == 'GOOGLE';
+        user.authMethod != 'PHONE';
 
     return BlocBuilder<LocationsCubit, LocationsState>(
       builder: (context, locationsState) {
