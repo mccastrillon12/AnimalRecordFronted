@@ -50,6 +50,10 @@ abstract class AuthRepository {
     String identifier,
     String token,
   );
+  Future<Either<Failure, bool>> validatePinToken(
+    String identifier,
+    String token,
+  );
   Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
     String mimeType,
     int fileSize,

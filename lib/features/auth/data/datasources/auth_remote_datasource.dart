@@ -29,6 +29,7 @@ abstract class AuthRemoteDataSource {
   );
   Future<void> resetPin(String identifier, String token, String newPin);
   Future<bool> validatePasswordToken(String identifier, String token);
+  Future<bool> validatePinToken(String identifier, String token);
   Future<Map<String, dynamic>> getProfilePictureUploadUrl(
     String mimeType,
     int fileSize,
@@ -208,6 +209,30 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     try {
       final response = await apiClient.get(
         '/auth/validate-password-token',
+        queryParameters: {'identifier': identifier, 'token': token},
+        options: Options(
+          responseType: ResponseType.plain,
+          validateStatus: (status) => status != null && status < 500,
+        ),
+      );
+
+      if (response.statusCode == 200) {
+        return response.data.toString().trim().toLowerCase() == 'true';
+      }
+      return false;
+    } catch (e) {
+      if (e.toString().contains('400') || e.toString().contains('401')) {
+        return false;
+      }
+      rethrow;
+    }
+  }
+
+  @override
+  Future<bool> validatePinToken(String identifier, String token) async {
+    try {
+      final response = await apiClient.get(
+        '/auth/validate-pin-token',
         queryParameters: {'identifier': identifier, 'token': token},
         options: Options(
           responseType: ResponseType.plain,

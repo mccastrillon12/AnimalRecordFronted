@@ -14,7 +14,8 @@ class LinkExpiredScreen extends StatelessWidget {
     return AuthFormContainer(
       showLogo: false,
       showCancelButton: false,
-      onBack: () => Navigator.pop(context),
+      onBack: () =>
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

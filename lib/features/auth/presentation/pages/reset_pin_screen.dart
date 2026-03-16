@@ -1,4 +1,3 @@
-import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -11,7 +10,6 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:app_links/app_links.dart';
@@ -53,29 +51,36 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
       AppLinks().getLatestLink().then((value) {
         if (value != null && mounted) {
           setState(() {
-            if (_currentToken.isEmpty) _currentToken = value.queryParameters['token'] ?? '';
+            if (_currentToken.isEmpty)
+              _currentToken = value.queryParameters['token'] ?? '';
             if (_currentIdentifier.isEmpty) {
-              _currentIdentifier = value.queryParameters['identifier'] ?? 
-                                   value.queryParameters['email'] ?? '';
+              _currentIdentifier =
+                  value.queryParameters['identifier'] ??
+                  value.queryParameters['email'] ??
+                  '';
               _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
             }
           });
-          
+
           if (_currentToken.isNotEmpty && _currentIdentifier.isNotEmpty) {
             context.read<AuthBloc>().add(
-              ValidateResetToken(identifier: _currentIdentifier, token: _currentToken),
+              ValidateResetToken(
+                identifier: _currentIdentifier,
+                token: _currentToken,
+                isPinFlow: true,
+              ),
             );
           } else {
-             _redirectToExpired();
+            _redirectToExpired();
           }
         } else if (mounted) {
           _redirectToExpired();
         }
       });
     } else {
-       // If tokens were passed as arguments, we theoretically trust them because DeepLinkService validated them.
-       // However, ResetTokenValid state will set _isValid if we wanted to be stricter.
-       // For PIN, _isValid isn't explicitly used for the visibility of the whole screen but for error handling.
+      // If tokens were passed as arguments, we theoretically trust them because DeepLinkService validated them.
+      // However, ResetTokenValid state will set _isValid if we wanted to be stricter.
+      // For PIN, _isValid isn't explicitly used for the visibility of the whole screen but for error handling.
     }
   }
 
@@ -127,7 +132,10 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           }
         }
         if (state is ResetPinSuccess) {
-          ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
+          ErrorDisplay.showSuccess(
+            context,
+            'Su PIN se cambió con éxito Inicia sesión',
+          );
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },
@@ -147,7 +155,10 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
                   return GestureDetector(
                     onTap: () => node.unfocus(),
                     child: const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 8.0,
+                      ),
                       child: Text(
                         "Aceptar",
                         style: TextStyle(
@@ -158,51 +169,53 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
                       ),
                     ),
                   );
-                }
+                },
               ],
-            )
+            ),
           ],
         ),
         child: AuthFormContainer(
           showLogo: false,
           title: 'Confirmar PIN',
+          subtitle: Text(
+            'Confirme los 4 números escogidos del nuevo PIN.',
+            style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
+            textAlign: TextAlign.center,
+          ),
           showCancelButton: true,
           addInternalPadding: false,
-          onCancel: () =>
-              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
-        child: FixedBottomActionLayout(
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              final isLoading = state is AuthLoading;
-              return CustomButton(
-                text: 'Cambiar',
-                isLoading: isLoading,
-                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
-              );
-            },
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 48),
-                Text(
-                  'Confirme los 4 números escogidos del nuevo PIN.',
-                  style: AppTypography.body3,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _buildPinFields(),
-                if (_errorMessage != null) _buildError(),
-                const KeyboardSpacer(),
-              ],
+          onCancel: () {
+            context.read<AuthBloc>().add(ClearAuthEvent());
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+          },
+          child: FixedBottomActionLayout(
+            bottomChild: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isLoading = state is AuthLoading;
+                return CustomButton(
+                  text: 'Cambiar',
+                  isLoading: isLoading,
+                  onPressed: isLoading || _pin.length != 4
+                      ? null
+                      : _handleChange,
+                );
+              },
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  _buildPinFields(),
+                  if (_errorMessage != null) _buildError(),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildPinFields() {
     return PinInputField(

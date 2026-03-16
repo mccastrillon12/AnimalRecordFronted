@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
@@ -521,72 +520,72 @@ class _RegisterScreenState extends State<RegisterScreen> {
             }
           }
         },
-        child: KeyboardActions(
-          config: KeyboardActionsConfig(
-            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-            keyboardBarColor: const Color(0xFFD1D5DF),
-            nextFocus: false,
-            actions: [
-              KeyboardActionsItem(
-                focusNode: _phoneFocusNode,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
-                  (node) {
-                    return GestureDetector(
-                      onTap: () => node.unfocus(),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          "Aceptar",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                ],
-              ),
-            ],
+        child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return AnimatedBuilder(
+                animation: Listenable.merge(_getStepListenables()),
+                builder: (context, _) {
+                  final buttonText = _currentStep == steps.length - 1
+                      ? 'Crear cuenta'
+                      : 'Continuar';
+
+                  final isValid = _isStepValid();
+
+                  return CustomButton(
+                    text: buttonText,
+                    isLoading: state is AuthLoading,
+                    onPressed: state is AuthLoading || !isValid
+                        ? null
+                        : _nextStep,
+                  );
+                },
+              );
+            },
           ),
-          child: FixedBottomActionLayout(
-            bottomChild: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                return AnimatedBuilder(
-                  animation: Listenable.merge(_getStepListenables()),
-                  builder: (context, _) {
-                    final buttonText = _currentStep == steps.length - 1
-                        ? 'Crear cuenta'
-                        : 'Continuar';
-
-                    final isValid = _isStepValid();
-
-                    return CustomButton(
-                      text: buttonText,
-                      isLoading: state is AuthLoading,
-                      onPressed: state is AuthLoading || !isValid
-                          ? null
-                          : _nextStep,
-                    );
-                  },
-                );
-              },
+          child: Padding(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xl,
+              right: AppSpacing.l,
+              left: AppSpacing.l,
             ),
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.xl,
-                right: AppSpacing.l,
-                left: AppSpacing.l,
+            child: KeyboardActions(
+              config: KeyboardActionsConfig(
+                keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+                keyboardBarColor: const Color(0xFFD1D5DF),
+                nextFocus: false,
+                actions: [
+                  KeyboardActionsItem(
+                    focusNode: _phoneFocusNode,
+                    displayArrows: false,
+                    displayDoneButton: false,
+                    toolbarButtons: [
+                      (node) {
+                        return GestureDetector(
+                          onTap: () => node.unfocus(),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                            child: Text(
+                              "Aceptar",
+                              style: TextStyle(
+                                color: Colors.blue,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                    ],
+                  ),
+                ],
               ),
               child: PageView(
                 controller: _pageController,
                 physics: const NeverScrollableScrollPhysics(),
                 children: steps.map((step) {
                   return SingleChildScrollView(
-                    child: Column(children: [step, const KeyboardSpacer()]),
+                    child: Column(children: [step]),
                   );
                 }).toList(),
               ),

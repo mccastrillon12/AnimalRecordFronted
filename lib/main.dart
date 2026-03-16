@@ -6,6 +6,7 @@ import 'package:animal_record/features/auth/presentation/pages/splash_screen.dar
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/profile_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/edit_profile_screen.dart';
@@ -38,6 +39,7 @@ Future<void> main() async {
   deepLinkService.setValidatePasswordTokenUseCase(
     di.sl<ValidatePasswordTokenUseCase>(),
   );
+  deepLinkService.setValidatePinTokenUseCase(di.sl<ValidatePinTokenUseCase>());
   await deepLinkService.initDeepLinks(navigatorKey);
 
   runApp(const MyApp());

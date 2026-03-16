@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
@@ -18,9 +19,14 @@ class DeepLinkService {
 
   // Keep setValidatePasswordTokenUseCase for compatibility with main.dart
   ValidatePasswordTokenUseCase? _validatePasswordTokenUseCase;
+  ValidatePinTokenUseCase? _validatePinTokenUseCase;
 
   void setValidatePasswordTokenUseCase(ValidatePasswordTokenUseCase useCase) {
     _validatePasswordTokenUseCase = useCase;
+  }
+
+  void setValidatePinTokenUseCase(ValidatePinTokenUseCase useCase) {
+    _validatePinTokenUseCase = useCase;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -101,9 +107,17 @@ class DeepLinkService {
           identifier = identifier.replaceAll(' ', '+');
         }
 
-        if (identifier != null && _validatePasswordTokenUseCase != null) {
-          debugPrint('[DeepLink] Validating token for $identifier');
-          final result = await _validatePasswordTokenUseCase!(identifier, token);
+        if (identifier != null) {
+          debugPrint('[DeepLink] Validating ${isPinReset ? "PIN" : "password"} token for $identifier');
+          
+          final result = isPinReset 
+              ? await _validatePinTokenUseCase?.call(identifier, token)
+              : await _validatePasswordTokenUseCase?.call(identifier, token);
+
+          if (result == null) {
+            debugPrint('[DeepLink] UseCase not initialized');
+            return false;
+          }
           
           final bool isValid = result.fold(
             (failure) {

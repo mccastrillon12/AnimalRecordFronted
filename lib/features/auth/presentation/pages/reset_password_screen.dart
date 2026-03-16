@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -162,7 +164,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             _isValid = true;
           });
         } else if (state is ResetPasswordSuccess) {
-          ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
+          ErrorDisplay.showSuccess(context, 'Su contraseña se cambio con exito Inicia sesion');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         } else if (state is ResetTokenInvalid) {
           Navigator.pushReplacementNamed(
@@ -189,8 +191,15 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         showCancelButton: true,
         showLogo: false,
         title: 'Cambiar contraseña',
-        onCancel: () =>
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+        subtitle: Text(
+          'Establece tu nueva contraseña para acceder a tu cuenta.',
+          style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
+          textAlign: TextAlign.center,
+        ),
+        onCancel: () {
+          context.read<AuthBloc>().add(ClearAuthEvent());
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+        },
         child: Column(
           children: [
             Expanded(

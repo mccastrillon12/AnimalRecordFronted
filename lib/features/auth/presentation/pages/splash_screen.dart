@@ -77,7 +77,7 @@ class _SplashScreenState extends State<SplashScreen> {
               }
             }
           });
-        } else if (state is AuthError) {
+        } else if (state is AuthError || state is AuthUnauthenticated) {
           if (!_hasNavigated) {
             // If a deep link is pending, handle it instead of showing login.
             DeepLinkService().consumePendingLink(navigatorKey).then((handled) {

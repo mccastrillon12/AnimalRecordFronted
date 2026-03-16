@@ -5,13 +5,15 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
-import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/auth/presentation/widgets/auth_form_container.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
+import 'package:animal_record/core/utils/string_formatters.dart';
+import 'package:animal_record/core/utils/validation_utils.dart';
 
 class ForgotPinScreen extends StatefulWidget {
   final String identifier;
@@ -24,25 +26,53 @@ class ForgotPinScreen extends StatefulWidget {
 
 class _ForgotPinScreenState extends State<ForgotPinScreen> {
   late final TextEditingController _identifierController;
+  bool _isValidInput = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
     _identifierController = TextEditingController(text: widget.identifier);
+    _identifierController.addListener(_validateInput);
+    // Initial validation
+    _validateInput();
   }
 
   @override
   void dispose() {
+    _identifierController.removeListener(_validateInput);
     _identifierController.dispose();
     super.dispose();
   }
 
+  void _validateInput() {
+    final value = _identifierController.text.trim();
+    setState(() {
+      _isValidInput = _isValidEmailFormat(value) || _isValidPhoneFormat(value);
+    });
+  }
+
+  bool _isValidEmailFormat(String value) {
+    if (value.isEmpty) return false;
+    final emailRegex = RegExp(
+      r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+    );
+    return emailRegex.hasMatch(value);
+  }
+
+  bool _isValidPhoneFormat(String value) {
+    if (value.isEmpty) return false;
+    final cleanValue = StringFormatters.cleanMixedIdentifier(value);
+    final phoneRegex = RegExp(r'^\+?[0-9]{10,}$');
+    return phoneRegex.hasMatch(cleanValue);
+  }
+
   void _handleForgotPin() {
-    if (_formKey.currentState?.validate() ?? false) {
-      context.read<AuthBloc>().add(
-        ForgotPinRequested(_identifierController.text.trim()),
+    if (_isValidInput) {
+      final identifier = StringFormatters.cleanMixedIdentifier(
+        _identifierController.text.trim(),
       );
+      context.read<AuthBloc>().add(ForgotPinRequested(identifier));
     }
   }
 
@@ -88,63 +118,24 @@ class _ForgotPinScreenState extends State<ForgotPinScreen> {
                 bottomChild: CustomButton(
                   text: 'Enviar',
                   isLoading: isLoading,
-                  onPressed: _handleForgotPin,
+                  onPressed: _isValidInput && !isLoading ? _handleForgotPin : null,
                 ),
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: AppSpacing.xxxl),
-                      Text(
-                        'Correo electrónico o celular',
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.greyNegroV2,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      TextFormField(
+                      CustomTextField(
+                        label: 'Correo electrónico o celular',
+                        hint: 'Correo / Celular',
                         controller: _identifierController,
-                        style: AppTypography.body3,
-                        maxLength: 50,
+                        labelStyle: AppTypography.body6,
+                        borderColor: AppColors.greyMedio,
                         keyboardType: TextInputType.emailAddress,
+                        maxLength: 50,
                         inputFormatters: [MixedEmailPhoneInputFormatter()],
-                        decoration: InputDecoration(
-                          hintText: 'Ingresa tu correo o celular',
-                          hintStyle: AppTypography.body3.copyWith(
-                            color: AppColors.greyBordes,
-                          ),
-                          counterText: '',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(
-                              color: AppColors.greyMedio,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(
-                              color: AppColors.greyMedio,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(4),
-                            borderSide: const BorderSide(
-                              color: AppColors.primaryFrances,
-                            ),
-                          ),
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.m,
-                            vertical: AppSpacing.m,
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Por favor ingresa tu correo o celular';
-                          }
-                          return null;
-                        },
+                        validator: ValidationUtils.validateEmailOrPhone,
                       ),
-                      const KeyboardSpacer(),
                     ],
                   ),
                 ),

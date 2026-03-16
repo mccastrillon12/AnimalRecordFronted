@@ -20,6 +20,7 @@ import 'package:animal_record/features/auth/domain/usecases/update_biometric_sta
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
@@ -48,6 +49,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ForgotPasswordUseCase forgotPasswordUseCase;
   final ResetPasswordUseCase resetPasswordUseCase;
   final ValidatePasswordTokenUseCase validatePasswordTokenUseCase;
+  final ValidatePinTokenUseCase validatePinTokenUseCase;
   final SavePinUseCase savePinUseCase;
   final VerifyPinUseCase verifyPinUseCase;
   final ChangePinUseCase changePinUseCase;
@@ -75,6 +77,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.forgotPasswordUseCase,
     required this.resetPasswordUseCase,
     required this.validatePasswordTokenUseCase,
+    required this.validatePinTokenUseCase,
     required this.savePinUseCase,
     required this.verifyPinUseCase,
     required this.changePinUseCase,
@@ -131,12 +134,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
 
     on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
+
+    on<ClearAuthEvent>((event, emit) => emit(AuthInitial()));
   }
 
   Future<void> _onFetchUserRequested(
     FetchUserRequested event,
     Emitter<AuthState> emit,
   ) async {
+    emit(AuthLoading());
     final cachedUser = await tokenStorage.getUserData();
     bool loadedFromCache = false;
 
@@ -173,11 +179,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
       );
     } else if (!loadedFromCache) {
-      emit(
-        AuthError(
-          '¡Cuenta creada con éxito! inicia sesión y comienza a usar AnimalRecord.',
-        ),
-      );
+      emit(AuthUnauthenticated());
     }
   }
 
@@ -731,21 +733,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
 
-    final result = await validatePasswordTokenUseCase(
-      event.identifier,
-      event.token,
-    );
+    final result = event.isPinFlow
+        ? await validatePinTokenUseCase(event.identifier, event.token)
+        : await validatePasswordTokenUseCase(event.identifier, event.token);
 
     await result.fold(
       (failure) async {
-        if (failure.message.toLowerCase().contains('invalid') ||
-            failure.message.toLowerCase().contains('expired') ||
-            failure.message.toLowerCase().contains('inválido') ||
-            failure.message.toLowerCase().contains('expirado')) {
-          emit(ResetTokenInvalid());
-        } else {
-          emit(ResetTokenInvalid());
-        }
+        emit(ResetTokenInvalid());
       },
       (isValid) async {
         if (isValid) {
