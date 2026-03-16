@@ -14,7 +14,6 @@ import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/widgets/inputs/pin_input_field.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:app_links/app_links.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -31,57 +30,13 @@ class ResetPinScreen extends StatefulWidget {
 }
 
 class _ResetPinScreenState extends State<ResetPinScreen> {
-  final FocusNode _pinFocusNode = FocusNode();
-
+  final FocusNode _focusNode = FocusNode();
   String _pin = '';
   String? _errorMessage;
-  late String _currentIdentifier;
-  late String _currentToken;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIdentifier = widget.identifier;
-    _currentToken = widget.token;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Safety Net: if args are missing, try to recover from URI
-    if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
-      AppLinks().getLatestLink().then((value) {
-        if (value != null && mounted) {
-          setState(() {
-            if (_currentToken.isEmpty) _currentToken = value.queryParameters['token'] ?? '';
-            if (_currentIdentifier.isEmpty) {
-              _currentIdentifier = value.queryParameters['identifier'] ?? 
-                                   value.queryParameters['email'] ?? '';
-              _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
-            }
-          });
-          
-          if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
-             _redirectToExpired();
-          }
-        } else if (mounted) {
-          _redirectToExpired();
-        }
-      });
-    }
-  }
-
-  void _redirectToExpired() {
-    Navigator.pushReplacementNamed(
-      context,
-      '/link-expired',
-      arguments: {'isPinFlow': true},
-    );
-  }
 
   @override
   void dispose() {
-    _pinFocusNode.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -96,8 +51,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     if (_pin.length == 4) {
       context.read<AuthBloc>().add(
         ResetPinSubmitted(
-          identifier: _currentIdentifier,
-          token: _currentToken,
+          identifier: widget.identifier,
+          token: widget.token,
           newPin: _pin,
         ),
       );
@@ -109,14 +64,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          if (state.message.toLowerCase().contains('invalid') ||
-              state.message.toLowerCase().contains('inválido') ||
-              state.message.toLowerCase().contains('expired') ||
-              state.message.toLowerCase().contains('expirado')) {
-            _redirectToExpired();
-          } else {
-            setState(() => _errorMessage = state.message);
-          }
+          setState(() => _errorMessage = state.message);
         }
         if (state is ResetPinSuccess) {
           ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
@@ -131,7 +79,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           nextFocus: false,
           actions: [
             KeyboardActionsItem(
-              focusNode: _pinFocusNode,
+              focusNode: _focusNode,
               displayArrows: false,
               displayDoneButton: false,
               toolbarButtons: [
@@ -152,7 +100,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
                   );
                 }
               ],
-            )
+            ),
           ],
         ),
         child: AuthFormContainer(
@@ -162,46 +110,42 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           addInternalPadding: false,
           onCancel: () =>
               Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
-        child: FixedBottomActionLayout(
-          bottomChild: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              final isLoading = state is AuthLoading;
-              return CustomButton(
-                text: 'Cambiar',
-                isLoading: isLoading,
-                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
-              );
-            },
-          ),
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Column(
-              children: [
-                const SizedBox(height: 48),
-                Text(
-                  'Confirme los 4 números escogidos del nuevo PIN.',
-                  style: AppTypography.body3,
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: AppSpacing.xl),
-                _buildPinFields(),
-                if (_errorMessage != null) _buildError(),
-                const KeyboardSpacer(),
-              ],
+          child: FixedBottomActionLayout(
+            bottomChild: BlocBuilder<AuthBloc, AuthState>(
+              builder: (context, state) {
+                final isLoading = state is AuthLoading;
+                return CustomButton(
+                  text: 'Cambiar',
+                  isLoading: isLoading,
+                  onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
+                );
+              },
+            ),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                children: [
+                  const SizedBox(height: 48),
+                  Text(
+                    'Confirme los 4 números escogidos del nuevo PIN.',
+                    style: AppTypography.body3,
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                  PinInputField(
+                    pin: _pin,
+                    onChanged: _onPinChanged,
+                    focusNode: _focusNode,
+                    obscureText: true,
+                  ),
+                  if (_errorMessage != null) _buildError(),
+                  const KeyboardSpacer(),
+                ],
+              ),
             ),
           ),
         ),
       ),
-    ),
-  );
-}
-
-  Widget _buildPinFields() {
-    return PinInputField(
-      pin: _pin,
-      onChanged: _onPinChanged,
-      focusNode: _pinFocusNode,
-      obscureText: true,
     );
   }
 

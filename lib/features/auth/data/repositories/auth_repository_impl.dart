@@ -441,6 +441,23 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, bool>> validatePinToken(
+    String identifier,
+    String token,
+  ) async {
+    try {
+      final isValid = await remoteDataSource.validatePinToken(
+        identifier,
+        token,
+      );
+      return Right(isValid);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
     String mimeType,
     int fileSize,

@@ -33,11 +33,8 @@ class VerificationStep extends StatefulWidget {
 }
 
 class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
-  final List<TextEditingController> _controllers = List.generate(
-    5,
-    (_) => TextEditingController(),
-  );
-  final List<FocusNode> _focusNodes = List.generate(5, (_) => FocusNode());
+  final TextEditingController _controller = TextEditingController();
+  final FocusNode _focusNode = FocusNode();
   Timer? _timer;
   int _remainingSeconds = 0;
   bool _canResend = true;
@@ -49,21 +46,7 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
       _startTimer(widget.initialTimeRemaining!);
     }
 
-    for (int i = 0; i < 5; i++) {
-      _focusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
-        if (event is KeyDownEvent &&
-            event.logicalKey == LogicalKeyboardKey.backspace) {
-          if (_controllers[i].text.isEmpty && i > 0) {
-            _focusNodes[i - 1].requestFocus();
-            _controllers[i - 1].clear();
-            widget.onCodeChanged?.call();
-            setState(() {});
-            return KeyEventResult.handled;
-          }
-        }
-        return KeyEventResult.ignored;
-      };
-    }
+    _focusNode.addListener(_onFocusChange);
 
     // Start listening for SMS if the identifier is a phone number
     if (!widget.identifier.contains('@')) {
@@ -71,13 +54,15 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
     }
   }
 
+  void _onFocusChange() {
+    setState(() {});
+  }
+
   @override
   void codeUpdated() {
     if (code != null && code!.length == 5) {
       setState(() {
-        for (int i = 0; i < 5; i++) {
-          _controllers[i].text = code![i];
-        }
+        _controller.text = code!;
       });
       widget.onCodeChanged?.call();
     }
@@ -90,6 +75,7 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
     });
 
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) return;
       setState(() {
         if (_remainingSeconds > 0) {
           _remainingSeconds--;
@@ -114,46 +100,18 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
     if (!widget.identifier.contains('@')) {
       cancel(); // Cancel SmsAutoFill listener
     }
-    for (var controller in _controllers) {
-      controller.dispose();
-    }
-    for (var node in _focusNodes) {
-      node.dispose();
-    }
+    _focusNode.removeListener(_onFocusChange);
+    _controller.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
   String getCode() {
-    return _controllers.map((c) => c.text).join();
+    return _controller.text;
   }
 
   bool isCodeComplete() {
     return getCode().length == 5;
-  }
-
-  void _onCodeChanged(int index, String value) {
-    if (value.length > 1) {
-      // Handle pasting or autofill of multiple characters
-      final code = value.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
-      for (int i = 0; i < code.length && (index + i) < 5; i++) {
-        _controllers[index + i].text = code[i];
-      }
-
-      // Move focus to the last filled field or the next one
-      int nextIndex = index + code.length;
-      if (nextIndex > 4) nextIndex = 4;
-      _focusNodes[nextIndex].requestFocus();
-    } else if (value.isNotEmpty && index < 4) {
-      _focusNodes[index + 1].requestFocus();
-    }
-    setState(() {});
-    widget.onCodeChanged?.call();
-  }
-
-  void _onBackspace(int index) {
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
-    }
   }
 
   void restartTimer(int milliseconds) {
@@ -185,18 +143,97 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 80),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(5, (index) {
-            return _CodeInputField(
-              index: index,
-              controller: _controllers[index],
-              focusNode: _focusNodes[index],
-              onChanged: (value) => _onCodeChanged(index, value),
-              onBackspace: () => _onBackspace(index),
-              hasError: widget.hasError,
-            );
-          }),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            // Visual Boxes
+            GestureDetector(
+              onTap: () {
+                _focusNode.requestFocus();
+                _controller.selection =
+                    TextSelection.collapsed(offset: _controller.text.length);
+              },
+              behavior: HitTestBehavior.opaque,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(5, (index) {
+                  final isFocused = (_focusNode.hasFocus &&
+                          _controller.text.length == index) ||
+                      (_controller.text.length == 5 &&
+                          index == 4 &&
+                          _focusNode.hasFocus);
+
+                  final isFilled = index < _controller.text.length;
+
+                  String char = '';
+                  if (isFilled) {
+                    char = _controller.text[index];
+                  }
+
+                  return Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: widget.hasError
+                            ? AppColors.error
+                            : isFocused
+                                ? AppColors.primaryAzulClaro
+                                : AppColors.greyBordes,
+                        width: isFocused || widget.hasError ? 2 : 1,
+                      ),
+                      borderRadius: index == 0
+                          ? const BorderRadius.horizontal(
+                              left: Radius.circular(8))
+                          : index == 4
+                              ? const BorderRadius.horizontal(
+                                  right: Radius.circular(8))
+                              : BorderRadius.zero,
+                    ),
+                    child: Text(
+                      char.toUpperCase(),
+                      style: AppTypography.heading2,
+                    ),
+                  );
+                }),
+              ),
+            ),
+            // Invisible TextField
+            Positioned.fill(
+              child: Opacity(
+                opacity: 0.0,
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  keyboardType: TextInputType.text,
+                  textCapitalization: TextCapitalization.characters,
+                  textInputAction: TextInputAction.done,
+                  maxLength: 5,
+                  autofocus: true,
+                  showCursor: false,
+                  enableInteractiveSelection: false,
+                  autofillHints: const [AutofillHints.oneTimeCode],
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                  ],
+                  onChanged: (value) {
+                    setState(() {});
+                    widget.onCodeChanged?.call();
+                    if (value.length == 5) {
+                      _focusNode.unfocus();
+                    }
+                  },
+                  decoration: const InputDecoration(
+                    counterText: '',
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
         if (widget.hasError && widget.errorMessage != null) ...[
           const SizedBox(height: AppSpacing.m),
@@ -210,104 +247,6 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
           ),
         ],
       ],
-    );
-  }
-}
-
-class _CodeInputField extends StatelessWidget {
-  final int index;
-  final TextEditingController controller;
-  final FocusNode focusNode;
-  final Function(String) onChanged;
-  final VoidCallback onBackspace;
-  final bool hasError;
-
-  const _CodeInputField({
-    required this.index,
-    required this.controller,
-    required this.focusNode,
-    required this.onChanged,
-    required this.onBackspace,
-    this.hasError = false,
-  });
-
-  BorderRadius _getBorderRadius() {
-    const radius = Radius.circular(8);
-    if (index == 0) {
-      return const BorderRadius.only(topLeft: radius, bottomLeft: radius);
-    } else if (index == 4) {
-      return const BorderRadius.only(topRight: radius, bottomRight: radius);
-    } else {
-      return BorderRadius.zero;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 40,
-      height: 40,
-      child: TextField(
-        controller: controller,
-        focusNode: focusNode,
-        textAlign: TextAlign.center,
-        keyboardType: TextInputType.text,
-        textCapitalization: TextCapitalization.characters,
-        // Removed maxLength: 1 to allow iOS to "type" or "paste" the full code.
-        // We handle the length and distribution in _onCodeChanged.
-        style: AppTypography.heading2,
-        contextMenuBuilder: (context, editableTextState) {
-          // Standard context menu for pasting
-          return AdaptiveTextSelectionToolbar.buttonItems(
-            anchors: editableTextState.contextMenuAnchors,
-            buttonItems: editableTextState.contextMenuButtonItems,
-          );
-        },
-        obscureText: false,
-        autocorrect: false,
-        enableSuggestions: false,
-        autofillHints: const [AutofillHints.oneTimeCode],
-        decoration: InputDecoration(
-          counterText: '',
-          contentPadding: EdgeInsets.zero,
-          enabledBorder: OutlineInputBorder(
-            borderRadius: _getBorderRadius(),
-            borderSide: BorderSide(
-              color: hasError ? AppColors.error : AppColors.greyBordes,
-              width: 1,
-            ),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: _getBorderRadius(),
-            borderSide: BorderSide(
-              color: hasError ? AppColors.error : AppColors.primaryAzulClaro,
-              width: 2,
-            ),
-          ),
-          errorBorder: OutlineInputBorder(
-            borderRadius: _getBorderRadius(),
-            borderSide: const BorderSide(color: AppColors.error, width: 1),
-          ),
-          focusedErrorBorder: OutlineInputBorder(
-            borderRadius: _getBorderRadius(),
-            borderSide: const BorderSide(color: AppColors.error, width: 2),
-          ),
-        ),
-        inputFormatters: [
-          FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-        ],
-        textInputAction: TextInputAction.next,
-        onTap: () {
-          // Allow tapping to act fluidly for overwriting,
-          // but if we want them to clear on tap, we can keep it.
-          controller.selection = TextSelection.fromPosition(
-            TextPosition(offset: controller.text.length),
-          );
-        },
-        onChanged: (value) {
-          onChanged(value);
-        },
-      ),
     );
   }
 }

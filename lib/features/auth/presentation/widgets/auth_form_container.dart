@@ -131,14 +131,15 @@ class AuthFormContainer extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             if (title != null)
-                              SizedBox(
-                                height: AppSpacing.registerTitleHeight,
+                              Padding(
+                                padding: const EdgeInsets.only(bottom: 0),
                                 child: Text(
                                   title!,
                                   style: AppTypography.heading1,
+                                  textAlign: TextAlign.center,
                                 ),
                               ),
-                            SizedBox(height: titleSpacing),
+                            const SizedBox(height: 8),
                             if (subtitle != null) subtitle!,
                           ],
                         ),

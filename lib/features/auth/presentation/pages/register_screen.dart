@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../widgets/register_steps/personal_data_step.dart';
 import '../widgets/register_steps/professional_data_step.dart';
 import '../widgets/register_steps/security_step.dart';
@@ -20,9 +19,11 @@ import 'package:animal_record/features/auth/domain/entities/register_params.dart
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_state.dart';
 import 'package:animal_record/features/locations/domain/entities/country_entity.dart';
+import 'package:animal_record/features/auth/presentation/widgets/phone_input_field.dart';
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -35,7 +36,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
-  final PageController _pageController = PageController();
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -71,6 +71,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   AccessMethod? _lastAccessMethod;
   String? _lastPhoneErrorText;
   String? _lastEmailErrorText;
+  String? _selectedPhoneCountryId;
+
   String _selectedIdType = 'C.C.';
 
   List<Widget> get _steps {
@@ -88,6 +90,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
               _selectedAccessMethod = method;
               _cachedSteps = null;
             });
+          },
+          selectedPhoneCountryId: _selectedPhoneCountryId,
+          onPhoneCountryChanged: (value) {
+            setState(() => _selectedPhoneCountryId = value);
           },
         ),
       );
@@ -110,6 +116,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             onIdTypeChanged: (type) {
               _selectedIdType = type;
             },
+            selectedPhoneCountryId: _selectedPhoneCountryId,
+            onPhoneCountryChanged: (value) {
+              setState(() => _selectedPhoneCountryId = value);
+            },
           ),
         );
       }
@@ -123,6 +133,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
           idController: idController,
           phoneController: phoneController,
           phoneFocusNode: _phoneFocusNode,
+          selectedPhoneCountryId: _selectedPhoneCountryId,
+          onPhoneCountryChanged: (value) {
+            setState(() => _selectedPhoneCountryId = value);
+          },
         ),
       );
     }
@@ -199,6 +213,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
     passwordController.addListener(_onConfirmPasswordChanged);
 
     idController.addListener(_onIdChanged);
+
+    context.read<LocationsCubit>().fetchCountries();
   }
 
   void _onIdChanged() {
@@ -302,10 +318,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_currentStep == _steps.length - 1) {
       _submitRegistration();
     } else {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
       setState(() => _currentStep++);
     }
   }
@@ -400,7 +412,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (cellPhone.isNotEmpty && !cellPhone.startsWith('+')) {
       final state = context.read<LocationsCubit>().state;
       if (state is LocationsLoaded) {
-        final countryId = getFieldValue(countryController);
+        final countryId = _selectedPhoneCountryId ?? getFieldValue(countryController);
         if (countryId.isNotEmpty) {
           final country = state.countries.cast<CountryEntity>().firstWhere(
             (c) => c.id == countryId,
@@ -424,7 +436,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           identificationNumber: getFieldValue(idController),
           cellPhone: cellPhone,
           country: '',
-          countryId: getFieldValue(countryController),
+          countryId: _selectedPhoneCountryId ?? getFieldValue(countryController),
           city: widget.role == 'PROPIETARIO_MASCOTA'
               ? ''
               : getFieldValue(cityController),
@@ -486,13 +498,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
       onBack: _currentStep > 0
-          ? () {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-              setState(() => _currentStep--);
-            }
+          ? () => setState(() => _currentStep--)
           : () => Navigator.pop(context),
       onCancel: () => Navigator.pop(context),
       addInternalPadding: false,
@@ -513,85 +519,96 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Parece que ya tienes una cuenta. Intenta iniciar sesión o restablecer tu contraseña.';
               });
             } else {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
               setState(() => _currentStep++);
             }
           }
         },
-        child: KeyboardActions(
-          config: KeyboardActionsConfig(
-            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-            keyboardBarColor: const Color(0xFFD1D5DF),
-            nextFocus: false,
-            actions: [
-              KeyboardActionsItem(
-                focusNode: _phoneFocusNode,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
-                  (node) {
-                    return GestureDetector(
-                      onTap: () => node.unfocus(),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          "Aceptar",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+        child: BlocBuilder<LocationsCubit, LocationsState>(
+          builder: (context, locState) {
+            if (locState is LocationsLoaded && _selectedPhoneCountryId == null) {
+              final colombia = locState.countries.cast<CountryEntity>().firstWhere(
+                    (c) => c.name.toLowerCase().contains('colombia'),
+                    orElse: () => locState.countries.first,
+                  );
+              _selectedPhoneCountryId = colombia.id;
+            }
+            return FixedBottomActionLayout(
+              bottomChild: BlocBuilder<AuthBloc, AuthState>(
+                builder: (context, state) {
+                  return AnimatedBuilder(
+                    animation: Listenable.merge(_getStepListenables()),
+                    builder: (context, _) {
+                      final buttonText = _currentStep == steps.length - 1
+                          ? 'Crear cuenta'
+                          : 'Continuar';
+
+                      final isValid = _isStepValid();
+
+                      return CustomButton(
+                        text: buttonText,
+                        isLoading: state is AuthLoading,
+                        onPressed: state is AuthLoading || !isValid
+                            ? null
+                            : _nextStep,
+                      );
+                    },
+                  );
+                },
+              ),
+              child: KeyboardActions(
+                config: KeyboardActionsConfig(
+                  keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+                  keyboardBarColor: const Color(0xFFD1D5DF),
+                  nextFocus: false,
+                  actions: [
+                    KeyboardActionsItem(
+                      focusNode: _phoneFocusNode,
+                      displayArrows: false,
+                      displayDoneButton: false,
+                      toolbarButtons: [
+                        (node) {
+                          return GestureDetector(
+                            onTap: () => node.unfocus(),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: 16.0, vertical: 8.0),
+                              child: Text(
+                                "Aceptar",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+                      ],
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xl,
+                    right: AppSpacing.l,
+                    left: AppSpacing.l,
+                  ),
+                  child: Column(
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: KeyedSubtree(
+                          key: ValueKey(_currentStep),
+                          child: steps[_currentStep],
                         ),
                       ),
-                    );
-                  }
-                ],
+                      const KeyboardSpacer(),
+                    ],
+                  ),
+                ),
               ),
-            ],
-          ),
-          child: FixedBottomActionLayout(
-            bottomChild: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                return AnimatedBuilder(
-                  animation: Listenable.merge(_getStepListenables()),
-                  builder: (context, _) {
-                    final buttonText = _currentStep == steps.length - 1
-                        ? 'Crear cuenta'
-                        : 'Continuar';
-
-                    final isValid = _isStepValid();
-
-                    return CustomButton(
-                      text: buttonText,
-                      isLoading: state is AuthLoading,
-                      onPressed: state is AuthLoading || !isValid
-                          ? null
-                          : _nextStep,
-                    );
-                  },
-                );
-              },
-            ),
-            child: Padding(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.xl,
-                right: AppSpacing.l,
-                left: AppSpacing.l,
-              ),
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: steps.map((step) {
-                  return SingleChildScrollView(
-                    child: Column(children: [step, const KeyboardSpacer()]),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
+            );
+          },
         ),
       ),
     );

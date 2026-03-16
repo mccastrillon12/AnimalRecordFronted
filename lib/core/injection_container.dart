@@ -23,6 +23,7 @@ import 'package:animal_record/features/auth/domain/usecases/reset_password_useca
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_profile_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/confirm_profile_picture_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -109,6 +110,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetBiometricStatusUseCase(sl()));
   sl.registerLazySingleton(() => ForgotPinUseCase(sl()));
   sl.registerLazySingleton(() => ResetPinUseCase(sl()));
+  sl.registerLazySingleton(() => ValidatePinTokenUseCase(sl()));
   sl.registerLazySingleton(() => GetProfilePictureUploadUrlUseCase(sl()));
   sl.registerLazySingleton(() => ConfirmProfilePictureUseCase(sl()));
   sl.registerLazySingleton(() => S3UploadService());

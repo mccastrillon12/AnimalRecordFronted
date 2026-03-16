@@ -11,6 +11,7 @@ import 'check_messages_screen.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/core/utils/mixed_email_phone_input_formatter.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
@@ -125,6 +126,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
                     ),
+                    const KeyboardSpacer(),
                   ],
                 ),
               ),

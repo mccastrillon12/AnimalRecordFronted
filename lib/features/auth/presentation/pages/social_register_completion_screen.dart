@@ -52,7 +52,11 @@ class _SocialRegisterCompletionScreenState
   late final TextEditingController _nameController;
   late final TextEditingController _emailController;
 
+  // ID del país seleccionado en el PhoneInputField (puede ser COL, USA, etc.)
   String? _selectedPhoneCountryId;
+  // ID fijo de Colombia para el dropdown de residencia
+  String? _colombiaId;
+
   String _selectedIdType = 'C.C.';
   String? _idErrorText;
   String? _phoneErrorText;
@@ -86,10 +90,6 @@ class _SocialRegisterCompletionScreenState
       _phoneErrorText = null;
     });
 
-    if (_countryController.text.isEmpty) {
-      isValid = false;
-    }
-
     if (_idController.text.trim().isEmpty) {
       setState(() => _idErrorText = 'Campo requerido');
       isValid = false;
@@ -109,30 +109,55 @@ class _SocialRegisterCompletionScreenState
   void _onSubmit() {
     if (!_validateInternal()) return;
 
-    String phoneWithDialCode = _phoneController.text.trim();
+    final locState = context.read<LocationsCubit>().state;
 
     String idType = 'CC';
     if (_selectedIdType == 'C.E.') idType = 'CE';
     if (_selectedIdType == 'Pasaporte') idType = 'PAS';
 
+    // Construir cellPhone con indicativo, igual que en edit_profile_screen
+    String cellPhone = _phoneController.text.trim();
+    if (cellPhone.isNotEmpty && locState is LocationsLoaded) {
+      final countryId = _selectedPhoneCountryId;
+      if (countryId != null && countryId.isNotEmpty) {
+        try {
+          final country = locState.countries
+              .cast<CountryEntity>()
+              .firstWhere((c) => c.id == countryId);
+
+          final prefix = country.dialCode;
+          final purePrefix = prefix.replaceAll('+', '');
+
+          // Solo números ingresados por el usuario
+          String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+
+          // Si el usuario escribió el prefijo a mano, lo quitamos
+          if (numbersOnly.startsWith(purePrefix)) {
+            numbersOnly = numbersOnly.substring(purePrefix.length);
+          }
+
+          cellPhone = '$prefix$numbersOnly';
+        } catch (_) {}
+      }
+    }
+
+    // El country que va al backend es el del selector de teléfono
+    // (puede ser USA, Colombia, etc.), NO el de residencia que siempre es Colombia
+    final countryToSend = _selectedPhoneCountryId ?? _colombiaId ?? '';
+
     final Map<String, dynamic> data = {
       'preAuthToken': widget.preAuthToken,
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
-      'cellPhone': _phoneController.text.trim().isEmpty
-          ? ""
-          : phoneWithDialCode,
-      'country': _countryController.text,
+      'cellPhone': cellPhone.isEmpty ? '' : cellPhone,
+      'country': countryToSend,
       'city': '',
       'roles': ['PROPIETARIO_MASCOTA'],
     };
 
     context.read<AuthBloc>().add(
-          SocialRegisterSubmitted(
-            data,
-            nameToUpdate: _nameController.text.trim(),
-          ),
-        );
+      SocialRegisterSubmitted(data, nameToUpdate: _nameController.text.trim()),
+    );
   }
 
   @override
@@ -165,71 +190,83 @@ class _SocialRegisterCompletionScreenState
           ),
           BlocListener<LocationsCubit, LocationsState>(
             listener: (context, state) {
-              if (state is LocationsLoaded) {
-                if (_countryController.text.isEmpty &&
-                    state.countries.isNotEmpty) {
+              if (state is LocationsLoaded && state.countries.isNotEmpty) {
+                // Buscar Colombia y establecerla como país de residencia
+                // y como selección inicial del teléfono
+                try {
                   final colombia = state.countries
                       .cast<CountryEntity>()
                       .firstWhere(
-                        (c) => c.name.toLowerCase().contains('colombia'),
-                        orElse: () => state.countries.first,
+                        (c) =>
+                            c.dialCode == '+57' ||
+                            c.name.toLowerCase().contains('colombia'),
                       );
                   setState(() {
+                    _colombiaId = colombia.id;
                     _countryController.text = colombia.id;
-                    _selectedPhoneCountryId = colombia.id;
+                    // Solo inicializar si aún no hay selección
+                    _selectedPhoneCountryId ??= colombia.id;
+                  });
+                } catch (_) {
+                  // Si no encuentra Colombia, usa el primero
+                  setState(() {
+                    _colombiaId = state.countries.first.id;
+                    _countryController.text = state.countries.first.id;
+                    _selectedPhoneCountryId ??= state.countries.first.id;
                   });
                 }
               }
             },
           ),
         ],
-        child: KeyboardActions(
-          config: KeyboardActionsConfig(
-            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-            keyboardBarColor: const Color(0xFFD1D5DF),
-            nextFocus: false,
-            actions: [
-              KeyboardActionsItem(
-                focusNode: _phoneFocusNode,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
-                  (node) {
-                    return GestureDetector(
-                      onTap: () => node.unfocus(),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          "Aceptar",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+        child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _idController,
+                builder: (context, value, _) {
+                  final bool isIdFilled = value.text.trim().isNotEmpty;
+
+                  return CustomButton(
+                    text: 'Finalizar',
+                    isLoading: state is AuthLoading,
+                    onPressed: isIdFilled ? _onSubmit : null,
+                  );
+                },
+              );
+            },
+          ),
+          child: KeyboardActions(
+            config: KeyboardActionsConfig(
+              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+              keyboardBarColor: const Color(0xFFD1D5DF),
+              nextFocus: false,
+              actions: [
+                KeyboardActionsItem(
+                  focusNode: _phoneFocusNode,
+                  displayArrows: false,
+                  displayDoneButton: false,
+                  toolbarButtons: [
+                    (node) {
+                      return GestureDetector(
+                        onTap: () => node.unfocus(),
+                        child: const Padding(
+                          padding: EdgeInsets.symmetric(
+                              horizontal: 16.0, vertical: 8.0),
+                          child: Text(
+                            "Aceptar",
+                            style: TextStyle(
+                              color: Colors.blue,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
-                      ),
-                    );
-                  }
-                ],
-              ),
-            ],
-          ),
-          child: FixedBottomActionLayout(
-            bottomChild: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                return ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _idController,
-                  builder: (context, value, _) {
-                    final bool isIdFilled = value.text.trim().isNotEmpty;
-
-                    return CustomButton(
-                      text: 'Finalizar',
-                      isLoading: state is AuthLoading,
-                      onPressed: isIdFilled ? _onSubmit : null,
-                    );
-                  },
-                );
-              },
+                      );
+                    }
+                  ],
+                ),
+              ],
             ),
             child: SingleChildScrollView(
               padding: const EdgeInsets.only(
@@ -274,7 +311,73 @@ class _SocialRegisterCompletionScreenState
                   ),
                   const SizedBox(height: AppSpacing.m),
 
-                  _CountrySelectionSection(phoneFocusNode: _phoneFocusNode),
+                  // Sección de país/ID/teléfono integrada directamente
+                  // igual que _LocationSelector en edit_profile_screen
+                  BlocBuilder<LocationsCubit, LocationsState>(
+                    builder: (context, state) {
+                      if (state is LocationsLoading) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      if (state is! LocationsLoaded) {
+                        return const Text('Error cargando países');
+                      }
+
+                      final countries = state.countries;
+
+                      // País de residencia: siempre Colombia, disabled
+                      final colombiaId = _colombiaId ??
+                          (countries.isNotEmpty ? countries.first.id : null);
+
+                      return Column(
+                        children: [
+                          // País de residencia — siempre Colombia, no editable
+                          CountryDropdown(
+                            label: 'País de residencia',
+                            value: colombiaId,
+                            countries: countries,
+                            enabled: false,
+                            width: double.infinity,
+                            onChanged: null,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Identificación
+                          IdSelector(
+                            idController: _idController,
+                            initialIdType: _selectedIdType,
+                            onIdTypeChanged: (val) {
+                              setState(() => _selectedIdType = val);
+                            },
+                            errorText: _idErrorText,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          // Teléfono con selector de país interactivo
+                          PhoneInputField(
+                            label: 'Número de celular (Opcional)',
+                            controller: _phoneController,
+                            countries: countries,
+                            focusNode: _phoneFocusNode,
+                            selectedCountryId:
+                                _selectedPhoneCountryId ??
+                                (countries.isNotEmpty
+                                    ? countries.first.id
+                                    : null),
+                            onCountryChanged: (val) {
+                              setState(() => _selectedPhoneCountryId = val);
+                            },
+                            maxLength: 15,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.digitsOnly,
+                            ],
+                            errorText: _phoneErrorText,
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+
                   const KeyboardSpacer(),
                 ],
               ),
@@ -282,86 +385,6 @@ class _SocialRegisterCompletionScreenState
           ),
         ),
       ),
-    );
-  }
-}
-
-class _CountrySelectionSection extends StatefulWidget {
-  final FocusNode phoneFocusNode;
-  const _CountrySelectionSection({required this.phoneFocusNode});
-
-  @override
-  State<_CountrySelectionSection> createState() =>
-      _CountrySelectionSectionState();
-}
-
-class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
-  _SocialRegisterCompletionScreenState? get parent =>
-      context.findAncestorStateOfType<_SocialRegisterCompletionScreenState>();
-
-  @override
-  Widget build(BuildContext context) {
-    if (parent == null) return const SizedBox.shrink();
-
-    return BlocBuilder<LocationsCubit, LocationsState>(
-      builder: (context, state) {
-        if (state is LocationsLoaded) {
-          return Column(
-            children: [
-              CountryDropdown(
-                label: 'País de residencia',
-                value: parent!._countryController.text.isEmpty
-                    ? (state.countries.isNotEmpty
-                          ? state.countries.first.id
-                          : null)
-                    : parent!._countryController.text,
-                countries: state.countries,
-                enabled: false,
-                width: double.infinity,
-                onChanged: (val) {
-                  if (val != null) {
-                    parent!.setState(() {
-                      parent!._countryController.text = val;
-                    });
-                  }
-                },
-              ),
-              const SizedBox(height: AppSpacing.m),
-              IdSelector(
-                idController: parent!._idController,
-                initialIdType: parent!._selectedIdType,
-                onIdTypeChanged: (val) {
-                  parent!.setState(() => parent!._selectedIdType = val);
-                },
-                errorText: parent!._idErrorText,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              PhoneInputField(
-                label: 'Número de celular (Opcional)',
-                controller: parent!._phoneController,
-                focusNode: widget.phoneFocusNode,
-                countries: state.countries,
-                selectedCountryId:
-                    parent!._selectedPhoneCountryId ??
-                    (state.countries.isNotEmpty
-                        ? state.countries.first.id
-                        : null),
-                onCountryChanged: (val) {
-                  parent!.setState(() => parent!._selectedPhoneCountryId = val);
-                },
-                onSubmitted: (_) => parent?._onSubmit(),
-                maxLength: 15,
-                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                errorText: parent!._phoneErrorText,
-              ),
-            ],
-          );
-        } else if (state is LocationsLoading) {
-          return const Center(child: CircularProgressIndicator());
-        } else {
-          return const Text('Error cargando países');
-        }
-      },
     );
   }
 }

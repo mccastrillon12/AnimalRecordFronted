@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 
@@ -18,9 +19,14 @@ class DeepLinkService {
 
   // Keep setValidatePasswordTokenUseCase for compatibility with main.dart
   ValidatePasswordTokenUseCase? _validatePasswordTokenUseCase;
+  ValidatePinTokenUseCase? _validatePinTokenUseCase;
 
   void setValidatePasswordTokenUseCase(ValidatePasswordTokenUseCase useCase) {
     _validatePasswordTokenUseCase = useCase;
+  }
+
+  void setValidatePinTokenUseCase(ValidatePinTokenUseCase useCase) {
+    _validatePinTokenUseCase = useCase;
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -59,31 +65,31 @@ class DeepLinkService {
 
   /// Call this from SplashScreen (or wherever the navigator first stabilises)
   /// to process the cold-start link immediately with zero delays.
-  bool consumePendingLink(GlobalKey<NavigatorState> navigatorKey) {
+  Future<bool> consumePendingLink(GlobalKey<NavigatorState> navigatorKey) async {
     if (_pendingUri == null) return false;
     final uri = _pendingUri!;
     _pendingUri = null;
     debugPrint('[DeepLink] Consuming pending cold-start link: $uri');
-    return _processLink(uri, navigatorKey);
+    return await _processLink(uri, navigatorKey);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
   // Internal
   // ─────────────────────────────────────────────────────────────────────────
 
-  void _handleUri(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
+  Future<void> _handleUri(Uri uri, GlobalKey<NavigatorState> navigatorKey) async {
     debugPrint('[DeepLink] Warm-start link received: $uri');
     if (navigatorKey.currentState == null) {
       // Navigator not ready yet (very unlikely on warm-start); store as pending.
       _pendingUri = uri;
       return;
     }
-    _processLink(uri, navigatorKey);
+    await _processLink(uri, navigatorKey);
   }
 
   /// Navigates to the appropriate screen for [uri].
   /// Returns true if the link was handled.
-  bool _processLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) {
+  Future<bool> _processLink(Uri uri, GlobalKey<NavigatorState> navigatorKey) async {
     final path = uri.path.endsWith('/')
         ? uri.path.substring(0, uri.path.length - 1)
         : uri.path;
@@ -101,8 +107,39 @@ class DeepLinkService {
           identifier = identifier.replaceAll(' ', '+');
         }
 
+        if (identifier != null) {
+          debugPrint('[DeepLink] Validating ${isPinReset ? "PIN" : "password"} token for $identifier');
+          
+          final result = isPinReset 
+              ? await _validatePinTokenUseCase?.call(identifier, token)
+              : await _validatePasswordTokenUseCase?.call(identifier, token);
+
+          if (result == null) {
+            debugPrint('[DeepLink] UseCase not initialized');
+            return false;
+          }
+          
+          final bool isValid = result.fold(
+            (failure) {
+              debugPrint('[DeepLink] Validation failed: ${failure.message}');
+              return false;
+            },
+            (isValid) => isValid,
+          );
+
+          if (!isValid) {
+            debugPrint('[DeepLink] Token is invalid or expired. Redirecting to expired screen.');
+            navigatorKey.currentState?.pushNamedAndRemoveUntil(
+              '/link-expired',
+              (route) => route.settings.name == '/login' || route.isFirst,
+              arguments: {'isPinFlow': isPinReset},
+            );
+            return true;
+          }
+        }
+
         final routeName = isPinReset ? '/reset-pin' : '/reset-password';
-        debugPrint('[DeepLink] Navigating to $routeName');
+        debugPrint('[DeepLink] Token valid. Navigating to $routeName');
 
         navigatorKey.currentState?.pushNamedAndRemoveUntil(
           routeName,
