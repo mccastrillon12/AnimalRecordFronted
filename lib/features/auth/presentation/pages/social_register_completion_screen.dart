@@ -117,6 +117,7 @@ class _SocialRegisterCompletionScreenState
 
     final Map<String, dynamic> data = {
       'preAuthToken': widget.preAuthToken,
+      'name': _nameController.text.trim(),
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
       'cellPhone': _phoneController.text.trim().isEmpty

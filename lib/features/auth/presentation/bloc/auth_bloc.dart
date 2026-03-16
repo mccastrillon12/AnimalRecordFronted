@@ -439,13 +439,28 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       response,
     ) async {
       if (response['status'] == 'NEED_REGISTER') {
+        // En Apple el nombre solo viene la primera vez, así que lo guardamos o recuperamos
+        String? finalFirstName = event.firstName;
+        String? finalLastName = event.lastName;
+
+        if (event.provider == 'APPLE') {
+          if (finalFirstName != null || finalLastName != null) {
+            // Guardarlo por si el usuario se sale y vuelve a entrar
+            await tokenStorage.saveAppleNames(finalFirstName ?? '', finalLastName ?? '');
+          } else {
+            // Intentar recuperar nombres de Apple guardados previamente
+            finalFirstName = await tokenStorage.getAppleFirstName();
+            finalLastName = await tokenStorage.getAppleLastName();
+          }
+        }
+
         // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
         // pero el backend no los tiene (porque no los enviamos en el check)
-        if (event.firstName != null || event.lastName != null) {
+        if (finalFirstName != null || finalLastName != null) {
           final profile =
               (response['profile'] as Map<String, dynamic>?) ?? {};
-          profile['firstName'] = event.firstName ?? profile['firstName'];
-          profile['lastName'] = event.lastName ?? profile['lastName'];
+          profile['firstName'] = finalFirstName ?? profile['firstName'];
+          profile['lastName'] = finalLastName ?? profile['lastName'];
           
           // Crear campo 'name' combinado para compatibilidad con la UI
           final combinedName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
@@ -483,6 +498,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(failure.message)),
       (user) async {
+        // Limpiamos la caché de Apple SignIn si existe
+        await tokenStorage.clearAppleNames();
+
         // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
         if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
           try {
