@@ -18,13 +18,10 @@ import '../bloc/auth_state.dart';
 import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/domain/entities/country_entity.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
-import 'package:keyboard_actions/keyboard_actions.dart';
 import 'welcome_social_page.dart';
-import '../../../../core/services/token_storage.dart';
-import '../../../../core/injection_container.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
@@ -59,7 +56,6 @@ class _SocialRegisterCompletionScreenState
   String? _idErrorText;
   String? _phoneErrorText;
   bool _isNavigating = false;
-  final FocusNode _phoneFocusNode = FocusNode();
 
   @override
   void initState() {
@@ -68,22 +64,6 @@ class _SocialRegisterCompletionScreenState
     _emailController = TextEditingController(text: widget.email);
 
     context.read<LocationsCubit>().fetchCountries();
-
-    if (widget.providerName.toUpperCase() == 'APPLE' && widget.name.trim().isEmpty) {
-      _loadAppleNameBackup();
-    }
-  }
-
-  Future<void> _loadAppleNameBackup() async {
-    final storage = sl<TokenStorage>();
-    final firstName = await storage.getAppleFirstName() ?? '';
-    final lastName = await storage.getAppleLastName() ?? '';
-    final combined = '$firstName $lastName'.trim();
-    if (combined.isNotEmpty && mounted) {
-      setState(() {
-        _nameController.text = combined;
-      });
-    }
   }
 
   @override
@@ -93,7 +73,6 @@ class _SocialRegisterCompletionScreenState
     _phoneController.dispose();
     _nameController.dispose();
     _emailController.dispose();
-    _phoneFocusNode.dispose();
     super.dispose();
   }
 
@@ -135,7 +114,6 @@ class _SocialRegisterCompletionScreenState
 
     final Map<String, dynamic> data = {
       'preAuthToken': widget.preAuthToken,
-      'name': _nameController.text.trim(),
       'identificationNumber': _idController.text.trim(),
       'identificationType': idType,
       'cellPhone': _phoneController.text.trim().isEmpty
@@ -147,11 +125,8 @@ class _SocialRegisterCompletionScreenState
     };
 
     context.read<AuthBloc>().add(
-          SocialRegisterSubmitted(
-            data,
-            nameToUpdate: _nameController.text.trim(),
-          ),
-        );
+      SocialRegisterSubmitted(data, nameToUpdate: _nameController.text.trim()),
+    );
   }
 
   @override
@@ -202,101 +177,69 @@ class _SocialRegisterCompletionScreenState
             },
           ),
         ],
-        child: KeyboardActions(
-          config: KeyboardActionsConfig(
-            keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-            keyboardBarColor: const Color(0xFFD1D5DF),
-            nextFocus: false,
-            actions: [
-              KeyboardActionsItem(
-                focusNode: _phoneFocusNode,
-                displayArrows: false,
-                displayDoneButton: false,
-                toolbarButtons: [
-                  (node) {
-                    return GestureDetector(
-                      onTap: () => node.unfocus(),
-                      child: const Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                        child: Text(
-                          "Aceptar",
-                          style: TextStyle(
-                            color: Colors.blue,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    );
-                  }
-                ],
-              ),
-            ],
+        child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              return ValueListenableBuilder<TextEditingValue>(
+                valueListenable: _idController,
+                builder: (context, value, _) {
+                  final bool isIdFilled = value.text.trim().isNotEmpty;
+
+                  return CustomButton(
+                    text: 'Finalizar',
+                    isLoading: state is AuthLoading,
+                    onPressed: isIdFilled ? _onSubmit : null,
+                  );
+                },
+              );
+            },
           ),
-          child: FixedBottomActionLayout(
-            bottomChild: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                return ValueListenableBuilder<TextEditingValue>(
-                  valueListenable: _idController,
-                  builder: (context, value, _) {
-                    final bool isIdFilled = value.text.trim().isNotEmpty;
-
-                    return CustomButton(
-                      text: 'Finalizar',
-                      isLoading: state is AuthLoading,
-                      onPressed: isIdFilled ? _onSubmit : null,
-                    );
-                  },
-                );
-              },
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.only(
+              top: AppSpacing.xxl,
+              left: AppSpacing.l,
+              right: AppSpacing.l,
             ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.only(
-                top: AppSpacing.xxl,
-                left: AppSpacing.l,
-                right: AppSpacing.l,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    'Finaliza tu registro - Propietario',
-                    style: AppTypography.heading1,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                  Text(
-                    'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                    style: AppTypography.body4,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.l),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Text(
+                  'Finaliza tu registro - Propietario',
+                  style: AppTypography.heading1,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                Text(
+                  'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                  style: AppTypography.body4,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.l),
 
-                  CustomTextField(
-                    label: 'Nombre completo',
-                    controller: _nameController,
-                    enabled: true,
-                    labelStyle: AppTypography.body6.copyWith(
-                      color: const Color(0xFF2E3949).withOpacity(0.3),
-                    ),
+                CustomTextField(
+                  label: 'Nombre completo',
+                  controller: _nameController,
+                  enabled: true,
+                  labelStyle: AppTypography.body6.copyWith(
+                    color: const Color(0xFF2E3949).withOpacity(0.3),
                   ),
-                  const SizedBox(height: AppSpacing.m),
+                ),
+                const SizedBox(height: AppSpacing.m),
 
-                  CustomTextField(
-                    label: 'Correo electrónico',
-                    controller: _emailController,
-                    enabled: false,
-                    validator: ValidationUtils.validateEmail,
-                    labelStyle: AppTypography.body6.copyWith(
-                      color: const Color(0xFF2E3949).withOpacity(0.3),
-                    ),
+                CustomTextField(
+                  label: 'Correo electrónico',
+                  controller: _emailController,
+                  enabled: false,
+                  validator: ValidationUtils.validateEmail,
+                  labelStyle: AppTypography.body6.copyWith(
+                    color: const Color(0xFF2E3949).withOpacity(0.3),
                   ),
-                  const SizedBox(height: AppSpacing.m),
+                ),
+                const SizedBox(height: AppSpacing.m),
 
-                  _CountrySelectionSection(phoneFocusNode: _phoneFocusNode),
-                  const KeyboardSpacer(),
-                ],
-              ),
+                const _CountrySelectionSection(),
+                const KeyboardSpacer(),
+              ],
             ),
           ),
         ),
@@ -306,8 +249,7 @@ class _SocialRegisterCompletionScreenState
 }
 
 class _CountrySelectionSection extends StatefulWidget {
-  final FocusNode phoneFocusNode;
-  const _CountrySelectionSection({required this.phoneFocusNode});
+  const _CountrySelectionSection();
 
   @override
   State<_CountrySelectionSection> createState() =>
@@ -358,7 +300,6 @@ class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
               PhoneInputField(
                 label: 'Número de celular (Opcional)',
                 controller: parent!._phoneController,
-                focusNode: widget.phoneFocusNode,
                 countries: state.countries,
                 selectedCountryId:
                     parent!._selectedPhoneCountryId ??
@@ -368,7 +309,6 @@ class _CountrySelectionSectionState extends State<_CountrySelectionSection> {
                 onCountryChanged: (val) {
                   parent!.setState(() => parent!._selectedPhoneCountryId = val);
                 },
-                onSubmitted: (_) => parent?._onSubmit(),
                 maxLength: 15,
                 inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 errorText: parent!._phoneErrorText,

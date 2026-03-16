@@ -157,16 +157,11 @@ class ResetPasswordSubmitted extends AuthEvent {
 class ValidateResetToken extends AuthEvent {
   final String identifier;
   final String token;
-  final bool isPinFlow;
 
-  ValidateResetToken({
-    required this.identifier,
-    required this.token,
-    this.isPinFlow = false,
-  });
+  ValidateResetToken({required this.identifier, required this.token});
 
   @override
-  List<Object> get props => [identifier, token, isPinFlow];
+  List<Object> get props => [identifier, token];
 }
 
 class ResetPinSubmitted extends AuthEvent {
@@ -207,5 +202,3 @@ class UpdateProfilePictureRequested extends AuthEvent {
   @override
   List<Object?> get props => [imagePath];
 }
-
-class ClearAuthEvent extends AuthEvent {}

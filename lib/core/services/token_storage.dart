@@ -9,36 +9,7 @@ class TokenStorage {
   static const String _userDataKey = 'user_data';
   static const String _biometricsEnabledKey = 'biometrics_enabled';
 
-  static const String _appleFirstNameKey = 'apple_first_name';
-  static const String _appleLastNameKey = 'apple_last_name';
-
   TokenStorage(this._secureStorage);
-
-  Future<void> saveAppleNames(String firstName, String lastName) async {
-    await Future.wait([
-      _secureStorage.write(key: _appleFirstNameKey, value: firstName),
-      _secureStorage.write(key: _appleLastNameKey, value: lastName),
-    ]);
-  }
-
-  Future<String?> getAppleFirstName() async {
-    final val = await _secureStorage.read(key: _appleFirstNameKey);
-    print("TOKEN_STORAGE: getAppleFirstName returned $val");
-    return val;
-  }
-  
-  Future<String?> getAppleLastName() async {
-    final val = await _secureStorage.read(key: _appleLastNameKey);
-    print("TOKEN_STORAGE: getAppleLastName returned $val");
-    return val;
-  }
-
-  Future<void> clearAppleNames() async {
-    await Future.wait([
-      _secureStorage.delete(key: _appleFirstNameKey),
-      _secureStorage.delete(key: _appleLastNameKey),
-    ]);
-  }
 
   Future<void> saveAccessToken(String token) async {
     await _secureStorage.write(key: _accessTokenKey, value: token);

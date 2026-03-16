@@ -1,6 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -11,8 +9,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
-import 'package:app_links/app_links.dart';
-import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -52,54 +48,19 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       _token = args;
     }
 
-    // iOS Safety Net: If arguments are missing, try to extract from current URI as fallback
-    if ((_token == null || _identifier == null)) {
-      AppLinks().getLatestLink().then((value) {
-        if (value != null && mounted) {
-          setState(() {
-            _token ??= value.queryParameters['token'];
-            _identifier ??= value.queryParameters['identifier'] ?? 
-                           value.queryParameters['email'];
-            if (_identifier != null) {
-              _identifier = _identifier!.replaceAll(' ', '+');
-            }
-          });
-          
-          if (_token != null && _identifier != null) {
-            context.read<AuthBloc>().add(
-              ValidateResetToken(identifier: _identifier!, token: _token!),
-            );
-          } else {
-             _redirectToExpired();
-          }
-        } else if (mounted) {
-          _redirectToExpired();
-        }
-      });
-    } else if (_token != null && _identifier != null) {
-      // Arguments were provided via route, but we still want to be sure it's valid if we didn't come from DeepLinkService
-      // or just to be safe. 
-      // However, DeepLinkService already validates. To avoid double validation, 
-      // we can just trust the arguments for now, but let's at least not show the form 
-      // if it was somehow reachable without validation.
-      // For now, let's keep it simple: if we have tokens, we show the form.
-      // The BlocListener will handle the ResetTokenInvalid state if it was triggered elsewhere.
+    if (_token != null && _token!.isNotEmpty && _identifier != null) {
       setState(() {
         _isValid = true;
       });
     } else {
-      _redirectToExpired();
+      Future.microtask(
+        () => Navigator.pushReplacementNamed(
+          context,
+          '/link-expired',
+          arguments: {'isPinFlow': false},
+        ),
+      );
     }
-  }
-
-  void _redirectToExpired() {
-    Future.microtask(
-      () => Navigator.pushReplacementNamed(
-        context,
-        '/link-expired',
-        arguments: {'isPinFlow': false},
-      ),
-    );
   }
 
   @override
@@ -165,7 +126,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
             _isValid = true;
           });
         } else if (state is ResetPasswordSuccess) {
-          ErrorDisplay.showSuccess(context, 'Su contraseña se cambio con exito Inicia sesion');
+          ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         } else if (state is ResetTokenInvalid) {
           Navigator.pushReplacementNamed(
@@ -192,15 +153,8 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         showCancelButton: true,
         showLogo: false,
         title: 'Cambiar contraseña',
-        subtitle: Text(
-          'Establece tu nueva contraseña para acceder a tu cuenta.',
-          style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
-          textAlign: TextAlign.center,
-        ),
-        onCancel: () {
-          context.read<AuthBloc>().add(ClearAuthEvent());
-          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-        },
+        onCancel: () =>
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         child: Column(
           children: [
             Expanded(
@@ -254,7 +208,6 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             },
                           ),
                           const SizedBox(height: AppSpacing.xl),
-                          const KeyboardSpacer(),
                         ],
                       );
                     }
