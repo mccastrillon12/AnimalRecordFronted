@@ -73,7 +73,6 @@ Future<void> init() async {
       forgotPasswordUseCase: sl(),
       resetPasswordUseCase: sl(),
       validatePasswordTokenUseCase: sl(),
-      validatePinTokenUseCase: sl(),
       savePinUseCase: sl(),
       verifyPinUseCase: sl(),
       changePinUseCase: sl(),
