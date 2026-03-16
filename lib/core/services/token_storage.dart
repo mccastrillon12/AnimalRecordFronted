@@ -21,8 +21,17 @@ class TokenStorage {
     ]);
   }
 
-  Future<String?> getAppleFirstName() async => await _secureStorage.read(key: _appleFirstNameKey);
-  Future<String?> getAppleLastName() async => await _secureStorage.read(key: _appleLastNameKey);
+  Future<String?> getAppleFirstName() async {
+    final val = await _secureStorage.read(key: _appleFirstNameKey);
+    print("TOKEN_STORAGE: getAppleFirstName returned $val");
+    return val;
+  }
+  
+  Future<String?> getAppleLastName() async {
+    final val = await _secureStorage.read(key: _appleLastNameKey);
+    print("TOKEN_STORAGE: getAppleLastName returned $val");
+    return val;
+  }
 
   Future<void> clearAppleNames() async {
     await Future.wait([

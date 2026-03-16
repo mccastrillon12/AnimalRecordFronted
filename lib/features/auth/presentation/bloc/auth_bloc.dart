@@ -439,38 +439,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       response,
     ) async {
       if (response['status'] == 'NEED_REGISTER') {
-        // En Apple el nombre solo viene la primera vez, así que lo guardamos o recuperamos
         String? finalFirstName = event.firstName;
         String? finalLastName = event.lastName;
+
+        print("AUTH_BLOC: Initial Apple Names from event: $finalFirstName $finalLastName");
 
         if (event.provider == 'APPLE') {
           if (finalFirstName != null || finalLastName != null) {
             // Guardarlo por si el usuario se sale y vuelve a entrar
             await tokenStorage.saveAppleNames(finalFirstName ?? '', finalLastName ?? '');
+            print("AUTH_BLOC: Saved names to TokenStorage");
           } else {
             // Intentar recuperar nombres de Apple guardados previamente
             finalFirstName = await tokenStorage.getAppleFirstName();
             finalLastName = await tokenStorage.getAppleLastName();
+            print("AUTH_BLOC: Retrieved names from TokenStorage: $finalFirstName $finalLastName");
           }
         }
 
-        // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
-        // pero el backend no los tiene (porque no los enviamos en el check)
+        // Inyectar nombres si fueron proveídos por el proveedor social o recuperados
         if (finalFirstName != null || finalLastName != null) {
           final profile =
               (response['profile'] as Map<String, dynamic>?) ?? {};
           profile['firstName'] = finalFirstName ?? profile['firstName'];
           profile['lastName'] = finalLastName ?? profile['lastName'];
           
-          // Crear campo 'name' combinado para compatibilidad con la UI
           final combinedName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+          print("AUTH_BLOC: Combined Name computed as '$combinedName'");
+          
           if (combinedName.isNotEmpty) {
             profile['name'] = combinedName;
           }
 
-          // Asegurar que el mapa de respuesta tenga el perfil actualizado
           final newResponse = Map<String, dynamic>.from(response);
           newResponse['profile'] = profile;
+
+          print("AUTH_BLOC: Final profile generated: $profile");
 
           emit(SocialAuthNeedRegister(newResponse, provider: event.provider));
           return;

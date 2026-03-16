@@ -23,6 +23,8 @@ import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'welcome_social_page.dart';
+import '../../../../core/services/token_storage.dart';
+import '../../../../core/injection_container.dart';
 
 class SocialRegisterCompletionScreen extends StatefulWidget {
   final String name;
@@ -66,6 +68,22 @@ class _SocialRegisterCompletionScreenState
     _emailController = TextEditingController(text: widget.email);
 
     context.read<LocationsCubit>().fetchCountries();
+
+    if (widget.providerName.toUpperCase() == 'APPLE' && widget.name.trim().isEmpty) {
+      _loadAppleNameBackup();
+    }
+  }
+
+  Future<void> _loadAppleNameBackup() async {
+    final storage = sl<TokenStorage>();
+    final firstName = await storage.getAppleFirstName() ?? '';
+    final lastName = await storage.getAppleLastName() ?? '';
+    final combined = '$firstName $lastName'.trim();
+    if (combined.isNotEmpty && mounted) {
+      setState(() {
+        _nameController.text = combined;
+      });
+    }
   }
 
   @override
