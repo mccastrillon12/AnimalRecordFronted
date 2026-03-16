@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -10,9 +11,7 @@ import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/inputs/pin_input_field.dart';
-import 'package:keyboard_actions/keyboard_actions.dart';
-import 'package:app_links/app_links.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 
 class ResetPinScreen extends StatefulWidget {
   final String identifier;
@@ -29,78 +28,56 @@ class ResetPinScreen extends StatefulWidget {
 }
 
 class _ResetPinScreenState extends State<ResetPinScreen> {
-  final FocusNode _pinFocusNode = FocusNode();
+  final List<TextEditingController> _pinControllers = List.generate(
+    4,
+    (_) => TextEditingController(),
+  );
+  final List<FocusNode> _pinFocusNodes = List.generate(4, (_) => FocusNode());
 
   String _pin = '';
   String? _errorMessage;
-  late String _currentIdentifier;
-  late String _currentToken;
 
   @override
   void initState() {
     super.initState();
-    _currentIdentifier = widget.identifier;
-    _currentToken = widget.token;
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Safety Net: if args are missing, try to recover from URI
-    if (_currentToken.isEmpty || _currentIdentifier.isEmpty) {
-      AppLinks().getLatestLink().then((value) {
-        if (value != null && mounted) {
-          setState(() {
-            if (_currentToken.isEmpty)
-              _currentToken = value.queryParameters['token'] ?? '';
-            if (_currentIdentifier.isEmpty) {
-              _currentIdentifier =
-                  value.queryParameters['identifier'] ??
-                  value.queryParameters['email'] ??
-                  '';
-              _currentIdentifier = _currentIdentifier.replaceAll(' ', '+');
-            }
-          });
-
-          if (_currentToken.isNotEmpty && _currentIdentifier.isNotEmpty) {
-            context.read<AuthBloc>().add(
-              ValidateResetToken(
-                identifier: _currentIdentifier,
-                token: _currentToken,
-                isPinFlow: true,
-              ),
-            );
-          } else {
-            _redirectToExpired();
+    for (int i = 0; i < 4; i++) {
+      _pinFocusNodes[i].onKeyEvent = (FocusNode node, KeyEvent event) {
+        if (event is KeyDownEvent &&
+            event.logicalKey == LogicalKeyboardKey.backspace) {
+          if (_pinControllers[i].text.isEmpty && i > 0) {
+            _pinFocusNodes[i - 1].requestFocus();
+            _pinControllers[i - 1].clear();
+            _onPinChanged(i - 1, '');
+            setState(() {});
+            return KeyEventResult.handled;
           }
-        } else if (mounted) {
-          _redirectToExpired();
         }
-      });
-    } else {
-      // If tokens were passed as arguments, we theoretically trust them because DeepLinkService validated them.
-      // However, ResetTokenValid state will set _isValid if we wanted to be stricter.
-      // For PIN, _isValid isn't explicitly used for the visibility of the whole screen but for error handling.
+        return KeyEventResult.ignored;
+      };
     }
-  }
-
-  void _redirectToExpired() {
-    Navigator.pushReplacementNamed(
-      context,
-      '/link-expired',
-      arguments: {'isPinFlow': true},
-    );
   }
 
   @override
   void dispose() {
-    _pinFocusNode.dispose();
+    for (var c in _pinControllers) {
+      c.dispose();
+    }
+    for (var f in _pinFocusNodes) {
+      f.dispose();
+    }
     super.dispose();
   }
 
-  void _onPinChanged(String value) {
+  void _onPinChanged(int index, String value) {
+    if (value.isNotEmpty && index < 3) {
+      _pinFocusNodes[index + 1].requestFocus();
+    }
+    _updatePin();
+  }
+
+  void _updatePin() {
     setState(() {
-      _pin = value;
+      _pin = _pinControllers.map((c) => c.text).join();
       _errorMessage = null;
     });
   }
@@ -109,8 +86,8 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     if (_pin.length == 4) {
       context.read<AuthBloc>().add(
         ResetPinSubmitted(
-          identifier: _currentIdentifier,
-          token: _currentToken,
+          identifier: widget.identifier,
+          token: widget.token,
           newPin: _pin,
         ),
       );
@@ -122,94 +99,46 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
         if (state is AuthError) {
-          if (state.message.toLowerCase().contains('invalid') ||
-              state.message.toLowerCase().contains('inválido') ||
-              state.message.toLowerCase().contains('expired') ||
-              state.message.toLowerCase().contains('expirado')) {
-            _redirectToExpired();
-          } else {
-            setState(() => _errorMessage = state.message);
-          }
+          setState(() => _errorMessage = state.message);
         }
         if (state is ResetPinSuccess) {
-          ErrorDisplay.showSuccess(
-            context,
-            'Su PIN se cambió con éxito Inicia sesión',
-          );
+          ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },
-      child: KeyboardActions(
-        disableScroll: true,
-        config: KeyboardActionsConfig(
-          keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-          keyboardBarColor: const Color(0xFFD1D5DF),
-          nextFocus: false,
-          actions: [
-            KeyboardActionsItem(
-              focusNode: _pinFocusNode,
-              displayArrows: false,
-              displayDoneButton: false,
-              toolbarButtons: [
-                (node) {
-                  return GestureDetector(
-                    onTap: () => node.unfocus(),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 8.0,
-                      ),
-                      child: Text(
-                        "Aceptar",
-                        style: TextStyle(
-                          color: Colors.blue,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ],
-            ),
-          ],
-        ),
-        child: AuthFormContainer(
-          showLogo: false,
-          title: 'Confirmar PIN',
-          subtitle: Text(
-            'Confirme los 4 números escogidos del nuevo PIN.',
-            style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
-            textAlign: TextAlign.center,
+      child: AuthFormContainer(
+        showLogo: false,
+        title: 'Confirmar PIN',
+        showCancelButton: true,
+        addInternalPadding: false,
+        onCancel: () =>
+            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+        child: FixedBottomActionLayout(
+          bottomChild: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              final isLoading = state is AuthLoading;
+              return CustomButton(
+                text: 'Cambiar',
+                isLoading: isLoading,
+                onPressed: isLoading || _pin.length != 4 ? null : _handleChange,
+              );
+            },
           ),
-          showCancelButton: true,
-          addInternalPadding: false,
-          onCancel: () {
-            context.read<AuthBloc>().add(ClearAuthEvent());
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
-          },
-          child: FixedBottomActionLayout(
-            bottomChild: BlocBuilder<AuthBloc, AuthState>(
-              builder: (context, state) {
-                final isLoading = state is AuthLoading;
-                return CustomButton(
-                  text: 'Cambiar',
-                  isLoading: isLoading,
-                  onPressed: isLoading || _pin.length != 4
-                      ? null
-                      : _handleChange,
-                );
-              },
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                children: [
-                  const SizedBox(height: 48),
-                  _buildPinFields(),
-                  if (_errorMessage != null) _buildError(),
-                ],
-              ),
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              children: [
+                const SizedBox(height: 48),
+                Text(
+                  'Confirme los 4 números escogidos del nuevo PIN.',
+                  style: AppTypography.body3,
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: AppSpacing.xl),
+                _buildPinFields(),
+                if (_errorMessage != null) _buildError(),
+                const KeyboardSpacer(),
+              ],
             ),
           ),
         ),
@@ -218,11 +147,52 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
   }
 
   Widget _buildPinFields() {
-    return PinInputField(
-      pin: _pin,
-      onChanged: _onPinChanged,
-      focusNode: _pinFocusNode,
-      obscureText: true,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(4, (index) {
+        return SizedBox(
+          width: 40,
+          height: 40,
+          child: TextField(
+            controller: _pinControllers[index],
+            focusNode: _pinFocusNodes[index],
+            textAlign: TextAlign.center,
+            keyboardType: TextInputType.number,
+            maxLength: 1,
+            obscureText: true,
+            decoration: InputDecoration(
+              counterText: '',
+              contentPadding: EdgeInsets.zero,
+              enabledBorder: OutlineInputBorder(
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
+                borderSide: const BorderSide(color: Color(0xFFA8AFBD)),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: index == 0
+                    ? const BorderRadius.horizontal(left: Radius.circular(8))
+                    : index == 3
+                    ? const BorderRadius.horizontal(right: Radius.circular(8))
+                    : BorderRadius.zero,
+                borderSide: const BorderSide(
+                  color: AppColors.primaryFrances,
+                  width: 2,
+                ),
+              ),
+            ),
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            onChanged: (value) => _onPinChanged(index, value),
+            onTap: () {
+              _pinControllers[index].selection = TextSelection.fromPosition(
+                TextPosition(offset: _pinControllers[index].text.length),
+              );
+            },
+          ),
+        );
+      }),
     );
   }
 

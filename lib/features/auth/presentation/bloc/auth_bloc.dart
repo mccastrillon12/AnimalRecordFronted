@@ -20,7 +20,6 @@ import 'package:animal_record/features/auth/domain/usecases/update_biometric_sta
 import 'package:animal_record/features/auth/domain/usecases/get_biometric_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_password_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
@@ -49,7 +48,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final ForgotPasswordUseCase forgotPasswordUseCase;
   final ResetPasswordUseCase resetPasswordUseCase;
   final ValidatePasswordTokenUseCase validatePasswordTokenUseCase;
-  final ValidatePinTokenUseCase validatePinTokenUseCase;
   final SavePinUseCase savePinUseCase;
   final VerifyPinUseCase verifyPinUseCase;
   final ChangePinUseCase changePinUseCase;
@@ -77,7 +75,6 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.forgotPasswordUseCase,
     required this.resetPasswordUseCase,
     required this.validatePasswordTokenUseCase,
-    required this.validatePinTokenUseCase,
     required this.savePinUseCase,
     required this.verifyPinUseCase,
     required this.changePinUseCase,
@@ -134,15 +131,12 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
 
     on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
-
-    on<ClearAuthEvent>((event, emit) => emit(AuthInitial()));
   }
 
   Future<void> _onFetchUserRequested(
     FetchUserRequested event,
     Emitter<AuthState> emit,
   ) async {
-    emit(AuthLoading());
     final cachedUser = await tokenStorage.getUserData();
     bool loadedFromCache = false;
 
@@ -179,7 +173,11 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         },
       );
     } else if (!loadedFromCache) {
-      emit(AuthUnauthenticated());
+      emit(
+        AuthError(
+          '¡Cuenta creada con éxito! inicia sesión y comienza a usar AnimalRecord.',
+        ),
+      );
     }
   }
 
@@ -442,13 +440,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
         // pero el backend no los tiene (porque no los enviamos en el check)
         if (event.firstName != null || event.lastName != null) {
-          final profile =
-              (response['profile'] as Map<String, dynamic>?) ?? {};
+          final profile = (response['profile'] as Map<String, dynamic>?) ?? {};
           profile['firstName'] = event.firstName ?? profile['firstName'];
           profile['lastName'] = event.lastName ?? profile['lastName'];
-          
+
           // Crear campo 'name' combinado para compatibilidad con la UI
-          final combinedName = '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'.trim();
+          final combinedName =
+              '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
+                  .trim();
           if (combinedName.isNotEmpty) {
             profile['name'] = combinedName;
           }
@@ -479,41 +478,42 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     emit(AuthLoading());
 
     final result = await registerSocialUseCase(event.data);
-    
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (user) async {
-        // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
-        if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
-          try {
-            final updateResult = await updateProfileUseCase(
-              id: user.id,
-              data: {'name': event.nameToUpdate},
-            );
-            
-            // Si la actualización tuvo éxito, usamos el nuevo usuario con el nombre corregido
-            await updateResult.fold(
-              (f) async {
-                // Si falla el update, procedemos con el usuario original pero logueamos el error
-                sl<Logger>().e('Error actualizando nombre post-registro social: ${f.message}');
-                await _saveUserToCache(user);
-                await _emitAuthSuccessWithBiometrics(user, emit);
-              },
-              (updatedUser) async {
-                await _saveUserToCache(updatedUser);
-                await _emitAuthSuccessWithBiometrics(updatedUser, emit);
-              },
-            );
-            return;
-          } catch (e) {
-            sl<Logger>().e('Error inesperado actualizando nombre: $e');
-          }
-        }
 
-        await _saveUserToCache(user);
-        await _emitAuthSuccessWithBiometrics(user, emit);
-      },
-    );
+    await result.fold((failure) async => emit(AuthError(failure.message)), (
+      user,
+    ) async {
+      // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
+      if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
+        try {
+          final updateResult = await updateProfileUseCase(
+            id: user.id,
+            data: {'name': event.nameToUpdate},
+          );
+
+          // Si la actualización tuvo éxito, usamos el nuevo usuario con el nombre corregido
+          await updateResult.fold(
+            (f) async {
+              // Si falla el update, procedemos con el usuario original pero logueamos el error
+              sl<Logger>().e(
+                'Error actualizando nombre post-registro social: ${f.message}',
+              );
+              await _saveUserToCache(user);
+              await _emitAuthSuccessWithBiometrics(user, emit);
+            },
+            (updatedUser) async {
+              await _saveUserToCache(updatedUser);
+              await _emitAuthSuccessWithBiometrics(updatedUser, emit);
+            },
+          );
+          return;
+        } catch (e) {
+          sl<Logger>().e('Error inesperado actualizando nombre: $e');
+        }
+      }
+
+      await _saveUserToCache(user);
+      await _emitAuthSuccessWithBiometrics(user, emit);
+    });
   }
 
   Future<void> _onSavePinSubmitted(
@@ -733,13 +733,21 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
 
-    final result = event.isPinFlow
-        ? await validatePinTokenUseCase(event.identifier, event.token)
-        : await validatePasswordTokenUseCase(event.identifier, event.token);
+    final result = await validatePasswordTokenUseCase(
+      event.identifier,
+      event.token,
+    );
 
     await result.fold(
       (failure) async {
-        emit(ResetTokenInvalid());
+        if (failure.message.toLowerCase().contains('invalid') ||
+            failure.message.toLowerCase().contains('expired') ||
+            failure.message.toLowerCase().contains('inválido') ||
+            failure.message.toLowerCase().contains('expirado')) {
+          emit(ResetTokenInvalid());
+        } else {
+          emit(ResetTokenInvalid());
+        }
       },
       (isValid) async {
         if (isValid) {
