@@ -12,6 +12,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:app_links/app_links.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 
 class ResetPasswordScreen extends StatefulWidget {
   const ResetPasswordScreen({super.key});
@@ -253,6 +254,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                             },
                           ),
                           const SizedBox(height: AppSpacing.xl),
+                          const KeyboardSpacer(),
                         ],
                       );
                     }

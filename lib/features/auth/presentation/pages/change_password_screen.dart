@@ -9,6 +9,7 @@ import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 
 import 'package:animal_record/core/utils/password_validator.dart';
 
@@ -159,6 +160,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     setState(() => _obscureConfirm = !_obscureConfirm),
               ),
               const SizedBox(height: AppSpacing.l),
+              const KeyboardSpacer(),
             ],
           ),
         ),

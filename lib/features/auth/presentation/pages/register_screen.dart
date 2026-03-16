@@ -22,6 +22,7 @@ import 'package:animal_record/features/locations/domain/entities/country_entity.
 import 'package:uuid/uuid.dart';
 import '../widgets/tag_input_widget.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -34,7 +35,6 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   int _currentStep = 0;
-  final PageController _pageController = PageController();
 
   final nameController = TextEditingController();
   final emailController = TextEditingController();
@@ -301,10 +301,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (_currentStep == _steps.length - 1) {
       _submitRegistration();
     } else {
-      _pageController.nextPage(
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeInOut,
-      );
       setState(() => _currentStep++);
     }
   }
@@ -485,13 +481,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               ),
             ),
       onBack: _currentStep > 0
-          ? () {
-              _pageController.previousPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
-              setState(() => _currentStep--);
-            }
+          ? () => setState(() => _currentStep--)
           : () => Navigator.pop(context),
       onCancel: () => Navigator.pop(context),
       addInternalPadding: false,
@@ -512,10 +502,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Parece que ya tienes una cuenta. Intenta iniciar sesión o restablecer tu contraseña.';
               });
             } else {
-              _pageController.nextPage(
-                duration: const Duration(milliseconds: 300),
-                curve: Curves.easeInOut,
-              );
               setState(() => _currentStep++);
             }
           }
@@ -543,54 +529,57 @@ class _RegisterScreenState extends State<RegisterScreen> {
               );
             },
           ),
-          child: Padding(
-            padding: const EdgeInsets.only(
-              top: AppSpacing.xl,
-              right: AppSpacing.l,
-              left: AppSpacing.l,
-            ),
-            child: KeyboardActions(
-              config: KeyboardActionsConfig(
-                keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-                keyboardBarColor: const Color(0xFFD1D5DF),
-                nextFocus: false,
-                actions: [
-                  KeyboardActionsItem(
-                    focusNode: _phoneFocusNode,
-                    displayArrows: false,
-                    displayDoneButton: false,
-                    toolbarButtons: [
-                      (node) {
-                        return GestureDetector(
-                          onTap: () => node.unfocus(),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                            child: Text(
-                              "Aceptar",
-                              style: TextStyle(
-                                color: Colors.blue,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
+              child: KeyboardActions(
+                config: KeyboardActionsConfig(
+                  keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+                  keyboardBarColor: const Color(0xFFD1D5DF),
+                  nextFocus: false,
+                  actions: [
+                    KeyboardActionsItem(
+                      focusNode: _phoneFocusNode,
+                      displayArrows: false,
+                      displayDoneButton: false,
+                      toolbarButtons: [
+                        (node) {
+                          return GestureDetector(
+                            onTap: () => node.unfocus(),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              child: Text(
+                                "Aceptar",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-                        );
-                      }
+                          );
+                        }
+                      ],
+                    ),
+                  ],
+                ),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.only(
+                    top: AppSpacing.xl,
+                    right: AppSpacing.l,
+                    left: AppSpacing.l,
+                  ),
+                  child: Column(
+                    children: [
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 300),
+                        child: KeyedSubtree(
+                          key: ValueKey(_currentStep),
+                          child: steps[_currentStep],
+                        ),
+                      ),
+                      const KeyboardSpacer(),
                     ],
                   ),
-                ],
+                ),
               ),
-              child: PageView(
-                controller: _pageController,
-                physics: const NeverScrollableScrollPhysics(),
-                children: steps.map((step) {
-                  return SingleChildScrollView(
-                    child: Column(children: [step]),
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
         ),
       ),
     );

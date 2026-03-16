@@ -19,6 +19,7 @@ import '../../../locations/presentation/cubit/locations_cubit.dart';
 import '../../../locations/presentation/cubit/locations_state.dart';
 import '../../../locations/domain/entities/country_entity.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/utils/keyboard_spacer.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'welcome_social_page.dart';
@@ -274,6 +275,7 @@ class _SocialRegisterCompletionScreenState
                   const SizedBox(height: AppSpacing.m),
 
                   _CountrySelectionSection(phoneFocusNode: _phoneFocusNode),
+                  const KeyboardSpacer(),
                 ],
               ),
             ),

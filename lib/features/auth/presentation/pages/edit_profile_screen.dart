@@ -55,22 +55,26 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   bool _hasChangesAndValid(UserEntity user) {
     if (_addressController.text.trim() != user.address) return true;
 
-    if (_phoneController.text.trim() != user.cellPhone) return true;
+    final initialPhone = CountryConstants.stripDialCode(user.cellPhone);
+    if (_phoneController.text.trim() != initialPhone) return true;
 
     final currentCountryId = _selectedPhoneCountryId ?? '';
     if (currentCountryId != user.countryId &&
-        !(currentCountryId.isEmpty && user.countryId.isEmpty))
+        !(currentCountryId.isEmpty && user.countryId.isEmpty)) {
       return true;
+    }
 
     final currentDeptId = _selectedDepartmentId ?? '';
     if (currentDeptId != user.departmentId &&
-        !(currentDeptId.isEmpty && user.departmentId.isEmpty))
+        !(currentDeptId.isEmpty && user.departmentId.isEmpty)) {
       return true;
+    }
 
     final currentCityId = _selectedCityId ?? '';
     if (currentCityId != user.cityId &&
-        !(currentCityId.isEmpty && user.cityId.isEmpty))
+        !(currentCityId.isEmpty && user.cityId.isEmpty)) {
       return true;
+    }
 
     if (user.authMethod == 'PHONE') {
       if (_emailController.text.trim() != user.email) return true;
@@ -555,15 +559,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           'name': _nameController.text,
                                           'address': _addressController.text,
                                           if (user.authMethod == 'PHONE')
-                                            'email': _emailController.text,
+                                            'email': _emailController.text.trim(),
                                           if (user.authMethod == 'EMAIL' ||
                                               user.authMethod == 'GOOGLE')
                                             'cellPhone': cellPhone,
-                                          if (_selectedCityId != null)
-                                            'cityId': _selectedCityId,
-                                          if (_selectedDepartmentId != null)
-                                            'departmentId':
-                                                _selectedDepartmentId,
+                                          // Siempre incluir cityId y departmentId (incluso vacío)
+                                          // para que el backend limpie el valor si el usuario
+                                          // seleccionó "--Seleccionar--"
+                                          'cityId': _selectedCityId ?? '',
+                                          'departmentId': _selectedDepartmentId ?? '',
                                           if (_selectedPhoneCountryId != null)
                                             'countryId': _selectedPhoneCountryId,
                                         };
