@@ -125,9 +125,10 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
-flutter_icons:
+flutter_launcher_icons:
   android: "ic_launcher"
   ios: true
-  image_path: "assets/Logo/Imagotipo_azul.png"
+  image_path: "assets/Logo/logo-app.png"
   min_sdk_android: 21 # android min sdk min:16, default 21
+  remove_alpha_ios: true
 
