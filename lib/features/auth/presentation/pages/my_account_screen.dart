@@ -18,12 +18,12 @@ import 'change_password_screen.dart';
 import 'change_pin_screen.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/constants/country_constants.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:animal_record/core/constants/app_strings.dart';
-
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
 
@@ -230,57 +230,16 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                 ),
               ],
             ),
-            child: Scaffold(
-              resizeToAvoidBottomInset: false,
-              backgroundColor: AppColors.bgOxford,
-              body: SafeArea(
-                child: Column(
-                  children: [
-                    const SizedBox(height: AppSpacing.l),
-                    Expanded(
-                      child: Container(
-                        width: double.infinity,
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(32),
-                            topRight: Radius.circular(32),
-                          ),
-                        ),
-                        child: Column(
-                          children: [
-                            Stack(
-                              children: [
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    top: 80,
-                                    bottom: 24,
-                                  ),
-                                  child: Center(
-                                    child: Text(
-                                      'Mi cuenta',
-                                      style: AppTypography.heading2.copyWith(
-                                        color: AppColors.textPrimary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                Positioned(
-                                  top: 32,
-                                  right: 24,
-                                  child: IconButton(
-                                    onPressed: () => Navigator.pop(context),
-                                    icon: const Icon(Icons.close),
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                  ),
-                                ),
-                              ],
-                            ),
-
-                            Expanded(
-                              child: FixedBottomActionLayout(
-                                bottomChild: CustomButton(
+            child: ModalPageLayout(
+              title: 'Mi cuenta',
+              scrollOnlyWithKeyboard: true,
+              trailingIcon: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              bottomChild: CustomButton(
                                   text: 'Guardar cambios',
                                   isLoading: isUpdating,
                                   onPressed:
@@ -589,7 +548,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 24,
-                                                    vertical: 24,
+                                                    vertical: 12,
                                                   ),
                                               child: Column(
                                                 crossAxisAlignment:
@@ -752,19 +711,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             ),
                                           ],
                                         ),
-                                    ],
+                                        const KeyboardSpacer(),
+                                      ],
+                                    ),
                                   ),
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
           );
         },
       ),

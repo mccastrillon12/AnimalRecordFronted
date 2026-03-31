@@ -23,6 +23,7 @@ import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
 import '../cubit/edit_profile_cubit.dart';
 import '../cubit/edit_profile_state.dart';
 
@@ -298,157 +299,103 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                     ),
                   ],
                 ),
-                child: Scaffold(
-                  resizeToAvoidBottomInset: false,
-                  backgroundColor: AppColors.bgOxford,
-                  body: SafeArea(
-                    child: Column(
-                      children: [
-                        const SizedBox(height: AppSpacing.l),
-                        Expanded(
-                          child: Container(
-                            width: double.infinity,
-                            decoration: const BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.only(
-                                topLeft: Radius.circular(32),
-                                topRight: Radius.circular(32),
-                              ),
-                            ),
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: SingleChildScrollView(
-                                    child: Column(
-                                      children: [
-                                        _buildHeader(context),
-                                        const SizedBox(height: AppSpacing.l),
-                                        _buildAvatar(
-                                          user,
-                                          isUploadingPicture,
-                                          context,
-                                        ),
-                                        const SizedBox(height: AppSpacing.l),
-                                        Text(
-                                          StringFormatters.formatName(user.name),
-                                          style: AppTypography.heading2.copyWith(color: AppColors.textPrimary),
-                                        ),
-                                        const SizedBox(height: AppSpacing.xs),
-                                        Text(
-                                          '${user.identificationType} ${user.identificationNumber}',
-                                          style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
-                                        ),
-                                        const SizedBox(height: AppSpacing.xl),
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              if (user.authMethod == 'PHONE') ...[
-                                                CustomTextField(
-                                                  initialValue: editState.email.value,
-                                                  onChanged: cubit.emailChanged,
-                                                  label: 'Correo electrónico (Opcional)',
-                                                  hint: 'ejemplo@correo.com',
-                                                  keyboardType: TextInputType.emailAddress,
-                                                  errorText: editState.isEmailAttempted && editState.email.isNotValid 
-                                                      ? AppStrings.emailError 
-                                                      : null,
-                                                ),
-                                                const SizedBox(height: AppSpacing.m),
-                                              ],
-                                              _LocationSelector(
-                                                user: user,
-                                                phoneFocusNode: _phoneFocusNode,
-                                                editState: editState,
-                                                cubit: cubit,
-                                              ),
-                                              CustomTextField(
-                                                initialValue: editState.address.value,
-                                                onChanged: cubit.addressChanged,
-                                                label: 'Dirección de residencia (Opcional)',
-                                              ),
-                                              const KeyboardSpacer(),
-                                            ],
-                                          ),
-                                        ),
-                                        const SizedBox(height: AppSpacing.m),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-                                  child: CustomButton(
-                                    text: 'Guardar cambios',
-                                    isLoading: isUpdating,
-                                    onPressed: (isUpdating || !editState.hasChanges || !editState.isValid)
-                                        ? null
-                                        : () {
-                                            String countryPrefix = '';
-                                            final locState = context.read<LocationsCubit>().state;
-                                            if (locState is LocationsLoaded) {
-                                              final cId = editState.phoneCountryId;
-                                              if (cId.isNotEmpty) {
-                                                final country = locState.countries.cast<CountryEntity>().firstWhere(
-                                                      (c) => c.id == cId,
-                                                      orElse: () => locState.countries.first,
-                                                    );
-                                                countryPrefix = country.dialCode;
-                                              }
-                                            }
+                child: ModalPageLayout(
+                  title: 'Perfil',
+                  trailingIcon: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                  bottomPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+                  bottomChild: CustomButton(
+                    text: 'Guardar cambios',
+                    isLoading: isUpdating,
+                    onPressed: (isUpdating || !editState.hasChanges || !editState.isValid)
+                        ? null
+                        : () {
+                            String countryPrefix = '';
+                            final locState = context.read<LocationsCubit>().state;
+                            if (locState is LocationsLoaded) {
+                              final cId = editState.phoneCountryId;
+                              if (cId.isNotEmpty) {
+                                final country = locState.countries.cast<CountryEntity>().firstWhere(
+                                      (c) => c.id == cId,
+                                      orElse: () => locState.countries.first,
+                                    );
+                                countryPrefix = country.dialCode;
+                              }
+                            }
 
-                                            final payload = cubit.buildUpdatePayload(countryPrefix);
-                                            context.read<AuthBloc>().add(
-                                              UpdateProfileRequested(
-                                                userId: user.id,
-                                                data: payload,
-                                              ),
-                                            );
-                                          },
-                                  ),
+                            final payload = cubit.buildUpdatePayload(countryPrefix);
+                            context.read<AuthBloc>().add(
+                              UpdateProfileRequested(
+                                userId: user.id,
+                                data: payload,
+                              ),
+                            );
+                          },
+                  ),
+                  child: Column(
+                    children: [
+                      _buildAvatar(
+                        user,
+                        isUploadingPicture,
+                        context,
+                      ),
+                        const SizedBox(height: AppSpacing.l),
+                        Text(
+                          StringFormatters.formatName(user.name),
+                          style: AppTypography.heading2.copyWith(color: AppColors.textPrimary),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Text(
+                          '${user.identificationType} ${user.identificationNumber}',
+                          style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 24),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              if (user.authMethod == 'PHONE') ...[
+                                CustomTextField(
+                                  initialValue: editState.email.value,
+                                  onChanged: cubit.emailChanged,
+                                  label: 'Correo electrónico (Opcional)',
+                                  hint: 'ejemplo@correo.com',
+                                  keyboardType: TextInputType.emailAddress,
+                                  errorText: editState.isEmailAttempted && editState.email.isNotValid 
+                                      ? AppStrings.emailError 
+                                      : null,
                                 ),
+                                const SizedBox(height: AppSpacing.m),
                               ],
-                            ),
+                              _LocationSelector(
+                                user: user,
+                                phoneFocusNode: _phoneFocusNode,
+                                editState: editState,
+                                cubit: cubit,
+                              ),
+                              CustomTextField(
+                                initialValue: editState.address.value,
+                                onChanged: cubit.addressChanged,
+                                label: 'Dirección de residencia (Opcional)',
+                              ),
+                              const KeyboardSpacer(),
+                            ],
                           ),
                         ),
+                        const SizedBox(height: AppSpacing.m),
                       ],
                     ),
-                  ),
                 ),
               );
             },
           );
         },
       ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 80),
-          child: Center(
-            child: Text(
-              'Perfil',
-              style: AppTypography.heading1.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 32,
-          right: 24,
-          child: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ),
-      ],
     );
   }
 
