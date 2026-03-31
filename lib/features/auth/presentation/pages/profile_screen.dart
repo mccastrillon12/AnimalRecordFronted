@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -39,9 +40,15 @@ class ProfileScreen extends StatelessWidget {
           }
         }
       },
-      child: Scaffold(
-        backgroundColor: AppColors.bgOxford,
-        body: Stack(
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: AppColors.bgOxford,
+          body: Stack(
           children: [
             BlocBuilder<AuthBloc, AuthState>(
               buildWhen: (previous, current) {
@@ -224,7 +231,8 @@ class ProfileScreen extends StatelessWidget {
                 return const SizedBox.shrink();
               },
             ),
-          ],
+            ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -42,9 +43,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: BlocBuilder<AuthBloc, AuthState>(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark, // iconos oscuros sobre fondo claro
+        statusBarBrightness: Brightness.light,    // para iOS
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! AuthSuccess) {
             return const Center(child: CircularProgressIndicator());
@@ -65,6 +72,7 @@ class _HomeScreenState extends State<HomeScreen> {
           );
         },
       ),
+     ),
     );
   }
 }

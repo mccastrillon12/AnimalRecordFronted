@@ -1,8 +1,15 @@
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import 'fixed_bottom_action_layout.dart';
+
+const _statusBarStyle = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarIconBrightness: Brightness.light, // iconos blancos sobre fondo oscuro
+  statusBarBrightness: Brightness.dark,
+);
 
 class ModalPageLayout extends StatelessWidget {
   final String title;
@@ -81,8 +88,60 @@ class ModalPageLayout extends StatelessWidget {
 
     // Layout con botón fijo en la parte inferior
     if (bottomChild != null) {
-      return Scaffold(
-        resizeToAvoidBottomInset: false,
+      return AnnotatedRegion<SystemUiOverlayStyle>(
+        value: _statusBarStyle,
+        child: Scaffold(
+          resizeToAvoidBottomInset: false,
+          backgroundColor: AppColors.bgOxford,
+          body: SafeArea(
+            child: Column(
+              children: [
+                const SizedBox(height: AppSpacing.l),
+                Expanded(
+                  child: Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(32),
+                        topRight: Radius.circular(32),
+                      ),
+                    ),
+                    child: Stack(
+                      children: [
+                        FixedBottomActionLayout(
+                          padding: bottomPadding,
+                          bottomChild: bottomChild!,
+                          child: SingleChildScrollView(
+                            physics: physics,
+                            child: SizedBox(
+                              width: double.infinity,
+                              child: Column(
+                                children: [
+                                  _buildHeaderTitle(),
+                                  child,
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        _buildTrailingContent(context),
+                        if (headerChildren != null) ...headerChildren!,
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Layout scrollable sin botón fijo
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: _statusBarStyle,
+      child: Scaffold(
         backgroundColor: AppColors.bgOxford,
         body: SafeArea(
           child: Column(
@@ -100,18 +159,17 @@ class ModalPageLayout extends StatelessWidget {
                   ),
                   child: Stack(
                     children: [
-                      FixedBottomActionLayout(
-                        padding: bottomPadding,
-                        bottomChild: bottomChild!,
-                        child: SingleChildScrollView(
-                          physics: physics,
-                          child: SizedBox(
-                            width: double.infinity,
+                      SingleChildScrollView(
+                        physics: physics,
+                        child: Container(
+                          width: double.infinity,
+                          constraints: BoxConstraints(
+                            minHeight: MediaQuery.of(context).size.height - 100,
+                          ),
+                          child: IntrinsicHeight(
                             child: Column(
-                              children: [
-                                _buildHeaderTitle(),
-                                child,
-                              ],
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [_buildHeaderTitle(), child],
                             ),
                           ),
                         ),
@@ -124,51 +182,6 @@ class ModalPageLayout extends StatelessWidget {
               ),
             ],
           ),
-        ),
-      );
-    }
-
-    // Layout scrollable sin botón fijo
-    return Scaffold(
-      backgroundColor: AppColors.bgOxford,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const SizedBox(height: AppSpacing.l),
-            Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(32),
-                    topRight: Radius.circular(32),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    SingleChildScrollView(
-                      physics: physics,
-                      child: Container(
-                        width: double.infinity,
-                        constraints: BoxConstraints(
-                          minHeight: MediaQuery.of(context).size.height - 100,
-                        ),
-                        child: IntrinsicHeight(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [_buildHeaderTitle(), child],
-                          ),
-                        ),
-                      ),
-                    ),
-                    _buildTrailingContent(context),
-                    if (headerChildren != null) ...headerChildren!,
-                  ],
-                ),
-              ),
-            ),
-          ],
         ),
       ),
     );
