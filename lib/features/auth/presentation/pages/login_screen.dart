@@ -358,6 +358,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (!widget.hideBiometrics) ...[
                     Center(child: _BiometricButton()),
+                  ] else ...[
+                    const SizedBox(height: 48),
                   ],
 
                   Row(
