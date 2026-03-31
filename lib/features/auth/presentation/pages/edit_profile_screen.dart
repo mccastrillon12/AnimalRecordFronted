@@ -610,7 +610,7 @@ Widget _buildHeader(BuildContext context) {
           ),
         ),
         Positioned(
-          top: 24,
+          top: 32,
           right: 24,
           child: IconButton(
             onPressed: () => Navigator.pop(context),

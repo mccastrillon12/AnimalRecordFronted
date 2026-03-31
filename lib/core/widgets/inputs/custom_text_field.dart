@@ -1,4 +1,4 @@
-import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -68,7 +68,7 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> {
   late FocusNode _focusNode;
-  Timer? _debounceTimer;
+
   String? _internalErrorText;
 
   @override
@@ -84,7 +84,6 @@ class _CustomTextFieldState extends State<CustomTextField> {
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -111,9 +110,6 @@ class _CustomTextFieldState extends State<CustomTextField> {
   void _onChanged(String val) {
     if (_internalErrorText != null) {
       _runAutoValidation();
-    } else {
-      _debounceTimer?.cancel();
-      _debounceTimer = Timer(const Duration(seconds: 2), _runAutoValidation);
     }
   }
 

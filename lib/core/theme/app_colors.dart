@@ -25,6 +25,9 @@ class AppColors {
   static const Color greyTextos = Color(0xFF2E3949);
   static const Color greyNegro = Color(0xFF0F1925);
   static const Color greyNegroV2 = Color(0xFF2E3949);
+  
+  static const Color iosKeyboardGray = Color(0xFFD1D5DF);
+  static const Color overlayBlack = Colors.black54;
 
   static const Color background = bgBlancoAntiFlash;
   static const Color error = errorRojo;

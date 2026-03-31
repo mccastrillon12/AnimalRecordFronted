@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import 'fixed_bottom_action_layout.dart';
+import '../buttons/app_close_button.dart';
 
 class ModalPageLayout extends StatelessWidget {
   final String title;
@@ -41,27 +42,7 @@ class ModalPageLayout extends StatelessWidget {
           right: 24,
           child:
               trailingIcon ??
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  GestureDetector(
-                    onTap: onClose ?? () => Navigator.pop(context),
-                    child: Text(
-                      'Cancelar',
-                      style: AppTypography.body4.copyWith(
-                        color: const Color(0xFF59667A),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  IconButton(
-                    onPressed: onClose ?? () => Navigator.pop(context),
-                    icon: const Icon(Icons.close),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                ],
-              ),
+              AppCloseButton(onClose: onClose),
         ),
         if (headerChildren != null) ...headerChildren!,
       ],

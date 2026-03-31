@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/widgets/buttons/app_back_button.dart';
+import '../../../../core/widgets/buttons/app_close_button.dart';
 class AuthFormContainer extends StatelessWidget {
   final Widget child;
   final VoidCallback? onBack;
@@ -45,18 +46,7 @@ class AuthFormContainer extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     if (onBack != null)
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          'assets/icons/arrow-left.svg',
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
-                          ),
-                          width: 24,
-                          height: 24,
-                        ),
-                        onPressed: onBack,
-                      )
+                      AppBackButton(onPressed: onBack)
                     else
                       const SizedBox(width: 48, height: 48),
 
@@ -73,20 +63,9 @@ class AuthFormContainer extends StatelessWidget {
                       ),
 
                     if (showCancelButton)
-                      GestureDetector(
-                        onTap: onCancel ?? () => Navigator.pop(context),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Cancelar',
-                              style: AppTypography.body4.copyWith(
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.xs),
-                            const Icon(Icons.close, color: Colors.white),
-                          ],
-                        ),
+                      AppCloseButton(
+                        onClose: onCancel,
+                        contentColor: Colors.white,
                       )
                     else
                       const SizedBox(width: 48, height: 48),

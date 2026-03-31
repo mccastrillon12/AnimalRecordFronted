@@ -558,7 +558,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: KeyboardActions(
                 config: KeyboardActionsConfig(
                   keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-                  keyboardBarColor: const Color(0xFFD1D5DF),
+                  keyboardBarColor: AppColors.iosKeyboardGray,
                   nextFocus: false,
                   actions: [
                     KeyboardActionsItem(

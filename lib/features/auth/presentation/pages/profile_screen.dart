@@ -12,6 +12,7 @@ import 'package:animal_record/features/auth/presentation/widgets/biometric_disab
 import 'package:animal_record/features/auth/presentation/widgets/biometric_enable_dialog.dart';
 import 'package:animal_record/features/auth/presentation/pages/biometric_activation_screen.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/layout/app_header.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -71,21 +72,9 @@ class ProfileScreen extends StatelessWidget {
                   child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 12, 0, 0),
-                          child: Row(
-                            children: [
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ],
-                          ),
+                        const Padding(
+                          padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: AppHeader(),
                         ),
 
                         Column(
@@ -196,100 +185,7 @@ class ProfileScreen extends StatelessWidget {
 
                         const SizedBox(height: AppSpacing.xl),
 
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                              children: [
-                                _buildOptionTile(
-                                  icon: 'assets/icons/bold-frame.svg',
-                                  label: 'Mi cuenta',
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/my-account');
-                                  },
-                                ),
-                                Divider(color: AppColors.greyClaro, height: 1),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/notification.svg',
-                                  label: 'Notificaciones',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Language.svg',
-                                  label: 'Idiomas',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/scan-eye.svg',
-                                  label: 'Ingreso con biometría',
-                                  onTap: () {
-                                    if (state is AuthSuccess &&
-                                        state.isBiometricEnabled) {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            BiometricDisableDialog(
-                                              onDisable: () {
-                                                context.read<AuthBloc>().add(
-                                                  UpdateBiometricStatusRequested(
-                                                    false,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                      );
-                                    } else {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => BiometricEnableDialog(
-                                          onEnable: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const BiometricActivationScreen(),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                                Divider(color: AppColors.greyClaro, height: 1),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Help.svg',
-                                  label: 'Centro de ayuda',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Terms.svg',
-                                  label: 'Términos y Políticas',
-                                  onTap: () {},
-                                ),
-
-                                _buildOptionTile(
-                                  icon: 'assets/icons/logout.svg',
-                                  label: 'Cerrar sesión',
-                                  color: const Color(0xFFF26F49),
-                                  onTap: () {
-                                    context.read<AuthBloc>().add(
-                                      LogoutRequested(),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        _buildOptionsList(context, state),
                         const SizedBox(height: AppSpacing.xl),
 
                         Image.asset(
@@ -443,5 +339,101 @@ class ProfileScreen extends StatelessWidget {
     });
 
     return formattedParts.join(' ');
+  }
+
+  Widget _buildOptionsList(BuildContext context, AuthState state) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.l,
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            _buildOptionTile(
+              icon: 'assets/icons/bold-frame.svg',
+              label: 'Mi cuenta',
+              onTap: () {
+                Navigator.pushNamed(context, '/my-account');
+              },
+            ),
+            Divider(color: AppColors.greyClaro, height: 1),
+            _buildOptionTile(
+              icon: 'assets/icons/notification.svg',
+              label: 'Notificaciones',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/Language.svg',
+              label: 'Idiomas',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/scan-eye.svg',
+              label: 'Ingreso con biometría',
+              onTap: () {
+                if (state is AuthSuccess &&
+                    state.isBiometricEnabled) {
+                  showDialog(
+                    context: context,
+                    builder: (context) =>
+                        BiometricDisableDialog(
+                          onDisable: () {
+                            context.read<AuthBloc>().add(
+                              UpdateBiometricStatusRequested(
+                                false,
+                              ),
+                            );
+                          },
+                        ),
+                  );
+                } else {
+                  showDialog(
+                    context: context,
+                    builder: (context) => BiometricEnableDialog(
+                      onEnable: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const BiometricActivationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+              },
+            ),
+            Divider(color: AppColors.greyClaro, height: 1),
+            _buildOptionTile(
+              icon: 'assets/icons/Help.svg',
+              label: 'Centro de ayuda',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/Terms.svg',
+              label: 'Términos y Políticas',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/logout.svg',
+              label: 'Cerrar sesión',
+              color: const Color(0xFFF26F49),
+              onTap: () {
+                context.read<AuthBloc>().add(
+                  LogoutRequested(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
