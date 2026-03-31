@@ -202,3 +202,5 @@ class UpdateProfilePictureRequested extends AuthEvent {
   @override
   List<Object?> get props => [imagePath];
 }
+
+class DeleteProfilePictureRequested extends AuthEvent {}

@@ -144,46 +144,64 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.greyBordes,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        final authState = context.read<AuthBloc>().state;
+        final profilePicture = authState is AuthSuccess ? authState.user.profilePicture : null;
+        final hasPhoto = profilePicture != null && profilePicture.isNotEmpty;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyBordes,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const Text(
-                'Cambiar foto de perfil',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Tomar foto'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Elegir de la galería'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
+                const Text(
+                  'Cambiar foto de perfil',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Tomar foto'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Elegir de la galería'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                if (hasPhoto)
+                  ListTile(
+                    leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                    title: const Text(
+                      'Eliminar foto',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.read<AuthBloc>().add(DeleteProfilePictureRequested());
+                    },
+                  ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

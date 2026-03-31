@@ -33,6 +33,8 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:logger/logger.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -131,6 +133,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
 
     on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
+
+    on<DeleteProfilePictureRequested>(_onDeleteProfilePicture);
   }
 
   Future<void> _onFetchUserRequested(
@@ -329,6 +333,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   ) async {
     emit(AuthLoading());
     await logoutUseCase();
+
+    // Limpiar sesiones sociales para forzar el selector de cuentas en el próximo login
+    try {
+      final googleSignIn = google_sign_in.GoogleSignIn();
+      await googleSignIn.signOut();
+      await googleSignIn.disconnect();
+    } catch (_) {}
+
+    try {
+      final microsoftAuth = sl<MicrosoftAuthService>();
+      await microsoftAuth.signOut();
+    } catch (_) {}
+
     emit(AuthInitial());
   }
 
@@ -895,6 +912,78 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
                 ),
               );
             },
+          );
+        },
+      );
+    } catch (e) {
+      emit(
+        currentState.copyWith(
+          isUploadingPicture: false,
+          profilePictureError: 'Error inesperado: ${e.toString()}',
+        ),
+      );
+    }
+  }
+
+  Future<void> _onDeleteProfilePicture(
+    DeleteProfilePictureRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccess) return;
+
+    emit(
+      currentState.copyWith(
+        isUploadingPicture: true,
+        profilePictureError: null,
+      ),
+    );
+
+    try {
+      // Enviamos cadena vacía para "limpiar" la foto en el backend
+      final result = await confirmProfilePictureUseCase('');
+
+      await result.fold(
+        (failure) async {
+          emit(
+            currentState.copyWith(
+              isUploadingPicture: false,
+              profilePictureError: failure.message,
+            ),
+          );
+        },
+        (_) async {
+          final oldUser = currentState.user;
+          final updatedUser = UserModel(
+            id: oldUser.id,
+            name: oldUser.name,
+            identificationType: oldUser.identificationType,
+            identificationNumber: oldUser.identificationNumber,
+            country: oldUser.country,
+            countryId: oldUser.countryId,
+            departmentId: oldUser.departmentId,
+            city: oldUser.city,
+            cityId: oldUser.cityId,
+            address: oldUser.address,
+            email: oldUser.email,
+            cellPhone: oldUser.cellPhone,
+            professionalCard: oldUser.professionalCard,
+            animalTypes: oldUser.animalTypes,
+            services: oldUser.services,
+            isHomeDelivery: oldUser.isHomeDelivery,
+            roles: oldUser.roles,
+            authMethod: oldUser.authMethod,
+            isVerified: oldUser.isVerified,
+            profilePicture: '', // Limpiamos la URL
+          );
+
+          await _saveUserToCache(updatedUser);
+          emit(
+            AuthSuccess(
+              updatedUser,
+              isUploadingPicture: false,
+              isBiometricEnabled: currentState.isBiometricEnabled,
+            ),
           );
         },
       );

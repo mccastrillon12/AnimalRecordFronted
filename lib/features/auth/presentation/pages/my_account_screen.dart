@@ -357,23 +357,17 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             if (isPhoneLogin) ...[
                                               Text(
                                                 'Celular',
-                                                style: AppTypography.body5
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
+                                                style: AppTypography.body6.copyWith(
+                                                  color: AppColors.textSecondary,
+                                                ),
                                               ),
-                                              const SizedBox(
-                                                height: AppSpacing.xs,
-                                              ),
+                                              const SizedBox(height: AppSpacing.xs),
                                               DataValueBox(
                                                 value: user.cellPhone.isNotEmpty
                                                     ? user.cellPhone
                                                     : 'No registrado',
                                               ),
-                                              const SizedBox(
-                                                height: AppSpacing.s,
-                                              ),
+                                              const SizedBox(height: AppSpacing.s),
                                               RichText(
                                                 text: TextSpan(
                                                   style: AppTypography.body6
@@ -397,17 +391,16 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                             decoration:
                                                                 TextDecoration
                                                                     .underline,
+                                                            height: 1.5,
                                                           ),
                                                     ),
                                                   ],
                                                 ),
                                               ),
-                                              const SizedBox(
-                                                height: AppSpacing.l,
-                                              ),
+                                              const SizedBox(height: AppSpacing.l),
                                               CustomTextField(
                                                 controller: _emailController,
-                                                label: 'Correo electrónico',
+                                                label: 'Correo electrónico (Opcional)',
                                                 maxLength: 50,
                                                 validator: ValidationUtils
                                                     .validateEmail,
@@ -452,11 +445,12 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .copyWith(
                                                             color: AppColors
                                                                 .primaryFrances,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                          ),
-                                                    ),
+                                                              decoration:
+                                                                  TextDecoration
+                                                                      .underline,
+                                                              height: 1.5,
+                                                            ),
+                                                      ),
                                                   ],
                                                 ),
                                               ),
