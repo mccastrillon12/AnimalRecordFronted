@@ -100,56 +100,60 @@ class UserHeader extends StatelessWidget {
                         }
                       }
 
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          SizedBox(
-                            height: 21,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: 'Hola, ',
-                                      style: AppTypography.heading2.copyWith(
-                                        color: AppColors.white.withOpacity(
-                                          0.54,
+                      return GestureDetector(
+                        onTap: () => Navigator.pushNamed(context, '/profile'),
+                        behavior: HitTestBehavior.opaque,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox(
+                              height: 21,
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Hola, ',
+                                        style: AppTypography.heading2.copyWith(
+                                          color: AppColors.white.withOpacity(
+                                            0.54,
+                                          ),
+                                          fontWeight: FontWeight.normal,
                                         ),
-                                        fontWeight: FontWeight.normal,
                                       ),
-                                    ),
-                                    TextSpan(
-                                      text: _formatName(name),
-                                      style: AppTypography.heading2.copyWith(
-                                        color: AppColors.white,
-                                        fontWeight: FontWeight.bold,
+                                      TextSpan(
+                                        text: _formatName(name),
+                                        style: AppTypography.heading2.copyWith(
+                                          color: AppColors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 1,
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(height: 4),
+
+                            Container(
+                              height: 21,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                role,
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.primaryAzulClaro,
                                 ),
                                 overflow: TextOverflow.ellipsis,
                                 maxLines: 1,
                               ),
                             ),
-                          ),
-
-                          const SizedBox(height: 4),
-
-                          Container(
-                            height: 21,
-                            alignment: Alignment.centerLeft,
-                            child: Text(
-                              role,
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.primaryAzulClaro,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   ),
