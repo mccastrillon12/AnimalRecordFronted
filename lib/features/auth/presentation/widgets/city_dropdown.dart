@@ -61,6 +61,14 @@ class _CityDropdownState extends State<CityDropdown> {
         .where((c) => c.name.trim().isNotEmpty)
         .toList();
 
+    // Same bottom boundary as the fixed button:
+    //   screenHeight - safeArea.bottom - buttonBottomPadding(24) - buttonHeight(36)
+    final mq = MediaQuery.of(context);
+    final position = renderBox.localToGlobal(Offset.zero);
+    final dropdownTop = position.dy + AppSpacing.inputHeight;
+    final bottomBoundary = mq.size.height - mq.padding.bottom - 88.0;
+    final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(80.0, 200.0);
+
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -87,7 +95,7 @@ class _CityDropdownState extends State<CityDropdown> {
                     borderRadius: BorderRadius.circular(4),
                     color: Colors.white,
                   ),
-                  constraints: const BoxConstraints(maxHeight: 200),
+                  constraints: BoxConstraints(maxHeight: maxDropdownHeight),
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,
