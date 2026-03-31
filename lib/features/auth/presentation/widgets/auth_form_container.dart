@@ -38,9 +38,9 @@ class AuthFormContainer extends StatelessWidget {
         child: Column(
           children: [
             Transform.translate(
-              offset: const Offset(0, 40),
+              offset: const Offset(0, 48),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
 
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,

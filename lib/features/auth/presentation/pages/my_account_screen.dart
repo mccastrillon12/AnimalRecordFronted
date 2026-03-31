@@ -22,6 +22,7 @@ import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
 import '../../../../core/constants/country_constants.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:animal_record/core/constants/app_strings.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -500,6 +501,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .digitsOnly,
                                                     ],
                                                     isOptional: true,
+                                                    errorText: _phoneController.text.trim().isNotEmpty &&
+                                                        _phoneController.text.replaceAll(RegExp(r'\D'), '').length < 10
+                                                        ? AppStrings.phoneError
+                                                        : null,
                                                   );
                                                 },
                                               ),

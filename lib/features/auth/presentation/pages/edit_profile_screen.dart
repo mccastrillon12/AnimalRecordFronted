@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -352,7 +353,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                                                   hint: 'ejemplo@correo.com',
                                                   keyboardType: TextInputType.emailAddress,
                                                   errorText: editState.isEmailAttempted && editState.email.isNotValid 
-                                                      ? 'Correo inválido' 
+                                                      ? AppStrings.emailError 
                                                       : null,
                                                 ),
                                                 const SizedBox(height: AppSpacing.m),
@@ -596,7 +597,7 @@ class _LocationSelector extends StatelessWidget {
                   }
                 },
                 errorText: editState.isPhoneAttempted && editState.phone.isNotValid && editState.phone.value.isNotEmpty
-                    ? 'Teléfono inválido' 
+                    ? AppStrings.phoneError 
                     : null,
                 isOptional: true,
               ),
