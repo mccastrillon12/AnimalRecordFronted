@@ -37,7 +37,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  
+
   late FocusNode _phoneFocusNode;
 
   String? _selectedPhoneCountryId;
@@ -51,7 +51,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _phoneFocusNode = FocusNode();
 
     context.read<LocationsCubit>().fetchCountries();
-    
+
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
@@ -65,13 +65,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       } else {
         _emailController.text = user.email;
         if (user.cellPhone.isNotEmpty) {
-          _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+          _phoneController.text = CountryConstants.stripDialCode(
+            user.cellPhone,
+          );
         }
         if (user.countryId.isNotEmpty) {
           _selectedPhoneCountryId = user.countryId;
         }
       }
-      
+
       // Async: strip again more precisely once countries are loaded
       _stripDialCodeAsync(user);
     }
@@ -83,7 +85,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final cubit = context.read<LocationsCubit>();
     await cubit.fetchCountries();
     if (!mounted) return;
-    
+
     final locState = cubit.state;
     if (locState is LocationsLoaded && user.countryId.isNotEmpty) {
       try {
@@ -92,7 +94,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         );
         final purePrefix = country.dialCode.replaceAll('+', '');
         if (_phoneController.text.startsWith(purePrefix)) {
-          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+          _phoneController.text = _phoneController.text.substring(
+            purePrefix.length,
+          );
         }
       } catch (_) {}
     }
@@ -101,7 +105,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   void _onFieldChanged() {
     setState(() {});
   }
-
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -208,7 +211,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       return GestureDetector(
                         onTap: () => node.unfocus(),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          ),
                           child: Text(
                             "Aceptar",
                             style: TextStyle(
@@ -219,7 +225,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           ),
                         ),
                       );
-                    }
+                    },
                   ],
                 ),
               ],
@@ -230,98 +236,126 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               body: SafeArea(
                 child: Column(
                   children: [
-                  const SizedBox(height: AppSpacing.l),
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32),
+                    const SizedBox(height: AppSpacing.l),
+                    Expanded(
+                      child: Container(
+                        width: double.infinity,
+                        decoration: const BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(32),
+                            topRight: Radius.circular(32),
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          Stack(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: 80,
-                                  bottom: 24,
-                                ),
-                                child: Center(
-                                  child: Text(
-                                    'Mi cuenta',
-                                    style: AppTypography.heading2.copyWith(
-                                      color: AppColors.textPrimary,
+                        child: Column(
+                          children: [
+                            Stack(
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    top: 80,
+                                    bottom: 24,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Mi cuenta',
+                                      style: AppTypography.heading2.copyWith(
+                                        color: AppColors.textPrimary,
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              Positioned(
-                                top: 32,
-                                right: 24,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
+                                Positioned(
+                                  top: 32,
+                                  right: 24,
+                                  child: IconButton(
+                                    onPressed: () => Navigator.pop(context),
+                                    icon: const Icon(Icons.close),
+                                    padding: EdgeInsets.zero,
+                                    constraints: const BoxConstraints(),
+                                  ),
                                 ),
-                              ),
-                            ],
-                          ),
+                              ],
+                            ),
 
-                          Expanded(
-                            child: FixedBottomActionLayout(
-                              bottomChild: CustomButton(
-                                text: 'Guardar cambios',
-                                isLoading: isUpdating,
-                                onPressed:
-                                    (isUpdating || !_hasChangesAndValid(user))
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          String cellPhone = _phoneController.text.trim();
-                                          String? finalCountryId = _selectedPhoneCountryId ?? (user.countryId.isNotEmpty ? user.countryId : null);
-                                          
-                                          if (cellPhone.isNotEmpty && finalCountryId != null) {
-                                            final locState = context.read<LocationsCubit>().state;
-                                            if (locState is LocationsLoaded) {
-                                              try {
-                                                final country = locState.countries.firstWhere(
-                                                  (c) => c.id == finalCountryId,
-                                                );
-                                                final prefix = country.dialCode;
-                                                final purePrefix = prefix.replaceAll('+', '');
-                                                String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
-                                                if (numbersOnly.startsWith(purePrefix)) {
-                                                  numbersOnly = numbersOnly.substring(purePrefix.length);
-                                                }
-                                                cellPhone = '$prefix$numbersOnly';
-                                              } catch (_) {}
+                            Expanded(
+                              child: FixedBottomActionLayout(
+                                bottomChild: CustomButton(
+                                  text: 'Guardar cambios',
+                                  isLoading: isUpdating,
+                                  onPressed:
+                                      (isUpdating || !_hasChangesAndValid(user))
+                                      ? null
+                                      : () {
+                                          if (_formKey.currentState!
+                                              .validate()) {
+                                            String cellPhone = _phoneController
+                                                .text
+                                                .trim();
+                                            String? finalCountryId =
+                                                _selectedPhoneCountryId ??
+                                                (user.countryId.isNotEmpty
+                                                    ? user.countryId
+                                                    : null);
+
+                                            if (cellPhone.isNotEmpty &&
+                                                finalCountryId != null) {
+                                              final locState = context
+                                                  .read<LocationsCubit>()
+                                                  .state;
+                                              if (locState is LocationsLoaded) {
+                                                try {
+                                                  final country = locState
+                                                      .countries
+                                                      .firstWhere(
+                                                        (c) =>
+                                                            c.id ==
+                                                            finalCountryId,
+                                                      );
+                                                  final prefix =
+                                                      country.dialCode;
+                                                  final purePrefix = prefix
+                                                      .replaceAll('+', '');
+                                                  String numbersOnly = cellPhone
+                                                      .replaceAll(
+                                                        RegExp(r'\D'),
+                                                        '',
+                                                      );
+                                                  if (numbersOnly.startsWith(
+                                                    purePrefix,
+                                                  )) {
+                                                    numbersOnly = numbersOnly
+                                                        .substring(
+                                                          purePrefix.length,
+                                                        );
+                                                  }
+                                                  cellPhone =
+                                                      '$prefix$numbersOnly';
+                                                } catch (_) {}
+                                              }
                                             }
+
+                                            final updatedData =
+                                                <String, dynamic>{
+                                                  'name': _nameController.text,
+                                                  if (isPhoneLogin)
+                                                    'email':
+                                                        _emailController.text,
+                                                  if (!isPhoneLogin &&
+                                                      cellPhone.isNotEmpty)
+                                                    'cellPhone': cellPhone,
+                                                  if (finalCountryId != null)
+                                                    'countryId': finalCountryId,
+                                                };
+                                            context.read<AuthBloc>().add(
+                                              UpdateProfileRequested(
+                                                userId: user.id,
+                                                data: updatedData,
+                                              ),
+                                            );
                                           }
-                                          
-                                          final updatedData = <String, dynamic>{
-                                            'name': _nameController.text,
-                                            if (isPhoneLogin)
-                                              'email': _emailController.text,
-                                            if (!isPhoneLogin && cellPhone.isNotEmpty)
-                                              'cellPhone': cellPhone,
-                                            if (finalCountryId != null)
-                                              'countryId': finalCountryId,
-                                          };
-                                          context.read<AuthBloc>().add(
-                                            UpdateProfileRequested(
-                                              userId: user.id,
-                                              data: updatedData,
-                                            ),
-                                          );
-                                        }
-                                      },
-                              ),
-                              child: SingleChildScrollView(
+                                        },
+                                ),
                                 child: Form(
                                   key: _formKey,
                                   child: Column(
@@ -501,8 +535,20 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                                           .digitsOnly,
                                                     ],
                                                     isOptional: true,
-                                                    errorText: _phoneController.text.trim().isNotEmpty &&
-                                                        _phoneController.text.replaceAll(RegExp(r'\D'), '').length < 10
+                                                    errorText:
+                                                        _phoneController.text
+                                                                .trim()
+                                                                .isNotEmpty &&
+                                                            _phoneController
+                                                                    .text
+                                                                    .replaceAll(
+                                                                      RegExp(
+                                                                        r'\D',
+                                                                      ),
+                                                                      '',
+                                                                    )
+                                                                    .length <
+                                                                10
                                                         ? AppStrings.phoneError
                                                         : null,
                                                   );
@@ -641,7 +687,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                               padding:
                                                   const EdgeInsets.symmetric(
                                                     horizontal: 24,
-                                                    vertical: 24,
+                                                    vertical: 14,
                                                   ),
                                               child: Column(
                                                 crossAxisAlignment:
@@ -706,26 +752,22 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                             ),
                                           ],
                                         ),
-
-                                      const SizedBox(height: AppSpacing.xxl),
                                     ],
                                   ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    ),
-  );
+          );
+        },
+      ),
+    );
   }
 }
-
