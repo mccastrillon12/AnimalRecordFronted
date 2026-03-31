@@ -315,11 +315,10 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                                 topRight: Radius.circular(32),
                               ),
                             ),
-                            child: Stack(
+                            child: Column(
                               children: [
-                                SingleChildScrollView(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(bottom: 100),
+                                Expanded(
+                                  child: SingleChildScrollView(
                                     child: Column(
                                       children: [
                                         _buildHeader(context),
@@ -373,14 +372,13 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                                             ],
                                           ),
                                         ),
+                                        const SizedBox(height: AppSpacing.m),
                                       ],
                                     ),
                                   ),
                                 ),
-                                Positioned(
-                                  left: 24,
-                                  right: 24,
-                                  bottom: 24,
+                                Padding(
+                                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                                   child: CustomButton(
                                     text: 'Guardar cambios',
                                     isLoading: isUpdating,
