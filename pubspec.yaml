@@ -62,6 +62,7 @@ dependencies:
   shared_preferences: ^2.5.4
   sms_autofill: ^2.4.1
   keyboard_actions: ^4.2.1
+  formz: ^0.8.0
 
 dev_dependencies:
   flutter_test:

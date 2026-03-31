@@ -9,7 +9,9 @@ import 'country_dropdown.dart';
 
 class PhoneInputField extends StatelessWidget {
   final String label;
-  final TextEditingController controller;
+  final TextEditingController? controller;
+  final String? initialValue;
+  final ValueChanged<String>? onChanged;
   final List<CountryEntity> countries;
   final String? selectedCountryId;
   final ValueChanged<String?>? onCountryChanged;
@@ -25,7 +27,9 @@ class PhoneInputField extends StatelessWidget {
   const PhoneInputField({
     super.key,
     required this.label,
-    required this.controller,
+    this.controller,
+    this.initialValue,
+    this.onChanged,
     required this.countries,
     this.selectedCountryId,
     this.onCountryChanged,
@@ -96,8 +100,9 @@ class PhoneInputField extends StatelessWidget {
 
               CustomTextField(
                 label: '',
-
                 controller: controller,
+                initialValue: initialValue,
+                onChanged: onChanged,
                 focusNode: focusNode,
                 keyboardType: TextInputType.phone,
                 textInputAction: textInputAction ?? TextInputAction.done,

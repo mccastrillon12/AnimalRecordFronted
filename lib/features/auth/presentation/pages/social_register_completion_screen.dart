@@ -344,7 +344,7 @@ class _SocialRegisterCompletionScreenState
 
                           // Identificación
                           IdSelector(
-                            idController: _idController,
+                            controller: _idController,
                             initialIdType: _selectedIdType,
                             onIdTypeChanged: (val) {
                               setState(() => _selectedIdType = val);

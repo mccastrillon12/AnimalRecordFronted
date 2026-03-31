@@ -5,14 +5,18 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 
 class IdSelector extends StatefulWidget {
-  final TextEditingController idController;
+  final String? initialValue;
+  final ValueChanged<String>? onChanged;
+  final TextEditingController? controller;
   final String? initialIdType;
   final ValueChanged<String>? onIdTypeChanged;
   final String? errorText;
 
   const IdSelector({
     super.key,
-    required this.idController,
+    this.initialValue,
+    this.onChanged,
+    this.controller,
     this.initialIdType,
     this.onIdTypeChanged,
     this.errorText,
@@ -185,7 +189,9 @@ class _IdSelectorState extends State<IdSelector> {
                   SizedBox(
                     height: AppSpacing.inputHeight,
                     child: TextFormField(
-                      controller: widget.idController,
+                      controller: widget.controller,
+                      initialValue: widget.controller == null ? widget.initialValue : null,
+                      onChanged: widget.onChanged,
                       keyboardType: TextInputType.text,
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(

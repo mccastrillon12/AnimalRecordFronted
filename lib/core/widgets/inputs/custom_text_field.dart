@@ -32,6 +32,8 @@ class CustomTextField extends StatefulWidget {
   final bool? enabled;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
+  final String? initialValue;
+  final ValueChanged<String>? onChanged;
 
   const CustomTextField({
     super.key,
@@ -60,6 +62,8 @@ class CustomTextField extends StatefulWidget {
     this.enabled,
     this.onSubmitted,
     this.focusNode,
+    this.initialValue,
+    this.onChanged,
   });
 
   @override
@@ -111,6 +115,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
     if (_internalErrorText != null) {
       _runAutoValidation();
     }
+    widget.onChanged?.call(val);
   }
 
   @override
@@ -171,6 +176,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             height: AppSpacing.inputHeight,
             child: TextFormField(
               controller: widget.controller,
+              initialValue: widget.initialValue,
               focusNode: _focusNode,
               enabled: widget.enabled,
               obscureText: widget.obscureText ?? widget.isPassword,
