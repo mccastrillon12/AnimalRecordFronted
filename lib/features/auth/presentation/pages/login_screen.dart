@@ -48,6 +48,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isNavigating = false;
   bool _isSocialLoading = false;
   bool _showDarkOverlay = false;
+  bool _showPrefix = false;
 
   @override
   void initState() {
@@ -65,6 +66,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _validateInput() {
     final value = _identifierController.text.trim();
     setState(() {
+      _showPrefix = value.isNotEmpty &&
+          RegExp(r'^[0-9]').hasMatch(value) &&
+          !value.contains('@');
       _isValidInput = _isValidEmail(value) || _isValidPhone(value);
     });
   }
@@ -92,7 +96,14 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final identifier = StringFormatters.cleanMixedIdentifier(rawIdentifier);
+    // Normalize identifier
+    String identifier = rawIdentifier;
+    if (!identifier.contains('@')) {
+      identifier = identifier.replaceAll(RegExp(r'[\-\s\(\)]'), '');
+      if (!identifier.startsWith('+')) {
+        identifier = '+57$identifier';
+      }
+    }
 
     final result = await Navigator.push(
       context,
@@ -372,6 +383,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       maxLength: 50,
                       validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
+                      validationDelay: const Duration(seconds: 2),
+                      prefixIcon: _showPrefix
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 12, right: 4),
+                              child: Text(
+                                '(+57)',
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.greyBordes,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                   Padding(

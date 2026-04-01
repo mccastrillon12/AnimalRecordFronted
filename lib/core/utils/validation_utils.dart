@@ -30,11 +30,12 @@ class ValidationUtils {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
 
-    if (RegExp(r'^[0-9+\-\s()]+$').hasMatch(text)) {
+    final firstChar = text[0];
+    if (RegExp(r'[0-9]').hasMatch(firstChar)) {
       if (!isValidPhone(text)) {
         return 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
       }
-    } else {
+    } else if (RegExp(r'[a-zA-Z]').hasMatch(firstChar)) {
       if (!isValidEmail(text)) {
         return 'Introduzca una dirección de correo electrónico válida';
       }

@@ -1,4 +1,5 @@
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -34,6 +35,7 @@ class CustomTextField extends StatefulWidget {
   final FocusNode? focusNode;
   final String? initialValue;
   final ValueChanged<String>? onChanged;
+  final Duration? validationDelay;
 
   const CustomTextField({
     super.key,
@@ -64,6 +66,7 @@ class CustomTextField extends StatefulWidget {
     this.focusNode,
     this.initialValue,
     this.onChanged,
+    this.validationDelay,
   });
 
   @override
@@ -72,6 +75,7 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> {
   late FocusNode _focusNode;
+  Timer? _validationTimer;
 
   String? _internalErrorText;
 
@@ -85,6 +89,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    _validationTimer?.cancel();
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
@@ -112,7 +117,30 @@ class _CustomTextFieldState extends State<CustomTextField> {
   }
 
   void _onChanged(String val) {
-    if (_internalErrorText != null) {
+    if (widget.validationDelay != null) {
+      final text = val.trim();
+      final newError = widget.validator?.call(text);
+
+      if (newError == null) {
+        // If valid or empty, clear immediately
+        _validationTimer?.cancel();
+        if (_internalErrorText != null) {
+          setState(() => _internalErrorText = null);
+        }
+      } else {
+        if (_internalErrorText != null) {
+          // If already showing an error, update it immediately to stay responsive
+          _validationTimer?.cancel();
+          setState(() => _internalErrorText = newError);
+        } else {
+          // If no error is showing, use the delay
+          _validationTimer?.cancel();
+          _validationTimer = Timer(widget.validationDelay!, () {
+            _runAutoValidation();
+          });
+        }
+      }
+    } else if (_internalErrorText != null) {
       _runAutoValidation();
     }
     widget.onChanged?.call(val);
