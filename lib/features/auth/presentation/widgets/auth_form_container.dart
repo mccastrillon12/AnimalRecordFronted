@@ -41,58 +41,65 @@ class AuthFormContainer extends StatelessWidget {
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         backgroundColor: AppColors.bgOxford,
-        body: SafeArea(
-        child: Column(
+        body: Column(
           children: [
-            Transform.translate(
-              offset: const Offset(0, 48),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Transform.translate(
+                    offset: const Offset(0, 48),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.l),
 
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (onBack != null)
-                      AppBackButton(onPressed: onBack)
-                    else
-                      const SizedBox(width: 48, height: 48),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (onBack != null)
+                            AppBackButton(onPressed: onBack)
+                          else
+                            const SizedBox(width: 48, height: 48),
 
-                    if (!showCancelButton && showLogo)
-                      Expanded(
-                        child: Center(
-                          child: Image.asset(
-                            'assets/Logo/Imagotipo_blanco.png',
-                            width: 40,
-                            height: 28,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
+                          if (!showCancelButton && showLogo)
+                            Expanded(
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/Logo/Imagotipo_blanco.png',
+                                  width: 40,
+                                  height: 28,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+
+                          if (showCancelButton)
+                            AppCloseButton(
+                              onClose: onCancel,
+                              contentColor: Colors.white,
+                            )
+                          else
+                            const SizedBox(width: 48, height: 48),
+                        ],
                       ),
+                    ),
+                  ),
+                  const SizedBox(height: 56),
 
-                    if (showCancelButton)
-                      AppCloseButton(
-                        onClose: onCancel,
-                        contentColor: Colors.white,
-                      )
-                    else
-                      const SizedBox(width: 48, height: 48),
+                  if (showLogo && showCancelButton) ...[
+                    Center(
+                      child: Image.asset(
+                        'assets/Logo/Imagotipo_blanco.png',
+                        width: 40,
+                        height: 28,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.l),
                   ],
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 56),
-
-            if (showLogo && showCancelButton) ...[
-              Center(
-                child: Image.asset(
-                  'assets/Logo/Imagotipo_blanco.png',
-                  width: 40,
-                  height: 28,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-            ],
 
             Expanded(
               child: Container(
@@ -145,8 +152,12 @@ class AuthFormContainer extends StatelessWidget {
                 ),
               ),
             ),
-            ],
-          ),
+            // Relleno para asegurar que el blanco llegue hasta el final de la pantalla
+            Container(
+              height: MediaQuery.of(context).padding.bottom,
+              color: AppColors.greyBlanco,
+            ),
+          ],
         ),
       ),
     );
