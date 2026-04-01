@@ -47,6 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isValidInput = false;
   bool _isNavigating = false;
   bool _isSocialLoading = false;
+  bool _showDarkOverlay = false;
 
   @override
   void initState() {
@@ -112,9 +113,15 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 
   Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
       final google_sign_in.GoogleSignInAccount? googleUser = await _googleSignIn
           .signIn();
+
+      if (mounted) setState(() => _showDarkOverlay = true);
 
       if (googleUser != null) {
         final google_sign_in.GoogleSignInAuthentication googleAuth =
@@ -125,9 +132,14 @@ class _LoginScreenState extends State<LoginScreen> {
           context.read<AuthBloc>().add(
             SocialAuthChecked(provider: 'GOOGLE', token: idToken),
           );
+        } else {
+          if (mounted) setState(() => _isSocialLoading = false);
         }
+      } else {
+        if (mounted) setState(() => _isSocialLoading = false);
       }
     } catch (error) {
+      if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Google Sign-In failed: $error');
       if (mounted) {
         ErrorDisplay.showError(
@@ -139,12 +151,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleMicrosoftSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
       final microsoftAuth = sl<MicrosoftAuthService>();
       final token = await microsoftAuth.signIn();
 
+      if (mounted) setState(() => _showDarkOverlay = true);
+
       if (token != null && mounted) {
-        setState(() => _isSocialLoading = true);
         context.read<AuthBloc>().add(
           SocialAuthChecked(provider: 'MICROSOFT', token: token),
         );
@@ -165,15 +182,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleAppleSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
       final appleAuth = sl<AppleAuthService>();
       final credential = await appleAuth.signIn();
+
+      if (mounted) setState(() => _showDarkOverlay = true);
 
       if (credential != null && mounted) {
         final token = credential.identityToken;
 
         if (token != null) {
-          setState(() => _isSocialLoading = true);
           context.read<AuthBloc>().add(
             SocialAuthChecked(
               provider: 'APPLE',
@@ -184,7 +206,10 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           sl<Logger>().e('Apple Sign-In failed: Identity Token is null');
+          if (mounted) setState(() => _isSocialLoading = false);
         }
+      } else {
+        if (mounted) setState(() => _isSocialLoading = false);
       }
     } catch (error) {
       if (mounted) setState(() => _isSocialLoading = false);
@@ -279,12 +304,12 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
       },
-      child: AuthFormContainer(
-        addInternalPadding: false,
-        showCancelButton: false,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
+      child: Stack(
+        children: [
+          AuthFormContainer(
+            addInternalPadding: false,
+            showCancelButton: false,
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -409,17 +434,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-            if (_isSocialLoading)
-              Container(
-                color: Colors.black.withOpacity(0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          if (_isSocialLoading)
+            Container(
+              color: _showDarkOverlay ? AppColors.overlayBlack : Colors.transparent,
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _showDarkOverlay ? Colors.white : AppColors.primaryFrances,
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
