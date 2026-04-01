@@ -424,9 +424,9 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                               label: 'Dirección de residencia (Opcional)',
                             ),
                             SizedBox(
-                              height: (MediaQuery.of(context).viewInsets.bottom > 120
-                                  ? MediaQuery.of(context).viewInsets.bottom - 120
-                                  : 0) + 10,
+                              height: MediaQuery.of(context).viewInsets.bottom > 40
+                                  ? MediaQuery.of(context).viewInsets.bottom - 40
+                                  : 0,
                             ),
                           ],
                         ),

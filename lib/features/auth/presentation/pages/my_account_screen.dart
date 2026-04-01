@@ -611,8 +611,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                         ],
                       ),
                     SizedBox(
-                      height: MediaQuery.of(context).viewInsets.bottom > 120
-                          ? MediaQuery.of(context).viewInsets.bottom - 120
+                      height: MediaQuery.of(context).viewInsets.bottom > 40
+                          ? MediaQuery.of(context).viewInsets.bottom - 40
                           : 0,
                     ),
                   ],
