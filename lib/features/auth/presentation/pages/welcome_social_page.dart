@@ -4,6 +4,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
+import 'package:animal_record/core/utils/string_formatters.dart';
 
 class WelcomeSocialPage extends StatelessWidget {
   final String userName;
@@ -12,6 +13,8 @@ class WelcomeSocialPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final formattedName = StringFormatters.formatName(userName);
+
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -21,6 +24,7 @@ class WelcomeSocialPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(
+            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
             bottomChild: CustomButton(
               text: 'Comenzar',
               onPressed: () {
@@ -32,7 +36,7 @@ class WelcomeSocialPage extends StatelessWidget {
               },
             ),
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+              padding: const EdgeInsets.symmetric(horizontal: 40),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -46,26 +50,40 @@ class WelcomeSocialPage extends StatelessWidget {
                   ),
                   const SizedBox(height: 70),
 
-                  Center(
-                    child: Text(
-                      '¡Bienvenido $userName!',
-                      style: AppTypography.heading1.copyWith(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
+                  Column(
+                    children: [
+                      Center(
+                        child: Text(
+                          '$formattedName, acabas de crear tu perfil',
+                          style: AppTypography.heading1.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
+                      const SizedBox(height: 8),
+                      Center(
+                        child: Text(
+                          'PROPIETARIO',
+                          style: AppTypography.heading1.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
                   Text(
-                    'Estamos complacidos de tenerte en este espacio.',
-                    style: AppTypography.body4.copyWith(color: Colors.white),
-                  ),
-                  const SizedBox(height: AppSpacing.m),
-                  Text(
-                    'En AnimalRecord podrás encontrar todo lo que necesites relacionado a tus animales.',
-                    style: AppTypography.body4.copyWith(color: Colors.white),
+                    'En este perfil podrás encontrar todo lo que necesites relacionado a tus animales.',
+                    style: AppTypography.body4.copyWith(
+                      color: Colors.white,
+                      height: 1.5,
+                    ),
                   ),
                   const SizedBox(height: AppSpacing.xl),
 
