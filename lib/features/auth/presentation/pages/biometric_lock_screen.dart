@@ -124,11 +124,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF539DF3), Color(0xFF132D53)],
-          ),
+          gradient: AppColors.backgroundDegradeFull,
         ),
         child: SafeArea(
           child: Padding(

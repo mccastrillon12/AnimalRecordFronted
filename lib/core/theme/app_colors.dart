@@ -15,6 +15,34 @@ class AppColors {
   static const Color bgHielo = Color(0xFFF2F8FF);
   static const Color bgBlancoAntiFlash = Color(0xFFF5F6FA);
   static const Color bgOxford = Color(0xFF091534);
+  static const Color semanticAzulMedio = Color(0xFF1E91D6);
+
+  static const LinearGradient backgroundDegrade = LinearGradient(
+    begin: Alignment(0.62, -1.0),
+    end: Alignment(-2.33, 3.74),
+    colors: [
+      bgOxford,
+      semanticAzulMedio,
+    ],
+  );
+
+  static const LinearGradient backgroundDegradeFull = LinearGradient(
+    begin: Alignment(0.26, -1.0),
+    end: Alignment(-0.90, 3.46),
+    colors: [
+      bgOxford,
+      semanticAzulMedio,
+    ],
+  );
+
+  static const LinearGradient backgroundDegradeAuth = LinearGradient(
+    begin: Alignment(0.62, -1.0),
+    end: Alignment(-2.33, -0.06),
+    colors: [
+      bgOxford,
+      semanticAzulMedio,
+    ],
+  );
 
   static const Color greyBlanco = Color(0xFFFFFFFF);
   static const Color greyDelineante = Color(0xFFE8E9EC);

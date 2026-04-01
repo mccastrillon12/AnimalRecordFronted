@@ -15,7 +15,7 @@ class UserHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 168,
-      decoration: const BoxDecoration(color: AppColors.bgOxford),
+      decoration: const BoxDecoration(gradient: AppColors.backgroundDegrade),
       child: Column(
         children: [
           Padding(

@@ -92,11 +92,17 @@ class ModalPageLayout extends StatelessWidget {
         value: _statusBarStyle,
         child: Scaffold(
           resizeToAvoidBottomInset: false,
-          backgroundColor: AppColors.bgOxford,
-          body: SafeArea(
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.backgroundDegrade,
+            ),
             child: Column(
               children: [
-                const SizedBox(height: AppSpacing.l),
+                SafeArea(
+                  bottom: false,
+                  child: const SizedBox(height: AppSpacing.l),
+                ),
                 Expanded(
                   child: Container(
                     width: double.infinity,
@@ -131,6 +137,10 @@ class ModalPageLayout extends StatelessWidget {
                     ),
                   ),
                 ),
+                Container(
+                  height: MediaQuery.of(context).padding.bottom,
+                  color: AppColors.greyBlanco,
+                ),
               ],
             ),
           ),
@@ -142,11 +152,17 @@ class ModalPageLayout extends StatelessWidget {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: _statusBarStyle,
       child: Scaffold(
-        backgroundColor: AppColors.bgOxford,
-        body: SafeArea(
+        backgroundColor: Colors.transparent,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.backgroundDegrade,
+          ),
           child: Column(
             children: [
-              const SizedBox(height: AppSpacing.l),
+              SafeArea(
+                bottom: false,
+                child: const SizedBox(height: AppSpacing.l),
+              ),
               Expanded(
                 child: Container(
                   width: double.infinity,
@@ -179,6 +195,10 @@ class ModalPageLayout extends StatelessWidget {
                     ],
                   ),
                 ),
+              ),
+              Container(
+                height: MediaQuery.of(context).padding.bottom,
+                color: AppColors.greyBlanco,
               ),
             ],
           ),

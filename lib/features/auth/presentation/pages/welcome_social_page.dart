@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 
 class WelcomeSocialPage extends StatelessWidget {
@@ -16,11 +17,7 @@ class WelcomeSocialPage extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF4A90E2), Color(0xFF1A2B4C)],
-          ),
+          gradient: AppColors.backgroundDegradeFull,
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(

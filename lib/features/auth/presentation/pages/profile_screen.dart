@@ -47,9 +47,13 @@ class ProfileScreen extends StatelessWidget {
           statusBarBrightness: Brightness.dark,
         ),
         child: Scaffold(
-          backgroundColor: AppColors.bgOxford,
-          body: Stack(
-          children: [
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.backgroundDegradeFull,
+            ),
+            child: Stack(
+            children: [
             BlocBuilder<AuthBloc, AuthState>(
               buildWhen: (previous, current) {
                 return current is AuthSuccess;
@@ -237,6 +241,7 @@ class ProfileScreen extends StatelessWidget {
               },
             ),
             ],
+          ),
           ),
         ),
       ),

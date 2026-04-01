@@ -40,10 +40,15 @@ class AuthFormContainer extends StatelessWidget {
       ),
       child: Scaffold(
         resizeToAvoidBottomInset: false,
-        backgroundColor: AppColors.bgOxford,
-        body: Column(
-          children: [
-            SafeArea(
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.backgroundDegradeAuth,
+          ),
+          child: Column(
+            children: [
+              SafeArea(
               bottom: false,
               child: Column(
                 children: [
@@ -158,6 +163,7 @@ class AuthFormContainer extends StatelessWidget {
               color: AppColors.greyBlanco,
             ),
           ],
+        ),
         ),
       ),
     );
