@@ -610,7 +610,11 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           ),
                         ],
                       ),
-                    const KeyboardSpacer(),
+                    SizedBox(
+                      height: MediaQuery.of(context).viewInsets.bottom > 120
+                          ? MediaQuery.of(context).viewInsets.bottom - 120
+                          : 0,
+                    ),
                   ],
                 ),
               ),

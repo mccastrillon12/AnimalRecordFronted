@@ -135,7 +135,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const SizedBox(height: 150),
+                  const SizedBox(height: 120),
                   Column(
                     children: [
                       Image.asset(
@@ -277,7 +277,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                       ),
                     ),
                   ],
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 120),
                 ],
               ),
             ),

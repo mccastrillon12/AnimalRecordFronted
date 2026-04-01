@@ -21,7 +21,6 @@ import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
 import '../cubit/edit_profile_cubit.dart';
@@ -79,7 +78,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
     final cubit = context.read<LocationsCubit>();
 
     await cubit.fetchCountries();
-    
+
     final locState = cubit.state;
     String? colombiaId;
 
@@ -146,7 +145,9 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
       ),
       builder: (context) {
         final authState = context.read<AuthBloc>().state;
-        final profilePicture = authState is AuthSuccess ? authState.user.profilePicture : null;
+        final profilePicture = authState is AuthSuccess
+            ? authState.user.profilePicture
+            : null;
         final hasPhoto = profilePicture != null && profilePicture.isNotEmpty;
 
         return SafeArea(
@@ -187,14 +188,19 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 ),
                 if (hasPhoto)
                   ListTile(
-                    leading: const Icon(Icons.delete_outline, color: AppColors.error),
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error,
+                    ),
                     title: const Text(
                       'Eliminar foto',
                       style: TextStyle(color: AppColors.error),
                     ),
                     onTap: () {
                       Navigator.pop(context);
-                      context.read<AuthBloc>().add(DeleteProfilePictureRequested());
+                      context.read<AuthBloc>().add(
+                        DeleteProfilePictureRequested(),
+                      );
                     },
                   ),
               ],
@@ -277,9 +283,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
       child: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, authState) {
           if (authState is! AuthSuccess) {
-            return const Scaffold(
-              body: Center(child: Text('Cargando')),
-            );
+            return const Scaffold(body: Center(child: Text('Cargando')));
           }
 
           final UserEntity user = authState.user;
@@ -305,14 +309,21 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                           return GestureDetector(
                             onTap: () => node.unfocus(),
                             child: const Padding(
-                              padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
                               child: Text(
                                 "Aceptar",
-                                style: TextStyle(color: Colors.blue, fontSize: 16, fontWeight: FontWeight.bold),
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           );
-                        }
+                        },
                       ],
                     ),
                   ],
@@ -329,15 +340,22 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                   bottomChild: CustomButton(
                     text: 'Guardar cambios',
                     isLoading: isUpdating,
-                    onPressed: (isUpdating || !editState.hasChanges || !editState.isValid)
+                    onPressed:
+                        (isUpdating ||
+                            !editState.hasChanges ||
+                            !editState.isValid)
                         ? null
                         : () {
                             String countryPrefix = '';
-                            final locState = context.read<LocationsCubit>().state;
+                            final locState = context
+                                .read<LocationsCubit>()
+                                .state;
                             if (locState is LocationsLoaded) {
                               final cId = editState.phoneCountryId;
                               if (cId.isNotEmpty) {
-                                final country = locState.countries.cast<CountryEntity>().firstWhere(
+                                final country = locState.countries
+                                    .cast<CountryEntity>()
+                                    .firstWhere(
                                       (c) => c.id == cId,
                                       orElse: () => locState.countries.first,
                                     );
@@ -345,7 +363,9 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                               }
                             }
 
-                            final payload = cubit.buildUpdatePayload(countryPrefix);
+                            final payload = cubit.buildUpdatePayload(
+                              countryPrefix,
+                            );
                             context.read<AuthBloc>().add(
                               UpdateProfileRequested(
                                 userId: user.id,
@@ -356,58 +376,64 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                   ),
                   child: Column(
                     children: [
-                      _buildAvatar(
-                        user,
-                        isUploadingPicture,
-                        context,
+                      _buildAvatar(user, isUploadingPicture, context),
+                      const SizedBox(height: AppSpacing.l),
+                      Text(
+                        StringFormatters.formatName(user.name),
+                        style: AppTypography.heading2.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
                       ),
-                        const SizedBox(height: AppSpacing.l),
-                        Text(
-                          StringFormatters.formatName(user.name),
-                          style: AppTypography.heading2.copyWith(color: AppColors.textPrimary),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '${user.identificationType} ${user.identificationNumber}',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyMedio,
                         ),
-                        const SizedBox(height: AppSpacing.xs),
-                        Text(
-                          '${user.identificationType} ${user.identificationNumber}',
-                          style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 24),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (user.authMethod == 'PHONE') ...[
-                                CustomTextField(
-                                  initialValue: editState.email.value,
-                                  onChanged: cubit.emailChanged,
-                                  label: 'Correo electrónico (Opcional)',
-                                  hint: 'ejemplo@correo.com',
-                                  keyboardType: TextInputType.emailAddress,
-                                  errorText: editState.isEmailAttempted && editState.email.isNotValid 
-                                      ? AppStrings.emailError 
-                                      : null,
-                                ),
-                                const SizedBox(height: AppSpacing.m),
-                              ],
-                              _LocationSelector(
-                                user: user,
-                                phoneFocusNode: _phoneFocusNode,
-                                editState: editState,
-                                cubit: cubit,
-                              ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (user.authMethod == 'PHONE') ...[
                               CustomTextField(
-                                initialValue: editState.address.value,
-                                onChanged: cubit.addressChanged,
-                                label: 'Dirección de residencia (Opcional)',
+                                initialValue: editState.email.value,
+                                onChanged: cubit.emailChanged,
+                                label: 'Correo electrónico (Opcional)',
+                                hint: 'ejemplo@correo.com',
+                                keyboardType: TextInputType.emailAddress,
+                                errorText:
+                                    editState.isEmailAttempted &&
+                                        editState.email.isNotValid
+                                    ? AppStrings.emailError
+                                    : null,
                               ),
-                              const KeyboardSpacer(),
+                              const SizedBox(height: AppSpacing.m),
                             ],
-                          ),
+                            _LocationSelector(
+                              user: user,
+                              phoneFocusNode: _phoneFocusNode,
+                              editState: editState,
+                              cubit: cubit,
+                            ),
+                            CustomTextField(
+                              initialValue: editState.address.value,
+                              onChanged: cubit.addressChanged,
+                              label: 'Dirección de residencia (Opcional)',
+                            ),
+                            SizedBox(
+                              height: (MediaQuery.of(context).viewInsets.bottom > 120
+                                  ? MediaQuery.of(context).viewInsets.bottom - 120
+                                  : 0) + 10,
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: AppSpacing.m),
-                      ],
-                    ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                    ],
+                  ),
                 ),
               );
             },
@@ -528,16 +554,20 @@ class _LocationSelector extends StatelessWidget {
             : <CountryEntity>[];
 
         final colombiaId = countries.isNotEmpty
-            ? (countries.cast<CountryEntity>().any((c) =>
-                    c.dialCode == '+57' ||
-                    c.name.toLowerCase().contains('colombia'))
-                ? countries
-                    .cast<CountryEntity>()
-                    .firstWhere((c) =>
+            ? (countries.cast<CountryEntity>().any(
+                    (c) =>
                         c.dialCode == '+57' ||
-                        c.name.toLowerCase().contains('colombia'))
-                    .id
-                : countries.first.id)
+                        c.name.toLowerCase().contains('colombia'),
+                  )
+                  ? countries
+                        .cast<CountryEntity>()
+                        .firstWhere(
+                          (c) =>
+                              c.dialCode == '+57' ||
+                              c.name.toLowerCase().contains('colombia'),
+                        )
+                        .id
+                  : countries.first.id)
             : '';
 
         return Column(
@@ -549,18 +579,23 @@ class _LocationSelector extends StatelessWidget {
                 onChanged: cubit.phoneChanged,
                 focusNode: phoneFocusNode,
                 countries: countries,
-                selectedCountryId: editState.phoneCountryId.isEmpty ? colombiaId : editState.phoneCountryId,
+                selectedCountryId: editState.phoneCountryId.isEmpty
+                    ? colombiaId
+                    : editState.phoneCountryId,
                 onCountryChanged: (val) {
                   if (val != null) {
                     final country = countries.cast<CountryEntity>().firstWhere(
-                          (c) => c.id == val,
-                          orElse: () => countries.first,
-                        );
+                      (c) => c.id == val,
+                      orElse: () => countries.first,
+                    );
                     cubit.phoneCountryIdChanged(val, country.dialCode);
                   }
                 },
-                errorText: editState.isPhoneAttempted && editState.phone.isNotValid && editState.phone.value.isNotEmpty
-                    ? AppStrings.phoneError 
+                errorText:
+                    editState.isPhoneAttempted &&
+                        editState.phone.isNotValid &&
+                        editState.phone.value.isNotEmpty
+                    ? AppStrings.phoneError
                     : null,
                 isOptional: true,
               ),
@@ -581,7 +616,9 @@ class _LocationSelector extends StatelessWidget {
             if (locationsState is LocationsLoaded)
               DepartmentDropdown(
                 label: 'Departamento',
-                value: editState.departmentId.isNotEmpty ? editState.departmentId : null,
+                value: editState.departmentId.isNotEmpty
+                    ? editState.departmentId
+                    : null,
                 onChanged: (value) {
                   if (value != null) {
                     cubit.departmentChanged(value);
