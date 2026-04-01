@@ -113,6 +113,7 @@ class ModalPageLayout extends StatelessWidget {
                         topRight: Radius.circular(32),
                       ),
                     ),
+                    clipBehavior: Clip.antiAlias,
                     child: Stack(
                       children: [
                         FixedBottomActionLayout(
@@ -173,6 +174,7 @@ class ModalPageLayout extends StatelessWidget {
                       topRight: Radius.circular(32),
                     ),
                   ),
+                  clipBehavior: Clip.antiAlias,
                   child: Stack(
                     children: [
                       SingleChildScrollView(
