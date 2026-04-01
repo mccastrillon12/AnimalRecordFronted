@@ -14,6 +14,7 @@ import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'social_register_completion_screen.dart';
 import 'biometric_activation_screen.dart';
+import 'biometric_lock_screen.dart';
 import '../widgets/biometric_disable_dialog.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'pin_setup_screen.dart';
@@ -301,7 +302,21 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             });
           } else {
-            Navigator.pushReplacementNamed(context, '/home');
+            final storage = sl<TokenStorage>();
+            storage.getBiometricsEnabledForUser(state.user.id).then((isEnabled) {
+              if (mounted) {
+                if (isEnabled) {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BiometricLockScreen(),
+                    ),
+                  );
+                } else {
+                  Navigator.pushReplacementNamed(context, '/home');
+                }
+              }
+            });
           }
         } else if (state is AuthError &&
             (ModalRoute.of(context)?.isCurrent ?? false)) {

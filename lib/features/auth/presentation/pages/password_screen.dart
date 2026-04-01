@@ -13,6 +13,9 @@ import 'package:animal_record/features/auth/domain/entities/login_params.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'verification_screen.dart';
 import 'forgot_password_screen.dart';
+import 'biometric_lock_screen.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:animal_record/core/services/token_storage.dart';
 
 class PasswordScreen extends StatefulWidget {
   final String identifier;
@@ -73,11 +76,26 @@ class _PasswordScreenState extends State<PasswordScreen> {
         listener: (context, state) {
           if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
+            final storage = sl<TokenStorage>();
+            storage.getBiometricsEnabledForUser(state.user.id).then((isEnabled) {
+              if (mounted) {
+                if (isEnabled) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const BiometricLockScreen(),
+                    ),
+                    (route) => false,
+                  );
+                } else {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (route) => false,
+                  );
+                }
+              }
+            });
           } else if (state is AuthUserNotVerified) {
             Navigator.push(
               context,
