@@ -25,6 +25,7 @@ class RegisterCubit extends Cubit<RegisterState> {
     emit(state.copyWith(
       email: EmailInput.dirty(value),
       isEmailAttempted: true,
+      emailError: false,
     ));
   }
 
@@ -32,6 +33,7 @@ class RegisterCubit extends Cubit<RegisterState> {
     emit(state.copyWith(
       phone: PhoneInput.dirty(value),
       isPhoneAttempted: true,
+      phoneError: false,
     ));
   }
 
@@ -43,6 +45,7 @@ class RegisterCubit extends Cubit<RegisterState> {
     emit(state.copyWith(
       identificationNumber: TextInput.dirty(value),
       isIdAttempted: true,
+      idError: false,
     ));
   }
 
@@ -86,6 +89,18 @@ class RegisterCubit extends Cubit<RegisterState> {
 
   void acceptTermsChanged(bool value) {
     emit(state.copyWith(acceptTerms: value));
+  }
+
+  void emailErrorChanged(bool value) {
+    emit(state.copyWith(emailError: value));
+  }
+
+  void phoneErrorChanged(bool value) {
+    emit(state.copyWith(phoneError: value));
+  }
+
+  void idErrorChanged(bool value) {
+    emit(state.copyWith(idError: value));
   }
 
   void nextStep() {

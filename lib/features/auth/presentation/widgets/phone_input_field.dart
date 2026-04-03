@@ -20,6 +20,7 @@ class PhoneInputField extends StatelessWidget {
   final FocusNode? focusNode;
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
+  final bool hideErrorText;
   final TextStyle? labelStyle;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -38,6 +39,7 @@ class PhoneInputField extends StatelessWidget {
     this.maxLength,
     this.inputFormatters,
     this.errorText,
+    this.hideErrorText = false,
     this.labelStyle,
     this.textInputAction,
     this.onSubmitted,
@@ -110,6 +112,7 @@ class PhoneInputField extends StatelessWidget {
                 maxLength: 15,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
+                hideErrorText: hideErrorText,
                 prefixIcon: countries.isNotEmpty
                     ? Padding(
                         padding: const EdgeInsets.only(left: 12, right: 4),

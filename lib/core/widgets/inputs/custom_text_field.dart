@@ -36,6 +36,7 @@ class CustomTextField extends StatefulWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final Duration? validationDelay;
+  final bool hideErrorText;
 
   const CustomTextField({
     super.key,
@@ -67,6 +68,7 @@ class CustomTextField extends StatefulWidget {
     this.initialValue,
     this.onChanged,
     this.validationDelay,
+    this.hideErrorText = false,
   });
 
   @override
@@ -306,7 +308,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
         ),
 
-        if (currentErrorText != null) ...[
+        if (currentErrorText != null && !widget.hideErrorText) ...[
           const SizedBox(height: 4),
           Text(
             currentErrorText,

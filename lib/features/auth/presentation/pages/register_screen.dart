@@ -104,21 +104,78 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
     return steps;
   }
 
-  void _nextStep(RegisterCubit cubit, RegisterState state) {
-    if (state.role == 'PROPIETARIO_MASCOTA' && state.currentStep == 1) {
-      if (state.identificationNumber.value.isNotEmpty) {
-        context.read<AuthBloc>().add(
-          CheckIdentificationExists(state.identificationNumber.value),
-        );
-        return;
+  String _getNormalizedPhone(BuildContext context, RegisterState state) {
+    String cellPhone = state.phone.value;
+    if (cellPhone.isNotEmpty && !cellPhone.startsWith('+')) {
+      final locState = context.read<LocationsCubit>().state;
+      if (locState is LocationsLoaded) {
+        final phoneCountryId = state.phoneCountryId.isNotEmpty
+            ? state.phoneCountryId
+            : state.countryId;
+        
+        CountryEntity? country;
+        if (phoneCountryId.isNotEmpty) {
+          country = locState.countries.cast<CountryEntity>().firstWhere(
+            (c) => c.id == phoneCountryId,
+            orElse: () => locState.countries.first,
+          );
+        } else if (locState.countries.isNotEmpty) {
+          // Default to the first loaded country (e.g., Colombia) if neither ID is filled yet
+          country = locState.countries.first;
+        }
+
+        if (country != null) {
+          cellPhone = '${country.dialCode}$cellPhone'.replaceAll(' ', '');
+        }
       }
     }
+    return cellPhone;
+  }
 
+  void _nextStep(RegisterCubit cubit, RegisterState state) {
     if (!state.isCurrentStepValid) {
       ErrorDisplay.showError(
         context,
         'Por favor completa correctamente todos los campos requeridos',
       );
+      return;
+    }
+
+    final normalizedPhone = _getNormalizedPhone(context, state);
+    Map<String, dynamic> dataToCheck = {};
+    if (state.role == 'PROPIETARIO_MASCOTA') {
+      if (state.currentStep == 0) {
+        if (state.accessMethod == AccessMethod.email && state.email.value.isNotEmpty) {
+          dataToCheck['email'] = state.email.value;
+        } else if (state.accessMethod == AccessMethod.phone && state.phone.value.isNotEmpty) {
+          dataToCheck['cellPhone'] = normalizedPhone;
+        }
+      } else if (state.currentStep == 1) {
+        if (state.identificationNumber.value.isNotEmpty) {
+          dataToCheck['identificationNumber'] = state.identificationNumber.value;
+        }
+        if (state.accessMethod == AccessMethod.phone && state.email.value.isNotEmpty) {
+          dataToCheck['email'] = state.email.value;
+        } else if (state.accessMethod == AccessMethod.email && state.phone.value.isNotEmpty) {
+          dataToCheck['cellPhone'] = normalizedPhone;
+        }
+      }
+    } else {
+       if (state.currentStep == 0) {
+          if (state.identificationNumber.value.isNotEmpty) {
+            dataToCheck['identificationNumber'] = state.identificationNumber.value;
+          }
+          if (state.email.value.isNotEmpty) {
+            dataToCheck['email'] = state.email.value;
+          }
+          if (state.phone.value.isNotEmpty) {
+            dataToCheck['cellPhone'] = normalizedPhone;
+          }
+       }
+    }
+
+    if (dataToCheck.isNotEmpty) {
+      context.read<AuthBloc>().add(CheckAvailabilityRequested(dataToCheck));
       return;
     }
 
@@ -136,23 +193,7 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
     const uuid = Uuid();
     final String newUserId = uuid.v4();
 
-    String cellPhone = state.phone.value;
-    if (cellPhone.isNotEmpty && !cellPhone.startsWith('+')) {
-      final locState = context.read<LocationsCubit>().state;
-      if (locState is LocationsLoaded) {
-        // Usar phoneCountryId para el indicativo del teléfono, no el de residencia
-        final phoneCountryId = state.phoneCountryId.isNotEmpty
-            ? state.phoneCountryId
-            : state.countryId;
-        if (phoneCountryId.isNotEmpty) {
-          final country = locState.countries.cast<CountryEntity>().firstWhere(
-            (c) => c.id == phoneCountryId,
-            orElse: () => locState.countries.first,
-          );
-          cellPhone = '${country.dialCode}$cellPhone'.replaceAll(' ', '');
-        }
-      }
-    }
+    final String cellPhone = _getNormalizedPhone(context, state);
 
     context.read<AuthBloc>().add(
       SignUpSubmitted(
@@ -229,7 +270,8 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
           addInternalPadding: false,
           child: BlocListener<AuthBloc, AuthState>(
             listener: (context, authState) {
-              if (authState is AuthSuccess) {
+              if (authState is AuthSuccess && 
+                  (ModalRoute.of(context)?.isCurrent ?? false)) {
                 ErrorDisplay.showSuccess(
                   context,
                   'Registro exitoso. Por favor inicia sesión.',
@@ -239,10 +281,35 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
                 ErrorDisplay.showError(context, authState.message);
               } else if (authState is IdentificationCheckResult) {
                 if (authState.exists) {
+                   cubit.idErrorChanged(true);
                   ErrorDisplay.showError(
                     context,
                     'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.',
                   );
+                } else {
+                  cubit.nextStep();
+                }
+              } else if (authState is AvailabilityCheckResult) {
+                final status = authState.availabilityStatus;
+                String? errorMessage;
+                
+                if (status.containsKey('identificationNumber') && status['identificationNumber'] == false) {
+                  cubit.idErrorChanged(true);
+                  errorMessage = 'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.';
+                } 
+                
+                if (status.containsKey('email') && status['email'] == false) {
+                  cubit.emailErrorChanged(true);
+                  errorMessage = 'Parece que ya tienes una cuenta con este correo electrónico. Intenta iniciar sesión.';
+                } 
+                
+                if (status.containsKey('cellPhone') && status['cellPhone'] == false) {
+                   cubit.phoneErrorChanged(true);
+                   errorMessage = 'Parece que ya tienes una cuenta con este número celular. Intenta iniciar sesión.';
+                }
+
+                if (errorMessage != null) {
+                  ErrorDisplay.showError(context, errorMessage);
                 } else {
                   cubit.nextStep();
                 }

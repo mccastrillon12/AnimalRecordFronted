@@ -74,9 +74,12 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                   hint: 'ejemplo@correo.com',
                   initialValue: registerState.email.value,
                   onChanged: cubit.emailChanged,
-                  errorText: registerState.isEmailAttempted && registerState.email.isNotValid 
-                      ? 'Introduzca una dirección de correo electrónico válida' 
-                      : null,
+                  errorText: registerState.emailError 
+                      ? 'Email ya registrado' 
+                      : (registerState.isEmailAttempted && registerState.email.isNotValid 
+                          ? 'Introduzca una dirección de correo electrónico válida' 
+                          : null),
+                  hideErrorText: registerState.emailError,
                   maxLength: 50,
                 ),
                 const SizedBox(height: AppSpacing.m),
@@ -111,9 +114,12 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                   hint: '1037123456',
                   initialValue: registerState.identificationNumber.value,
                   onChanged: cubit.identificationNumberChanged,
-                  errorText: registerState.isIdAttempted && registerState.identificationNumber.isNotValid 
-                      ? 'Requerido' 
-                      : null,
+                  errorText: registerState.idError
+                      ? 'ID ya registrado'
+                      : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid 
+                          ? 'Requerido' 
+                          : null),
+                  hideErrorText: registerState.idError,
                   keyboardType: TextInputType.text,
                   maxLength: 50,
                   inputFormatters: [
@@ -133,9 +139,12 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                     onCountryChanged: (val) {
                       if (val != null) cubit.phoneCountryIdChanged(val);
                     },
-                    errorText: registerState.isPhoneAttempted && registerState.phone.isNotValid 
-                        ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
-                        : null,
+                    errorText: registerState.phoneError
+                        ? 'Celular ya registrado'
+                        : (registerState.isPhoneAttempted && registerState.phone.isNotValid 
+                            ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
+                            : null),
+                    hideErrorText: registerState.phoneError,
                     focusNode: widget.phoneFocusNode,
                     maxLength: 15,
                     inputFormatters: [FilteringTextInputFormatter.digitsOnly],

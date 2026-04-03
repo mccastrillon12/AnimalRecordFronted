@@ -74,7 +74,9 @@ class _PasswordScreenState extends State<PasswordScreen> {
       onBack: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess && !_isNavigating) {
+          if (state is AuthSuccess && 
+              !_isNavigating && 
+              (ModalRoute.of(context)?.isCurrent ?? false)) {
             _isNavigating = true;
             final storage = sl<TokenStorage>();
             storage.getBiometricsEnabledForUser(state.user.id).then((isEnabled) {

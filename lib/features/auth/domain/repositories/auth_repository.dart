@@ -15,6 +15,9 @@ abstract class AuthRepository {
   Future<Either<Failure, bool>> checkIdentificationExists(
     String identificationNumber,
   );
+  Future<Either<Failure, Map<String, dynamic>>> checkAvailability(
+    Map<String, dynamic> data,
+  );
   Future<Either<Failure, Map<String, dynamic>>> checkSocialToken(
     String provider,
     String token,

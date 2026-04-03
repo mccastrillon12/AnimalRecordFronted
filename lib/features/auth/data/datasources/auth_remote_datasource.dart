@@ -10,6 +10,7 @@ abstract class AuthRemoteDataSource {
   Future<Map<String, dynamic>> verifyCode(String email, String code);
   Future<void> resendVerificationCode(String identifier);
   Future<bool> checkIdentificationExists(String identificationNumber);
+  Future<Map<String, dynamic>> checkAvailability(Map<String, dynamic> data);
   Future<Map<String, dynamic>> checkSocialToken(String provider, String token);
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data);
   Future<UserModel> getUserProfile(String id);
@@ -89,6 +90,31 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return response.statusCode == 200;
     } catch (e) {
       if (e.toString().contains('404')) return false;
+      rethrow;
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> checkAvailability(Map<String, dynamic> data) async {
+    try {
+      final response = await apiClient.post('/users/check-availability', data: data);
+      
+      if (response.data is Map<String, dynamic>) {
+        return response.data as Map<String, dynamic>;
+      } else if (response.data is bool) {
+        // Si el API retorna un booleano directo (true=disponible, false=ocupado)
+        // Lo mapeamos a la primera llave enviada para que la UI sepa qué campo falló
+        final key = data.keys.isNotEmpty ? data.keys.first : 'email';
+        return {key: response.data};
+      }
+      return {};
+    } catch (e) {
+      // Si recibimos un 409 (Conflict/Duplicate) desde el ApiClient, 
+      // lo interpretamos como que el dato NO está disponible.
+      if (e.toString().contains('409') || e.toString().contains('registrado')) {
+        final key = data.keys.isNotEmpty ? data.keys.first : 'email';
+        return {key: false};
+      }
       rethrow;
     }
   }

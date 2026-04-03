@@ -39,6 +39,10 @@ class RegisterState extends Equatable {
   final bool isPhoneAttempted;
   final bool isIdAttempted;
 
+  final bool emailError;
+  final bool phoneError;
+  final bool idError;
+
   const RegisterState({
     required this.role,
     this.currentStep = 0,
@@ -64,6 +68,9 @@ class RegisterState extends Equatable {
     this.isEmailAttempted = false,
     this.isPhoneAttempted = false,
     this.isIdAttempted = false,
+    this.emailError = false,
+    this.phoneError = false,
+    this.idError = false,
   });
 
   bool get isCurrentStepValid {
@@ -139,6 +146,9 @@ class RegisterState extends Equatable {
     bool? isEmailAttempted,
     bool? isPhoneAttempted,
     bool? isIdAttempted,
+    bool? emailError,
+    bool? phoneError,
+    bool? idError,
   }) {
     return RegisterState(
       role: role ?? this.role,
@@ -165,6 +175,9 @@ class RegisterState extends Equatable {
       isEmailAttempted: isEmailAttempted ?? this.isEmailAttempted,
       isPhoneAttempted: isPhoneAttempted ?? this.isPhoneAttempted,
       isIdAttempted: isIdAttempted ?? this.isIdAttempted,
+      emailError: emailError ?? this.emailError,
+      phoneError: phoneError ?? this.phoneError,
+      idError: idError ?? this.idError,
     );
   }
 
@@ -194,5 +207,8 @@ class RegisterState extends Equatable {
         isEmailAttempted,
         isPhoneAttempted,
         isIdAttempted,
+        emailError,
+        phoneError,
+        idError,
       ];
 }

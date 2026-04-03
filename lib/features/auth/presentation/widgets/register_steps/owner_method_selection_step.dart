@@ -73,9 +73,12 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                     initialValue: registerState.email.value,
                     onChanged: cubit.emailChanged,
                     keyboardType: TextInputType.emailAddress,
-                    errorText: registerState.isEmailAttempted && registerState.email.isNotValid 
-                        ? 'Introduzca una dirección de correo electrónico válida' 
-                        : null,
+                    errorText: registerState.emailError 
+                        ? 'Email ya registrado' 
+                        : (registerState.isEmailAttempted && registerState.email.isNotValid 
+                            ? 'Introduzca una dirección de correo electrónico válida' 
+                            : null),
+                    hideErrorText: registerState.emailError,
                     maxLength: 50,
                   ),
                 ],
@@ -96,10 +99,13 @@ class _OwnerMethodSelectionStepState extends State<OwnerMethodSelectionStep> {
                       onCountryChanged: (val) {
                         if (val != null) cubit.phoneCountryIdChanged(val);
                       },
-                      errorText: registerState.isPhoneAttempted && registerState.phone.isNotValid 
-                          ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
-                          : null,
-                      maxLength: 50,
+                      errorText: registerState.phoneError
+                          ? 'Celular ya registrado'
+                          : (registerState.isPhoneAttempted && registerState.phone.isNotValid 
+                              ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
+                              : null),
+                      hideErrorText: registerState.phoneError,
+                      maxLength: 15,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     );
                   } else if (locState is LocationsLoading) {

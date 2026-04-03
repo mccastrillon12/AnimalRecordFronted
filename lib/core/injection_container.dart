@@ -8,6 +8,7 @@ import 'package:animal_record/features/auth/domain/usecases/check_auth_status_us
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_availability_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
@@ -65,6 +66,7 @@ Future<void> init() async {
       verifyCodeUseCase: sl(),
       resendCodeUseCase: sl(),
       checkIdentificationExistsUseCase: sl(),
+      checkAvailabilityUseCase: sl(),
       checkSocialAuthUseCase: sl(),
       registerSocialUseCase: sl(),
       getUserProfileUseCase: sl(),
@@ -95,6 +97,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => VerifyCodeUseCase(sl()));
   sl.registerLazySingleton(() => ResendCodeUseCase(sl()));
   sl.registerLazySingleton(() => CheckIdentificationExistsUseCase(sl()));
+  sl.registerLazySingleton(() => CheckAvailabilityUseCase(sl()));
   sl.registerLazySingleton(() => CheckSocialAuthUseCase(sl()));
   sl.registerLazySingleton(() => RegisterSocialUseCase(sl()));
   sl.registerLazySingleton(() => GetUserProfileUseCase(sl()));

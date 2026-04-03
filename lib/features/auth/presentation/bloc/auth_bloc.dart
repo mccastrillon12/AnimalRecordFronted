@@ -7,6 +7,7 @@ import 'package:animal_record/features/auth/domain/usecases/login_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_availability_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
@@ -42,6 +43,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final VerifyCodeUseCase verifyCodeUseCase;
   final ResendCodeUseCase resendCodeUseCase;
   final CheckIdentificationExistsUseCase checkIdentificationExistsUseCase;
+  final CheckAvailabilityUseCase checkAvailabilityUseCase;
   final CheckSocialAuthUseCase checkSocialAuthUseCase;
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
@@ -69,6 +71,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.verifyCodeUseCase,
     required this.resendCodeUseCase,
     required this.checkIdentificationExistsUseCase,
+    required this.checkAvailabilityUseCase,
     required this.checkSocialAuthUseCase,
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
@@ -105,6 +108,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<VerifyCodeSubmitted>(_onVerifyCodeSubmitted);
 
     on<CheckIdentificationExists>(_onCheckIdentificationExists);
+    
+    on<CheckAvailabilityRequested>(_onCheckAvailabilityRequested);
 
     on<ResendCodeSubmitted>(_onResendCodeSubmitted);
 
@@ -439,6 +444,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(failure.message)),
       (exists) async => emit(IdentificationCheckResult(exists)),
+    );
+  }
+
+  Future<void> _onCheckAvailabilityRequested(
+    CheckAvailabilityRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await checkAvailabilityUseCase(event.dataToCheck);
+
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (availabilityStatus) async => emit(AvailabilityCheckResult(availabilityStatus)),
     );
   }
 

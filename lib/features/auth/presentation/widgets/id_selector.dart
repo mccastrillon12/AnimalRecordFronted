@@ -11,6 +11,7 @@ class IdSelector extends StatefulWidget {
   final String? initialIdType;
   final ValueChanged<String>? onIdTypeChanged;
   final String? errorText;
+  final bool hideErrorText;
 
   const IdSelector({
     super.key,
@@ -20,6 +21,7 @@ class IdSelector extends StatefulWidget {
     this.initialIdType,
     this.onIdTypeChanged,
     this.errorText,
+    this.hideErrorText = false,
   });
 
   @override
@@ -246,7 +248,7 @@ class _IdSelectorState extends State<IdSelector> {
                       ),
                     ),
                   ),
-                  if (widget.errorText != null) ...[
+                  if (widget.errorText != null && !widget.hideErrorText) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.errorText!,

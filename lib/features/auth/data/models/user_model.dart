@@ -58,8 +58,11 @@ class UserModel extends UserEntity {
           json['photoUrl'],
       securityLastUpdated:
           (json['securityLastUpdated'] ?? json['security_last_updated']) != null
-              ? (DateTime.tryParse((json['securityLastUpdated'] ?? json['security_last_updated']).toString()))
-              : null,
+          ? (DateTime.tryParse(
+              (json['securityLastUpdated'] ?? json['security_last_updated'])
+                  .toString(),
+            ))
+          : null,
     );
   }
 
@@ -83,7 +86,6 @@ class UserModel extends UserEntity {
       authMethod: '',
       isVerified: false,
       profilePicture: null,
-      securityLastUpdated: null,
     );
   }
 
@@ -96,11 +98,14 @@ class UserModel extends UserEntity {
       'countryId': countryId,
       'roles': roles,
       'authMethod': authMethod,
+      'isHomeDelivery': isHomeDelivery,
       'animalTypes': animalTypes,
       'services': services,
-      'isHomeDelivery': isHomeDelivery,
-      'securityLastUpdated': securityLastUpdated?.toIso8601String(),
     };
+
+    if (securityLastUpdated != null) {
+      json['securityLastUpdated'] = securityLastUpdated?.toIso8601String();
+    }
 
     if (email.isNotEmpty) {
       json['email'] = email;

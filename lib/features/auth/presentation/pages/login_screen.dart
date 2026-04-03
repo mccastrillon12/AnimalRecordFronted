@@ -271,7 +271,9 @@ class _LoginScreenState extends State<LoginScreen> {
             state.response,
             providerName: state.provider,
           );
-        } else if (state is AuthSuccess && !_isNavigating) {
+        } else if (state is AuthSuccess &&
+            !_isNavigating &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
           _isNavigating = true;
 
           if (widget.hideBiometrics) {
