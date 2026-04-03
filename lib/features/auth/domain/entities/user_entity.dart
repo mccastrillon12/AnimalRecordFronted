@@ -22,6 +22,7 @@ class UserEntity extends Equatable {
   final String? profilePicture;
 
   final bool isVerified;
+  final DateTime? securityLastUpdated;
 
   const UserEntity({
     required this.id,
@@ -44,6 +45,7 @@ class UserEntity extends Equatable {
     required this.authMethod,
     required this.isVerified,
     this.profilePicture,
+    this.securityLastUpdated,
   });
 
   @override
@@ -68,5 +70,54 @@ class UserEntity extends Equatable {
     authMethod,
     isVerified,
     profilePicture,
+    securityLastUpdated,
   ];
+
+  UserEntity copyWith({
+    String? id,
+    String? name,
+    String? identificationType,
+    String? identificationNumber,
+    String? country,
+    String? countryId,
+    String? departmentId,
+    String? city,
+    String? cityId,
+    String? address,
+    String? email,
+    String? cellPhone,
+    String? professionalCard,
+    List<String>? animalTypes,
+    List<String>? services,
+    bool? isHomeDelivery,
+    List<String>? roles,
+    String? authMethod,
+    bool? isVerified,
+    String? profilePicture,
+    DateTime? securityLastUpdated,
+  }) {
+    return UserEntity(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      identificationType: identificationType ?? this.identificationType,
+      identificationNumber: identificationNumber ?? this.identificationNumber,
+      country: country ?? this.country,
+      countryId: countryId ?? this.countryId,
+      departmentId: departmentId ?? this.departmentId,
+      city: city ?? this.city,
+      cityId: cityId ?? this.cityId,
+      address: address ?? this.address,
+      email: email ?? this.email,
+      cellPhone: cellPhone ?? this.cellPhone,
+      professionalCard: professionalCard ?? this.professionalCard,
+      animalTypes: animalTypes ?? this.animalTypes,
+      services: services ?? this.services,
+      isHomeDelivery: isHomeDelivery ?? this.isHomeDelivery,
+      roles: roles ?? this.roles,
+      authMethod: authMethod ?? this.authMethod,
+      isVerified: isVerified ?? this.isVerified,
+      profilePicture: profilePicture ?? this.profilePicture,
+      securityLastUpdated: securityLastUpdated ?? this.securityLastUpdated,
+    );
+  }
 }

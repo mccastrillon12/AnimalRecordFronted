@@ -168,11 +168,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           }
         },
         (user) async {
-          await _saveUserToCache(user);
-
+          UserEntity finalUser = user;
           final currentState = state;
-          if (currentState is! AuthSuccess || currentState.user != user) {
-            await _emitAuthSuccessWithBiometrics(user, emit);
+          
+          if (currentState is AuthSuccess) {
+            if (user.securityLastUpdated == null && currentState.user.securityLastUpdated != null) {
+              finalUser = user.copyWith(securityLastUpdated: currentState.user.securityLastUpdated);
+            }
+          }
+
+          await _saveUserToCache(finalUser);
+
+          if (currentState is! AuthSuccess || currentState.user != finalUser) {
+            await _emitAuthSuccessWithBiometrics(finalUser, emit);
           }
         },
       );
@@ -312,15 +320,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null) {
+          final updatedUser = currentUser.copyWith(
+            securityLastUpdated: DateTime.now().toUtc(),
+          );
+          await _saveUserToCache(updatedUser);
+          add(FetchUserRequested());
+
           emit(
             PasswordChangeSuccess(
-              currentUser,
+              updatedUser,
               isBiometricEnabled: currentState is AuthSuccess
                   ? currentState.isBiometricEnabled
                   : false,
             ),
           );
         } else {
+          add(FetchUserRequested());
           emit(PasswordChangeSuccess(UserModel.empty()));
         }
       },
@@ -554,9 +569,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null && currentState is AuthSuccess) {
+          final updatedUser = currentUser.copyWith(
+            securityLastUpdated: DateTime.now().toUtc(),
+          );
+          await _saveUserToCache(updatedUser);
+          add(FetchUserRequested());
+
           emit(
             AuthSuccess(
-              currentUser,
+              updatedUser,
               pinSaveSuccess: true,
               isBiometricEnabled: currentState.isBiometricEnabled,
             ),
@@ -641,9 +662,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       },
       (_) async {
+        final updatedUser = currentState.user.copyWith(
+          securityLastUpdated: DateTime.now().toUtc(),
+        );
+        await _saveUserToCache(updatedUser);
+        add(FetchUserRequested());
+
         emit(
           AuthSuccess(
-            currentState.user,
+            updatedUser,
             isUpdating: false,
             pinChangeSuccess: true,
             isBiometricEnabled: currentState.isBiometricEnabled,
@@ -998,9 +1025,30 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   }
 
   Future<void> _saveUserToCache(UserEntity user) async {
-    if (user is UserModel) {
-      await tokenStorage.saveUserData(json.encode(user.toJson()));
-    }
+    final userModel = UserModel(
+      id: user.id,
+      name: user.name,
+      identificationType: user.identificationType,
+      identificationNumber: user.identificationNumber,
+      country: user.country,
+      countryId: user.countryId,
+      departmentId: user.departmentId,
+      city: user.city,
+      cityId: user.cityId,
+      address: user.address,
+      email: user.email,
+      cellPhone: user.cellPhone,
+      professionalCard: user.professionalCard,
+      animalTypes: user.animalTypes,
+      services: user.services,
+      isHomeDelivery: user.isHomeDelivery,
+      roles: user.roles,
+      authMethod: user.authMethod,
+      isVerified: user.isVerified,
+      profilePicture: user.profilePicture,
+      securityLastUpdated: user.securityLastUpdated,
+    );
+    await tokenStorage.saveUserData(json.encode(userModel.toJson()));
   }
 
   Future<void> _emitAuthSuccessWithBiometrics(

@@ -25,6 +25,7 @@ class UserModel extends UserEntity {
     required super.isVerified,
     this.password,
     super.profilePicture,
+    super.securityLastUpdated,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -55,6 +56,10 @@ class UserModel extends UserEntity {
           json['avatar'] ??
           json['picture'] ??
           json['photoUrl'],
+      securityLastUpdated:
+          (json['securityLastUpdated'] ?? json['security_last_updated']) != null
+              ? (DateTime.tryParse((json['securityLastUpdated'] ?? json['security_last_updated']).toString()))
+              : null,
     );
   }
 
@@ -78,6 +83,7 @@ class UserModel extends UserEntity {
       authMethod: '',
       isVerified: false,
       profilePicture: null,
+      securityLastUpdated: null,
     );
   }
 
@@ -93,6 +99,7 @@ class UserModel extends UserEntity {
       'animalTypes': animalTypes,
       'services': services,
       'isHomeDelivery': isHomeDelivery,
+      'securityLastUpdated': securityLastUpdated?.toIso8601String(),
     };
 
     if (email.isNotEmpty) {

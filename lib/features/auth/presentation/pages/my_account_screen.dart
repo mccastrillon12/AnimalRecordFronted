@@ -167,6 +167,28 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     super.dispose();
   }
 
+  String _formatSecurityDate(DateTime? date) {
+    if (date == null) return '';
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    final month = months[date.month - 1];
+    final day = date.day.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '$month $day, $year';
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -523,13 +545,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  'Última modificación: month, dd, yyyy',
-                                  style: AppTypography.body4.copyWith(
-                                    color: AppColors.greyMedio,
+                                if (user.securityLastUpdated != null) ...[
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.greyMedio,
+                                    ),
                                   ),
-                                ),
+                                ]
                               ],
                             ),
                           ),
@@ -539,8 +563,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           'google',
                           'microsoft',
                           'apple',
-                        ].contains(user.authMethod.toLowerCase()) &&
-                        state.isBiometricEnabled)
+                        ].contains(user.authMethod.toLowerCase()))
                       Column(
                         children: [
                           Container(
@@ -598,13 +621,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: AppSpacing.xs),
-                                Text(
-                                  'Última modificación: month, dd, yyyy',
-                                  style: AppTypography.body4.copyWith(
-                                    color: AppColors.greyMedio,
+                                if (user.securityLastUpdated != null) ...[
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.greyMedio,
+                                    ),
                                   ),
-                                ),
+                                ]
                               ],
                             ),
                           ),
