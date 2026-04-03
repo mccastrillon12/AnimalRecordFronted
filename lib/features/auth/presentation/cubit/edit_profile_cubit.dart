@@ -14,7 +14,7 @@ class EditProfileCubit extends Cubit<EditProfileState> {
     final name = StringFormatters.formatName(user.name);
     final email = user.email;
     final address = user.address;
-    
+
     // As in original code, clean raw phone from country prefix explicitly
     final cleanRawPhone = CountryConstants.stripDialCode(user.cellPhone);
     final countryId = user.countryId;
@@ -45,17 +45,17 @@ class EditProfileCubit extends Cubit<EditProfileState> {
   }
 
   void emailChanged(String value) {
-    emit(state.copyWith(
-      email: EmailInput.dirty(value),
-      isEmailAttempted: true,
-    ));
+    emit(
+      state.copyWith(email: EmailInput.dirty(value), isEmailAttempted: true),
+    );
   }
 
   void phoneChanged(String value) {
-    emit(state.copyWith(
-      phone: PhoneInput.dirty(value),
-      isPhoneAttempted: true,
-    ));
+    // ignore: avoid_print
+    print('📱 phoneChanged -> "$value"');
+    emit(
+      state.copyWith(phone: PhoneInput.dirty(value), isPhoneAttempted: true),
+    );
   }
 
   void addressChanged(String value) {
@@ -69,24 +69,28 @@ class EditProfileCubit extends Cubit<EditProfileState> {
     if (phoneVal.startsWith(purePrefix)) {
       phoneVal = phoneVal.substring(purePrefix.length);
     }
-    emit(state.copyWith(
-      phoneCountryId: value,
-      phone: PhoneInput.dirty(phoneVal),
-    ));
+    emit(
+      state.copyWith(phoneCountryId: value, phone: PhoneInput.dirty(phoneVal)),
+    );
   }
 
   void departmentChanged(String value) {
-    emit(state.copyWith(
-      departmentId: value,
-      cityId: '',
-    ));
+    // ignore: avoid_print
+    print('🏛️ departmentChanged -> "$value"');
+    emit(state.copyWith(departmentId: value, cityId: ''));
   }
 
   void cityChanged(String value) {
+    // ignore: avoid_print
+    print('🏙️ cityChanged -> "$value"');
     emit(state.copyWith(cityId: value));
   }
 
   Map<String, dynamic> buildUpdatePayload(String prefix) {
+    // ignore: avoid_print
+    print(
+      '🔍 payload state -> phone: "${state.phone.value}" | dept: "${state.departmentId}" | city: "${state.cityId}" | authMethod: "${state.originalUser.authMethod}"',
+    );
     String cellPhone = state.phone.value.trim();
     if (cellPhone.isNotEmpty && prefix.isNotEmpty) {
       String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
@@ -102,14 +106,18 @@ class EditProfileCubit extends Cubit<EditProfileState> {
       'address': state.address.value,
       if (state.originalUser.authMethod == 'PHONE')
         'email': state.email.value.trim(),
-      if (state.originalUser.authMethod != 'PHONE')
+      if (state.originalUser.authMethod != 'PHONE') ...{
         'cellPhone': cellPhone,
+        if (state.phoneCountryId.isNotEmpty) 'countryId': state.phoneCountryId,
+      },
       'cityId': state.cityId,
       'departmentId': state.departmentId,
-      if (state.phoneCountryId.isNotEmpty)
-        'countryId': state.phoneCountryId,
+      if (state.phoneCountryId.isNotEmpty) 'countryId': state.phoneCountryId,
     };
-    
+
+    // ignore: avoid_print
+    print('📦 EditProfilePayload: $updatedData');
+
     return updatedData;
   }
 }

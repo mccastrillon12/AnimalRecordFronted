@@ -15,6 +15,9 @@ class SocialRegisterState extends Equatable {
   final bool isIdAttempted;
   final bool isPhoneAttempted;
 
+  final bool phoneError;
+  final bool idError;
+
   const SocialRegisterState({
     this.name = const TextInput.pure(),
     this.email = '',
@@ -25,6 +28,8 @@ class SocialRegisterState extends Equatable {
     this.isNameAttempted = false,
     this.isIdAttempted = false,
     this.isPhoneAttempted = false,
+    this.phoneError = false,
+    this.idError = false,
   });
 
   bool get isValid {
@@ -41,6 +46,8 @@ class SocialRegisterState extends Equatable {
     bool? isNameAttempted,
     bool? isIdAttempted,
     bool? isPhoneAttempted,
+    bool? phoneError,
+    bool? idError,
   }) {
     return SocialRegisterState(
       name: name ?? this.name,
@@ -52,6 +59,8 @@ class SocialRegisterState extends Equatable {
       isNameAttempted: isNameAttempted ?? this.isNameAttempted,
       isIdAttempted: isIdAttempted ?? this.isIdAttempted,
       isPhoneAttempted: isPhoneAttempted ?? this.isPhoneAttempted,
+      phoneError: phoneError ?? this.phoneError,
+      idError: idError ?? this.idError,
     );
   }
 
@@ -66,5 +75,7 @@ class SocialRegisterState extends Equatable {
         isNameAttempted,
         isIdAttempted,
         isPhoneAttempted,
+        phoneError,
+        idError,
       ];
 }

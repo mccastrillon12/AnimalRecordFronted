@@ -620,8 +620,8 @@ class _LocationSelector extends StatelessWidget {
                     ? editState.departmentId
                     : null,
                 onChanged: (value) {
-                  if (value != null) {
-                    cubit.departmentChanged(value);
+                  cubit.departmentChanged(value ?? '');
+                  if (value != null && value.isNotEmpty) {
                     context.read<LocationsCubit>().fetchCities(value);
                   }
                 },
@@ -641,9 +641,7 @@ class _LocationSelector extends StatelessWidget {
                 label: 'Ciudad / Municipio',
                 value: editState.cityId.isNotEmpty ? editState.cityId : null,
                 onChanged: (value) {
-                  if (value != null) {
-                    cubit.cityChanged(value);
-                  }
+                  cubit.cityChanged(value ?? '');
                 },
                 cities: locationsState.cities,
               )

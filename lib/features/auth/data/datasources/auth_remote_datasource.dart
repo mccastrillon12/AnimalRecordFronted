@@ -157,6 +157,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data) async {
+    // ignore: avoid_print
+    print('📤 PUT /users/$id data: $data');
     final response = await apiClient.put('/users/$id', data: data);
     if (response.data is Map<String, dynamic>) {
       return UserModel.fromJson(response.data);

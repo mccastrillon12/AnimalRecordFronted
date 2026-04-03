@@ -303,11 +303,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
                           final updatedData = <String, dynamic>{
                             'name': _nameController.text,
-                            if (isPhoneLogin) 'email': _emailController.text,
-                            if (!isPhoneLogin && cellPhone.isNotEmpty)
+                            // Siempre enviar aunque estén vacíos para que el
+                            // backend sobreescriba el valor anterior con ""
+                            if (isPhoneLogin)
+                              'email': _emailController.text.trim(),
+                            if (!isPhoneLogin) ...{
                               'cellPhone': cellPhone,
-                            if (finalCountryId != null)
-                              'countryId': finalCountryId,
+                              if (finalCountryId != null)
+                                'countryId': finalCountryId,
+                            },
                           };
                           context.read<AuthBloc>().add(
                             UpdateProfileRequested(

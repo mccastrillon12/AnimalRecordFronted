@@ -22,6 +22,7 @@ class SocialRegisterCubit extends Cubit<SocialRegisterState> {
     emit(state.copyWith(
       identificationNumber: TextInput.dirty(value),
       isIdAttempted: true,
+      idError: false,
     ));
   }
 
@@ -29,11 +30,20 @@ class SocialRegisterCubit extends Cubit<SocialRegisterState> {
     emit(state.copyWith(
       phone: PhoneInput.dirty(value),
       isPhoneAttempted: true,
+      phoneError: false,
     ));
   }
 
   void phoneCountryIdChanged(String value) {
     emit(state.copyWith(phoneCountryId: value));
+  }
+
+  void phoneErrorChanged(bool value) {
+    emit(state.copyWith(phoneError: value));
+  }
+
+  void idErrorChanged(bool value) {
+    emit(state.copyWith(idError: value));
   }
 
   Map<String, dynamic> buildPayload({

@@ -91,11 +91,40 @@ class _SocialRegisterCompletionViewState
   }
 
   void _onSubmit(SocialRegisterCubit cubit) {
-    // Validar existencia de la cédula primero
     final state = cubit.state;
-    context.read<AuthBloc>().add(
-          CheckIdentificationExists(state.identificationNumber.value),
-        );
+    final locState = context.read<LocationsCubit>().state;
+    String prefix = '';
+
+    if (locState is LocationsLoaded) {
+      final pId = state.phoneCountryId.isNotEmpty ? state.phoneCountryId : _colombiaId;
+      if (pId != null && pId.isNotEmpty) {
+        try {
+          final phoneCountry = locState.countries
+              .cast<CountryEntity>()
+              .firstWhere((c) => c.id == pId);
+          prefix = phoneCountry.dialCode;
+        } catch (_) {}
+      }
+    }
+
+    String cellPhone = state.phone.value.trim();
+    if (cellPhone.isNotEmpty && prefix.isNotEmpty) {
+      String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
+      final purePrefix = prefix.replaceAll('+', '');
+      if (numbersOnly.startsWith(purePrefix)) {
+        numbersOnly = numbersOnly.substring(purePrefix.length);
+      }
+      cellPhone = '$prefix$numbersOnly';
+    }
+
+    Map<String, dynamic> dataToCheck = {
+      'identificationNumber': state.identificationNumber.value,
+    };
+    if (cellPhone.isNotEmpty) {
+      dataToCheck['cellPhone'] = cellPhone;
+    }
+
+    context.read<AuthBloc>().add(CheckAvailabilityRequested(dataToCheck));
   }
 
   @override
@@ -123,16 +152,27 @@ class _SocialRegisterCompletionViewState
                 );
               } else if (state is AuthError) {
                 ErrorDisplay.showError(context, state.message);
-              } else if (state is IdentificationCheckResult) {
-                if (state.exists) {
-                  ErrorDisplay.showError(
-                    context,
-                    'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.',
-                  );
+              } else if (state is AvailabilityCheckResult) {
+                final status = state.availabilityStatus;
+                String? errorMessage;
+                
+                final cubit = context.read<SocialRegisterCubit>();
+                
+                if (status.containsKey('identificationNumber') && status['identificationNumber'] == false) {
+                  cubit.idErrorChanged(true);
+                  errorMessage = 'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.';
+                } 
+                
+                if (status.containsKey('cellPhone') && status['cellPhone'] == false) {
+                   cubit.phoneErrorChanged(true);
+                   errorMessage = 'Parece que ya tienes una cuenta con este número celular. Intenta iniciar sesión.';
+                }
+
+                if (errorMessage != null) {
+                  ErrorDisplay.showError(context, errorMessage);
                 } else {
-                  // Cédula válida y nueva, enviar el registro final
+                  // Todo válido, enviar registro final
                   final locState = context.read<LocationsCubit>().state;
-                  final cubit = context.read<SocialRegisterCubit>();
                   final regState = cubit.state;
 
                   String prefix = '';
@@ -318,16 +358,16 @@ class _SocialRegisterCompletionViewState
                             const SizedBox(height: AppSpacing.m),
 
                             IdSelector(
-                              initialValue:
-                                  registerState.identificationNumber.value,
+                              initialValue: registerState.identificationNumber.value,
                               onChanged: cubit.identificationNumberChanged,
                               initialIdType: registerState.identificationType,
                               onIdTypeChanged: cubit.identificationTypeChanged,
-                              errorText: registerState.isIdAttempted &&
-                                      registerState.identificationNumber
-                                          .isNotValid
-                                  ? AppStrings.requiredField
-                                  : null,
+                              errorText: registerState.idError
+                                  ? 'ID ya registrado'
+                                  : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid
+                                      ? AppStrings.requiredField
+                                      : null),
+                              hideErrorText: registerState.idError,
                             ),
                             const SizedBox(height: AppSpacing.m),
 
@@ -353,11 +393,14 @@ class _SocialRegisterCompletionViewState
                               inputFormatters: [
                                 FilteringTextInputFormatter.digitsOnly,
                               ],
-                              errorText: registerState.isPhoneAttempted &&
-                                      registerState.phone.isNotValid &&
-                                      registerState.phone.value.isNotEmpty
-                                  ? AppStrings.phoneError
-                                  : null,
+                              errorText: registerState.phoneError
+                                  ? 'Celular ya registrado'
+                                  : (registerState.isPhoneAttempted &&
+                                          registerState.phone.isNotValid &&
+                                          registerState.phone.value.isNotEmpty
+                                      ? AppStrings.phoneError
+                                      : null),
+                              hideErrorText: registerState.phoneError,
                             ),
                           ],
                           const KeyboardSpacer(),
