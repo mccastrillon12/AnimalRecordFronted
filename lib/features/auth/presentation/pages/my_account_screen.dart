@@ -342,7 +342,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.l),
+                    const SizedBox(height: AppSpacing.m),
 
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -353,7 +353,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             controller: _nameController,
                             label: 'Nombre completo',
                           ),
-                          const SizedBox(height: AppSpacing.l),
+                          const SizedBox(height: AppSpacing.m),
 
                           if (isPhoneLogin) ...[
                             Text(
@@ -454,7 +454,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.l),
+                            const SizedBox(height: AppSpacing.m),
                             BlocBuilder<LocationsCubit, LocationsState>(
                               builder: (context, locationState) {
                                 return PhoneInputField(
@@ -488,7 +488,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.xl),
+                    const SizedBox(height: AppSpacing.m),
 
                     if (user.authMethod.toLowerCase() == 'email' ||
                         user.authMethod.toLowerCase() == 'phone')
@@ -498,7 +498,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 12,
+                              vertical: 10,
                             ),
                             color: const Color(0xFFF4F6F9),
                             child: Text(
@@ -512,7 +512,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 12,
+                              vertical: 10,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -557,7 +557,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                       color: AppColors.greyMedio,
                                     ),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           ),
@@ -567,14 +567,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           'google',
                           'microsoft',
                           'apple',
-                        ].contains(user.authMethod.toLowerCase()) && state.isBiometricEnabled)
+                        ].contains(user.authMethod.toLowerCase()) &&
+                        state.isBiometricEnabled)
                       Column(
                         children: [
                           Container(
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 12,
+                              vertical: 10,
                             ),
                             color: const Color(0xFFF4F6F9),
                             child: Text(
@@ -588,7 +589,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 14,
+                              vertical: 10,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -633,7 +634,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                       color: AppColors.greyMedio,
                                     ),
                                   ),
-                                ]
+                                ],
                               ],
                             ),
                           ),
