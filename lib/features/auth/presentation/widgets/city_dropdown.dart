@@ -43,10 +43,30 @@ class _CityDropdownState extends State<CityDropdown> {
     }
   }
 
-  void _openDropdown() {
+  bool _isOpening = false;
+
+  void _openDropdown() async {
+    if (_isOpening) return;
+    _isOpening = true;
+
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable != null) {
+      await scrollable.position.animateTo(
+        scrollable.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 50),
+        curve: Curves.easeOut,
+      );
+    }
+
+    if (!mounted) {
+      _isOpening = false;
+      return;
+    }
+
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
     setState(() => _isOpen = true);
+    _isOpening = false;
   }
 
   void _closeDropdown() {

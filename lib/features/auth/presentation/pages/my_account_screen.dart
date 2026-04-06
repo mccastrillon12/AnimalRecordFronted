@@ -567,7 +567,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           'google',
                           'microsoft',
                           'apple',
-                        ].contains(user.authMethod.toLowerCase()))
+                        ].contains(user.authMethod.toLowerCase()) && state.isBiometricEnabled)
                       Column(
                         children: [
                           Container(
