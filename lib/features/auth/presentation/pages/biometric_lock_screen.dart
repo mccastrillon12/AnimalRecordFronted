@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/presentation/pages/password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   const BiometricLockScreen({super.key});
@@ -252,6 +254,19 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                         setState(() => _isClearingSession = true);
                         try {
                           await sl<TokenStorage>().clearAll();
+                          
+                          try {
+                            final googleSignIn = GoogleSignIn();
+                            await googleSignIn.signOut();
+                            // Desconectar asegura revocar el acceso a Google para forzar a pedir cuenta de nuevo
+                            await googleSignIn.disconnect();
+                          } catch (_) {}
+
+                          try {
+                            final microsoftAuth = sl<MicrosoftAuthService>();
+                            await microsoftAuth.signOut();
+                          } catch (_) {}
+
                           // Small delay to let the user see the animation as it's very fast
                           await Future.delayed(
                             const Duration(milliseconds: 400),
