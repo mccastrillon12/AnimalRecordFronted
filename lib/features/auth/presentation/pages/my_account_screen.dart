@@ -362,13 +362,13 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                 color: AppColors.textSecondary,
                               ),
                             ),
-                            const SizedBox(height: AppSpacing.xs),
+                            const SizedBox(height: AppSpacing.m),
                             DataValueBox(
                               value: user.cellPhone.isNotEmpty
                                   ? user.cellPhone
                                   : 'No registrado',
                             ),
-                            const SizedBox(height: AppSpacing.s),
+                            const SizedBox(height: AppSpacing.m),
                             RichText(
                               text: TextSpan(
                                 style: AppTypography.body6.copyWith(
@@ -433,7 +433,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                               ),
                               const SizedBox(height: AppSpacing.m),
                             ] else ...[
-                              const SizedBox(height: AppSpacing.s),
+                              const SizedBox(height: AppSpacing.m),
                             ],
                             RichText(
                               text: TextSpan(
@@ -498,7 +498,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 10,
+                              vertical: 12,
                             ),
                             color: const Color(0xFFF4F6F9),
                             child: Text(
@@ -512,7 +512,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 10,
+                              vertical: 12,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,7 +554,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                   Text(
                                     'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
                                     style: AppTypography.body4.copyWith(
-                                      color: AppColors.greyMedio,
+                                      color: const Color(0xFFA8AFBD),
                                     ),
                                   ),
                                 ],
@@ -575,7 +575,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             width: double.infinity,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
-                              vertical: 10,
+                              vertical: 12,
                             ),
                             color: const Color(0xFFF4F6F9),
                             child: Text(
@@ -627,7 +627,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                                   ],
                                 ),
                                 if (user.securityLastUpdated != null) ...[
-                                  const SizedBox(height: AppSpacing.xs),
                                   Text(
                                     'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
                                     style: AppTypography.body4.copyWith(
