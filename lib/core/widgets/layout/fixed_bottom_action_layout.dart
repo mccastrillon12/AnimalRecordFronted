@@ -22,11 +22,13 @@ class FixedBottomActionLayout extends StatelessWidget {
         Expanded(child: child),
 
         Padding(
-          padding: padding ?? const EdgeInsets.all(AppSpacing.l),
+          padding:
+              padding ??
+              const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
           child: bottomChild,
         ),
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 40),
       ],
     );
   }

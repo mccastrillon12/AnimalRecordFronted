@@ -106,14 +106,20 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PasswordScreen(identifier: _userIdentifier),
+          builder: (context) => PasswordScreen(
+            identifier: _userIdentifier, 
+            bypassBiometric: true,
+          ),
         ),
       );
     } else {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PinEntryScreen(identifier: _userIdentifier),
+          builder: (context) => PinEntryScreen(
+            identifier: _userIdentifier, 
+            bypassBiometric: true,
+          ),
         ),
       );
     }

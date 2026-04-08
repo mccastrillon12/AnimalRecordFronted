@@ -127,13 +127,26 @@ class _SocialRegisterCompletionViewState
     context.read<AuthBloc>().add(CheckAvailabilityRequested(dataToCheck));
   }
 
+  void _onCancelFlow() {
+    context.read<AuthBloc>().add(LogoutRequested());
+    Navigator.pop(context);
+  }
+
+  Future<bool> _onWillPop() async {
+    context.read<AuthBloc>().add(LogoutRequested());
+    return true;
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AuthFormContainer(
-      showLogo: false,
-      onBack: () => Navigator.pop(context),
-      addInternalPadding: false,
-      child: MultiBlocListener(
+    return WillPopScope(
+      onWillPop: _onWillPop,
+      child: AuthFormContainer(
+        showLogo: false,
+        onBack: _onCancelFlow,
+        onCancel: _onCancelFlow,
+        addInternalPadding: false,
+        child: MultiBlocListener(
         listeners: [
           BlocListener<AuthBloc, AuthState>(
             listener: (context, state) {
@@ -414,6 +427,7 @@ class _SocialRegisterCompletionViewState
           },
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

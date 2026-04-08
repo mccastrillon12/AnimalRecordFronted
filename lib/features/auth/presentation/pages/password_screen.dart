@@ -22,11 +22,13 @@ import 'biometric_lock_screen.dart';
 class PasswordScreen extends StatefulWidget {
   final String identifier;
   final bool isBiometricSetup;
+  final bool bypassBiometric;
 
   const PasswordScreen({
     super.key, 
     required this.identifier,
     this.isBiometricSetup = false,
+    this.bypassBiometric = false,
   });
 
   @override
@@ -102,7 +104,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 }
               });
             } else {
-              if (state.isBiometricEnabled) {
+              if (state.isBiometricEnabled && !widget.bypassBiometric) {
                 Navigator.pushAndRemoveUntil(
                   context,
                   MaterialPageRoute(

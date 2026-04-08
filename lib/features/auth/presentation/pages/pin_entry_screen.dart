@@ -18,8 +18,13 @@ import 'package:animal_record/features/auth/presentation/pages/biometric_lock_sc
 
 class PinEntryScreen extends StatefulWidget {
   final String identifier;
+  final bool bypassBiometric;
 
-  const PinEntryScreen({super.key, required this.identifier});
+  const PinEntryScreen({
+    super.key, 
+    required this.identifier,
+    this.bypassBiometric = false,
+  });
 
   @override
   State<PinEntryScreen> createState() => _PinEntryScreenState();
@@ -66,7 +71,7 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         }
         if (state is AuthSuccess) {
           if (state.pinVerifiedSuccess) {
-            if (state.isBiometricEnabled) {
+            if (state.isBiometricEnabled && !widget.bypassBiometric) {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(

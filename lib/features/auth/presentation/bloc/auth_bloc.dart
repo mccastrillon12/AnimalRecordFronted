@@ -34,6 +34,7 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
@@ -352,19 +353,23 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    await logoutUseCase();
 
-    // Limpiar sesiones sociales para forzar el selector de cuentas en el próximo login
+    // Limpiar sesiones sociales primero para forzar el selector de cuentas en el próximo login y evitar race conditions
     try {
-      final googleSignIn = google_sign_in.GoogleSignIn();
+      final googleSignIn = google_sign_in.GoogleSignIn(
+        serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
+      );
       await googleSignIn.signOut();
-      await googleSignIn.disconnect();
-    } catch (_) {}
+    } catch (e) {
+      sl<Logger>().w('Error al desconectar GoogleSignIn: $e');
+    }
 
     try {
       final microsoftAuth = sl<MicrosoftAuthService>();
       await microsoftAuth.signOut();
     } catch (_) {}
+
+    await logoutUseCase();
 
     emit(AuthInitial());
   }

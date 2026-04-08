@@ -133,6 +133,9 @@ class _LoginScreenState extends State<LoginScreen> {
       _showDarkOverlay = false;
     });
     try {
+      // Forzar que Google muestre siempre la ventana de selección de cuenta
+      await _googleSignIn.signOut();
+      
       final google_sign_in.GoogleSignInAccount? googleUser = await _googleSignIn
           .signIn();
 
