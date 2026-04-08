@@ -10,10 +10,7 @@ class MicrosoftAuthService {
   static const String _authority = "https://login.microsoftonline.com/common";
   static const String _redirectUriAndroid =
       "msauth://com.animalRecord.animal_record/2ebQI5bRT%2FNwWP926aXx82ZpYvA%3D";
-  static const List<String> _scopes = [
-    'User.Read',
-    'email',
-  ];
+  static const List<String> _scopes = ['User.Read', 'email'];
 
   MicrosoftAuthService({required this.logger});
 
@@ -51,6 +48,9 @@ class MicrosoftAuthService {
 
       logger.i("Microsoft Sign In Successful. Token received.");
       return result.accessToken;
+    } on MsalUserCancelException {
+      logger.i("Microsoft Sign In canceled by user.");
+      return null;
     } on MsalException catch (e) {
       logger.e("MSAL Exception: ${e.message}");
       throw Exception("Error de Microsoft: ${e.message}");
