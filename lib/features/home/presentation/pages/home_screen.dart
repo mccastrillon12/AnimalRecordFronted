@@ -46,33 +46,34 @@ class _HomeScreenState extends State<HomeScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.dark, // iconos oscuros sobre fondo claro
-        statusBarBrightness: Brightness.light,    // para iOS
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
       ),
       child: Scaffold(
         backgroundColor: AppColors.background,
         body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          if (state is! AuthSuccess) {
-            return const Center(child: CircularProgressIndicator());
-          }
+          builder: (context, state) {
+            if (state is! AuthSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          return SafeArea(
-            child: Column(
-              children: [
-                const UserHeader(),
+            return SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  const UserHeader(),
 
-                const NavigationMenu(),
+                  const NavigationMenu(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                const Expanded(child: AnimalsSection()),
-              ],
-            ),
-          );
-        },
+                  const Expanded(child: AnimalsSection()),
+                ],
+              ),
+            );
+          },
+        ),
       ),
-     ),
     );
   }
 }

@@ -14,9 +14,12 @@ class UserHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 168,
       decoration: const BoxDecoration(gradient: AppColors.backgroundDegrade),
-      child: Column(
+      child: SafeArea(
+        bottom: false,
+        child: SizedBox(
+          height: 168,
+          child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: 0),
@@ -181,6 +184,8 @@ class UserHeader extends StatelessWidget {
             ),
           ),
         ],
+      ),
+        ),
       ),
     );
   }
