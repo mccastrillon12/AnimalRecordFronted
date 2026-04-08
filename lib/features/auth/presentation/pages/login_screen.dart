@@ -109,7 +109,10 @@ class _LoginScreenState extends State<LoginScreen> {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PasswordScreen(identifier: identifier),
+        builder: (context) => PasswordScreen(
+          identifier: identifier,
+          isBiometricSetup: widget.hideBiometrics,
+        ),
       ),
     );
 
@@ -304,21 +307,16 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             });
           } else {
-            final storage = sl<TokenStorage>();
-            storage.getBiometricsEnabledForUser(state.user.id).then((isEnabled) {
-              if (mounted) {
-                if (isEnabled) {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const BiometricLockScreen(),
-                    ),
-                  );
-                } else {
-                  Navigator.pushReplacementNamed(context, '/home');
-                }
-              }
-            });
+            if (state.isBiometricEnabled) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BiometricLockScreen(),
+                ),
+              );
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
           }
         } else if (state is AuthError &&
             (ModalRoute.of(context)?.isCurrent ?? false)) {
