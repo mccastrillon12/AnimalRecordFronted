@@ -120,7 +120,7 @@ class WelcomeSocialPage extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: AppSpacing.s),
       child: Row(
         children: [
-          const Icon(Icons.check, color: Colors.white, size: 20),
+          const Icon(Icons.check, color: Color(0xFF67C1FF), size: 20),
           const SizedBox(width: AppSpacing.s),
           Text(text, style: AppTypography.body4.copyWith(color: Colors.white)),
         ],
