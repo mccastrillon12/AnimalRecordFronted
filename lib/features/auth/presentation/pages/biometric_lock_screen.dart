@@ -300,7 +300,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                       ),
                     ),
                   ],
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 40),
                 ],
               ),
             ),
