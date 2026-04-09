@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
-import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 
@@ -20,7 +19,10 @@ class WelcomeSocialPage extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: AppColors.backgroundDegradeFull,
+          image: DecorationImage(
+            image: AssetImage('assets/illustrations/Fondo_Marca_ agua.png'),
+            fit: BoxFit.cover,
+          ),
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(

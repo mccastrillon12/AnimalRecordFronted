@@ -330,13 +330,13 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 ),
                 child: ModalPageLayout(
                   title: 'Perfil',
+                  scrollOnlyWithKeyboard: true,
                   trailingIcon: IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(),
                   ),
-                  bottomPadding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
                   bottomChild: CustomButton(
                     text: 'Guardar cambios',
                     isLoading: isUpdating,

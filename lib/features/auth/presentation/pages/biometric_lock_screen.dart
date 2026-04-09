@@ -107,7 +107,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
         context,
         MaterialPageRoute(
           builder: (context) => PasswordScreen(
-            identifier: _userIdentifier, 
+            identifier: _userIdentifier,
             bypassBiometric: true,
           ),
         ),
@@ -117,7 +117,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
         context,
         MaterialPageRoute(
           builder: (context) => PinEntryScreen(
-            identifier: _userIdentifier, 
+            identifier: _userIdentifier,
             bypassBiometric: true,
           ),
         ),
@@ -209,6 +209,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                             disabledBackgroundColor: AppColors.greyClaro,
                             disabledForegroundColor: AppColors.greyBordes,
                             minimumSize: const Size(double.infinity, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
@@ -260,7 +261,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                         setState(() => _isClearingSession = true);
                         try {
                           await sl<TokenStorage>().clearAll();
-                          
+
                           try {
                             final googleSignIn = GoogleSignIn();
                             await googleSignIn.signOut();
@@ -298,7 +299,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                       ),
                     ),
                   ],
-                  const Spacer(),
+                  const SizedBox(height: 60),
                 ],
               ),
             ),
