@@ -241,6 +241,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                             disabledBackgroundColor: AppColors.greyClaro,
                             disabledForegroundColor: AppColors.greyBordes,
                             minimumSize: const Size(double.infinity, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(8),
                             ),
