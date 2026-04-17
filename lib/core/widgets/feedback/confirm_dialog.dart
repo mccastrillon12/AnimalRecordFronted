@@ -78,6 +78,11 @@ class ConfirmDialog extends StatelessWidget {
                         Navigator.of(context).pop();
                         onCancel?.call();
                       },
+                      style: TextButton.styleFrom(
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                      ),
                       child: Text(
                         'Cancelar',
                         style: AppTypography.body3.copyWith(

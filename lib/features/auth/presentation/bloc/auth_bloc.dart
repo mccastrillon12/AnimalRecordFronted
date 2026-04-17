@@ -7,6 +7,7 @@ import 'package:animal_record/features/auth/domain/usecases/login_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_identification_exists_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/check_availability_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_social_auth_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_social_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/get_user_profile_usecase.dart';
@@ -33,6 +34,9 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/data/models/user_model.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:logger/logger.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
@@ -40,6 +44,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final VerifyCodeUseCase verifyCodeUseCase;
   final ResendCodeUseCase resendCodeUseCase;
   final CheckIdentificationExistsUseCase checkIdentificationExistsUseCase;
+  final CheckAvailabilityUseCase checkAvailabilityUseCase;
   final CheckSocialAuthUseCase checkSocialAuthUseCase;
   final RegisterSocialUseCase registerSocialUseCase;
   final GetUserProfileUseCase getUserProfileUseCase;
@@ -67,6 +72,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.verifyCodeUseCase,
     required this.resendCodeUseCase,
     required this.checkIdentificationExistsUseCase,
+    required this.checkAvailabilityUseCase,
     required this.checkSocialAuthUseCase,
     required this.registerSocialUseCase,
     required this.getUserProfileUseCase,
@@ -103,6 +109,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<VerifyCodeSubmitted>(_onVerifyCodeSubmitted);
 
     on<CheckIdentificationExists>(_onCheckIdentificationExists);
+    
+    on<CheckAvailabilityRequested>(_onCheckAvailabilityRequested);
 
     on<ResendCodeSubmitted>(_onResendCodeSubmitted);
 
@@ -131,6 +139,8 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
 
     on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
+
+    on<DeleteProfilePictureRequested>(_onDeleteProfilePicture);
   }
 
   Future<void> _onFetchUserRequested(
@@ -164,11 +174,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           }
         },
         (user) async {
-          await _saveUserToCache(user);
-
+          UserEntity finalUser = user;
           final currentState = state;
-          if (currentState is! AuthSuccess || currentState.user != user) {
-            await _emitAuthSuccessWithBiometrics(user, emit);
+          
+          if (currentState is AuthSuccess) {
+            if (user.securityLastUpdated == null && currentState.user.securityLastUpdated != null) {
+              finalUser = user.copyWith(securityLastUpdated: currentState.user.securityLastUpdated);
+            }
+          }
+
+          await _saveUserToCache(finalUser);
+
+          if (currentState is! AuthSuccess || currentState.user != finalUser) {
+            await _emitAuthSuccessWithBiometrics(finalUser, emit);
           }
         },
       );
@@ -308,15 +326,22 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null) {
+          final updatedUser = currentUser.copyWith(
+            securityLastUpdated: DateTime.now().toUtc(),
+          );
+          await _saveUserToCache(updatedUser);
+          add(FetchUserRequested());
+
           emit(
             PasswordChangeSuccess(
-              currentUser,
+              updatedUser,
               isBiometricEnabled: currentState is AuthSuccess
                   ? currentState.isBiometricEnabled
                   : false,
             ),
           );
         } else {
+          add(FetchUserRequested());
           emit(PasswordChangeSuccess(UserModel.empty()));
         }
       },
@@ -328,7 +353,24 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
+
+    // Limpiar sesiones sociales primero para forzar el selector de cuentas en el próximo login y evitar race conditions
+    try {
+      final googleSignIn = google_sign_in.GoogleSignIn(
+        serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
+      );
+      await googleSignIn.signOut();
+    } catch (e) {
+      sl<Logger>().w('Error al desconectar GoogleSignIn: $e');
+    }
+
+    try {
+      final microsoftAuth = sl<MicrosoftAuthService>();
+      await microsoftAuth.signOut();
+    } catch (_) {}
+
     await logoutUseCase();
+
     emit(AuthInitial());
   }
 
@@ -407,6 +449,20 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     await result.fold(
       (failure) async => emit(AuthError(failure.message)),
       (exists) async => emit(IdentificationCheckResult(exists)),
+    );
+  }
+
+  Future<void> _onCheckAvailabilityRequested(
+    CheckAvailabilityRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    emit(AuthLoading());
+
+    final result = await checkAvailabilityUseCase(event.dataToCheck);
+
+    await result.fold(
+      (failure) async => emit(AuthError(failure.message)),
+      (availabilityStatus) async => emit(AvailabilityCheckResult(availabilityStatus)),
     );
   }
 
@@ -537,9 +593,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       },
       (_) async {
         if (currentUser != null && currentState is AuthSuccess) {
+          final updatedUser = currentUser.copyWith(
+            securityLastUpdated: DateTime.now().toUtc(),
+          );
+          await _saveUserToCache(updatedUser);
+          add(FetchUserRequested());
+
           emit(
             AuthSuccess(
-              currentUser,
+              updatedUser,
               pinSaveSuccess: true,
               isBiometricEnabled: currentState.isBiometricEnabled,
             ),
@@ -624,9 +686,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
         );
       },
       (_) async {
+        final updatedUser = currentState.user.copyWith(
+          securityLastUpdated: DateTime.now().toUtc(),
+        );
+        await _saveUserToCache(updatedUser);
+        add(FetchUserRequested());
+
         emit(
           AuthSuccess(
-            currentState.user,
+            updatedUser,
             isUpdating: false,
             pinChangeSuccess: true,
             isBiometricEnabled: currentState.isBiometricEnabled,
@@ -908,10 +976,103 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _saveUserToCache(UserEntity user) async {
-    if (user is UserModel) {
-      await tokenStorage.saveUserData(json.encode(user.toJson()));
+  Future<void> _onDeleteProfilePicture(
+    DeleteProfilePictureRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    final currentState = state;
+    if (currentState is! AuthSuccess) return;
+
+    emit(
+      currentState.copyWith(
+        isUploadingPicture: true,
+        profilePictureError: null,
+      ),
+    );
+
+    try {
+      // Enviamos cadena vacía para "limpiar" la foto en el backend
+      final result = await confirmProfilePictureUseCase('');
+
+      await result.fold(
+        (failure) async {
+          emit(
+            currentState.copyWith(
+              isUploadingPicture: false,
+              profilePictureError: failure.message,
+            ),
+          );
+        },
+        (_) async {
+          final oldUser = currentState.user;
+          final updatedUser = UserModel(
+            id: oldUser.id,
+            name: oldUser.name,
+            identificationType: oldUser.identificationType,
+            identificationNumber: oldUser.identificationNumber,
+            country: oldUser.country,
+            countryId: oldUser.countryId,
+            departmentId: oldUser.departmentId,
+            city: oldUser.city,
+            cityId: oldUser.cityId,
+            address: oldUser.address,
+            email: oldUser.email,
+            cellPhone: oldUser.cellPhone,
+            professionalCard: oldUser.professionalCard,
+            animalTypes: oldUser.animalTypes,
+            services: oldUser.services,
+            isHomeDelivery: oldUser.isHomeDelivery,
+            roles: oldUser.roles,
+            authMethod: oldUser.authMethod,
+            isVerified: oldUser.isVerified,
+            profilePicture: '', // Limpiamos la URL
+          );
+
+          await _saveUserToCache(updatedUser);
+          emit(
+            AuthSuccess(
+              updatedUser,
+              isUploadingPicture: false,
+              isBiometricEnabled: currentState.isBiometricEnabled,
+            ),
+          );
+        },
+      );
+    } catch (e) {
+      emit(
+        currentState.copyWith(
+          isUploadingPicture: false,
+          profilePictureError: 'Error inesperado: ${e.toString()}',
+        ),
+      );
     }
+  }
+
+  Future<void> _saveUserToCache(UserEntity user) async {
+    final userModel = UserModel(
+      id: user.id,
+      name: user.name,
+      identificationType: user.identificationType,
+      identificationNumber: user.identificationNumber,
+      country: user.country,
+      countryId: user.countryId,
+      departmentId: user.departmentId,
+      city: user.city,
+      cityId: user.cityId,
+      address: user.address,
+      email: user.email,
+      cellPhone: user.cellPhone,
+      professionalCard: user.professionalCard,
+      animalTypes: user.animalTypes,
+      services: user.services,
+      isHomeDelivery: user.isHomeDelivery,
+      roles: user.roles,
+      authMethod: user.authMethod,
+      isVerified: user.isVerified,
+      profilePicture: user.profilePicture,
+      securityLastUpdated: user.securityLastUpdated,
+    );
+    await tokenStorage.saveUserData(json.encode(userModel.toJson()));
   }
 
   Future<void> _emitAuthSuccessWithBiometrics(

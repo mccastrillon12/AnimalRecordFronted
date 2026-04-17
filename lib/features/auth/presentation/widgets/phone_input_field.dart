@@ -9,7 +9,9 @@ import 'country_dropdown.dart';
 
 class PhoneInputField extends StatelessWidget {
   final String label;
-  final TextEditingController controller;
+  final TextEditingController? controller;
+  final String? initialValue;
+  final ValueChanged<String>? onChanged;
   final List<CountryEntity> countries;
   final String? selectedCountryId;
   final ValueChanged<String?>? onCountryChanged;
@@ -18,6 +20,7 @@ class PhoneInputField extends StatelessWidget {
   final FocusNode? focusNode;
   final List<TextInputFormatter>? inputFormatters;
   final String? errorText;
+  final bool hideErrorText;
   final TextStyle? labelStyle;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onSubmitted;
@@ -25,7 +28,9 @@ class PhoneInputField extends StatelessWidget {
   const PhoneInputField({
     super.key,
     required this.label,
-    required this.controller,
+    this.controller,
+    this.initialValue,
+    this.onChanged,
     required this.countries,
     this.selectedCountryId,
     this.onCountryChanged,
@@ -34,6 +39,7 @@ class PhoneInputField extends StatelessWidget {
     this.maxLength,
     this.inputFormatters,
     this.errorText,
+    this.hideErrorText = false,
     this.labelStyle,
     this.textInputAction,
     this.onSubmitted,
@@ -96,8 +102,9 @@ class PhoneInputField extends StatelessWidget {
 
               CustomTextField(
                 label: '',
-
                 controller: controller,
+                initialValue: initialValue,
+                onChanged: onChanged,
                 focusNode: focusNode,
                 keyboardType: TextInputType.phone,
                 textInputAction: textInputAction ?? TextInputAction.done,
@@ -105,6 +112,7 @@ class PhoneInputField extends StatelessWidget {
                 maxLength: 15,
                 inputFormatters: inputFormatters,
                 errorText: errorText,
+                hideErrorText: hideErrorText,
                 prefixIcon: countries.isNotEmpty
                     ? Padding(
                         padding: const EdgeInsets.only(left: 12, right: 4),

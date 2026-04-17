@@ -9,47 +9,18 @@ import '../country_dropdown.dart';
 import '../id_selector.dart';
 import '../phone_input_field.dart';
 import 'package:flutter/services.dart';
+import '../../cubit/register_cubit.dart';
+import '../../cubit/register_state.dart';
 
 class OwnerPersonalDataStep extends StatefulWidget {
-  final TextEditingController nameController;
-  final TextEditingController emailController;
-  final TextEditingController phoneController;
-  final TextEditingController countryController;
-  final TextEditingController idController;
-  final String? selectedPhoneCountryId;
-  final ValueChanged<String?>? onPhoneCountryChanged;
-
   final bool showOptionalEmail;
-
   final bool showOptionalPhone;
-
-  final String? phoneErrorText;
-
-  final String? emailErrorText;
-
-  final String? idErrorText;
-
-  final ValueChanged<String>? onIdTypeChanged;
-
-  final String? initialIdType;
   final FocusNode? phoneFocusNode;
 
   const OwnerPersonalDataStep({
     super.key,
-    required this.nameController,
-    required this.emailController,
-    required this.phoneController,
-    required this.countryController,
-    required this.idController,
-    this.selectedPhoneCountryId,
-    this.onPhoneCountryChanged,
     this.showOptionalEmail = false,
     this.showOptionalPhone = false,
-    this.phoneErrorText,
-    this.emailErrorText,
-    this.idErrorText,
-    this.onIdTypeChanged,
-    this.initialIdType,
     this.phoneFocusNode,
   });
 
@@ -61,107 +32,125 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
   @override
   void initState() {
     super.initState();
-
     context.read<LocationsCubit>().fetchCountries();
   }
 
   @override
   Widget build(BuildContext context) {
-    return BlocConsumer<LocationsCubit, LocationsState>(
-      listener: (context, state) {
-        if (state is LocationsLoaded && state.countries.isNotEmpty) {
-          if (widget.countryController.text.isEmpty) {
-            final colombia = state.countries.cast<CountryEntity>().firstWhere(
-              (c) => c.name.toLowerCase().contains('colombia'),
-              orElse: () => state.countries.first,
-            );
-            widget.countryController.text = colombia.id;
-          }
-        }
-      },
-      builder: (context, state) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            CustomTextField(
-              label: 'Nombre completo',
-              hint: 'Jhon Doe',
-              controller: widget.nameController,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(
-                  RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+    return BlocBuilder<LocationsCubit, LocationsState>(
+      builder: (context, locState) {
+        return BlocBuilder<RegisterCubit, RegisterState>(
+          builder: (context, registerState) {
+            final cubit = context.read<RegisterCubit>();
+            
+            if (locState is LocationsLoaded && locState.countries.isNotEmpty && registerState.countryId.isEmpty) {
+              final colombia = locState.countries.cast<CountryEntity>().firstWhere(
+                (c) => c.name.toLowerCase().contains('colombia'),
+                orElse: () => locState.countries.first,
+              );
+              Future.microtask(() => cubit.countryIdChanged(colombia.id));
+            }
+
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CustomTextField(
+                  label: 'Nombre completo',
+                  hint: 'Jhon Doe',
+                  initialValue: registerState.name.value,
+                  onChanged: cubit.nameChanged,
+                  errorText: registerState.isNameAttempted && registerState.name.isNotValid ? 'Requerido' : null,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+                    ),
+                  ],
                 ),
-              ],
-            ),
 
-            const SizedBox(height: AppSpacing.m),
+                const SizedBox(height: AppSpacing.m),
 
-            if (state is LocationsLoaded) ...[
-              CountryDropdown(
-                label: 'País de residencia',
-                value: widget.countryController.text.isEmpty
-                    ? (state.countries.isNotEmpty
-                          ? state.countries.first.id
-                          : null)
-                    : widget.countryController.text,
-                enabled: false,
-                countries: state.countries,
-                width: double.infinity,
-                onChanged: (value) {
-                  if (value != null) {
-                    setState(() {
-                      widget.countryController.text = value;
-                    });
-                  }
-                },
-              ),
-            ] else if (state is LocationsLoading) ...[
-              const Center(child: CircularProgressIndicator()),
-            ] else if (state is LocationsError) ...[
-              Text('Error: ${state.message}'),
-            ],
+                if (locState is LocationsLoaded) ...[
+                  CountryDropdown(
+                    label: 'País de residencia',
+                    value: locState.countries.isNotEmpty
+                        ? locState.countries.cast<CountryEntity>().firstWhere(
+                            (c) => c.name.toLowerCase().contains('colombia'),
+                            orElse: () => locState.countries.first,
+                          ).id
+                        : null,   // Siempre Colombia, fijo
+                    enabled: false,
+                    countries: locState.countries,
+                    width: double.infinity,
+                    onChanged: null,
+                  ),
+                ] else if (locState is LocationsLoading) ...[
+                  const Center(child: CircularProgressIndicator()),
+                ] else if (locState is LocationsError) ...[
+                  Text('Error: ${locState.message}'),
+                ],
 
-            const SizedBox(height: AppSpacing.m),
+                const SizedBox(height: AppSpacing.m),
 
-            IdSelector(
-              idController: widget.idController,
-              errorText: widget.idErrorText,
-              onIdTypeChanged: widget.onIdTypeChanged,
-              initialIdType: widget.initialIdType,
-            ),
-
-            const SizedBox(height: AppSpacing.m),
-
-            if (widget.showOptionalEmail) ...[
-              CustomTextField(
-                label: 'Correo electrónico (Opcional)',
-                hint: 'ejemplo@correo.com',
-                controller: widget.emailController,
-                keyboardType: TextInputType.emailAddress,
-                maxLength: 50,
-                errorText: widget.emailErrorText,
-              ),
-              const SizedBox(height: AppSpacing.m),
-            ],
-
-            if (widget.showOptionalPhone) ...[
-              if (state is LocationsLoaded)
-                PhoneInputField(
-                  label: 'Número de celular (Opcional)',
-                  controller: widget.phoneController,
-                  focusNode: widget.phoneFocusNode,
-                  countries: state.countries,
-                  selectedCountryId: widget.selectedPhoneCountryId ??
-                      (state.countries.isNotEmpty
-                          ? state.countries.first.id
+                IdSelector(
+                  initialValue: registerState.identificationNumber.value,
+                  onChanged: cubit.identificationNumberChanged,
+                  errorText: registerState.idError 
+                      ? 'ID ya registrado'
+                      : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid 
+                          ? 'Requerido' 
                           : null),
-                  onCountryChanged: widget.onPhoneCountryChanged,
-                  maxLength: 15,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  errorText: widget.phoneErrorText,
+                  hideErrorText: registerState.idError,
+                  onIdTypeChanged: cubit.identificationTypeChanged,
+                  initialIdType: registerState.identificationType,
                 ),
-            ],
-          ],
+
+                const SizedBox(height: AppSpacing.m),
+
+                if (widget.showOptionalEmail) ...[
+                  CustomTextField(
+                    label: 'Correo electrónico (Opcional)',
+                    hint: 'ejemplo@correo.com',
+                    initialValue: registerState.email.value,
+                    onChanged: cubit.emailChanged,
+                    keyboardType: TextInputType.emailAddress,
+                    maxLength: 50,
+                    errorText: registerState.emailError
+                        ? 'Email ya registrado'
+                        : (registerState.isEmailAttempted && registerState.email.isNotValid 
+                            ? 'Introduzca una dirección de correo electrónico válida' 
+                            : null),
+                    hideErrorText: registerState.emailError,
+                  ),
+                  const SizedBox(height: AppSpacing.m),
+                ],
+
+                if (widget.showOptionalPhone) ...[
+                  if (locState is LocationsLoaded)
+                    PhoneInputField(
+                      label: 'Número de celular (Opcional)',
+                      initialValue: registerState.phone.value,
+                      onChanged: cubit.phoneChanged,
+                      focusNode: widget.phoneFocusNode,
+                      countries: locState.countries,
+                      selectedCountryId: registerState.phoneCountryId.isNotEmpty
+                          ? registerState.phoneCountryId
+                          : (locState.countries.isNotEmpty ? locState.countries.first.id : null),
+                      onCountryChanged: (val) {
+                        if (val != null) cubit.phoneCountryIdChanged(val);
+                      },
+                      maxLength: 15,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      errorText: registerState.phoneError
+                          ? 'Celular ya registrado'
+                          : (registerState.isPhoneAttempted && registerState.phone.isNotValid && registerState.phone.value.isNotEmpty
+                              ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
+                              : null),
+                      hideErrorText: registerState.phoneError,
+                    ),
+                ],
+              ],
+            );
+          },
         );
       },
     );

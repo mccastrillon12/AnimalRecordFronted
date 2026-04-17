@@ -109,8 +109,12 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
         : 'assets/icons/fingerprint.svg';
 
     return Scaffold(
-      backgroundColor: AppColors.primaryIndigo,
-      body: SafeArea(
+      backgroundColor: Colors.transparent,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: AppColors.backgroundDegradeFull,
+        ),
+        child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
           child: Column(
@@ -192,6 +196,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
               const SizedBox(height: AppSpacing.xxl),
             ],
           ),
+        ),
         ),
       ),
     );

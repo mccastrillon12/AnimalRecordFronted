@@ -18,10 +18,12 @@ import 'change_password_screen.dart';
 import 'change_pin_screen.dart';
 import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
+import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/constants/country_constants.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import 'package:animal_record/core/constants/app_strings.dart';
 
 class MyAccountScreen extends StatefulWidget {
   const MyAccountScreen({super.key});
@@ -36,7 +38,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   late TextEditingController _nameController;
   late TextEditingController _emailController;
   late TextEditingController _phoneController;
-  
+
   late FocusNode _phoneFocusNode;
 
   String? _selectedPhoneCountryId;
@@ -50,7 +52,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _phoneFocusNode = FocusNode();
 
     context.read<LocationsCubit>().fetchCountries();
-    
+
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
       final user = authState.user;
@@ -64,13 +66,15 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       } else {
         _emailController.text = user.email;
         if (user.cellPhone.isNotEmpty) {
-          _phoneController.text = CountryConstants.stripDialCode(user.cellPhone);
+          _phoneController.text = CountryConstants.stripDialCode(
+            user.cellPhone,
+          );
         }
         if (user.countryId.isNotEmpty) {
           _selectedPhoneCountryId = user.countryId;
         }
       }
-      
+
       // Async: strip again more precisely once countries are loaded
       _stripDialCodeAsync(user);
     }
@@ -82,7 +86,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     final cubit = context.read<LocationsCubit>();
     await cubit.fetchCountries();
     if (!mounted) return;
-    
+
     final locState = cubit.state;
     if (locState is LocationsLoaded && user.countryId.isNotEmpty) {
       try {
@@ -91,7 +95,9 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
         );
         final purePrefix = country.dialCode.replaceAll('+', '');
         if (_phoneController.text.startsWith(purePrefix)) {
-          _phoneController.text = _phoneController.text.substring(purePrefix.length);
+          _phoneController.text = _phoneController.text.substring(
+            purePrefix.length,
+          );
         }
       } catch (_) {}
     }
@@ -100,7 +106,6 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   void _onFieldChanged() {
     setState(() {});
   }
-
 
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -162,6 +167,28 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     super.dispose();
   }
 
+  String _formatSecurityDate(DateTime? date) {
+    if (date == null) return '';
+    final months = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
+    ];
+    final month = months[date.month - 1];
+    final day = date.day.toString().padLeft(2, '0');
+    final year = date.year.toString();
+    return '$month $day, $year';
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -207,7 +234,10 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                       return GestureDetector(
                         onTap: () => node.unfocus(),
                         child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 16.0,
+                            vertical: 8.0,
+                          ),
                           child: Text(
                             "Aceptar",
                             style: TextStyle(
@@ -218,509 +248,409 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           ),
                         ),
                       );
-                    }
+                    },
                   ],
                 ),
               ],
             ),
-            child: Scaffold(
-              resizeToAvoidBottomInset: false,
-              backgroundColor: AppColors.bgOxford,
-              body: SafeArea(
+            child: ModalPageLayout(
+              title: 'Mi cuenta',
+              scrollOnlyWithKeyboard: true,
+              trailingIcon: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
+              bottomChild: CustomButton(
+                text: 'Guardar cambios',
+                isLoading: isUpdating,
+                onPressed: (isUpdating || !_hasChangesAndValid(user))
+                    ? null
+                    : () {
+                        if (_formKey.currentState!.validate()) {
+                          String cellPhone = _phoneController.text.trim();
+                          String? finalCountryId =
+                              _selectedPhoneCountryId ??
+                              (user.countryId.isNotEmpty
+                                  ? user.countryId
+                                  : null);
+
+                          if (cellPhone.isNotEmpty && finalCountryId != null) {
+                            final locState = context
+                                .read<LocationsCubit>()
+                                .state;
+                            if (locState is LocationsLoaded) {
+                              try {
+                                final country = locState.countries.firstWhere(
+                                  (c) => c.id == finalCountryId,
+                                );
+                                final prefix = country.dialCode;
+                                final purePrefix = prefix.replaceAll('+', '');
+                                String numbersOnly = cellPhone.replaceAll(
+                                  RegExp(r'\D'),
+                                  '',
+                                );
+                                if (numbersOnly.startsWith(purePrefix)) {
+                                  numbersOnly = numbersOnly.substring(
+                                    purePrefix.length,
+                                  );
+                                }
+                                cellPhone = '$prefix$numbersOnly';
+                              } catch (_) {}
+                            }
+                          }
+
+                          final updatedData = <String, dynamic>{
+                            'name': _nameController.text,
+                            // Siempre enviar aunque estén vacíos para que el
+                            // backend sobreescriba el valor anterior con ""
+                            if (isPhoneLogin)
+                              'email': _emailController.text.trim(),
+                            if (!isPhoneLogin) ...{
+                              'cellPhone': cellPhone,
+                              if (finalCountryId != null)
+                                'countryId': finalCountryId,
+                            },
+                          };
+                          context.read<AuthBloc>().add(
+                            UpdateProfileRequested(
+                              userId: user.id,
+                              data: updatedData,
+                            ),
+                          );
+                        }
+                      },
+              ),
+              child: Form(
+                key: _formKey,
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                  const SizedBox(height: AppSpacing.l),
-                  Expanded(
-                    child: Container(
+                    Container(
                       width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 12,
+                      ),
+                      color: const Color(0xFFF4F6F9),
+                      child: Text(
+                        'Información de la cuenta',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Stack(
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  top: 80,
-                                  bottom: 24,
+                          CustomTextField(
+                            controller: _nameController,
+                            label: 'Nombre completo',
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+
+                          if (isPhoneLogin) ...[
+                            Text(
+                              'Celular',
+                              style: AppTypography.body6.copyWith(
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+                            DataValueBox(
+                              value: user.cellPhone.isNotEmpty
+                                  ? user.cellPhone
+                                  : 'No registrado',
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+                            RichText(
+                              text: TextSpan(
+                                style: AppTypography.body6.copyWith(
+                                  color: AppColors.textSecondary,
+                                  height: 1.5,
                                 ),
-                                child: Center(
-                                  child: Text(
-                                    'Mi cuenta',
-                                    style: AppTypography.heading2.copyWith(
-                                      color: AppColors.textPrimary,
+                                children: [
+                                  const TextSpan(
+                                    text:
+                                        'Si necesitas cambiar el celular de tu cuenta, escríbenos a ',
+                                  ),
+                                  TextSpan(
+                                    text: 'support@animalrecord.com',
+                                    style: AppTypography.body6.copyWith(
+                                      color: AppColors.primaryFrances,
+                                      decoration: TextDecoration.underline,
+                                      height: 1.5,
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-                              Positioned(
-                                top: 32,
-                                right: 24,
-                                child: IconButton(
-                                  onPressed: () => Navigator.pop(context),
-                                  icon: const Icon(Icons.close),
-                                  padding: EdgeInsets.zero,
-                                  constraints: const BoxConstraints(),
-                                ),
+                            ),
+                            const SizedBox(height: AppSpacing.l),
+                            CustomTextField(
+                              controller: _emailController,
+                              label: 'Correo electrónico (Opcional)',
+                              maxLength: 50,
+                              validator: ValidationUtils.validateEmail,
+                            ),
+                          ] else ...[
+                            Text(
+                              'Correo electrónico',
+                              style: AppTypography.body6.copyWith(
+                                color: AppColors.textSecondary,
                               ),
-                            ],
-                          ),
-
-                          Expanded(
-                            child: FixedBottomActionLayout(
-                              bottomChild: CustomButton(
-                                text: 'Guardar cambios',
-                                isLoading: isUpdating,
-                                onPressed:
-                                    (isUpdating || !_hasChangesAndValid(user))
-                                    ? null
-                                    : () {
-                                        if (_formKey.currentState!.validate()) {
-                                          String cellPhone = _phoneController.text.trim();
-                                          String? finalCountryId = _selectedPhoneCountryId ?? (user.countryId.isNotEmpty ? user.countryId : null);
-                                          
-                                          if (cellPhone.isNotEmpty && finalCountryId != null) {
-                                            final locState = context.read<LocationsCubit>().state;
-                                            if (locState is LocationsLoaded) {
-                                              try {
-                                                final country = locState.countries.firstWhere(
-                                                  (c) => c.id == finalCountryId,
-                                                );
-                                                final prefix = country.dialCode;
-                                                final purePrefix = prefix.replaceAll('+', '');
-                                                String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
-                                                if (numbersOnly.startsWith(purePrefix)) {
-                                                  numbersOnly = numbersOnly.substring(purePrefix.length);
-                                                }
-                                                cellPhone = '$prefix$numbersOnly';
-                                              } catch (_) {}
-                                            }
-                                          }
-                                          
-                                          final updatedData = <String, dynamic>{
-                                            'name': _nameController.text,
-                                            if (isPhoneLogin)
-                                              'email': _emailController.text,
-                                            if (!isPhoneLogin && cellPhone.isNotEmpty)
-                                              'cellPhone': cellPhone,
-                                            if (finalCountryId != null)
-                                              'countryId': finalCountryId,
-                                          };
-                                          context.read<AuthBloc>().add(
-                                            UpdateProfileRequested(
-                                              userId: user.id,
-                                              data: updatedData,
-                                            ),
-                                          );
-                                        }
-                                      },
-                              ),
-                              child: SingleChildScrollView(
-                                child: Form(
-                                  key: _formKey,
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                          vertical: 12,
-                                        ),
-                                        color: const Color(0xFFF4F6F9),
-                                        child: Text(
-                                          'Información de la cuenta',
-                                          style: AppTypography.body3.copyWith(
-                                            color: AppColors.textPrimary,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(height: AppSpacing.l),
-
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                          horizontal: 24,
-                                        ),
-                                        child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                            CustomTextField(
-                                              controller: _nameController,
-                                              label: 'Nombre completo',
-                                            ),
-                                            const SizedBox(
-                                              height: AppSpacing.l,
-                                            ),
-
-                                            if (isPhoneLogin) ...[
-                                              Text(
-                                                'Celular',
-                                                style: AppTypography.body5
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.xs,
-                                              ),
-                                              DataValueBox(
-                                                value: user.cellPhone.isNotEmpty
-                                                    ? user.cellPhone
-                                                    : 'No registrado',
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.s,
-                                              ),
-                                              RichText(
-                                                text: TextSpan(
-                                                  style: AppTypography.body6
-                                                      .copyWith(
-                                                        color: AppColors
-                                                            .textSecondary,
-                                                        height: 1.5,
-                                                      ),
-                                                  children: [
-                                                    const TextSpan(
-                                                      text:
-                                                          'Si necesitas cambiar el celular de tu cuenta, escríbenos a ',
-                                                    ),
-                                                    TextSpan(
-                                                      text:
-                                                          'support@animalrecord.com',
-                                                      style: AppTypography.body6
-                                                          .copyWith(
-                                                            color: AppColors
-                                                                .primaryFrances,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.l,
-                                              ),
-                                              CustomTextField(
-                                                controller: _emailController,
-                                                label: 'Correo electrónico',
-                                                maxLength: 50,
-                                                validator: ValidationUtils
-                                                    .validateEmail,
-                                              ),
-                                            ] else ...[
-                                              Text(
-                                                'Correo electrónico',
-                                                style: AppTypography.body6
-                                                    .copyWith(
-                                                      color: AppColors
-                                                          .textSecondary,
-                                                    ),
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.xs,
-                                              ),
-                                              DataValueBox(
-                                                value: user.email.isNotEmpty
-                                                    ? user.email
-                                                    : 'No registrado',
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.s,
-                                              ),
-                                              RichText(
-                                                text: TextSpan(
-                                                  style: AppTypography.body6
-                                                      .copyWith(
-                                                        color: AppColors
-                                                            .textSecondary,
-                                                        height: 1.5,
-                                                      ),
-                                                  children: [
-                                                    const TextSpan(
-                                                      text:
-                                                          'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
-                                                    ),
-                                                    TextSpan(
-                                                      text:
-                                                          'support@animalrecord.com',
-                                                      style: AppTypography.body6
-                                                          .copyWith(
-                                                            color: AppColors
-                                                                .primaryFrances,
-                                                            decoration:
-                                                                TextDecoration
-                                                                    .underline,
-                                                          ),
-                                                    ),
-                                                  ],
-                                                ),
-                                              ),
-                                              const SizedBox(
-                                                height: AppSpacing.l,
-                                              ),
-                                              BlocBuilder<
-                                                LocationsCubit,
-                                                LocationsState
-                                              >(
-                                                builder: (context, locationState) {
-                                                  return PhoneInputField(
-                                                    label:
-                                                        'Número celular (Opcional)',
-                                                    controller:
-                                                        _phoneController,
-                                                    focusNode: _phoneFocusNode,
-                                                    countries:
-                                                        locationState
-                                                            is LocationsLoaded
-                                                        ? locationState
-                                                              .countries
-                                                        : [],
-                                                    selectedCountryId:
-                                                        _selectedPhoneCountryId,
-                                                    onCountryChanged: (id) =>
-                                                        setState(
-                                                          () =>
-                                                              _selectedPhoneCountryId =
-                                                                  id,
-                                                        ),
-                                                    maxLength: 15,
-                                                    inputFormatters: [
-                                                      FilteringTextInputFormatter
-                                                          .digitsOnly,
-                                                    ],
-                                                    isOptional: true,
-                                                  );
-                                                },
-                                              ),
-                                            ],
-                                          ],
-                                        ),
-                                      ),
-                                      const SizedBox(height: AppSpacing.xl),
-
-                                      if (user.authMethod.toLowerCase() ==
-                                              'email' ||
-                                          user.authMethod.toLowerCase() ==
-                                              'phone')
-                                        Column(
-                                          children: [
-                                            Container(
-                                              width: double.infinity,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                    vertical: 12,
-                                                  ),
-                                              color: const Color(0xFFF4F6F9),
-                                              child: Text(
-                                                'Contraseña',
-                                                style: AppTypography.body3
-                                                    .copyWith(
-                                                      color:
-                                                          AppColors.textPrimary,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                    vertical: 24,
-                                                  ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Text(
-                                                        '• • • • • • • •',
-                                                        style: AppTypography
-                                                            .body3
-                                                            .copyWith(
-                                                              color: AppColors
-                                                                  .textPrimary,
-                                                              letterSpacing: 1,
-                                                            ),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (context) =>
-                                                                  const ChangePasswordScreen(),
-                                                            ),
-                                                          );
-                                                        },
-                                                        child: Text(
-                                                          'Cambiar',
-                                                          style: AppTypography
-                                                              .body3
-                                                              .copyWith(
-                                                                color: AppColors
-                                                                    .primaryFrances,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(
-                                                    height: AppSpacing.xs,
-                                                  ),
-                                                  Text(
-                                                    'Última modificación: month, dd, yyyy',
-                                                    style: AppTypography.body4
-                                                        .copyWith(
-                                                          color: AppColors
-                                                              .greyMedio,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        )
-                                      else if ([
-                                            'google',
-                                            'microsoft',
-                                            'apple',
-                                          ].contains(
-                                            user.authMethod.toLowerCase(),
-                                          ) &&
-                                          state.isBiometricEnabled)
-                                        Column(
-                                          children: [
-                                            Container(
-                                              width: double.infinity,
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                    vertical: 12,
-                                                  ),
-                                              color: const Color(0xFFF4F6F9),
-                                              child: Text(
-                                                'PIN',
-                                                style: AppTypography.body3
-                                                    .copyWith(
-                                                      color:
-                                                          AppColors.textPrimary,
-                                                      fontWeight:
-                                                          FontWeight.w600,
-                                                    ),
-                                              ),
-                                            ),
-                                            Padding(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                    horizontal: 24,
-                                                    vertical: 24,
-                                                  ),
-                                              child: Column(
-                                                crossAxisAlignment:
-                                                    CrossAxisAlignment.start,
-                                                children: [
-                                                  Row(
-                                                    mainAxisAlignment:
-                                                        MainAxisAlignment
-                                                            .spaceBetween,
-                                                    crossAxisAlignment:
-                                                        CrossAxisAlignment
-                                                            .center,
-                                                    children: [
-                                                      Text(
-                                                        '• • • •',
-                                                        style: AppTypography
-                                                            .body3
-                                                            .copyWith(
-                                                              color: AppColors
-                                                                  .textPrimary,
-                                                              letterSpacing: 2,
-                                                            ),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () {
-                                                          Navigator.push(
-                                                            context,
-                                                            MaterialPageRoute(
-                                                              builder: (context) =>
-                                                                  const ChangePinScreen(),
-                                                            ),
-                                                          );
-                                                        },
-                                                        child: Text(
-                                                          'Cambiar',
-                                                          style: AppTypography
-                                                              .body3
-                                                              .copyWith(
-                                                                color: AppColors
-                                                                    .primaryFrances,
-                                                                fontWeight:
-                                                                    FontWeight
-                                                                        .bold,
-                                                              ),
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                  const SizedBox(
-                                                    height: AppSpacing.xs,
-                                                  ),
-                                                  Text(
-                                                    'Última modificación: month, dd, yyyy',
-                                                    style: AppTypography.body4
-                                                        .copyWith(
-                                                          color: AppColors
-                                                              .greyMedio,
-                                                        ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-
-                                      const SizedBox(height: AppSpacing.xxl),
-                                    ],
+                            ),
+                            const SizedBox(height: AppSpacing.xs),
+                            DataValueBox(
+                              value: user.email.isNotEmpty
+                                  ? user.email
+                                  : 'No registrado',
+                            ),
+                            if ([
+                              'google',
+                              'microsoft',
+                              'apple',
+                            ].contains(user.authMethod.toLowerCase())) ...[
+                              const SizedBox(height: AppSpacing.m),
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.info_rounded,
+                                    color: AppColors.greyMedio,
+                                    size: 16,
                                   ),
-                                ),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'Correo electrónico de red social',
+                                    style: AppTypography.body6,
+                                  ),
+                                ],
                               ),
+                              const SizedBox(height: AppSpacing.m),
+                            ] else ...[
+                              const SizedBox(height: AppSpacing.m),
+                            ],
+                            RichText(
+                              text: TextSpan(
+                                style: AppTypography.body6.copyWith(),
+                                children: [
+                                  const TextSpan(
+                                    text:
+                                        'Si necesitas cambiar el correo electrónico de tu cuenta, escríbenos a ',
+                                  ),
+                                  TextSpan(
+                                    text: 'support@animalrecord.com',
+                                    style: AppTypography.body6.copyWith(
+                                      color: AppColors.primaryFrances,
+                                      decoration: TextDecoration.underline,
+                                      height: 1.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+                            BlocBuilder<LocationsCubit, LocationsState>(
+                              builder: (context, locationState) {
+                                return PhoneInputField(
+                                  label: 'Número celular (Opcional)',
+                                  controller: _phoneController,
+                                  focusNode: _phoneFocusNode,
+                                  countries: locationState is LocationsLoaded
+                                      ? locationState.countries
+                                      : [],
+                                  selectedCountryId: _selectedPhoneCountryId,
+                                  onCountryChanged: (id) => setState(
+                                    () => _selectedPhoneCountryId = id,
+                                  ),
+                                  maxLength: 15,
+                                  inputFormatters: [
+                                    FilteringTextInputFormatter.digitsOnly,
+                                  ],
+                                  isOptional: true,
+                                  errorText:
+                                      _phoneController.text.trim().isNotEmpty &&
+                                          _phoneController.text
+                                                  .replaceAll(RegExp(r'\D'), '')
+                                                  .length <
+                                              10
+                                      ? AppStrings.phoneError
+                                      : null,
+                                );
+                              },
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+
+                    if (user.authMethod.toLowerCase() == 'email' ||
+                        user.authMethod.toLowerCase() == 'phone')
+                      Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            color: const Color(0xFFF4F6F9),
+                            child: Text(
+                              'Contraseña',
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '• • • • • • • •',
+                                      style: AppTypography.body3.copyWith(
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 1,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ChangePasswordScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Cambiar',
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (user.securityLastUpdated != null) ...[
+                                  const SizedBox(height: AppSpacing.xs),
+                                  Text(
+                                    'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
+                                    style: AppTypography.body4.copyWith(
+                                      color: const Color(0xFFA8AFBD),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ],
+                      )
+                    else if ([
+                          'google',
+                          'microsoft',
+                          'apple',
+                        ].contains(user.authMethod.toLowerCase()) &&
+                        state.isBiometricEnabled)
+                      Column(
+                        children: [
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                            color: const Color(0xFFF4F6F9),
+                            child: Text(
+                              'PIN',
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.textPrimary,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 10,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      '• • • •',
+                                      style: AppTypography.body3.copyWith(
+                                        color: AppColors.textPrimary,
+                                        letterSpacing: 2,
+                                      ),
+                                    ),
+                                    TextButton(
+                                      onPressed: () {
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) =>
+                                                const ChangePinScreen(),
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Cambiar',
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                if (user.securityLastUpdated != null) ...[
+                                  Text(
+                                    'Última modificación: ${_formatSecurityDate(user.securityLastUpdated)}',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.greyMedio,
+                                    ),
+                                  ),
+                                ],
+                              ],
                             ),
                           ),
                         ],
                       ),
+                    SizedBox(
+                      height: MediaQuery.of(context).viewInsets.bottom > 40
+                          ? MediaQuery.of(context).viewInsets.bottom - 40
+                          : 0,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
-    ),
-  );
+          );
+        },
+      ),
+    );
   }
 }
-

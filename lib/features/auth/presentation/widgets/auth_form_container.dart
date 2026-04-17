@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
+import '../../../../core/widgets/buttons/app_back_button.dart';
+import '../../../../core/widgets/buttons/app_close_button.dart';
 class AuthFormContainer extends StatelessWidget {
   final Widget child;
   final VoidCallback? onBack;
@@ -30,83 +32,79 @@ class AuthFormContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      backgroundColor: AppColors.bgOxford,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Transform.translate(
-              offset: const Offset(0, 40),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        backgroundColor: Colors.transparent,
+        extendBodyBehindAppBar: true,
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: AppColors.backgroundDegradeAuth,
+          ),
+          child: Column(
+            children: [
+              SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  Transform.translate(
+                    offset: const Offset(0, 48),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: AppSpacing.l),
 
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    if (onBack != null)
-                      IconButton(
-                        icon: SvgPicture.asset(
-                          'assets/icons/arrow-left.svg',
-                          colorFilter: const ColorFilter.mode(
-                            Colors.white,
-                            BlendMode.srcIn,
-                          ),
-                          width: 24,
-                          height: 24,
-                        ),
-                        onPressed: onBack,
-                      )
-                    else
-                      const SizedBox(width: 48, height: 48),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          if (onBack != null)
+                            AppBackButton(onPressed: onBack)
+                          else
+                            const SizedBox(width: 48, height: 48),
 
-                    if (!showCancelButton && showLogo)
-                      Expanded(
-                        child: Center(
-                          child: Image.asset(
-                            'assets/Logo/Imagotipo_blanco.png',
-                            width: 40,
-                            height: 28,
-                            fit: BoxFit.contain,
-                          ),
-                        ),
-                      ),
-
-                    if (showCancelButton)
-                      GestureDetector(
-                        onTap: onCancel ?? () => Navigator.pop(context),
-                        child: Row(
-                          children: [
-                            Text(
-                              'Cancelar',
-                              style: AppTypography.body4.copyWith(
-                                color: Colors.white,
+                          if (!showCancelButton && showLogo)
+                            Expanded(
+                              child: Center(
+                                child: Image.asset(
+                                  'assets/Logo/Imagotipo_blanco.png',
+                                  width: 40,
+                                  height: 28,
+                                  fit: BoxFit.contain,
+                                ),
                               ),
                             ),
-                            const SizedBox(width: AppSpacing.xs),
-                            const Icon(Icons.close, color: Colors.white),
-                          ],
-                        ),
-                      )
-                    else
-                      const SizedBox(width: 48, height: 48),
+
+                          if (showCancelButton)
+                            AppCloseButton(
+                              onClose: onCancel,
+                              contentColor: Colors.white,
+                            )
+                          else
+                            const SizedBox(width: 48, height: 48),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 56),
+
+                  if (showLogo && showCancelButton) ...[
+                    Center(
+                      child: Image.asset(
+                        'assets/Logo/Imagotipo_blanco.png',
+                        width: 40,
+                        height: 28,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.l),
                   ],
-                ),
+                ],
               ),
             ),
-            const SizedBox(height: 56),
-
-            if (showLogo && showCancelButton) ...[
-              Center(
-                child: Image.asset(
-                  'assets/Logo/Imagotipo_blanco.png',
-                  width: 40,
-                  height: 28,
-                  fit: BoxFit.contain,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.l),
-            ],
 
             Expanded(
               child: Container(
@@ -159,7 +157,13 @@ class AuthFormContainer extends StatelessWidget {
                 ),
               ),
             ),
+            // Relleno para asegurar que el blanco llegue hasta el final de la pantalla
+            Container(
+              height: MediaQuery.of(context).padding.bottom,
+              color: AppColors.greyBlanco,
+            ),
           ],
+        ),
         ),
       ),
     );

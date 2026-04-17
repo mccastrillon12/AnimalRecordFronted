@@ -14,11 +14,17 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
+import 'package:animal_record/features/auth/presentation/pages/biometric_lock_screen.dart';
 
 class PinEntryScreen extends StatefulWidget {
   final String identifier;
+  final bool bypassBiometric;
 
-  const PinEntryScreen({super.key, required this.identifier});
+  const PinEntryScreen({
+    super.key, 
+    required this.identifier,
+    this.bypassBiometric = false,
+  });
 
   @override
   State<PinEntryScreen> createState() => _PinEntryScreenState();
@@ -65,11 +71,21 @@ class _PinEntryScreenState extends State<PinEntryScreen> {
         }
         if (state is AuthSuccess) {
           if (state.pinVerifiedSuccess) {
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
+            if (state.isBiometricEnabled && !widget.bypassBiometric) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BiometricLockScreen(),
+                ),
+                (route) => false,
+              );
+            } else {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/home',
+                (route) => false,
+              );
+            }
           }
         }
       },

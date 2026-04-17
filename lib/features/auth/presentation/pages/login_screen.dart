@@ -14,6 +14,7 @@ import '../pages/register_screen.dart';
 import '../pages/password_screen.dart';
 import 'social_register_completion_screen.dart';
 import 'biometric_activation_screen.dart';
+import 'biometric_lock_screen.dart';
 import '../widgets/biometric_disable_dialog.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'pin_setup_screen.dart';
@@ -47,6 +48,8 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isValidInput = false;
   bool _isNavigating = false;
   bool _isSocialLoading = false;
+  bool _showDarkOverlay = false;
+  bool _showPrefix = false;
 
   @override
   void initState() {
@@ -64,6 +67,9 @@ class _LoginScreenState extends State<LoginScreen> {
   void _validateInput() {
     final value = _identifierController.text.trim();
     setState(() {
+      _showPrefix = value.isNotEmpty &&
+          RegExp(r'^[0-9]').hasMatch(value) &&
+          !value.contains('@');
       _isValidInput = _isValidEmail(value) || _isValidPhone(value);
     });
   }
@@ -91,12 +97,22 @@ class _LoginScreenState extends State<LoginScreen> {
       return;
     }
 
-    final identifier = StringFormatters.cleanMixedIdentifier(rawIdentifier);
+    // Normalize identifier
+    String identifier = rawIdentifier;
+    if (!identifier.contains('@')) {
+      identifier = identifier.replaceAll(RegExp(r'[\-\s\(\)]'), '');
+      if (!identifier.startsWith('+')) {
+        identifier = '+57$identifier';
+      }
+    }
 
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => PasswordScreen(identifier: identifier),
+        builder: (context) => PasswordScreen(
+          identifier: identifier,
+          isBiometricSetup: widget.hideBiometrics,
+        ),
       ),
     );
 
@@ -112,9 +128,18 @@ class _LoginScreenState extends State<LoginScreen> {
   );
 
   Future<void> _handleGoogleSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
+      // Forzar que Google muestre siempre la ventana de selección de cuenta
+      await _googleSignIn.signOut();
+      
       final google_sign_in.GoogleSignInAccount? googleUser = await _googleSignIn
           .signIn();
+
+      if (mounted) setState(() => _showDarkOverlay = true);
 
       if (googleUser != null) {
         final google_sign_in.GoogleSignInAuthentication googleAuth =
@@ -125,9 +150,14 @@ class _LoginScreenState extends State<LoginScreen> {
           context.read<AuthBloc>().add(
             SocialAuthChecked(provider: 'GOOGLE', token: idToken),
           );
+        } else {
+          if (mounted) setState(() => _isSocialLoading = false);
         }
+      } else {
+        if (mounted) setState(() => _isSocialLoading = false);
       }
     } catch (error) {
+      if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Google Sign-In failed: $error');
       if (mounted) {
         ErrorDisplay.showError(
@@ -139,12 +169,17 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleMicrosoftSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
       final microsoftAuth = sl<MicrosoftAuthService>();
       final token = await microsoftAuth.signIn();
 
+      if (mounted) setState(() => _showDarkOverlay = true);
+
       if (token != null && mounted) {
-        setState(() => _isSocialLoading = true);
         context.read<AuthBloc>().add(
           SocialAuthChecked(provider: 'MICROSOFT', token: token),
         );
@@ -165,15 +200,20 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleAppleSignIn() async {
+    setState(() {
+      _isSocialLoading = true;
+      _showDarkOverlay = false;
+    });
     try {
       final appleAuth = sl<AppleAuthService>();
       final credential = await appleAuth.signIn();
+
+      if (mounted) setState(() => _showDarkOverlay = true);
 
       if (credential != null && mounted) {
         final token = credential.identityToken;
 
         if (token != null) {
-          setState(() => _isSocialLoading = true);
           context.read<AuthBloc>().add(
             SocialAuthChecked(
               provider: 'APPLE',
@@ -184,7 +224,10 @@ class _LoginScreenState extends State<LoginScreen> {
           );
         } else {
           sl<Logger>().e('Apple Sign-In failed: Identity Token is null');
+          if (mounted) setState(() => _isSocialLoading = false);
         }
+      } else {
+        if (mounted) setState(() => _isSocialLoading = false);
       }
     } catch (error) {
       if (mounted) setState(() => _isSocialLoading = false);
@@ -234,7 +277,9 @@ class _LoginScreenState extends State<LoginScreen> {
             state.response,
             providerName: state.provider,
           );
-        } else if (state is AuthSuccess && !_isNavigating) {
+        } else if (state is AuthSuccess &&
+            !_isNavigating &&
+            (ModalRoute.of(context)?.isCurrent ?? false)) {
           _isNavigating = true;
 
           if (widget.hideBiometrics) {
@@ -265,7 +310,16 @@ class _LoginScreenState extends State<LoginScreen> {
               }
             });
           } else {
-            Navigator.pushReplacementNamed(context, '/home');
+            if (state.isBiometricEnabled) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const BiometricLockScreen(),
+                ),
+              );
+            } else {
+              Navigator.pushReplacementNamed(context, '/home');
+            }
           }
         } else if (state is AuthError &&
             (ModalRoute.of(context)?.isCurrent ?? false)) {
@@ -279,12 +333,12 @@ class _LoginScreenState extends State<LoginScreen> {
           }
         }
       },
-      child: AuthFormContainer(
-        addInternalPadding: false,
-        showCancelButton: false,
-        child: Stack(
-          children: [
-            SingleChildScrollView(
+      child: Stack(
+        children: [
+          AuthFormContainer(
+            addInternalPadding: false,
+            showCancelButton: false,
+            child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -347,6 +401,18 @@ class _LoginScreenState extends State<LoginScreen> {
                       maxLength: 50,
                       validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
+                      validationDelay: const Duration(seconds: 2),
+                      prefixIcon: _showPrefix
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 12, right: 4),
+                              child: Text(
+                                '(+57)',
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.greyBordes,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
                   ),
                   Padding(
@@ -358,6 +424,8 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   if (!widget.hideBiometrics) ...[
                     Center(child: _BiometricButton()),
+                  ] else ...[
+                    const SizedBox(height: 48),
                   ],
 
                   Row(
@@ -407,17 +475,19 @@ class _LoginScreenState extends State<LoginScreen> {
                 ],
               ),
             ),
-            if (_isSocialLoading)
-              Container(
-                color: Colors.black.withOpacity(0.5),
-                child: const Center(
-                  child: CircularProgressIndicator(
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+          if (_isSocialLoading)
+            Container(
+              color: _showDarkOverlay ? AppColors.overlayBlack : Colors.transparent,
+              child: Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    _showDarkOverlay ? Colors.white : AppColors.primaryFrances,
                   ),
                 ),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

@@ -48,6 +48,15 @@ class CheckIdentificationExists extends AuthEvent {
   List<Object?> get props => [identificationNumber];
 }
 
+class CheckAvailabilityRequested extends AuthEvent {
+  final Map<String, dynamic> dataToCheck;
+
+  CheckAvailabilityRequested(this.dataToCheck);
+
+  @override
+  List<Object?> get props => [dataToCheck];
+}
+
 class SocialAuthChecked extends AuthEvent {
   final String provider;
   final String token;
@@ -202,3 +211,5 @@ class UpdateProfilePictureRequested extends AuthEvent {
   @override
   List<Object?> get props => [imagePath];
 }
+
+class DeleteProfilePictureRequested extends AuthEvent {}

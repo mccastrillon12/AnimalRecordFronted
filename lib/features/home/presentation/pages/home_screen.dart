@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -42,28 +43,36 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          if (state is! AuthSuccess) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is! AuthSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
 
-          return SafeArea(
-            child: Column(
-              children: [
-                const UserHeader(),
+            return SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  const UserHeader(),
 
-                const NavigationMenu(),
+                  const NavigationMenu(),
 
-                const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-                const Expanded(child: AnimalsSection()),
-              ],
-            ),
-          );
-        },
+                  const Expanded(child: AnimalsSection()),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

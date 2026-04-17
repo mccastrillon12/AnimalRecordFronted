@@ -27,6 +27,7 @@ class ForgotPasswordScreen extends StatefulWidget {
 class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   final TextEditingController _emailController = TextEditingController();
   bool _isValidInput = false;
+  bool _showPrefix = false;
   @override
   void initState() {
     super.initState();
@@ -43,6 +44,9 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   void _validateInput() {
     final value = _emailController.text.trim();
     setState(() {
+      _showPrefix = value.isNotEmpty &&
+          RegExp(r'^[0-9]').hasMatch(value) &&
+          !value.contains('@');
       _isValidInput = _isValidEmailFormat(value) || _isValidPhoneFormat(value);
     });
   }
@@ -64,9 +68,16 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
 
   void _handleSend() {
     if (_isValidInput) {
-      final identifier = StringFormatters.cleanMixedIdentifier(
-        _emailController.text.trim(),
-      );
+      final rawValue = _emailController.text.trim();
+      String identifier = rawValue;
+
+      if (!identifier.contains('@')) {
+        identifier = identifier.replaceAll(RegExp(r'[\-\s\(\)]'), '');
+        if (!identifier.startsWith('+')) {
+          identifier = '+57$identifier';
+        }
+      }
+
       context.read<AuthBloc>().add(ForgotPasswordRequested(identifier));
     }
   }
@@ -125,6 +136,18 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       maxLength: 50,
                       validator: ValidationUtils.validateEmailOrPhone,
                       inputFormatters: [MixedEmailPhoneInputFormatter()],
+                      validationDelay: const Duration(seconds: 2),
+                      prefixIcon: _showPrefix
+                          ? Padding(
+                              padding: const EdgeInsets.only(left: 12, right: 4),
+                              child: Text(
+                                '(+57)',
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.greyBordes,
+                                ),
+                              ),
+                            )
+                          : null,
                     ),
                     const KeyboardSpacer(),
                   ],

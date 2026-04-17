@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/constants/app_strings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,7 +7,6 @@ import 'package:image_picker/image_picker.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/widgets/inputs/custom_text_field.dart';
-import '../../../../core/constants/country_constants.dart';
 import '../../../../core/utils/string_formatters.dart';
 import '../../domain/entities/user_entity.dart';
 import '../bloc/auth_bloc.dart';
@@ -21,107 +21,64 @@ import '../../../../features/locations/presentation/cubit/locations_state.dart';
 import '../../../../features/locations/domain/entities/country_entity.dart';
 import '../../../../core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/utils/error_display.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
+import '../../../../core/widgets/layout/modal_page_layout.dart';
+import '../cubit/edit_profile_cubit.dart';
+import '../cubit/edit_profile_state.dart';
 
-class EditProfileScreen extends StatefulWidget {
+class EditProfileScreen extends StatelessWidget {
   const EditProfileScreen({super.key});
 
   @override
-  State<EditProfileScreen> createState() => _EditProfileScreenState();
+  Widget build(BuildContext context) {
+    return BlocBuilder<AuthBloc, AuthState>(
+      buildWhen: (previous, current) {
+        // Build only initially to inject provider
+        if (previous is! AuthSuccess && current is AuthSuccess) return true;
+        return false;
+      },
+      builder: (context, authState) {
+        if (authState is! AuthSuccess) {
+          return const Scaffold(
+            body: Center(child: Text('Usuario no autenticado')),
+          );
+        }
+        return BlocProvider(
+          create: (_) => EditProfileCubit(user: authState.user),
+          child: const EditProfileScreenView(),
+        );
+      },
+    );
+  }
 }
 
-class _EditProfileScreenState extends State<EditProfileScreen> {
-  final _formKey = GlobalKey<FormState>();
+class EditProfileScreenView extends StatefulWidget {
+  const EditProfileScreenView({super.key});
 
-  late TextEditingController _nameController;
-  late TextEditingController _emailController;
-  late TextEditingController _idNumberController;
-  late TextEditingController _phoneController;
-  late TextEditingController _addressController;
+  @override
+  State<EditProfileScreenView> createState() => _EditProfileScreenViewState();
+}
 
-  String? _selectedPhoneCountryId;
-  String? _selectedDepartmentId;
-  String? _selectedCityId;
-
+class _EditProfileScreenViewState extends State<EditProfileScreenView> {
   final FocusNode _phoneFocusNode = FocusNode();
-
   final ImagePicker _imagePicker = ImagePicker();
-
-  void _onFieldChanged() {
-    setState(() {});
-  }
-
-  bool _hasChangesAndValid(UserEntity user) {
-    if (_addressController.text.trim() != user.address) return true;
-
-    final initialPhone = CountryConstants.stripDialCode(user.cellPhone);
-    if (_phoneController.text.trim() != initialPhone) return true;
-
-    final currentCountryId = _selectedPhoneCountryId ?? '';
-    if (currentCountryId != user.countryId &&
-        !(currentCountryId.isEmpty && user.countryId.isEmpty)) {
-      return true;
-    }
-
-    final currentDeptId = _selectedDepartmentId ?? '';
-    if (currentDeptId != user.departmentId &&
-        !(currentDeptId.isEmpty && user.departmentId.isEmpty)) {
-      return true;
-    }
-
-    final currentCityId = _selectedCityId ?? '';
-    if (currentCityId != user.cityId &&
-        !(currentCityId.isEmpty && user.cityId.isEmpty)) {
-      return true;
-    }
-
-    if (user.authMethod == 'PHONE') {
-      if (_emailController.text.trim() != user.email) return true;
-    }
-
-    return false;
-  }
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController()..addListener(_onFieldChanged);
-    _emailController = TextEditingController()..addListener(_onFieldChanged);
-    _idNumberController = TextEditingController()..addListener(_onFieldChanged);
-    _phoneController = TextEditingController()..addListener(_onFieldChanged);
-    _addressController = TextEditingController()..addListener(_onFieldChanged);
-
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
-      final user = authState.user;
-      _nameController.text = StringFormatters.formatName(user.name);
-      _emailController.text = user.email;
-      _idNumberController.text = user.identificationNumber;
-      // Clean up the initial phone value explicitly removing known exact prefixes
-      String cleanRawPhone = CountryConstants.stripDialCode(user.cellPhone);
-      
-      _phoneController.text = cleanRawPhone;
-      
-      _addressController.text = user.address;
-
-      _loadUserLocations(user);
+      _loadUserLocations(authState.user);
     } else {
       context.read<LocationsCubit>().fetchCountries();
     }
   }
 
   Future<void> _loadUserLocations(UserEntity user) async {
-    _selectedPhoneCountryId = user.countryId.isNotEmpty ? user.countryId : null;
-    _selectedDepartmentId = user.departmentId.isNotEmpty
-        ? user.departmentId
-        : null;
-    _selectedCityId = user.cityId.isNotEmpty ? user.cityId : null;
-
     final cubit = context.read<LocationsCubit>();
 
     await cubit.fetchCountries();
-    
+
     final locState = cubit.state;
     String? colombiaId;
 
@@ -136,52 +93,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             )
             .id;
       } catch (_) {}
-
-      // Strip dial code asynchronously after countries are loaded
-      if (user.countryId.isNotEmpty && mounted) {
-        try {
-          final country = locState.countries.cast<CountryEntity>().firstWhere(
-                (c) => c.id == user.countryId,
-              );
-          final purePrefix = country.dialCode.replaceAll('+', '');
-
-          if (_phoneController.text.startsWith(purePrefix)) {
-            _phoneController.text =
-                _phoneController.text.substring(purePrefix.length);
-          }
-        } catch (_) {
-          // Country not found in list yet, silently continue
-        }
-      }
     }
 
-    // Always fetch departments for Colombia (Residence country)
     if (colombiaId != null && mounted) {
       await cubit.fetchDepartments(colombiaId);
     }
-
     if (user.departmentId.isNotEmpty && mounted) {
       await cubit.fetchCities(user.departmentId);
-    }
-
-    if (mounted) {
-      setState(() {});
     }
   }
 
   @override
   void dispose() {
-    _nameController.removeListener(_onFieldChanged);
-    _emailController.removeListener(_onFieldChanged);
-    _idNumberController.removeListener(_onFieldChanged);
-    _phoneController.removeListener(_onFieldChanged);
-    _addressController.removeListener(_onFieldChanged);
-    _nameController.dispose();
-    _emailController.dispose();
-    _idNumberController.dispose();
-    _phoneController.dispose();
     _phoneFocusNode.dispose();
-    _addressController.dispose();
     super.dispose();
   }
 
@@ -203,8 +127,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         source: source,
         maxWidth: 1920,
         maxHeight: 1920,
-        imageQuality:
-            95, // calidad original — la compresión real la hace flutter_image_compress en el bloc
+        imageQuality: 95,
       );
       if (picked != null && mounted) {
         context.read<AuthBloc>().add(
@@ -220,46 +143,71 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: AppColors.greyBordes,
-                  borderRadius: BorderRadius.circular(2),
+      builder: (context) {
+        final authState = context.read<AuthBloc>().state;
+        final profilePicture = authState is AuthSuccess
+            ? authState.user.profilePicture
+            : null;
+        final hasPhoto = profilePicture != null && profilePicture.isNotEmpty;
+
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyBordes,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
-              ),
-              const Text(
-                'Cambiar foto de perfil',
-                style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                leading: const Icon(Icons.camera_alt_outlined),
-                title: const Text('Tomar foto'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.camera);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.photo_library_outlined),
-                title: const Text('Elegir de la galería'),
-                onTap: () {
-                  Navigator.pop(context);
-                  _pickImage(ImageSource.gallery);
-                },
-              ),
-            ],
+                const Text(
+                  'Cambiar foto de perfil',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Tomar foto'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.camera);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Elegir de la galería'),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _pickImage(ImageSource.gallery);
+                  },
+                ),
+                if (hasPhoto)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error,
+                    ),
+                    title: const Text(
+                      'Eliminar foto',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.read<AuthBloc>().add(
+                        DeleteProfilePictureRequested(),
+                      );
+                    },
+                  ),
+              ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -312,7 +260,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         ),
         BlocListener<LocationsCubit, LocationsState>(
           listenWhen: (previous, current) {
-            // Trigger when countries are loaded but departments are empty
             if (current is LocationsLoaded && current.departments.isEmpty) {
               return true;
             }
@@ -328,298 +275,171 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       c.name.toLowerCase().contains('colombia'),
                 );
                 context.read<LocationsCubit>().fetchDepartments(colombia.id);
-              } catch (_) {
-                // Colombia not found, can't auto-load departments
-              }
-            }
-          },
-        ),
-        BlocListener<LocationsCubit, LocationsState>(
-          listenWhen: (previous, current) {
-            // Trigger when departments are loaded and we have a selected department but empty cities
-            if (current is LocationsLoaded &&
-                current.departments.isNotEmpty &&
-                _selectedDepartmentId != null &&
-                current.cities.isEmpty) {
-              return true;
-            }
-            return false;
-          },
-          listener: (context, state) {
-            if (_selectedDepartmentId != null) {
-              context.read<LocationsCubit>().fetchCities(_selectedDepartmentId!);
+              } catch (_) {}
             }
           },
         ),
       ],
       child: BlocBuilder<AuthBloc, AuthState>(
-        builder: (context, state) {
-          if (state is! AuthSuccess) {
-            return const Scaffold(
-              body: Center(child: Text('Usuario no autenticado')),
-            );
+        builder: (context, authState) {
+          if (authState is! AuthSuccess) {
+            return const Scaffold(body: Center(child: Text('Cargando')));
           }
 
-          final UserEntity user = state.user;
-          final bool isUpdating = state.isUpdating;
-          final bool isUploadingPicture = state.isUploadingPicture;
+          final UserEntity user = authState.user;
+          final bool isUpdating = authState.isUpdating;
+          final bool isUploadingPicture = authState.isUploadingPicture;
 
-          return KeyboardActions(
-            disableScroll: true,
-            config: KeyboardActionsConfig(
-              keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-              keyboardBarColor: const Color(0xFFD1D5DF),
-              nextFocus: false,
-              actions: [
-                KeyboardActionsItem(
-                  focusNode: _phoneFocusNode,
-                  displayArrows: false,
-                  displayDoneButton: false,
-                  toolbarButtons: [
-                    (node) {
-                      return GestureDetector(
-                        onTap: () => node.unfocus(),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                          child: Text(
-                            "Aceptar",
-                            style: TextStyle(
-                              color: Colors.blue,
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                  ],
-                ),
-              ],
-            ),
-            child: Scaffold(
-              resizeToAvoidBottomInset: false,
-              backgroundColor: AppColors.bgOxford,
-            body: SafeArea(
-              child: Column(
-                children: [
-                  const SizedBox(height: AppSpacing.l),
-
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.only(
-                          topLeft: Radius.circular(32),
-                          topRight: Radius.circular(32),
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          SingleChildScrollView(
-                            child: Padding(
-                              padding: const EdgeInsets.only(bottom: 100),
-                              child: Column(
-                                children: [
-                                  _buildHeader(context),
-                                  const SizedBox(height: AppSpacing.l),
-                                  _buildAvatar(
-                                    user,
-                                    isUploadingPicture,
-                                    context,
-                                  ),
-                                  const SizedBox(height: AppSpacing.l),
-                                  Text(
-                                    StringFormatters.formatName(user.name),
-                                    style: AppTypography.heading2.copyWith(
-                                      color: AppColors.textPrimary,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xs),
-                                  Text(
-                                    '${user.identificationType} ${user.identificationNumber}',
-                                    style: AppTypography.body4.copyWith(
-                                      color: AppColors.greyMedio,
-                                    ),
-                                  ),
-                                  const SizedBox(height: AppSpacing.xl),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 24,
-                                    ),
-                                    child: Form(
-                                      key: _formKey,
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          if (user.authMethod == 'PHONE') ...[
-                                            CustomTextField(
-                                              controller: _emailController,
-                                              label:
-                                                  'Correo electrónico (Opcional)',
-                                              hint: 'ejemplo@correo.com',
-                                              keyboardType:
-                                                  TextInputType.emailAddress,
-                                            ),
-                                            const SizedBox(
-                                              height: AppSpacing.m,
-                                            ),
-                                          ],
-                                          _LocationSelector(
-                                            user: user,
-                                            phoneController: _phoneController,
-                                            phoneFocusNode: _phoneFocusNode,
-                                            selectedPhoneCountryId:
-                                                _selectedPhoneCountryId,
-                                            selectedDepartmentId:
-                                                _selectedDepartmentId,
-                                            selectedCityId: _selectedCityId,
-                                            onPhoneCountryChanged: (val) =>
-                                                setState(
-                                                  () =>
-                                                      _selectedPhoneCountryId =
-                                                          val,
-                                                ),
-                                            onDepartmentChanged: (val) {
-                                              setState(() {
-                                                _selectedDepartmentId = val;
-                                                _selectedCityId = null;
-                                              });
-                                            },
-                                            onCityChanged: (val) => setState(
-                                              () => _selectedCityId = val,
-                                            ),
-                                          ),
-                                          CustomTextField(
-                                            controller: _addressController,
-                                            label:
-                                                'Dirección de residencia (Opcional)',
-                                          ),
-                                          const KeyboardSpacer(),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
+          return BlocBuilder<EditProfileCubit, EditProfileState>(
+            builder: (context, editState) {
+              final cubit = context.read<EditProfileCubit>();
+              return KeyboardActions(
+                disableScroll: true,
+                config: KeyboardActionsConfig(
+                  keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+                  keyboardBarColor: const Color(0xFFD1D5DF),
+                  nextFocus: false,
+                  actions: [
+                    KeyboardActionsItem(
+                      focusNode: _phoneFocusNode,
+                      displayArrows: false,
+                      displayDoneButton: false,
+                      toolbarButtons: [
+                        (node) {
+                          return GestureDetector(
+                            onTap: () => node.unfocus(),
+                            child: const Padding(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 16.0,
+                                vertical: 8.0,
+                              ),
+                              child: Text(
+                                "Aceptar",
+                                style: TextStyle(
+                                  color: Colors.blue,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
-                          ),
-
-                          Positioned(
-                            left: 24,
-                            right: 24,
-                            bottom: 24,
-                            child: CustomButton(
-                              text: 'Guardar cambios',
-                              isLoading: isUpdating,
-                              onPressed:
-                                  (isUpdating || !_hasChangesAndValid(user))
-                                  ? null
-                                  : () {
-                                      if (_formKey.currentState!.validate()) {
-                                        String cellPhone = _phoneController.text
-                                            .trim();
-                                        
-                                        if (cellPhone.isNotEmpty) {
-                                          final state = context
-                                              .read<LocationsCubit>()
-                                              .state;
-                                          if (state is LocationsLoaded) {
-                                            final countryId =
-                                                _selectedPhoneCountryId ??
-                                                user.countryId;
-                                            if (countryId.isNotEmpty) {
-                                              final country = state.countries
-                                                  .cast<CountryEntity>()
-                                                  .firstWhere(
-                                                    (c) => c.id == countryId,
-                                                    orElse: () =>
-                                                        state.countries.first,
-                                                  );
-                                              
-                                              final prefix = country.dialCode;
-                                              final purePrefix = prefix.replaceAll('+', '');
-                                              
-                                              // Clean the user input string to numbers only to avoid (+57) spaces etc
-                                              String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
-                                              
-                                              // Remove prefix if typed
-                                              if (numbersOnly.startsWith(purePrefix)) {
-                                                numbersOnly = numbersOnly.substring(purePrefix.length);
-                                              }
-                                              
-                                              // Reconstruct standard format
-                                              cellPhone = '$prefix$numbersOnly';
-                                            }
-                                          }
-                                        }
-
-                                        final updatedData = <String, dynamic>{
-                                          'name': _nameController.text,
-                                          'address': _addressController.text,
-                                          if (user.authMethod == 'PHONE')
-                                            'email': _emailController.text.trim(),
-                                          if (user.authMethod != 'PHONE')
-                                            'cellPhone': cellPhone,
-                                          // Siempre incluir cityId y departmentId (incluso vacío)
-                                          // para que el backend limpie el valor si el usuario
-                                          // seleccionó "--Seleccionar--"
-                                          'cityId': _selectedCityId ?? '',
-                                          'departmentId': _selectedDepartmentId ?? '',
-                                          if (_selectedPhoneCountryId != null)
-                                            'countryId': _selectedPhoneCountryId,
-                                        };
-
-                                        context.read<AuthBloc>().add(
-                                          UpdateProfileRequested(
-                                            userId: user.id,
-                                            data: updatedData,
-                                          ),
-                                        );
-                                      }
-                                    },
-                            ),
-                          ),
-                        ],
-                      ),
+                          );
+                        },
+                      ],
                     ),
+                  ],
+                ),
+                child: ModalPageLayout(
+                  title: 'Perfil',
+                  scrollOnlyWithKeyboard: true,
+                  trailingIcon: IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: const Icon(Icons.close),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                   ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
-    ),
-  );
-}
+                  bottomChild: CustomButton(
+                    text: 'Guardar cambios',
+                    isLoading: isUpdating,
+                    onPressed:
+                        (isUpdating ||
+                            !editState.hasChanges ||
+                            !editState.isValid)
+                        ? null
+                        : () {
+                            String countryPrefix = '';
+                            final locState = context
+                                .read<LocationsCubit>()
+                                .state;
+                            if (locState is LocationsLoaded) {
+                              final cId = editState.phoneCountryId;
+                              if (cId.isNotEmpty) {
+                                final country = locState.countries
+                                    .cast<CountryEntity>()
+                                    .firstWhere(
+                                      (c) => c.id == cId,
+                                      orElse: () => locState.countries.first,
+                                    );
+                                countryPrefix = country.dialCode;
+                              }
+                            }
 
-Widget _buildHeader(BuildContext context) {
-    return Stack(
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 80),
-          child: Center(
-            child: Text(
-              'Perfil',
-              style: AppTypography.heading1.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-          ),
-        ),
-        Positioned(
-          top: 24,
-          right: 24,
-          child: IconButton(
-            onPressed: () => Navigator.pop(context),
-            icon: const Icon(Icons.close),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(),
-          ),
-        ),
-      ],
+                            final payload = cubit.buildUpdatePayload(
+                              countryPrefix,
+                            );
+                            context.read<AuthBloc>().add(
+                              UpdateProfileRequested(
+                                userId: user.id,
+                                data: payload,
+                              ),
+                            );
+                          },
+                  ),
+                  child: Column(
+                    children: [
+                      _buildAvatar(user, isUploadingPicture, context),
+                      const SizedBox(height: AppSpacing.l),
+                      Text(
+                        StringFormatters.formatName(user.name),
+                        style: AppTypography.heading2.copyWith(
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        '${user.identificationType} ${user.identificationNumber}',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyMedio,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.xl),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            if (user.authMethod == 'PHONE') ...[
+                              CustomTextField(
+                                initialValue: editState.email.value,
+                                onChanged: cubit.emailChanged,
+                                label: 'Correo electrónico (Opcional)',
+                                hint: 'ejemplo@correo.com',
+                                keyboardType: TextInputType.emailAddress,
+                                errorText:
+                                    editState.isEmailAttempted &&
+                                        editState.email.isNotValid
+                                    ? AppStrings.emailError
+                                    : null,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+                            ],
+                            _LocationSelector(
+                              user: user,
+                              phoneFocusNode: _phoneFocusNode,
+                              editState: editState,
+                              cubit: cubit,
+                            ),
+                            CustomTextField(
+                              initialValue: editState.address.value,
+                              onChanged: cubit.addressChanged,
+                              label: 'Dirección de residencia (Opcional)',
+                            ),
+                            SizedBox(
+                              height: MediaQuery.of(context).viewInsets.bottom > 40
+                                  ? MediaQuery.of(context).viewInsets.bottom - 40
+                                  : 0,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        },
+      ),
     );
   }
 
@@ -632,7 +452,6 @@ Widget _buildHeader(BuildContext context) {
       onTap: isUploadingPicture ? null : _showImageSourceSheet,
       child: Stack(
         children: [
-          // Avatar principal: foto real o iniciales
           Container(
             width: 96,
             height: 96,
@@ -666,8 +485,6 @@ Widget _buildHeader(BuildContext context) {
                     ),
                   ),
           ),
-
-          // Loading overlay cuando se está subiendo
           if (isUploadingPicture)
             Positioned.fill(
               child: Container(
@@ -683,8 +500,6 @@ Widget _buildHeader(BuildContext context) {
                 ),
               ),
             ),
-
-          // Botón de edición (lápiz) en la esquina
           if (!isUploadingPicture)
             Positioned(
               top: 8,
@@ -717,31 +532,20 @@ Widget _buildHeader(BuildContext context) {
 
 class _LocationSelector extends StatelessWidget {
   final UserEntity user;
-  final TextEditingController phoneController;
-  final String? selectedPhoneCountryId;
-  final String? selectedDepartmentId;
-  final String? selectedCityId;
   final FocusNode? phoneFocusNode;
-  final ValueChanged<String?> onPhoneCountryChanged;
-  final ValueChanged<String?> onDepartmentChanged;
-  final ValueChanged<String?> onCityChanged;
+  final EditProfileState editState;
+  final EditProfileCubit cubit;
 
   const _LocationSelector({
     required this.user,
-    required this.phoneController,
-    required this.selectedPhoneCountryId,
-    required this.selectedDepartmentId,
-    required this.selectedCityId,
     this.phoneFocusNode,
-    required this.onPhoneCountryChanged,
-    required this.onDepartmentChanged,
-    required this.onCityChanged,
+    required this.editState,
+    required this.cubit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final showPhoneField =
-        user.authMethod != 'PHONE';
+    final showPhoneField = user.authMethod != 'PHONE';
 
     return BlocBuilder<LocationsCubit, LocationsState>(
       builder: (context, locationsState) {
@@ -750,16 +554,20 @@ class _LocationSelector extends StatelessWidget {
             : <CountryEntity>[];
 
         final colombiaId = countries.isNotEmpty
-            ? (countries.cast<CountryEntity>().any((c) =>
-                    c.dialCode == '+57' ||
-                    c.name.toLowerCase().contains('colombia'))
-                ? countries
-                    .cast<CountryEntity>()
-                    .firstWhere((c) =>
+            ? (countries.cast<CountryEntity>().any(
+                    (c) =>
                         c.dialCode == '+57' ||
-                        c.name.toLowerCase().contains('colombia'))
-                    .id
-                : countries.first.id)
+                        c.name.toLowerCase().contains('colombia'),
+                  )
+                  ? countries
+                        .cast<CountryEntity>()
+                        .firstWhere(
+                          (c) =>
+                              c.dialCode == '+57' ||
+                              c.name.toLowerCase().contains('colombia'),
+                        )
+                        .id
+                  : countries.first.id)
             : '';
 
         return Column(
@@ -767,11 +575,28 @@ class _LocationSelector extends StatelessWidget {
             if (showPhoneField && countries.isNotEmpty) ...[
               PhoneInputField(
                 label: 'Número de celular (Opcional)',
-                controller: phoneController,
+                initialValue: editState.phone.value,
+                onChanged: cubit.phoneChanged,
                 focusNode: phoneFocusNode,
                 countries: countries,
-                selectedCountryId: selectedPhoneCountryId,
-                onCountryChanged: onPhoneCountryChanged,
+                selectedCountryId: editState.phoneCountryId.isEmpty
+                    ? colombiaId
+                    : editState.phoneCountryId,
+                onCountryChanged: (val) {
+                  if (val != null) {
+                    final country = countries.cast<CountryEntity>().firstWhere(
+                      (c) => c.id == val,
+                      orElse: () => countries.first,
+                    );
+                    cubit.phoneCountryIdChanged(val, country.dialCode);
+                  }
+                },
+                errorText:
+                    editState.isPhoneAttempted &&
+                        editState.phone.isNotValid &&
+                        editState.phone.value.isNotEmpty
+                    ? AppStrings.phoneError
+                    : null,
                 isOptional: true,
               ),
               const SizedBox(height: AppSpacing.m),
@@ -791,25 +616,41 @@ class _LocationSelector extends StatelessWidget {
             if (locationsState is LocationsLoaded)
               DepartmentDropdown(
                 label: 'Departamento',
-                value: selectedDepartmentId,
+                value: editState.departmentId.isNotEmpty
+                    ? editState.departmentId
+                    : null,
                 onChanged: (value) {
-                  onDepartmentChanged(value);
-                  if (value != null) {
+                  cubit.departmentChanged(value ?? '');
+                  if (value != null && value.isNotEmpty) {
                     context.read<LocationsCubit>().fetchCities(value);
                   }
                 },
                 departments: locationsState.departments,
-                enabled: true,
+              )
+            else
+              const DepartmentDropdown(
+                label: 'Departamento',
+                value: null,
+                onChanged: null,
+                departments: [],
               ),
             const SizedBox(height: AppSpacing.m),
 
             if (locationsState is LocationsLoaded)
               CityDropdown(
-                label: 'Ciudad',
-                value: selectedCityId,
-                onChanged: onCityChanged,
+                label: 'Ciudad / Municipio',
+                value: editState.cityId.isNotEmpty ? editState.cityId : null,
+                onChanged: (value) {
+                  cubit.cityChanged(value ?? '');
+                },
                 cities: locationsState.cities,
-                enabled: selectedDepartmentId != null,
+              )
+            else
+              const CityDropdown(
+                label: 'Ciudad / Municipio',
+                value: null,
+                onChanged: null,
+                cities: [],
               ),
             const SizedBox(height: AppSpacing.m),
           ],

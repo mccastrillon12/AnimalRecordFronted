@@ -1,3 +1,4 @@
+
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,6 +33,10 @@ class CustomTextField extends StatefulWidget {
   final bool? enabled;
   final ValueChanged<String>? onSubmitted;
   final FocusNode? focusNode;
+  final String? initialValue;
+  final ValueChanged<String>? onChanged;
+  final Duration? validationDelay;
+  final bool hideErrorText;
 
   const CustomTextField({
     super.key,
@@ -60,6 +65,10 @@ class CustomTextField extends StatefulWidget {
     this.enabled,
     this.onSubmitted,
     this.focusNode,
+    this.initialValue,
+    this.onChanged,
+    this.validationDelay,
+    this.hideErrorText = false,
   });
 
   @override
@@ -68,7 +77,8 @@ class CustomTextField extends StatefulWidget {
 
 class _CustomTextFieldState extends State<CustomTextField> {
   late FocusNode _focusNode;
-  Timer? _debounceTimer;
+  Timer? _validationTimer;
+
   String? _internalErrorText;
 
   @override
@@ -81,10 +91,10 @@ class _CustomTextFieldState extends State<CustomTextField> {
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    _validationTimer?.cancel();
     if (widget.focusNode == null) {
       _focusNode.dispose();
     }
-    _debounceTimer?.cancel();
     super.dispose();
   }
 
@@ -109,12 +119,33 @@ class _CustomTextFieldState extends State<CustomTextField> {
   }
 
   void _onChanged(String val) {
-    if (_internalErrorText != null) {
+    if (widget.validationDelay != null) {
+      final text = val.trim();
+      final newError = widget.validator?.call(text);
+
+      if (newError == null) {
+        // If valid or empty, clear immediately
+        _validationTimer?.cancel();
+        if (_internalErrorText != null) {
+          setState(() => _internalErrorText = null);
+        }
+      } else {
+        if (_internalErrorText != null) {
+          // If already showing an error, update it immediately to stay responsive
+          _validationTimer?.cancel();
+          setState(() => _internalErrorText = newError);
+        } else {
+          // If no error is showing, use the delay
+          _validationTimer?.cancel();
+          _validationTimer = Timer(widget.validationDelay!, () {
+            _runAutoValidation();
+          });
+        }
+      }
+    } else if (_internalErrorText != null) {
       _runAutoValidation();
-    } else {
-      _debounceTimer?.cancel();
-      _debounceTimer = Timer(const Duration(seconds: 2), _runAutoValidation);
     }
+    widget.onChanged?.call(val);
   }
 
   @override
@@ -175,6 +206,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
             height: AppSpacing.inputHeight,
             child: TextFormField(
               controller: widget.controller,
+              initialValue: widget.initialValue,
               focusNode: _focusNode,
               enabled: widget.enabled,
               obscureText: widget.obscureText ?? widget.isPassword,
@@ -276,7 +308,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
           ),
         ),
 
-        if (currentErrorText != null) ...[
+        if (currentErrorText != null && !widget.hideErrorText) ...[
           const SizedBox(height: 4),
           Text(
             currentErrorText,

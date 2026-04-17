@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/pages/biometric_lock_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -99,11 +100,7 @@ class _SplashScreenState extends State<SplashScreen> {
         body: Container(
           width: double.infinity,
           decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFF539DF3), Color(0xFF132D53)],
-            ),
+            gradient: AppColors.backgroundDegradeFull,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

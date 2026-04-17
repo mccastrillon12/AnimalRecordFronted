@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -12,6 +13,7 @@ import 'package:animal_record/features/auth/presentation/widgets/biometric_disab
 import 'package:animal_record/features/auth/presentation/widgets/biometric_enable_dialog.dart';
 import 'package:animal_record/features/auth/presentation/pages/biometric_activation_screen.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/layout/app_header.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -38,10 +40,20 @@ class ProfileScreen extends StatelessWidget {
           }
         }
       },
-      child: Scaffold(
-        backgroundColor: AppColors.bgOxford,
-        body: Stack(
-          children: [
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          body: Container(
+            decoration: const BoxDecoration(
+              gradient: AppColors.backgroundDegradeFull,
+            ),
+            child: Stack(
+            children: [
             BlocBuilder<AuthBloc, AuthState>(
               buildWhen: (previous, current) {
                 return current is AuthSuccess;
@@ -68,246 +80,146 @@ class ProfileScreen extends StatelessWidget {
 
                 return SafeArea(
                   bottom: false,
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 12, 0, 0),
-                          child: Row(
+                  child: Column(
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.fromLTRB(16, 12, 16, 0),
+                        child: AppHeader(),
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          child: Column(
                             children: [
-                              IconButton(
-                                padding: EdgeInsets.zero,
-                                constraints: const BoxConstraints(),
-                                icon: const Icon(
-                                  Icons.arrow_back,
-                                  color: Colors.white,
-                                ),
-                                onPressed: () => Navigator.pop(context),
-                              ),
-                            ],
-                          ),
-                        ),
+                              Column(
+                                children: [
+                                  Text(
+                                    role,
+                                    style: AppTypography.body4.copyWith(
+                                      color: Colors.white,
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.l),
 
-                        Column(
-                          children: [
-                            Text(
-                              role,
-                              style: AppTypography.body4.copyWith(
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: AppSpacing.l),
-
-                            Container(
-                              width: 96,
-                              height: 96,
-                              decoration: BoxDecoration(
-                                color: AppColors.primaryIndigo,
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              clipBehavior: Clip.antiAlias,
-                              child: Center(
-                                child:
-                                    state is AuthSuccess &&
-                                        state.user.profilePicture != null &&
-                                        state.user.profilePicture!.isNotEmpty
-                                    ? CachedNetworkImage(
-                                        imageUrl: state.user.profilePicture!,
-                                        fit: BoxFit.cover,
-                                        width: 96,
-                                        height: 96,
-                                        fadeInDuration: Duration.zero,
-                                        fadeOutDuration: Duration.zero,
-                                        placeholder: (context, url) => Text(
-                                          _getInitials(name),
-                                          style: AppTypography.heading1
-                                              .copyWith(
+                                  Container(
+                                    width: 96,
+                                    height: 96,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primaryIndigo,
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    clipBehavior: Clip.antiAlias,
+                                    child: Center(
+                                      child:
+                                          state is AuthSuccess &&
+                                              state.user.profilePicture != null &&
+                                              state.user.profilePicture!.isNotEmpty
+                                          ? CachedNetworkImage(
+                                              imageUrl: state.user.profilePicture!,
+                                              fit: BoxFit.cover,
+                                              width: 96,
+                                              height: 96,
+                                              fadeInDuration: Duration.zero,
+                                              fadeOutDuration: Duration.zero,
+                                              placeholder: (context, url) => Text(
+                                                _getInitials(name),
+                                                style: AppTypography.heading1
+                                                    .copyWith(
+                                                      color: Colors.white,
+                                                      fontSize: 32,
+                                                    ),
+                                              ),
+                                              errorWidget: (context, url, error) =>
+                                                  Text(
+                                                    _getInitials(name),
+                                                    style: AppTypography.heading1
+                                                        .copyWith(
+                                                          color: Colors.white,
+                                                          fontSize: 32,
+                                                        ),
+                                                  ),
+                                            )
+                                          : Text(
+                                              _getInitials(name),
+                                              style: AppTypography.heading1.copyWith(
                                                 color: Colors.white,
                                                 fontSize: 32,
                                               ),
-                                        ),
-                                        errorWidget: (context, url, error) =>
-                                            Text(
-                                              _getInitials(name),
-                                              style: AppTypography.heading1
-                                                  .copyWith(
-                                                    color: Colors.white,
-                                                    fontSize: 32,
-                                                  ),
                                             ),
-                                      )
-                                    : Text(
-                                        _getInitials(name),
-                                        style: AppTypography.heading1.copyWith(
-                                          color: Colors.white,
-                                          fontSize: 32,
-                                        ),
+                                    ),
+                                  ),
+                                  const SizedBox(height: AppSpacing.m),
+                                  Container(
+                                    height: 30,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      _formatName(name),
+                                      style: AppTypography.heading1.copyWith(
+                                        color: Colors.white,
                                       ),
+                                    ),
+                                  ),
+                                  Container(
+                                    height: 21,
+                                    alignment: Alignment.center,
+                                    child: Text(
+                                      displayContact,
+                                      style: AppTypography.body4.copyWith(
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(height: AppSpacing.m),
-                            Container(
-                              height: 30,
-                              alignment: Alignment.center,
-                              child: Text(
-                                _formatName(name),
-                                style: AppTypography.heading1.copyWith(
-                                  color: Colors.white,
+
+                              const SizedBox(height: AppSpacing.xl),
+
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: AppSpacing.xl,
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    _buildActionButton(
+                                      icon: 'assets/icons/bold-people.svg',
+                                      label: 'Cambiar perfil',
+                                      onTap: () {},
+                                    ),
+                                    _buildActionButton(
+                                      icon: 'assets/icons/Edit.svg',
+                                      label: 'Editar perfil',
+                                      onTap: () {
+                                        Navigator.pushNamed(context, '/edit-profile');
+                                      },
+                                    ),
+                                  ],
                                 ),
                               ),
-                            ),
-                            Container(
-                              height: 21,
-                              alignment: Alignment.center,
-                              child: Text(
-                                displayContact,
-                                style: AppTypography.body4.copyWith(
+
+                              const SizedBox(height: AppSpacing.xl),
+
+                              _buildOptionsList(context, state),
+                              const SizedBox(height: AppSpacing.xl),
+
+                              Image.asset(
+                                'assets/Logo/Imagotipo_blanco.png',
+                                height: 24,
+                                errorBuilder: (_, __, ___) => const SizedBox(),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'ANIMAL RECORD',
+                                style: AppTypography.body3.copyWith(
                                   color: Colors.white,
+                                  letterSpacing: 2,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-
-                        const SizedBox(height: AppSpacing.xl),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.xl,
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              _buildActionButton(
-                                icon: 'assets/icons/bold-people.svg',
-                                label: 'Cambiar perfil',
-                                onTap: () {},
-                              ),
-                              _buildActionButton(
-                                icon: 'assets/icons/Edit.svg',
-                                label: 'Editar perfil',
-                                onTap: () {
-                                  Navigator.pushNamed(context, '/edit-profile');
-                                },
-                              ),
+                              const SizedBox(height: AppSpacing.xxl),
                             ],
                           ),
                         ),
-
-                        const SizedBox(height: AppSpacing.xl),
-
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
-                          ),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 8),
-                            child: Column(
-                              children: [
-                                _buildOptionTile(
-                                  icon: 'assets/icons/bold-frame.svg',
-                                  label: 'Mi cuenta',
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/my-account');
-                                  },
-                                ),
-                                Divider(color: AppColors.greyClaro, height: 1),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/notification.svg',
-                                  label: 'Notificaciones',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Language.svg',
-                                  label: 'Idiomas',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/scan-eye.svg',
-                                  label: 'Ingreso con biometría',
-                                  onTap: () {
-                                    if (state is AuthSuccess &&
-                                        state.isBiometricEnabled) {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) =>
-                                            BiometricDisableDialog(
-                                              onDisable: () {
-                                                context.read<AuthBloc>().add(
-                                                  UpdateBiometricStatusRequested(
-                                                    false,
-                                                  ),
-                                                );
-                                              },
-                                            ),
-                                      );
-                                    } else {
-                                      showDialog(
-                                        context: context,
-                                        builder: (context) => BiometricEnableDialog(
-                                          onEnable: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (context) =>
-                                                    const BiometricActivationScreen(),
-                                              ),
-                                            );
-                                          },
-                                        ),
-                                      );
-                                    }
-                                  },
-                                ),
-                                Divider(color: AppColors.greyClaro, height: 1),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Help.svg',
-                                  label: 'Centro de ayuda',
-                                  onTap: () {},
-                                ),
-                                _buildOptionTile(
-                                  icon: 'assets/icons/Terms.svg',
-                                  label: 'Términos y Políticas',
-                                  onTap: () {},
-                                ),
-
-                                _buildOptionTile(
-                                  icon: 'assets/icons/logout.svg',
-                                  label: 'Cerrar sesión',
-                                  color: const Color(0xFFF26F49),
-                                  onTap: () {
-                                    context.read<AuthBloc>().add(
-                                      LogoutRequested(),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xl),
-
-                        Image.asset(
-                          'assets/Logo/Imagotipo_blanco.png',
-                          height: 24,
-                          errorBuilder: (_, __, ___) => const SizedBox(),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'ANIMAL RECORD',
-                          style: AppTypography.body3.copyWith(
-                            color: Colors.white,
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 );
               },
@@ -328,7 +240,9 @@ class ProfileScreen extends StatelessWidget {
                 return const SizedBox.shrink();
               },
             ),
-          ],
+            ],
+          ),
+          ),
         ),
       ),
     );
@@ -443,5 +357,101 @@ class ProfileScreen extends StatelessWidget {
     });
 
     return formattedParts.join(' ');
+  }
+
+  Widget _buildOptionsList(BuildContext context, AuthState state) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.l,
+      ),
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(8),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Column(
+          children: [
+            _buildOptionTile(
+              icon: 'assets/icons/bold-frame.svg',
+              label: 'Mi cuenta',
+              onTap: () {
+                Navigator.pushNamed(context, '/my-account');
+              },
+            ),
+            Divider(color: AppColors.greyClaro, height: 1),
+            _buildOptionTile(
+              icon: 'assets/icons/notification.svg',
+              label: 'Notificaciones',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/Language.svg',
+              label: 'Idiomas',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/scan-eye.svg',
+              label: 'Ingreso con biometría',
+              onTap: () {
+                if (state is AuthSuccess &&
+                    state.isBiometricEnabled) {
+                  showDialog(
+                    context: context,
+                    builder: (context) =>
+                        BiometricDisableDialog(
+                          onDisable: () {
+                            context.read<AuthBloc>().add(
+                              UpdateBiometricStatusRequested(
+                                false,
+                              ),
+                            );
+                          },
+                        ),
+                  );
+                } else {
+                  showDialog(
+                    context: context,
+                    builder: (context) => BiometricEnableDialog(
+                      onEnable: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const BiometricActivationScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  );
+                }
+              },
+            ),
+            Divider(color: AppColors.greyClaro, height: 1),
+            _buildOptionTile(
+              icon: 'assets/icons/Help.svg',
+              label: 'Centro de ayuda',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/Terms.svg',
+              label: 'Términos y Políticas',
+              onTap: () {},
+            ),
+            _buildOptionTile(
+              icon: 'assets/icons/logout.svg',
+              label: 'Cerrar sesión',
+              color: const Color(0xFFF26F49),
+              onTap: () {
+                context.read<AuthBloc>().add(
+                  LogoutRequested(),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

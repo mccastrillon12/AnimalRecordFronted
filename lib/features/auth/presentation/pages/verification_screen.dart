@@ -11,6 +11,7 @@ import 'package:animal_record/features/auth/domain/entities/verify_code_params.d
 import 'package:animal_record/core/utils/error_display.dart';
 import '../widgets/register_steps/verification_step.dart';
 import '../widgets/auth_form_container.dart';
+import 'welcome_social_page.dart';
 
 class VerificationScreen extends StatefulWidget {
   final String identifier;
@@ -106,10 +107,11 @@ class _VerificationScreenState extends State<VerificationScreen> {
           if (state is AuthSuccess && !_isNavigating) {
             _isNavigating = true;
             ErrorDisplay.showSuccess(context, '¡Verificación exitosa!');
-            Navigator.pushNamedAndRemoveUntil(
+            Navigator.pushReplacement(
               context,
-              '/home',
-              (route) => false,
+              MaterialPageRoute(
+                builder: (context) => WelcomeSocialPage(userName: state.user.name),
+              ),
             );
           } else if (state is ResendCodeSuccess) {
             _verificationKey.currentState?.restartTimer(180000);

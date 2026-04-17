@@ -165,7 +165,7 @@ class _NavItem extends StatelessWidget {
               colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
 
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
 
             Text(
               label,

@@ -43,10 +43,30 @@ class _CityDropdownState extends State<CityDropdown> {
     }
   }
 
-  void _openDropdown() {
+  bool _isOpening = false;
+
+  void _openDropdown() async {
+    if (_isOpening) return;
+    _isOpening = true;
+
+    final scrollable = Scrollable.maybeOf(context);
+    if (scrollable != null) {
+      await scrollable.position.animateTo(
+        scrollable.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 50),
+        curve: Curves.easeOut,
+      );
+    }
+
+    if (!mounted) {
+      _isOpening = false;
+      return;
+    }
+
     _overlayEntry = _createOverlayEntry();
     Overlay.of(context).insert(_overlayEntry!);
     setState(() => _isOpen = true);
+    _isOpening = false;
   }
 
   void _closeDropdown() {
@@ -60,6 +80,14 @@ class _CityDropdownState extends State<CityDropdown> {
     final validCities = widget.cities
         .where((c) => c.name.trim().isNotEmpty)
         .toList();
+
+    // Same bottom boundary as the fixed button:
+    //   screenHeight - safeArea.bottom - buttonBottomPadding(24) - buttonHeight(36)
+    final mq = MediaQuery.of(context);
+    final position = renderBox.localToGlobal(Offset.zero);
+    final dropdownTop = position.dy + AppSpacing.inputHeight;
+    final bottomBoundary = mq.size.height - mq.padding.bottom - 88.0;
+    final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(80.0, 200.0);
 
     return OverlayEntry(
       builder: (context) => Stack(
@@ -87,7 +115,7 @@ class _CityDropdownState extends State<CityDropdown> {
                     borderRadius: BorderRadius.circular(4),
                     color: Colors.white,
                   ),
-                  constraints: const BoxConstraints(maxHeight: 200),
+                  constraints: BoxConstraints(maxHeight: maxDropdownHeight),
                   child: ListView.builder(
                     padding: EdgeInsets.zero,
                     shrinkWrap: true,

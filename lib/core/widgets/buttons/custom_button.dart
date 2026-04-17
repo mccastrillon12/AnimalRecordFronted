@@ -30,6 +30,7 @@ class CustomButton extends StatelessWidget {
             : AppColors.primaryWhite,
         elevation: 0,
         minimumSize: const Size(double.infinity, 36),
+        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: AppTypography.body3,
         shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
       ),

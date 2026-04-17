@@ -13,6 +13,8 @@ import 'dart:convert';
 import 'package:animal_record/features/auth/presentation/pages/password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   const BiometricLockScreen({super.key});
@@ -27,6 +29,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
   String _userName = '';
   late AnimationController _controller;
   late Animation<double> _opacity;
+  bool _isClearingSession = false;
 
   @override
   void initState() {
@@ -103,14 +106,20 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PasswordScreen(identifier: _userIdentifier),
+          builder: (context) => PasswordScreen(
+            identifier: _userIdentifier,
+            bypassBiometric: true,
+          ),
         ),
       );
     } else {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => PinEntryScreen(identifier: _userIdentifier),
+          builder: (context) => PinEntryScreen(
+            identifier: _userIdentifier,
+            bypassBiometric: true,
+          ),
         ),
       );
     }
@@ -124,11 +133,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       body: Container(
         width: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF539DF3), Color(0xFF132D53)],
-          ),
+          gradient: AppColors.backgroundDegradeFull,
         ),
         child: SafeArea(
           child: Padding(
@@ -148,7 +153,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                     ],
                   ),
 
-                  const SizedBox(height: 60),
+                  const SizedBox(height: 150),
 
                   if (_userName.isNotEmpty)
                     Text(
@@ -158,7 +163,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                       ),
                     ),
 
-                  const SizedBox(height: AppSpacing.l),
+                  const SizedBox(height: AppSpacing.xl),
 
                   Column(
                     children: [
@@ -180,60 +185,122 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                     ],
                   ),
 
-                  const Spacer(),
+                  const SizedBox(height: 150),
 
-                  Column(
-                    children: [
-                      ElevatedButton(
-                        onPressed: _authenticate,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFEF774F),
-                          foregroundColor: Colors.white,
-                          minimumSize: const Size(double.infinity, 36),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          elevation: 0,
+                  if (_isClearingSession)
+                    const Center(
+                      child: SizedBox(
+                        height: 48,
+                        width: 48,
+                        child: CircularProgressIndicator(
+                          color: Colors.white,
+                          strokeWidth: 3,
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(isIOS ? Icons.face : Icons.fingerprint),
-                            const SizedBox(width: AppSpacing.xs),
-                            Text(
-                              isIOS
-                                  ? 'Ingresar con FaceID'
-                                  : 'Ingresar con Biometría',
-                              style: AppTypography.body3.copyWith(
-                                color: Colors.white,
-                              ),
+                      ),
+                    )
+                  else ...[
+                    Column(
+                      children: [
+                        ElevatedButton(
+                          onPressed: _authenticate,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFEF774F),
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.greyClaro,
+                            disabledForegroundColor: AppColors.greyBordes,
+                            minimumSize: const Size(double.infinity, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
                             ),
-                          ],
+                            elevation: 0,
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(isIOS ? Icons.face : Icons.fingerprint),
+                              const SizedBox(width: AppSpacing.xs),
+                              Text(
+                                isIOS
+                                    ? 'Ingresar con FaceID'
+                                    : 'Ingresar con Biometría',
+                                style: AppTypography.body3.copyWith(
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: AppSpacing.m),
+                        const SizedBox(height: AppSpacing.m),
 
-                      ElevatedButton(
-                        onPressed: _goToLogin,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.primaryIndigo,
-                          minimumSize: const Size(double.infinity, 36),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                        ElevatedButton(
+                          onPressed: _goToLogin,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: AppColors.primaryIndigo,
+                            disabledBackgroundColor: AppColors.greyClaro,
+                            disabledForegroundColor: AppColors.greyBordes,
+                            minimumSize: const Size(double.infinity, 36),
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
                           ),
-                          elevation: 0,
+                          child: Text(
+                            'Ingresa con contraseña o PIN',
+                            style: AppTypography.body3.copyWith(
+                              color: AppColors.primaryIndigo,
+                            ),
+                          ),
                         ),
-                        child: Text(
-                          'Ingresa con contraseña o PIN',
-                          style: AppTypography.body3.copyWith(
-                            color: AppColors.primaryIndigo,
-                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    GestureDetector(
+                      onTap: () async {
+                        setState(() => _isClearingSession = true);
+                        try {
+                          await sl<TokenStorage>().clearAll();
+
+                          try {
+                            final googleSignIn = GoogleSignIn();
+                            await googleSignIn.signOut();
+                            // Desconectar asegura revocar el acceso a Google para forzar a pedir cuenta de nuevo
+                            await googleSignIn.disconnect();
+                          } catch (_) {}
+
+                          try {
+                            final microsoftAuth = sl<MicrosoftAuthService>();
+                            await microsoftAuth.signOut();
+                          } catch (_) {}
+
+                          // Small delay to let the user see the animation as it's very fast
+                          await Future.delayed(
+                            const Duration(milliseconds: 400),
+                          );
+                          if (mounted) {
+                            Navigator.pushNamedAndRemoveUntil(
+                              context,
+                              '/login',
+                              (route) => false,
+                            );
+                          }
+                        } catch (_) {
+                          if (mounted) {
+                            setState(() => _isClearingSession = false);
+                          }
+                        }
+                      },
+                      child: Text(
+                        'Iniciar sesión con cuenta nueva',
+                        style: AppTypography.body3.copyWith(
+                          color: Colors.white,
                         ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: AppSpacing.xxl),
+                    ),
+                  ],
+                  const SizedBox(height: 40),
                 ],
               ),
             ),

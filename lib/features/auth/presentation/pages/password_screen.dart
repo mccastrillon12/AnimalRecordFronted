@@ -11,13 +11,25 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/domain/entities/login_params.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/injection_container.dart';
+import 'package:animal_record/core/services/token_storage.dart';
 import 'verification_screen.dart';
 import 'forgot_password_screen.dart';
+import 'biometric_lock_screen.dart';
+
+
 
 class PasswordScreen extends StatefulWidget {
   final String identifier;
+  final bool isBiometricSetup;
+  final bool bypassBiometric;
 
-  const PasswordScreen({super.key, required this.identifier});
+  const PasswordScreen({
+    super.key, 
+    required this.identifier,
+    this.isBiometricSetup = false,
+    this.bypassBiometric = false,
+  });
 
   @override
   State<PasswordScreen> createState() => _PasswordScreenState();
@@ -71,13 +83,43 @@ class _PasswordScreenState extends State<PasswordScreen> {
       onBack: () => Navigator.pop(context),
       child: BlocListener<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is AuthSuccess && !_isNavigating) {
+          if (state is AuthSuccess && 
+              !_isNavigating && 
+              (ModalRoute.of(context)?.isCurrent ?? false)) {
             _isNavigating = true;
-            Navigator.pushNamedAndRemoveUntil(
-              context,
-              '/home',
-              (route) => false,
-            );
+
+            if (widget.isBiometricSetup) {
+              sl<TokenStorage>().isBiometricActivationPending().then((isPending) {
+                if (isPending) {
+                  context.read<AuthBloc>().add(
+                    UpdateBiometricStatusRequested(true),
+                  );
+                }
+                if (mounted) {
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/home',
+                    (route) => false,
+                  );
+                }
+              });
+            } else {
+              if (state.isBiometricEnabled && !widget.bypassBiometric) {
+                Navigator.pushAndRemoveUntil(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const BiometricLockScreen(),
+                  ),
+                  (route) => false,
+                );
+              } else {
+                Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/home',
+                  (route) => false,
+                );
+              }
+            }
           } else if (state is AuthUserNotVerified) {
             Navigator.push(
               context,

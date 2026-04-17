@@ -217,6 +217,18 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Either<Failure, Map<String, dynamic>>> checkAvailability(
+    Map<String, dynamic> data,
+  ) async {
+    try {
+      final availabilityMap = await remoteDataSource.checkAvailability(data);
+      return Right(availabilityMap);
+    } catch (e) {
+      return Left(ServerFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, Map<String, dynamic>>> checkSocialToken(
     String provider,
     String token,

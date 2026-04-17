@@ -99,6 +99,14 @@ class IdentificationCheckResult extends AuthState {
   List<Object?> get props => [exists];
 }
 
+class AvailabilityCheckResult extends AuthState {
+  final Map<String, dynamic> availabilityStatus;
+  AvailabilityCheckResult(this.availabilityStatus);
+
+  @override
+  List<Object?> get props => [availabilityStatus];
+}
+
 class AuthUserNotVerified extends AuthState {
   final int? timeRemaining;
   AuthUserNotVerified({this.timeRemaining});
