@@ -41,6 +41,13 @@ import 'package:animal_record/features/locations/domain/usecases/get_departments
 import 'package:animal_record/features/locations/domain/usecases/get_cities_usecase.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
+import 'package:animal_record/features/home/data/datasources/animal_remote_datasource.dart';
+import 'package:animal_record/features/home/data/repositories/animal_repository_impl.dart';
+import 'package:animal_record/features/home/domain/repositories/animal_repository.dart';
+import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/services/apple_auth_service.dart';
@@ -153,6 +160,25 @@ Future<void> init() async {
 
   sl.registerLazySingleton<LocationsLocalDataSource>(
     () => LocationsLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+
+  // — Animals feature —
+  sl.registerLazySingleton(
+    () => AnimalCubit(
+      createAnimalUseCase: sl(),
+      getAnimalsByOwnerUseCase: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(() => CreateAnimalUseCase(sl()));
+  sl.registerLazySingleton(() => GetAnimalsByOwnerUseCase(sl()));
+
+  sl.registerLazySingleton<AnimalRepository>(
+    () => AnimalRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<AnimalRemoteDataSource>(
+    () => AnimalRemoteDataSourceImpl(apiClient: sl()),
   );
 
   sl.registerLazySingleton<TokenStorage>(

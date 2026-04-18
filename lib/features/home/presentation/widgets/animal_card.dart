@@ -2,20 +2,26 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
+import 'package:animal_record/features/home/domain/models/animal_model.dart';
 
+/// Display mode for the animal card.
+enum AnimalCardMode { list, grid }
+
+/// A reusable card for displaying an animal.
+///
+/// Supports two layouts:
+/// - [AnimalCardMode.list]: Horizontal row with photo, name, age, code, sex tag.
+/// - [AnimalCardMode.grid]: Vertical column with photo, name, code.
 class AnimalCard extends StatelessWidget {
-  final String name;
-  final String species;
-  final String? breed;
-  final String? imageUrl;
+  final AnimalModel animal;
+  final AnimalCardMode mode;
   final VoidCallback? onTap;
 
   const AnimalCard({
     super.key,
-    required this.name,
-    required this.species,
-    this.breed,
-    this.imageUrl,
+    required this.animal,
+    this.mode = AnimalCardMode.list,
     this.onTap,
   });
 
@@ -23,85 +29,179 @@ class AnimalCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppColors.greyClaro, width: 1),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: AppColors.greyClaro,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: imageUrl != null
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(8),
-                      child: Image.network(
-                        imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) {
-                          return _buildPlaceholderIcon();
-                        },
+      child: mode == AnimalCardMode.list ? _buildListCard() : _buildGridCard(),
+    );
+  }
+
+  // ===========================================================================
+  // LIST MODE — horizontal row card
+  // ===========================================================================
+
+  Widget _buildListCard() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: AppBorders.large(),
+        border: Border.all(color: AppColors.greyDelineante, width: 1),
+      ),
+      child: Row(
+        children: [
+          // Photo
+          _buildPhoto(size: 60, borderRadius: AppBorders.radiusMedium),
+
+          const SizedBox(width: AppSpacing.s),
+
+          // Info column
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Name + Age
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        animal.name,
+                        style: AppTypography.body3.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.greyNegro,
+                        ),
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    )
-                  : _buildPlaceholderIcon(),
-            ),
-
-            const SizedBox(width: AppSpacing.m),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    name,
-                    style: AppTypography.body3.copyWith(
-                      fontWeight: FontWeight.w600,
                     ),
-                  ),
+                    if (animal.ageDisplay.isNotEmpty) ...[
+                      const SizedBox(width: 4),
+                      Text(
+                        animal.ageDisplay,
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyTextos,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
 
-                  const SizedBox(height: 4),
+                const SizedBox(height: 2),
 
-                  Text(
-                    breed != null ? '$species - $breed' : species,
-                    style: AppTypography.body5.copyWith(
-                      color: AppColors.textSecondary,
-                    ),
+                // Code
+                Text(
+                  animal.code,
+                  style: AppTypography.body6.copyWith(
+                    color: AppColors.greyBordes,
                   ),
+                ),
+
+                if (animal.sexDisplay.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  // Sex tag
+                  _buildSexTag(),
                 ],
-              ),
+              ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
 
-            const Icon(
-              Icons.chevron_right,
-              color: AppColors.textSecondary,
-              size: 24,
-            ),
-          ],
+  Widget _buildSexTag() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.bgHielo,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(
+        animal.sexDisplay,
+        style: AppTypography.body6.copyWith(
+          color: AppColors.primaryFrances,
+          fontWeight: FontWeight.w600,
         ),
       ),
     );
   }
 
-  Widget _buildPlaceholderIcon() {
-    return Icon(
-      Icons.pets,
-      color: AppColors.textSecondary.withValues(alpha: 0.5),
-      size: 32,
+  // ===========================================================================
+  // GRID MODE — vertical column card
+  // ===========================================================================
+
+  Widget _buildGridCard() {
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.s),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: AppBorders.large(),
+        border: Border.all(color: AppColors.greyDelineante, width: 1),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Photo
+          _buildPhoto(size: 72, borderRadius: AppBorders.radiusMedium),
+
+          const SizedBox(height: 8),
+
+          // Name
+          Text(
+            animal.name,
+            style: AppTypography.body3.copyWith(
+              fontWeight: FontWeight.w700,
+              color: AppColors.greyNegro,
+            ),
+            overflow: TextOverflow.ellipsis,
+            maxLines: 1,
+          ),
+
+          const SizedBox(height: 2),
+
+          // Code
+          Text(
+            animal.code,
+            style: AppTypography.body6.copyWith(
+              color: AppColors.greyBordes,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // SHARED — photo widget
+  // ===========================================================================
+
+  Widget _buildPhoto({required double size, required double borderRadius}) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.greyDelineante,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      child: animal.imageUrl != null
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(borderRadius),
+              child: Image.network(
+                animal.imageUrl!,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholderIcon(size);
+                },
+              ),
+            )
+          : _buildPlaceholderIcon(size),
+    );
+  }
+
+  Widget _buildPlaceholderIcon(double size) {
+    return Center(
+      child: Icon(
+        Icons.pets,
+        color: AppColors.greyBordes,
+        size: size * 0.5,
+      ),
     );
   }
 }

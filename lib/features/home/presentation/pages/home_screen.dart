@@ -8,9 +8,12 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
+import '../widgets/my_animals_content.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -20,6 +23,10 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  /// Which section of the nav menu is active.
+  /// null = Inicio (home), 'mis_animales' = Mis animales page, etc.
+  String? _activeSection;
+
   @override
   void initState() {
     super.initState();
@@ -41,39 +48,69 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  void _navigateToSection(String? section) {
+    setState(() {
+      _activeSection = section;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: const SystemUiOverlayStyle(
-        statusBarColor: Colors.transparent,
-        statusBarIconBrightness: Brightness.light,
-        statusBarBrightness: Brightness.dark,
-      ),
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: BlocBuilder<AuthBloc, AuthState>(
-          builder: (context, state) {
-            if (state is! AuthSuccess) {
-              return const Center(child: CircularProgressIndicator());
-            }
+    return BlocProvider.value(
+      value: sl<AnimalCubit>(),
+      child: AnnotatedRegion<SystemUiOverlayStyle>(
+        value: const SystemUiOverlayStyle(
+          statusBarColor: Colors.transparent,
+          statusBarIconBrightness: Brightness.light,
+          statusBarBrightness: Brightness.dark,
+        ),
+        child: Scaffold(
+          backgroundColor: AppColors.background,
+          body: BlocBuilder<AuthBloc, AuthState>(
+            builder: (context, state) {
+              if (state is! AuthSuccess) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-            return SafeArea(
-              top: false,
-              child: Column(
-                children: [
-                  const UserHeader(),
+              // Load animals when user is authenticated
+              final cubit = context.read<AnimalCubit>();
+              if (cubit.state is AnimalInitial) {
+                cubit.loadAnimals(state.user.id);
+              }
 
-                  const NavigationMenu(),
+              return SafeArea(
+                top: false,
+                child: Column(
+                  children: [
+                    const UserHeader(),
 
-                  const SizedBox(height: 24),
+                    NavigationMenu(
+                      onSectionChanged: _navigateToSection,
+                      activeSection: _activeSection,
+                    ),
 
-                  const Expanded(child: AnimalsSection()),
-                ],
-              ),
-            );
-          },
+                    const SizedBox(height: 24),
+
+                    Expanded(child: _buildContent()),
+                  ],
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
+  }
+
+  Widget _buildContent() {
+    switch (_activeSection) {
+      case 'mis_animales':
+        return const MyAnimalsContent();
+      default:
+        // Home / Inicio
+        return AnimalsSection(
+          onViewAll: () => _navigateToSection('mis_animales'),
+        );
+    }
   }
 }

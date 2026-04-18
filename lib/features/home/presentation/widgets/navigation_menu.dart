@@ -3,9 +3,17 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 
 class NavigationMenu extends StatefulWidget {
-  const NavigationMenu({super.key});
+  final ValueChanged<String?>? onSectionChanged;
+  final String? activeSection;
+
+  const NavigationMenu({
+    super.key,
+    this.onSectionChanged,
+    this.activeSection,
+  });
 
   @override
   State<NavigationMenu> createState() => _NavigationMenuState();
@@ -13,16 +21,44 @@ class NavigationMenu extends StatefulWidget {
 
 class _NavigationMenuState extends State<NavigationMenu> {
   bool _isExpanded = true;
-  int _selectedIndex = 4;
+
+  /// Maps nav index to section identifier.
+  /// null = Inicio (home default).
+  String? _sectionForIndex(int index) {
+    switch (index) {
+      case 3:
+        return 'mis_animales';
+      case 4:
+        return null; // Inicio
+      default:
+        return null;
+    }
+  }
+
+  int _indexForSection(String? section) {
+    switch (section) {
+      case 'mis_animales':
+        return 3;
+      default:
+        return 4; // Inicio
+    }
+  }
 
   void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
+    // Special case: "+ Animal" opens modal, doesn't navigate
+    if (index == 1) {
+      showAnimalCreationModal(context);
+      return;
+    }
+
+    final section = _sectionForIndex(index);
+    widget.onSectionChanged?.call(section);
   }
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = _indexForSection(widget.activeSection);
+
     return Column(
       children: [
         Container(
@@ -33,7 +69,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
             ),
             boxShadow: [
               BoxShadow(
-                color: const Color(0xFF0F1925).withOpacity(0.08),
+                color: const Color(0xFF0F1925).withValues(alpha: 0.08),
                 offset: const Offset(0, 4),
                 blurRadius: 8,
                 spreadRadius: 0,
@@ -55,19 +91,19 @@ class _NavigationMenuState extends State<NavigationMenu> {
                               _NavItem(
                                 svgPath: 'assets/icons/mapa.svg',
                                 label: 'Mapa',
-                                isActive: _selectedIndex == 0,
+                                isActive: selectedIndex == 0,
                                 onTap: () => _onItemTapped(0),
                               ),
                               _NavItem(
                                 svgPath: 'assets/icons/+animal.svg',
                                 label: '+ Animal',
-                                isActive: _selectedIndex == 1,
+                                isActive: selectedIndex == 1,
                                 onTap: () => _onItemTapped(1),
                               ),
                               _NavItem(
                                 svgPath: 'assets/icons/agenda.svg',
                                 label: 'Agenda',
-                                isActive: _selectedIndex == 2,
+                                isActive: selectedIndex == 2,
                                 onTap: () => _onItemTapped(2),
                               ),
                             ],
@@ -84,19 +120,19 @@ class _NavigationMenuState extends State<NavigationMenu> {
                   _NavItem(
                     svgPath: 'assets/icons/animales.svg',
                     label: 'Mis animales',
-                    isActive: _selectedIndex == 3,
+                    isActive: selectedIndex == 3,
                     onTap: () => _onItemTapped(3),
                   ),
                   _NavItem(
                     svgPath: 'assets/icons/inicio.svg',
                     label: 'Inicio',
-                    isActive: _selectedIndex == 4,
+                    isActive: selectedIndex == 4,
                     onTap: () => _onItemTapped(4),
                   ),
                   _NavItem(
                     svgPath: 'assets/icons/vacunas.svg',
                     label: 'Carné vacunas',
-                    isActive: _selectedIndex == 5,
+                    isActive: selectedIndex == 5,
                     onTap: () => _onItemTapped(5),
                   ),
                 ],
