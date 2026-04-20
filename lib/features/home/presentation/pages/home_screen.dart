@@ -9,7 +9,6 @@ import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
-import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
@@ -70,11 +69,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 return const Center(child: CircularProgressIndicator());
               }
 
-              // Load animals when user is authenticated
+              // Load animals for the authenticated user
               final cubit = context.read<AnimalCubit>();
-              if (cubit.state is AnimalInitial) {
-                cubit.loadAnimals(state.user.id);
-              }
+              cubit.loadAnimals(state.user.id);
 
               return SafeArea(
                 top: false,

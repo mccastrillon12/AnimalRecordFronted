@@ -37,6 +37,7 @@ import 'package:logger/logger.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
 // ── Part files containing handler implementations ────────────────────────
 part '_auth_bloc_login.dart';

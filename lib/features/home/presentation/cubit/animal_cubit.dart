@@ -17,9 +17,16 @@ class AnimalCubit extends Cubit<AnimalState> {
   /// Cached list so we can preserve it during create operations.
   List<AnimalEntity> _animals = [];
 
+  /// The owner ID whose animals are currently loaded.
+  String? _currentOwnerId;
+
   List<AnimalEntity> get animals => _animals;
 
   Future<void> loadAnimals(String ownerId) async {
+    // If animals are already loaded for this same owner, skip the reload.
+    if (_currentOwnerId == ownerId && state is AnimalsLoaded) return;
+
+    _currentOwnerId = ownerId;
     emit(AnimalsLoading());
 
     final result = await getAnimalsByOwnerUseCase(ownerId);
@@ -50,5 +57,12 @@ class AnimalCubit extends Cubit<AnimalState> {
   /// Resets to the loaded state with existing animals.
   void resetToLoaded() {
     emit(AnimalsLoaded(_animals));
+  }
+
+  /// Clears all cached data (call on logout).
+  void reset() {
+    _animals = [];
+    _currentOwnerId = null;
+    emit(AnimalInitial());
   }
 }

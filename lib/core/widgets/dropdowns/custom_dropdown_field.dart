@@ -4,13 +4,16 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 
-class CustomDropdownField<T> extends StatelessWidget {
+class CustomDropdownField<T> extends StatefulWidget {
   final String label;
   final String hint;
   final T? value;
   final List<DropdownMenuItem<T>> items;
   final ValueChanged<T?>? onChanged;
   final String? errorText;
+  final bool enabled;
+  final double? width;
+  final TextStyle? labelStyle;
 
   const CustomDropdownField({
     super.key,
@@ -20,14 +23,161 @@ class CustomDropdownField<T> extends StatelessWidget {
     required this.items,
     this.onChanged,
     this.errorText,
+    this.enabled = true,
+    this.width,
+    this.labelStyle,
   });
 
   @override
+  State<CustomDropdownField<T>> createState() => _CustomDropdownFieldState<T>();
+}
+
+class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+
+  void _toggleDropdown() {
+    if (!widget.enabled) return;
+
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() => _isOpen = true);
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    if (mounted) {
+      setState(() => _isOpen = false);
+    }
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    RenderBox renderBox = context.findRenderObject() as RenderBox;
+    var size = renderBox.size;
+
+    // Boundary logic
+    final mq = MediaQuery.of(context);
+    final position = renderBox.localToGlobal(Offset.zero);
+    final dropdownTop = position.dy + AppSpacing.inputHeight;
+    final bottomBoundary = mq.size.height - mq.padding.bottom - 60.0;
+    final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(80.0, 250.0);
+
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              onTap: _closeDropdown,
+              behavior: HitTestBehavior.translucent,
+              child: Container(color: Colors.transparent),
+            ),
+          ),
+          Positioned(
+            width: size.width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0.0, AppSpacing.inputHeight),
+              child: Material(
+                elevation: 4.0,
+                borderRadius: BorderRadius.circular(4),
+                color: Colors.white,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: AppColors.greyDelineante),
+                    borderRadius: BorderRadius.circular(4),
+                    color: Colors.white,
+                  ),
+                  constraints: BoxConstraints(maxHeight: maxDropdownHeight),
+                  child: ListView.builder(
+                    padding: EdgeInsets.zero,
+                    shrinkWrap: true,
+                    itemCount: widget.items.length + 1,
+                    itemBuilder: (context, index) {
+                      if (index == 0) {
+                        return InkWell(
+                          onTap: () {
+                            if (widget.onChanged != null) {
+                              widget.onChanged!(null);
+                            }
+                            _closeDropdown();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 12,
+                            ),
+                            child: Text(
+                              '-- Seleccionar --',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        );
+                      }
+
+                      final item = widget.items[index - 1];
+                      return InkWell(
+                        onTap: () {
+                          if (widget.onChanged != null) {
+                            widget.onChanged!(item.value);
+                          }
+                          _closeDropdown();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 12,
+                          ),
+                          child: DefaultTextStyle(
+                            style: AppTypography.body4.copyWith(
+                               color: AppColors.greyTextos,
+                            ),
+                            child: item.child,
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    DropdownMenuItem<T>? selectedItem;
+    if (widget.value != null) {
+      try {
+        selectedItem = widget.items.firstWhere((i) => i.value == widget.value);
+      } catch (e) {
+        selectedItem = null;
+      }
+    }
+
+    final hasLabel = widget.label.isNotEmpty;
+    String displayLabel = widget.label.replaceAll(' (Opcional)', '').replaceAll('(Opcional)', '').trim();
+    bool isOptional = widget.label.contains('(Opcional)');
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (label.isNotEmpty)
+        if (hasLabel)
           SizedBox(
             height: 18,
             child: Align(
@@ -36,15 +186,12 @@ class CustomDropdownField<T> extends StatelessWidget {
                 text: TextSpan(
                   children: [
                     TextSpan(
-                      text: label
-                          .replaceAll(' (Opcional)', '')
-                          .replaceAll('(Opcional)', '')
-                          .trim(),
-                      style: AppTypography.body6.copyWith(
-                        color: AppColors.greyNegroV2,
+                      text: displayLabel,
+                      style: (widget.labelStyle ?? AppTypography.body6).copyWith(
+                        color: widget.labelStyle?.color ?? AppColors.greyNegroV2,
                       ),
                     ),
-                    if (label.contains('(Opcional)'))
+                    if (isOptional)
                       TextSpan(
                         text: ' (Opcional)',
                         style: AppTypography.body6.copyWith(
@@ -57,73 +204,64 @@ class CustomDropdownField<T> extends StatelessWidget {
             ),
           ),
 
-        if (label.isNotEmpty)
+        if (hasLabel)
           const SizedBox(height: AppSpacing.inputTopPadding),
 
-        SizedBox(
-          height: AppSpacing.inputHeight,
-          child: DropdownButtonFormField<T>(
-            initialValue: value,
-            items: items,
-            onChanged: onChanged,
-            isExpanded: true,
-            icon: Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: AppColors.greyMedio,
-              size: 24,
-            ),
-            dropdownColor: AppColors.white,
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyNegroV2,
-            ),
-            decoration: InputDecoration(
-              filled: true,
-              fillColor: AppColors.white,
-              isDense: true,
-              contentPadding: const EdgeInsets.symmetric(
-                vertical: 10,
-                horizontal: 12,
-              ),
-              hintText: hint,
-              hintStyle: AppTypography.body4.copyWith(
-                color: AppColors.greyBordes,
-              ),
-              border: OutlineInputBorder(
-                borderRadius: AppBorders.small(),
-                borderSide: const BorderSide(
-                  color: AppColors.greyBordes,
-                  width: 1.0,
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: InkWell(
+            onTap: _toggleDropdown,
+            child: Container(
+              height: AppSpacing.inputHeight,
+              width: widget.width ?? double.infinity,
+              padding: const EdgeInsets.only(left: 12, right: 8),
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: _isOpen
+                      ? AppColors.primaryFrances
+                      : widget.errorText != null
+                          ? AppColors.errorRojo
+                          : AppColors.greyBordes,
                 ),
+                borderRadius: BorderRadius.circular(4),
+                color: widget.enabled ? Colors.white : AppColors.bgBlancoAntiFlash,
               ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: AppBorders.small(),
-                borderSide: const BorderSide(
-                  color: AppColors.greyBordes,
-                  width: 1.0,
-                ),
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: AppBorders.small(),
-                borderSide: const BorderSide(
-                  color: AppColors.greyBordes,
-                  width: 1.0,
-                ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: AppBorders.small(),
-                borderSide: const BorderSide(
-                  color: AppColors.errorRojo,
-                  width: 1.0,
-                ),
+              child: Row(
+                children: [
+                   Expanded(
+                    child: selectedItem == null 
+                        ? Text(
+                            widget.hint,
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyBordes,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ) 
+                        : DefaultTextStyle(
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                            ),
+                            child: selectedItem.child,
+                          ),
+                  ),
+
+                  Icon(
+                    _isOpen
+                        ? Icons.keyboard_arrow_up_rounded
+                        : Icons.keyboard_arrow_down_rounded,
+                    color: AppColors.greyMedio,
+                    size: 24,
+                  ),
+                ],
               ),
             ),
           ),
         ),
 
-        if (errorText != null) ...[
+        if (widget.errorText != null) ...[
           const SizedBox(height: 4),
           Text(
-            errorText!,
+            widget.errorText!,
             style: AppTypography.body5.copyWith(
               color: AppColors.error,
               height: 1.2,

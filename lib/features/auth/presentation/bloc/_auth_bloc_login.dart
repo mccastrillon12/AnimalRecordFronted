@@ -218,6 +218,9 @@ Future<void> _onLogoutRequested(
 ) async {
   emit(AuthLoading());
 
+  // Reset animal data so the next user doesn't see the previous user's animals
+  sl<AnimalCubit>().reset();
+
   // Limpiar sesiones sociales primero para forzar el selector de cuentas en el próximo login y evitar race conditions
   try {
     final googleSignIn = google_sign_in.GoogleSignIn(
