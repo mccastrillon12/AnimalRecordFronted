@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 class AnimalEntity extends Equatable {
   final String id;
   final String name;
+  final String? code;
   final String species;
   final String breed;
   final String sex;
@@ -21,6 +22,7 @@ class AnimalEntity extends Equatable {
   const AnimalEntity({
     required this.id,
     required this.name,
+    this.code,
     required this.species,
     required this.breed,
     required this.sex,
@@ -40,6 +42,7 @@ class AnimalEntity extends Equatable {
   List<Object?> get props => [
         id,
         name,
+        code,
         species,
         breed,
         sex,

@@ -51,8 +51,6 @@ class EditProfileCubit extends Cubit<EditProfileState> {
   }
 
   void phoneChanged(String value) {
-    // ignore: avoid_print
-    print('📱 phoneChanged -> "$value"');
     emit(
       state.copyWith(phone: PhoneInput.dirty(value), isPhoneAttempted: true),
     );
@@ -75,22 +73,14 @@ class EditProfileCubit extends Cubit<EditProfileState> {
   }
 
   void departmentChanged(String value) {
-    // ignore: avoid_print
-    print('🏛️ departmentChanged -> "$value"');
     emit(state.copyWith(departmentId: value, cityId: ''));
   }
 
   void cityChanged(String value) {
-    // ignore: avoid_print
-    print('🏙️ cityChanged -> "$value"');
     emit(state.copyWith(cityId: value));
   }
 
   Map<String, dynamic> buildUpdatePayload(String prefix) {
-    // ignore: avoid_print
-    print(
-      '🔍 payload state -> phone: "${state.phone.value}" | dept: "${state.departmentId}" | city: "${state.cityId}" | authMethod: "${state.originalUser.authMethod}"',
-    );
     String cellPhone = state.phone.value.trim();
     if (cellPhone.isNotEmpty && prefix.isNotEmpty) {
       String numbersOnly = cellPhone.replaceAll(RegExp(r'\D'), '');
@@ -114,9 +104,6 @@ class EditProfileCubit extends Cubit<EditProfileState> {
       'departmentId': state.departmentId,
       if (state.phoneCountryId.isNotEmpty) 'countryId': state.phoneCountryId,
     };
-
-    // ignore: avoid_print
-    print('📦 EditProfilePayload: $updatedData');
 
     return updatedData;
   }

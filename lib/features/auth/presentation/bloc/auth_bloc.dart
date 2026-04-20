@@ -38,6 +38,12 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart' as google_sign_in;
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 
+// ── Part files containing handler implementations ────────────────────────
+part '_auth_bloc_login.dart';
+part '_auth_bloc_registration.dart';
+part '_auth_bloc_security.dart';
+part '_auth_bloc_profile.dart';
+
 class AuthBloc extends Bloc<AuthEvent, AuthState> {
   final RegisterUseCase registerUseCase;
   final LoginUseCase loginUseCase;
@@ -94,1011 +100,98 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     required this.confirmProfilePictureUseCase,
     required this.s3UploadService,
   }) : super(AuthInitial()) {
-    on<FetchUserRequested>(_onFetchUserRequested);
+    // ── Login / Auth ──────────────────────────────────────
+    on<FetchUserRequested>((e, emit) => _onFetchUserRequested(this, e, emit));
+    on<LoginSubmitted>((e, emit) => _onLoginSubmitted(this, e, emit));
+    on<VerifyCodeSubmitted>((e, emit) => _onVerifyCodeSubmitted(this, e, emit));
+    on<SocialAuthChecked>((e, emit) => _onSocialAuthChecked(this, e, emit));
+    on<SocialRegisterSubmitted>((e, emit) => _onSocialRegisterSubmitted(this, e, emit));
+    on<LogoutRequested>((e, emit) => _onLogoutRequested(this, e, emit));
 
-    on<UpdateProfileRequested>(_onUpdateProfileRequested);
+    // ── Registration ──────────────────────────────────────
+    on<SignUpSubmitted>((e, emit) => _onSignUpSubmitted(this, e, emit));
+    on<CheckIdentificationExists>((e, emit) => _onCheckIdentificationExists(this, e, emit));
+    on<CheckAvailabilityRequested>((e, emit) => _onCheckAvailabilityRequested(this, e, emit));
+    on<ResendCodeSubmitted>((e, emit) => _onResendCodeSubmitted(this, e, emit));
 
-    on<ChangePasswordRequested>(_onChangePasswordRequested);
+    // ── Security (PIN / Biometric / Password) ─────────────
+    on<SavePinSubmitted>((e, emit) => _onSavePinSubmitted(this, e, emit));
+    on<VerifyPinSubmitted>((e, emit) => _onVerifyPinSubmitted(this, e, emit));
+    on<ChangePinRequested>((e, emit) => _onChangePinRequested(this, e, emit));
+    on<ForgotPinRequested>((e, emit) => _onForgotPinRequested(this, e, emit));
+    on<ResetPinSubmitted>((e, emit) => _onResetPinSubmitted(this, e, emit));
+    on<UpdateBiometricStatusRequested>((e, emit) => _onUpdateBiometricStatusRequested(this, e, emit));
+    on<SyncBiometricStatusRequested>((e, emit) => _onSyncBiometricStatusRequested(this, e, emit));
+    on<ChangePasswordRequested>((e, emit) => _onChangePasswordRequested(this, e, emit));
+    on<ResetPasswordSubmitted>((e, emit) => _onResetPasswordSubmitted(this, e, emit));
+    on<ValidateResetToken>((e, emit) => _onValidateResetToken(this, e, emit));
+    on<ForgotPasswordRequested>((e, emit) => _onForgotPasswordRequested(this, e, emit));
 
-    on<LogoutRequested>(_onLogoutRequested);
-
-    on<SignUpSubmitted>(_onSignUpSubmitted);
-
-    on<LoginSubmitted>(_onLoginSubmitted);
-
-    on<VerifyCodeSubmitted>(_onVerifyCodeSubmitted);
-
-    on<CheckIdentificationExists>(_onCheckIdentificationExists);
-    
-    on<CheckAvailabilityRequested>(_onCheckAvailabilityRequested);
-
-    on<ResendCodeSubmitted>(_onResendCodeSubmitted);
-
-    on<ResetPasswordSubmitted>(_onResetPasswordSubmitted);
-
-    on<ValidateResetToken>(_onValidateResetToken);
-
-    on<ForgotPasswordRequested>(_onForgotPasswordRequested);
-
-    on<SocialAuthChecked>(_onSocialAuthChecked);
-
-    on<SocialRegisterSubmitted>(_onSocialRegisterSubmitted);
-
-    on<SavePinSubmitted>(_onSavePinSubmitted);
-
-    on<VerifyPinSubmitted>(_onVerifyPinSubmitted);
-
-    on<ChangePinRequested>(_onChangePinRequested);
-
-    on<ForgotPinRequested>(_onForgotPinRequested);
-
-    on<ResetPinSubmitted>(_onResetPinSubmitted);
-
-    on<UpdateBiometricStatusRequested>(_onUpdateBiometricStatusRequested);
-
-    on<SyncBiometricStatusRequested>(_onSyncBiometricStatusRequested);
-
-    on<UpdateProfilePictureRequested>(_onUpdateProfilePicture);
-
-    on<DeleteProfilePictureRequested>(_onDeleteProfilePicture);
+    // ── Profile ───────────────────────────────────────────
+    on<UpdateProfileRequested>((e, emit) => _onUpdateProfileRequested(this, e, emit));
+    on<UpdateProfilePictureRequested>((e, emit) => _onUpdateProfilePicture(this, e, emit));
+    on<DeleteProfilePictureRequested>((e, emit) => _onDeleteProfilePicture(this, e, emit));
   }
+}
 
-  Future<void> _onFetchUserRequested(
-    FetchUserRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final cachedUser = await tokenStorage.getUserData();
-    bool loadedFromCache = false;
+// ── Shared helpers (used by all part files) ──────────────────────────────
 
-    if (cachedUser != null) {
-      try {
-        final userMap = json.decode(cachedUser);
-        final user = UserModel.fromJson(userMap);
-
-        final currentState = state;
-        if (currentState is! AuthSuccess || currentState.user != user) {
-          emit(AuthSuccess(user));
-        }
-        loadedFromCache = true;
-      } catch (e) {}
-    }
-
-    final userId = await tokenStorage.getUserId();
-    if (userId != null) {
-      final result = await getUserProfileUseCase(userId);
-
-      await result.fold(
-        (failure) async {
-          if (state is! AuthSuccess) {
-            emit(AuthError('Session expired or invalid'));
-          }
-        },
-        (user) async {
-          UserEntity finalUser = user;
-          final currentState = state;
-          
-          if (currentState is AuthSuccess) {
-            if (user.securityLastUpdated == null && currentState.user.securityLastUpdated != null) {
-              finalUser = user.copyWith(securityLastUpdated: currentState.user.securityLastUpdated);
-            }
-          }
-
-          await _saveUserToCache(finalUser);
-
-          if (currentState is! AuthSuccess || currentState.user != finalUser) {
-            await _emitAuthSuccessWithBiometrics(finalUser, emit);
-          }
-        },
-      );
-    } else if (!loadedFromCache) {
-      emit(
-        AuthError(
-          '¡Cuenta creada con éxito! inicia sesión y comienza a usar AnimalRecord.',
-        ),
-      );
-    }
-  }
-
-  Future<void> _onUpdateProfileRequested(
-    UpdateProfileRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    UserEntity? currentUser;
-
-    if (currentState is AuthSuccess) {
-      currentUser = currentState.user;
-      emit(
-        AuthSuccess(
-          currentUser,
-          isUpdating: true,
-          isBiometricEnabled: currentState.isBiometricEnabled,
-        ),
-      );
-    } else {
-      emit(AuthLoading());
-    }
-
-    final result = await updateProfileUseCase(
-      id: event.userId,
-      data: event.data,
-    );
-
-    await result.fold(
-      (failure) async {
-        if (currentUser != null && currentState is AuthSuccess) {
-          emit(
-            AuthSuccess(
-              currentUser,
-              isUpdating: false,
-              updateError: failure.message,
-              isBiometricEnabled: currentState.isBiometricEnabled,
-            ),
-          );
-        } else {
-          emit(AuthError(failure.message));
-        }
-      },
-      (user) async {
-        // El backend podría no devolver profilePicture en el endpoint de actualizar perfil.
-        // Si el usuario resultante no tiene profilePicture, pero nosotros sí lo teníamos, lo preservamos.
-        UserEntity finalUser = user;
-        if (user.profilePicture == null &&
-            currentUser != null &&
-            currentUser.profilePicture != null) {
-          finalUser = UserModel(
-            id: user.id,
-            name: user.name,
-            identificationType: user.identificationType,
-            identificationNumber: user.identificationNumber,
-            country: user.country,
-            countryId: user.countryId,
-            departmentId: user.departmentId,
-            city: user.city,
-            cityId: user.cityId,
-            address: user.address,
-            email: user.email,
-            cellPhone: user.cellPhone,
-            professionalCard: user.professionalCard,
-            animalTypes: user.animalTypes,
-            services: user.services,
-            isHomeDelivery: user.isHomeDelivery,
-            roles: user.roles,
-            authMethod: user.authMethod,
-            isVerified: user.isVerified,
-            profilePicture: currentUser.profilePicture,
-          );
-        }
-
-        await _saveUserToCache(finalUser);
-        emit(
-          AuthSuccess(
-            finalUser,
-            isUpdating: false,
-            isBiometricEnabled: currentState is AuthSuccess
-                ? currentState.isBiometricEnabled
-                : false,
-          ),
+Future<void> _saveUserToCacheImpl(AuthBloc bloc, UserEntity user) async {
+  final userModel = user is UserModel
+      ? user
+      : UserModel(
+          id: user.id,
+          name: user.name,
+          identificationType: user.identificationType,
+          identificationNumber: user.identificationNumber,
+          country: user.country,
+          countryId: user.countryId,
+          departmentId: user.departmentId,
+          city: user.city,
+          cityId: user.cityId,
+          address: user.address,
+          email: user.email,
+          cellPhone: user.cellPhone,
+          professionalCard: user.professionalCard,
+          animalTypes: user.animalTypes,
+          services: user.services,
+          isHomeDelivery: user.isHomeDelivery,
+          roles: user.roles,
+          authMethod: user.authMethod,
+          isVerified: user.isVerified,
+          profilePicture: user.profilePicture,
+          securityLastUpdated: user.securityLastUpdated,
         );
-      },
-    );
-  }
+  await bloc.tokenStorage.saveUserData(json.encode(userModel.toJson()));
+}
 
-  Future<void> _onChangePasswordRequested(
-    ChangePasswordRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    UserEntity? currentUser;
+Future<void> _emitAuthSuccessWithBiometricsImpl(
+  AuthBloc bloc,
+  UserEntity user,
+  Emitter<AuthState> emit,
+) async {
+  await _syncBiometricStatusImpl(bloc, user.id, emit);
+  final isEnabled = await bloc.tokenStorage.getBiometricsEnabledForUser(user.id);
+  emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
+}
 
-    if (currentState is AuthSuccess) {
-      currentUser = currentState.user;
-      emit(
-        AuthSuccess(
-          currentUser,
-          isUpdating: true,
-          isBiometricEnabled: currentState.isBiometricEnabled,
-        ),
-      );
-    } else {
-      emit(AuthLoading());
-    }
+Future<void> _syncBiometricStatusImpl(
+  AuthBloc bloc,
+  String userId,
+  Emitter<AuthState> emit,
+) async {
+  try {
+    final result = await bloc.getBiometricStatusUseCase();
 
-    final result = await changePasswordUseCase(
-      event.oldPassword,
-      event.newPassword,
-    );
+    await result.fold((failure) async => null, (isEnabled) async {
+      await bloc.tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
 
-    await result.fold(
-      (failure) async {
-        if (currentUser != null && currentState is AuthSuccess) {
-          emit(
-            AuthSuccess(
-              currentUser,
-              isUpdating: false,
-              updateError: failure.message,
-              isBiometricEnabled: currentState.isBiometricEnabled,
-            ),
-          );
-        } else {
-          emit(AuthError(failure.message));
-        }
-      },
-      (_) async {
-        if (currentUser != null) {
-          final updatedUser = currentUser.copyWith(
-            securityLastUpdated: DateTime.now().toUtc(),
-          );
-          await _saveUserToCache(updatedUser);
-          add(FetchUserRequested());
-
-          emit(
-            PasswordChangeSuccess(
-              updatedUser,
-              isBiometricEnabled: currentState is AuthSuccess
-                  ? currentState.isBiometricEnabled
-                  : false,
-            ),
-          );
-        } else {
-          add(FetchUserRequested());
-          emit(PasswordChangeSuccess(UserModel.empty()));
-        }
-      },
-    );
-  }
-
-  Future<void> _onLogoutRequested(
-    LogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    // Limpiar sesiones sociales primero para forzar el selector de cuentas en el próximo login y evitar race conditions
-    try {
-      final googleSignIn = google_sign_in.GoogleSignIn(
-        serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
-      );
-      await googleSignIn.signOut();
-    } catch (e) {
-      sl<Logger>().w('Error al desconectar GoogleSignIn: $e');
-    }
-
-    try {
-      final microsoftAuth = sl<MicrosoftAuthService>();
-      await microsoftAuth.signOut();
-    } catch (_) {}
-
-    await logoutUseCase();
-
-    emit(AuthInitial());
-  }
-
-  Future<void> _onSignUpSubmitted(
-    SignUpSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await registerUseCase(event.userData);
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (user) async => emit(AuthSuccess(user)),
-    );
-  }
-
-  Future<void> _onLoginSubmitted(
-    LoginSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await loginUseCase(event.credentials);
-
-    await result.fold(
-      (failure) async {
-        if (failure.message.contains('UserNotVerified')) {
-          int? timeRemaining;
-          try {
-            final match = RegExp(
-              r'UserNotVerified:(\d+)',
-            ).firstMatch(failure.message);
-            if (match != null) {
-              timeRemaining = int.tryParse(match.group(1)!);
-            }
-          } catch (_) {}
-          emit(AuthUserNotVerified(timeRemaining: timeRemaining));
-        } else {
-          emit(AuthError(failure.message));
-        }
-      },
-      (user) async {
-        await _saveUserToCache(user);
-        await _emitAuthSuccessWithBiometrics(user, emit);
-      },
-    );
-  }
-
-  Future<void> _onVerifyCodeSubmitted(
-    VerifyCodeSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await verifyCodeUseCase(event.params);
-
-    await result.fold((failure) async => emit(AuthError(failure.message)), (
-      user,
-    ) async {
-      await _saveUserToCache(user);
-      await _emitAuthSuccessWithBiometrics(user, emit);
-    });
-  }
-
-  Future<void> _onCheckIdentificationExists(
-    CheckIdentificationExists event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await checkIdentificationExistsUseCase(
-      event.identificationNumber,
-    );
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (exists) async => emit(IdentificationCheckResult(exists)),
-    );
-  }
-
-  Future<void> _onCheckAvailabilityRequested(
-    CheckAvailabilityRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await checkAvailabilityUseCase(event.dataToCheck);
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (availabilityStatus) async => emit(AvailabilityCheckResult(availabilityStatus)),
-    );
-  }
-
-  Future<void> _onResendCodeSubmitted(
-    ResendCodeSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    final result = await resendCodeUseCase(event.identifier);
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async => emit(ResendCodeSuccess()),
-    );
-  }
-
-  Future<void> _onSocialAuthChecked(
-    SocialAuthChecked event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await checkSocialAuthUseCase(
-      provider: event.provider,
-      token: event.token,
-    );
-
-    await result.fold((failure) async => emit(AuthError(failure.message)), (
-      response,
-    ) async {
-      if (response['status'] == 'NEED_REGISTER') {
-        // Inyectar nombres si fueron proveídos por el proveedor social (ej. Apple)
-        // pero el backend no los tiene (porque no los enviamos en el check)
-        if (event.firstName != null || event.lastName != null) {
-          final profile = (response['profile'] as Map<String, dynamic>?) ?? {};
-          profile['firstName'] = event.firstName ?? profile['firstName'];
-          profile['lastName'] = event.lastName ?? profile['lastName'];
-
-          // Crear campo 'name' combinado para compatibilidad con la UI
-          final combinedName =
-              '${profile['firstName'] ?? ''} ${profile['lastName'] ?? ''}'
-                  .trim();
-          if (combinedName.isNotEmpty) {
-            profile['name'] = combinedName;
-          }
-
-          // Asegurar que el mapa de respuesta tenga el perfil actualizado
-          final newResponse = Map<String, dynamic>.from(response);
-          newResponse['profile'] = profile;
-
-          emit(SocialAuthNeedRegister(newResponse, provider: event.provider));
-          return;
-        }
-
-        emit(SocialAuthNeedRegister(response, provider: event.provider));
-      } else if (response['status'] == 'SUCCESS') {
-        final user = response['user'];
-        await _saveUserToCache(user);
-        await _emitAuthSuccessWithBiometrics(user, emit);
-      } else {
-        emit(AuthError('Respuesta inesperada del servidor'));
+      final currentState = bloc.state;
+      if (currentState is AuthSuccess) {
+        emit(currentState.copyWith(isBiometricEnabled: isEnabled));
       }
     });
-  }
-
-  Future<void> _onSocialRegisterSubmitted(
-    SocialRegisterSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await registerSocialUseCase(event.data);
-
-    await result.fold((failure) async => emit(AuthError(failure.message)), (
-      user,
-    ) async {
-      // Si tenemos un nombre para actualizar (caso Apple), lo hacemos silenciosamente
-      if (event.nameToUpdate != null && event.nameToUpdate!.isNotEmpty) {
-        try {
-          final updateResult = await updateProfileUseCase(
-            id: user.id,
-            data: {'name': event.nameToUpdate},
-          );
-
-          // Si la actualización tuvo éxito, usamos el nuevo usuario con el nombre corregido
-          await updateResult.fold(
-            (f) async {
-              // Si falla el update, procedemos con el usuario original pero logueamos el error
-              sl<Logger>().e(
-                'Error actualizando nombre post-registro social: ${f.message}',
-              );
-              await _saveUserToCache(user);
-              await _emitAuthSuccessWithBiometrics(user, emit);
-            },
-            (updatedUser) async {
-              await _saveUserToCache(updatedUser);
-              await _emitAuthSuccessWithBiometrics(updatedUser, emit);
-            },
-          );
-          return;
-        } catch (e) {
-          sl<Logger>().e('Error inesperado actualizando nombre: $e');
-        }
-      }
-
-      await _saveUserToCache(user);
-      await _emitAuthSuccessWithBiometrics(user, emit);
-    });
-  }
-
-  Future<void> _onSavePinSubmitted(
-    SavePinSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    UserEntity? currentUser;
-
-    if (currentState is AuthSuccess) {
-      currentUser = currentState.user;
-    }
-
-    emit(AuthLoading());
-
-    final result = await savePinUseCase(event.pin);
-
-    await result.fold(
-      (failure) async {
-        emit(AuthError(failure.message));
-      },
-      (_) async {
-        if (currentUser != null && currentState is AuthSuccess) {
-          final updatedUser = currentUser.copyWith(
-            securityLastUpdated: DateTime.now().toUtc(),
-          );
-          await _saveUserToCache(updatedUser);
-          add(FetchUserRequested());
-
-          emit(
-            AuthSuccess(
-              updatedUser,
-              pinSaveSuccess: true,
-              isBiometricEnabled: currentState.isBiometricEnabled,
-            ),
-          );
-        } else {
-          add(FetchUserRequested());
-        }
-      },
-    );
-  }
-
-  Future<void> _onVerifyPinSubmitted(
-    VerifyPinSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await verifyPinUseCase(event.pin);
-
-    await result.fold(
-      (failure) async {
-        emit(AuthError(failure.message));
-      },
-      (_) async {
-        final userId = await tokenStorage.getUserId();
-        if (userId != null) {
-          final userResult = await getUserProfileUseCase(userId);
-          await userResult.fold(
-            (failure) async {
-              add(FetchUserRequested());
-            },
-            (user) async {
-              await _saveUserToCache(user);
-              final isEnabled = await tokenStorage.getBiometricsEnabledForUser(
-                user.id,
-              );
-              emit(
-                AuthSuccess(
-                  user,
-                  pinVerifiedSuccess: true,
-                  isBiometricEnabled: isEnabled,
-                ),
-              );
-            },
-          );
-        } else {
-          add(FetchUserRequested());
-        }
-      },
-    );
-  }
-
-  Future<void> _onChangePinRequested(
-    ChangePinRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is! AuthSuccess) {
-      emit(AuthError('Debe estar autenticado para cambiar el PIN'));
-      return;
-    }
-
-    emit(
-      AuthSuccess(
-        currentState.user,
-        isUpdating: true,
-        isBiometricEnabled: currentState.isBiometricEnabled,
-      ),
-    );
-
-    final result = await changePinUseCase(event.oldPin, event.newPin);
-
-    await result.fold(
-      (failure) async {
-        emit(
-          AuthSuccess(
-            currentState.user,
-            isUpdating: false,
-            updateError: failure.message,
-            isBiometricEnabled: currentState.isBiometricEnabled,
-          ),
-        );
-      },
-      (_) async {
-        final updatedUser = currentState.user.copyWith(
-          securityLastUpdated: DateTime.now().toUtc(),
-        );
-        await _saveUserToCache(updatedUser);
-        add(FetchUserRequested());
-
-        emit(
-          AuthSuccess(
-            updatedUser,
-            isUpdating: false,
-            pinChangeSuccess: true,
-            isBiometricEnabled: currentState.isBiometricEnabled,
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _onForgotPinRequested(
-    ForgotPinRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await forgotPinUseCase(event.identifier);
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async => emit(ForgotPinSuccess()),
-    );
-  }
-
-  Future<void> _onResetPinSubmitted(
-    ResetPinSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await resetPinUseCase(
-      event.identifier,
-      event.token,
-      event.newPin,
-    );
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async => emit(ResetPinSuccess()),
-    );
-  }
-
-  Future<void> _onUpdateBiometricStatusRequested(
-    UpdateBiometricStatusRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final result = await updateBiometricStatusUseCase(event.enabled);
-
-    await result.fold((failure) async => null, (_) async {
-      final userId = await tokenStorage.getUserId();
-      if (userId != null) {
-        await tokenStorage.saveBiometricsEnabledForUser(userId, event.enabled);
-
-        final currentState = state;
-        if (currentState is AuthSuccess) {
-          emit(
-            currentState.copyWith(
-              isBiometricEnabled: event.enabled,
-              biometricUpdateSuccess: true,
-            ),
-          );
-
-          emit(
-            currentState.copyWith(
-              isBiometricEnabled: event.enabled,
-              biometricUpdateSuccess: false,
-            ),
-          );
-        }
-      }
-    });
-  }
-
-  Future<void> _onSyncBiometricStatusRequested(
-    SyncBiometricStatusRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final userId = await tokenStorage.getUserId();
-    if (userId != null) {
-      await _syncBiometricStatus(userId, emit);
-    }
-  }
-
-  Future<void> _onResetPasswordSubmitted(
-    ResetPasswordSubmitted event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await resetPasswordUseCase(
-      event.identifier,
-      event.token,
-      event.newPassword,
-    );
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async => emit(ResetPasswordSuccess()),
-    );
-  }
-
-  Future<void> _onValidateResetToken(
-    ValidateResetToken event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await validatePasswordTokenUseCase(
-      event.identifier,
-      event.token,
-    );
-
-    await result.fold(
-      (failure) async {
-        if (failure.message.toLowerCase().contains('invalid') ||
-            failure.message.toLowerCase().contains('expired') ||
-            failure.message.toLowerCase().contains('inválido') ||
-            failure.message.toLowerCase().contains('expirado')) {
-          emit(ResetTokenInvalid());
-        } else {
-          emit(ResetTokenInvalid());
-        }
-      },
-      (isValid) async {
-        if (isValid) {
-          emit(ResetTokenValid());
-        } else {
-          emit(ResetTokenInvalid());
-        }
-      },
-    );
-  }
-
-  Future<void> _onForgotPasswordRequested(
-    ForgotPasswordRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    emit(AuthLoading());
-
-    final result = await forgotPasswordUseCase(event.identifier);
-
-    await result.fold(
-      (failure) async => emit(AuthError(failure.message)),
-      (_) async => emit(ForgotPasswordSuccess()),
-    );
-  }
-
-  Future<void> _onUpdateProfilePicture(
-    UpdateProfilePictureRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is! AuthSuccess) return;
-
-    emit(
-      currentState.copyWith(
-        isUploadingPicture: true,
-        profilePictureError: null,
-      ),
-    );
-
-    try {
-      // Paso 1: Comprimir imagen en el celular (sin gastar datos aún)
-      final compressedBytes = await FlutterImageCompress.compressWithFile(
-        event.imagePath,
-        minWidth: 800,
-        minHeight: 800,
-        quality: 80,
-        format: CompressFormat.jpeg,
-      );
-
-      if (compressedBytes == null) {
-        emit(
-          currentState.copyWith(
-            isUploadingPicture: false,
-            profilePictureError: 'No se pudo comprimir la imagen',
-          ),
-        );
-        return;
-      }
-
-      const mimeType = 'image/jpeg';
-      final fileSize = compressedBytes.length;
-
-      // Paso 2: Obtener URL pre-firmada del backend
-      final urlResult = await getProfilePictureUploadUrlUseCase(
-        mimeType: mimeType,
-        fileSize: fileSize,
-      );
-
-      await urlResult.fold(
-        (failure) async {
-          emit(
-            currentState.copyWith(
-              isUploadingPicture: false,
-              profilePictureError: failure.message,
-            ),
-          );
-        },
-        (urlData) async {
-          final uploadUrl = urlData['uploadUrl'] as String?;
-          final finalUrl = urlData['finalUrl'] as String?;
-
-          if (uploadUrl == null || finalUrl == null) {
-            emit(
-              currentState.copyWith(
-                isUploadingPicture: false,
-                profilePictureError: 'Respuesta inválida del servidor',
-              ),
-            );
-            return;
-          }
-
-          // Paso 3: Subir directo a S3 (sin JWT, sin pasar por Lightsail)
-          await s3UploadService.uploadFileToS3(
-            presignedUrl: uploadUrl,
-            bytes: compressedBytes,
-            mimeType: mimeType,
-          );
-
-          // Paso 4: Confirmar al backend con la URL pública final
-          final confirmResult = await confirmProfilePictureUseCase(finalUrl);
-
-          await confirmResult.fold(
-            (failure) async {
-              emit(
-                currentState.copyWith(
-                  isUploadingPicture: false,
-                  profilePictureError: failure.message,
-                ),
-              );
-            },
-            (_) async {
-              // El backend a veces devuelve una respuesta parcial en el PATCH.
-              // Para no perder los datos del usuario, clonamos el usuario actual
-              // y le inyectamos la nueva URL de la foto:
-              final oldUser = currentState.user;
-              final accurateUser = UserModel(
-                id: oldUser.id,
-                name: oldUser.name,
-                identificationType: oldUser.identificationType,
-                identificationNumber: oldUser.identificationNumber,
-                country: oldUser.country,
-                countryId: oldUser.countryId,
-                departmentId: oldUser.departmentId,
-                city: oldUser.city,
-                cityId: oldUser.cityId,
-                address: oldUser.address,
-                email: oldUser.email,
-                cellPhone: oldUser.cellPhone,
-                professionalCard: oldUser.professionalCard,
-                animalTypes: oldUser.animalTypes,
-                services: oldUser.services,
-                isHomeDelivery: oldUser.isHomeDelivery,
-                roles: oldUser.roles,
-                authMethod: oldUser.authMethod,
-                isVerified: oldUser.isVerified,
-                profilePicture: finalUrl,
-              );
-
-              await _saveUserToCache(accurateUser);
-              emit(
-                AuthSuccess(
-                  accurateUser,
-                  isUploadingPicture: false,
-                  isBiometricEnabled: currentState.isBiometricEnabled,
-                ),
-              );
-            },
-          );
-        },
-      );
-    } catch (e) {
-      emit(
-        currentState.copyWith(
-          isUploadingPicture: false,
-          profilePictureError: 'Error inesperado: ${e.toString()}',
-        ),
-      );
-    }
-  }
-
-  Future<void> _onDeleteProfilePicture(
-    DeleteProfilePictureRequested event,
-    Emitter<AuthState> emit,
-  ) async {
-    final currentState = state;
-    if (currentState is! AuthSuccess) return;
-
-    emit(
-      currentState.copyWith(
-        isUploadingPicture: true,
-        profilePictureError: null,
-      ),
-    );
-
-    try {
-      // Enviamos cadena vacía para "limpiar" la foto en el backend
-      final result = await confirmProfilePictureUseCase('');
-
-      await result.fold(
-        (failure) async {
-          emit(
-            currentState.copyWith(
-              isUploadingPicture: false,
-              profilePictureError: failure.message,
-            ),
-          );
-        },
-        (_) async {
-          final oldUser = currentState.user;
-          final updatedUser = UserModel(
-            id: oldUser.id,
-            name: oldUser.name,
-            identificationType: oldUser.identificationType,
-            identificationNumber: oldUser.identificationNumber,
-            country: oldUser.country,
-            countryId: oldUser.countryId,
-            departmentId: oldUser.departmentId,
-            city: oldUser.city,
-            cityId: oldUser.cityId,
-            address: oldUser.address,
-            email: oldUser.email,
-            cellPhone: oldUser.cellPhone,
-            professionalCard: oldUser.professionalCard,
-            animalTypes: oldUser.animalTypes,
-            services: oldUser.services,
-            isHomeDelivery: oldUser.isHomeDelivery,
-            roles: oldUser.roles,
-            authMethod: oldUser.authMethod,
-            isVerified: oldUser.isVerified,
-            profilePicture: '', // Limpiamos la URL
-          );
-
-          await _saveUserToCache(updatedUser);
-          emit(
-            AuthSuccess(
-              updatedUser,
-              isUploadingPicture: false,
-              isBiometricEnabled: currentState.isBiometricEnabled,
-            ),
-          );
-        },
-      );
-    } catch (e) {
-      emit(
-        currentState.copyWith(
-          isUploadingPicture: false,
-          profilePictureError: 'Error inesperado: ${e.toString()}',
-        ),
-      );
-    }
-  }
-
-  Future<void> _saveUserToCache(UserEntity user) async {
-    final userModel = UserModel(
-      id: user.id,
-      name: user.name,
-      identificationType: user.identificationType,
-      identificationNumber: user.identificationNumber,
-      country: user.country,
-      countryId: user.countryId,
-      departmentId: user.departmentId,
-      city: user.city,
-      cityId: user.cityId,
-      address: user.address,
-      email: user.email,
-      cellPhone: user.cellPhone,
-      professionalCard: user.professionalCard,
-      animalTypes: user.animalTypes,
-      services: user.services,
-      isHomeDelivery: user.isHomeDelivery,
-      roles: user.roles,
-      authMethod: user.authMethod,
-      isVerified: user.isVerified,
-      profilePicture: user.profilePicture,
-      securityLastUpdated: user.securityLastUpdated,
-    );
-    await tokenStorage.saveUserData(json.encode(userModel.toJson()));
-  }
-
-  Future<void> _emitAuthSuccessWithBiometrics(
-    UserEntity user,
-    Emitter<AuthState> emit,
-  ) async {
-    await _syncBiometricStatus(user.id, emit);
-    final isEnabled = await tokenStorage.getBiometricsEnabledForUser(user.id);
-    emit(AuthSuccess(user, isBiometricEnabled: isEnabled));
-  }
-
-  Future<void> _syncBiometricStatus(
-    String userId,
-    Emitter<AuthState> emit,
-  ) async {
-    try {
-      final result = await getBiometricStatusUseCase();
-
-      await result.fold((failure) async => null, (isEnabled) async {
-        await tokenStorage.saveBiometricsEnabledForUser(userId, isEnabled);
-
-        final currentState = state;
-        if (currentState is AuthSuccess) {
-          emit(currentState.copyWith(isBiometricEnabled: isEnabled));
-        }
-      });
-    } catch (e) {}
+  } catch (e) {
+    // Non-critical – biometric sync failure should not block UX
   }
 }

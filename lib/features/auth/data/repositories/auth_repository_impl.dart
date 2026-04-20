@@ -10,6 +10,10 @@ import '../../domain/repositories/auth_repository.dart';
 import '../../domain/entities/user_entity.dart';
 import '../datasources/auth_remote_datasource.dart';
 import '../models/user_model.dart';
+import 'package:logger/logger.dart';
+import '../../../../core/utils/error_helpers.dart';
+
+final _repoLogger = Logger();
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource remoteDataSource;
@@ -48,8 +52,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final result = await remoteDataSource.signUp(userModel);
       return Right(result);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -65,17 +68,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (userId.isEmpty || userId == 'null') {
         final accessToken = response['accessToken'] as String?;
         if (accessToken != null) {
-          try {
-            Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
-
-            if (decodedToken.containsKey('id')) {
-              userId = decodedToken['id'].toString();
-            } else if (decodedToken.containsKey('sub')) {
-              userId = decodedToken['sub'].toString();
-            } else if (decodedToken.containsKey('userId')) {
-              userId = decodedToken['userId'].toString();
-            }
-          } catch (e) {}
+          userId = _extractUserIdFromToken(accessToken);
         }
       }
 
@@ -102,8 +95,7 @@ class AuthRepositoryImpl implements AuthRepository {
     } on UserNotVerifiedException catch (e) {
       return Left(ServerFailure('UserNotVerified:${e.timeRemaining ?? ""}'));
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -146,17 +138,7 @@ class AuthRepositoryImpl implements AuthRepository {
       if (userId.isEmpty || userId == 'null') {
         final accessToken = response['accessToken'] as String?;
         if (accessToken != null) {
-          try {
-            Map<String, dynamic> decodedToken = JwtDecoder.decode(accessToken);
-
-            if (decodedToken.containsKey('id')) {
-              userId = decodedToken['id'].toString();
-            } else if (decodedToken.containsKey('sub')) {
-              userId = decodedToken['sub'].toString();
-            } else if (decodedToken.containsKey('userId')) {
-              userId = decodedToken['userId'].toString();
-            }
-          } catch (e) {}
+          userId = _extractUserIdFromToken(accessToken);
         }
       }
 
@@ -345,8 +327,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.verifyPin(pin);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -356,8 +337,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.changePin(oldPin, newPin);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -367,8 +347,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.forgotPin(identifier);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -378,8 +357,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.updateBiometricStatus(enabled);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -389,8 +367,7 @@ class AuthRepositoryImpl implements AuthRepository {
       final data = await remoteDataSource.getBiometricStatus();
       return Right(data['isBiometricEnabled'] ?? false);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -400,8 +377,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.forgotPassword(identifier);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -415,8 +391,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.resetPassword(identifier, token, newPassword);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -430,8 +405,7 @@ class AuthRepositoryImpl implements AuthRepository {
       await remoteDataSource.resetPin(identifier, token, newPin);
       return const Right(null);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -447,8 +421,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return Right(isValid);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -464,8 +437,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return Right(isValid);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -481,8 +453,7 @@ class AuthRepositoryImpl implements AuthRepository {
       );
       return Right(data);
     } catch (e) {
-      String errorMsg = e.toString().replaceFirst('Exception: ', '');
-      return Left(ServerFailure(errorMsg));
+      return Left(mapExceptionToFailure(e));
     }
   }
 
@@ -496,6 +467,21 @@ class AuthRepositoryImpl implements AuthRepository {
     } catch (e) {
       String errorMsg = e.toString().replaceFirst('Exception: ', '');
       return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  /// Extracts the user ID from a JWT access token by checking
+  /// common claim keys: 'id', 'sub', 'userId'.
+  static String _extractUserIdFromToken(String accessToken) {
+    try {
+      final decoded = JwtDecoder.decode(accessToken);
+      return decoded['id']?.toString() ??
+          decoded['sub']?.toString() ??
+          decoded['userId']?.toString() ??
+          '';
+    } catch (e) {
+      _repoLogger.w('Failed to decode JWT for userId extraction', error: e);
+      return '';
     }
   }
 }

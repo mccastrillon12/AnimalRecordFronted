@@ -47,8 +47,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> signUp(UserModel user) async {
     final body = user.toJson();
-    // ignore: avoid_print
-    print('📤 POST /users body: $body');
     final response = await apiClient.post('/users', data: body);
     return UserModel.fromJson(response.data);
   }
@@ -157,8 +155,6 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
   @override
   Future<UserModel> updateProfile(String id, Map<String, dynamic> data) async {
-    // ignore: avoid_print
-    print('📤 PUT /users/$id data: $data');
     final response = await apiClient.put('/users/$id', data: data);
     if (response.data is Map<String, dynamic>) {
       return UserModel.fromJson(response.data);

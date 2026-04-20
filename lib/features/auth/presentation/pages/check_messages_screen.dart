@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -50,7 +51,7 @@ class CheckMessagesScreen extends StatelessWidget {
                 onTap: () {
                   Navigator.pushNamed(
                     context,
-                    isPinFlow ? '/forgot-pin' : '/forgot-password',
+                    isPinFlow ? AppRoutes.forgotPin : AppRoutes.forgotPassword,
                   );
                 },
                 child: Text(

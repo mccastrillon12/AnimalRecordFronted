@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, TargetPlatform;
 import 'package:logger/logger.dart';
@@ -36,6 +37,10 @@ import 'package:animal_record/core/utils/validation_utils.dart';
 
 class LoginScreen extends StatefulWidget {
   final bool hideBiometrics;
+
+  // Screen-specific layout constants (moved from global AppSpacing)
+  static const double _socialButtonSize = 50.0;
+  static const double _socialButtonGap = 32.0;
 
   const LoginScreen({super.key, this.hideBiometrics = false});
 
@@ -295,7 +300,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     context.read<AuthBloc>().add(
                       UpdateBiometricStatusRequested(true),
                     );
-                    Navigator.pushReplacementNamed(context, '/home');
+                    Navigator.pushReplacementNamed(context, AppRoutes.home);
                   }
                 } else {
                   if (mounted) {
@@ -318,7 +323,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
               );
             } else {
-              Navigator.pushReplacementNamed(context, '/home');
+              Navigator.pushReplacementNamed(context, AppRoutes.home);
             }
           }
         } else if (state is AuthError &&
@@ -455,14 +460,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         label: 'Google',
                         onTap: _handleGoogleSignIn,
                       ),
-                      const SizedBox(width: AppSpacing.socialButtonGap),
+                      const SizedBox(width: LoginScreen._socialButtonGap),
                       _SocialButton(
                         iconPath: 'assets/icons/Microsoft_icon.svg',
                         label: 'Microsoft',
                         onTap: _handleMicrosoftSignIn,
                       ),
                       if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-                        const SizedBox(width: AppSpacing.socialButtonGap),
+                        const SizedBox(width: LoginScreen._socialButtonGap),
                         _SocialButton(
                           iconPath: 'assets/icons/Apple_icon.svg',
                           label: 'Apple',
@@ -558,8 +563,8 @@ class _BiometricButton extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              width: AppSpacing.socialButtonSize,
-              height: AppSpacing.socialButtonSize,
+              width: LoginScreen._socialButtonSize,
+              height: LoginScreen._socialButtonSize,
               padding: const EdgeInsets.all(AppSpacing.s),
               decoration: BoxDecoration(
                 color: AppColors.greyIconosBackground,
@@ -606,8 +611,8 @@ class _SocialButton extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: AppSpacing.socialButtonSize,
-            height: AppSpacing.socialButtonSize,
+            width: LoginScreen._socialButtonSize,
+            height: LoginScreen._socialButtonSize,
             padding: const EdgeInsets.all(AppSpacing.s),
             decoration: BoxDecoration(
               color: AppColors.greyIconosBackground,

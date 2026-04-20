@@ -3,6 +3,7 @@ import 'package:animal_record/features/auth/domain/usecases/validate_password_to
 import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 
 class DeepLinkService {
   static final DeepLinkService _instance = DeepLinkService._internal();
@@ -94,9 +95,9 @@ class DeepLinkService {
         ? uri.path.substring(0, uri.path.length - 1)
         : uri.path;
 
-    final isPasswordReset = path == '/reset-password';
+    final isPasswordReset = path == AppRoutes.resetPassword;
     final isPinReset =
-        path == '/reset-pin' || uri.queryParameters['type'] == 'pin';
+        path == AppRoutes.resetPin || uri.queryParameters['type'] == 'pin';
 
     if (isPasswordReset || isPinReset) {
       final token = uri.queryParameters['token'];
@@ -130,20 +131,20 @@ class DeepLinkService {
           if (!isValid) {
             debugPrint('[DeepLink] Token is invalid or expired. Redirecting to expired screen.');
             navigatorKey.currentState?.pushNamedAndRemoveUntil(
-              '/link-expired',
-              (route) => route.settings.name == '/login' || route.isFirst,
+              AppRoutes.linkExpired,
+              (route) => route.settings.name == AppRoutes.login || route.isFirst,
               arguments: {'isPinFlow': isPinReset},
             );
             return true;
           }
         }
 
-        final routeName = isPinReset ? '/reset-pin' : '/reset-password';
+        final routeName = isPinReset ? AppRoutes.resetPin : AppRoutes.resetPassword;
         debugPrint('[DeepLink] Token valid. Navigating to $routeName');
 
         navigatorKey.currentState?.pushNamedAndRemoveUntil(
           routeName,
-          (route) => route.settings.name == '/login' || route.isFirst,
+          (route) => route.settings.name == AppRoutes.login || route.isFirst,
           arguments: {'token': token, 'identifier': identifier},
         );
         return true;

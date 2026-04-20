@@ -1,35 +1,43 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
-import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
-import 'package:animal_record/features/home/domain/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 /// Display mode for the animal card.
-enum AnimalCardMode { list, grid }
+enum AnimalCardMode { list, grid, compactList }
 
 /// A reusable card for displaying an animal.
 ///
-/// Supports two layouts:
+/// Supports three layouts:
 /// - [AnimalCardMode.list]: Horizontal row with photo, name, age, code, sex tag.
 /// - [AnimalCardMode.grid]: Vertical column with photo, name, code.
+/// - [AnimalCardMode.compactList]: Flat row with photo, name, code, context menu.
 class AnimalCard extends StatelessWidget {
   final AnimalModel animal;
   final AnimalCardMode mode;
   final VoidCallback? onTap;
+  final VoidCallback? onMenuTap;
 
   const AnimalCard({
     super.key,
     required this.animal,
     this.mode = AnimalCardMode.list,
     this.onTap,
+    this.onMenuTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: mode == AnimalCardMode.list ? _buildListCard() : _buildGridCard(),
+      child: switch (mode) {
+        AnimalCardMode.list => _buildListCard(),
+        AnimalCardMode.grid => _buildGridCard(),
+        AnimalCardMode.compactList => _buildCompactListCard(),
+      },
     );
   }
 
@@ -39,18 +47,20 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildListCard() {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.s),
+      height: 99,
+      padding: const EdgeInsets.all(15),
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: AppBorders.large(),
         border: Border.all(color: AppColors.greyDelineante, width: 1),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Photo
-          _buildPhoto(size: 60, borderRadius: AppBorders.radiusMedium),
+          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
 
-          const SizedBox(width: AppSpacing.s),
+          const SizedBox(width: 16),
 
           // Info column
           Expanded(
@@ -75,15 +85,13 @@ class AnimalCard extends StatelessWidget {
                       const SizedBox(width: 4),
                       Text(
                         animal.ageDisplay,
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.greyTextos,
+                        style: AppTypography.body5.copyWith(
+                          color: AppColors.greyMedio,
                         ),
                       ),
                     ],
                   ],
                 ),
-
-                const SizedBox(height: 2),
 
                 // Code
                 Text(
@@ -94,7 +102,7 @@ class AnimalCard extends StatelessWidget {
                 ),
 
                 if (animal.sexDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 8),
                   // Sex tag
                   _buildSexTag(),
                 ],
@@ -108,15 +116,15 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildSexTag() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: AppColors.bgHielo,
-        borderRadius: BorderRadius.circular(4),
+        color: AppColors.greyDelineante,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         animal.sexDisplay,
-        style: AppTypography.body6.copyWith(
-          color: AppColors.primaryFrances,
+        style: AppTypography.body5.copyWith(
+          color: AppColors.greyTextos,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -129,7 +137,8 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildGridCard() {
     return Container(
-      padding: const EdgeInsets.all(AppSpacing.s),
+      padding: const EdgeInsets.all(16),
+      alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: AppBorders.large(),
@@ -139,28 +148,85 @@ class AnimalCard extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           // Photo
-          _buildPhoto(size: 72, borderRadius: AppBorders.radiusMedium),
+          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
 
           const SizedBox(height: 8),
 
           // Name
           Text(
             animal.name,
-            style: AppTypography.body3.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.greyNegro,
-            ),
+            style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
+            textAlign: TextAlign.center,
           ),
-
-          const SizedBox(height: 2),
 
           // Code
           Text(
             animal.code,
-            style: AppTypography.body6.copyWith(
-              color: AppColors.greyBordes,
+            style: AppTypography.body5.copyWith(color: AppColors.greyBordes),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // COMPACT LIST MODE — flat row for "Mis Animales"
+  // ===========================================================================
+
+  Widget _buildCompactListCard() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: AppColors.greyDelineante, width: 1),
+        ),
+      ),
+      child: Row(
+        children: [
+          // Photo
+          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
+
+          const SizedBox(width: 12),
+
+          // Name + Code
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  animal.name,
+                  style: AppTypography.body3.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.greyNegro,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  animal.code,
+                  style: AppTypography.body6.copyWith(
+                    color: AppColors.greyBordes,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          // Context menu
+          GestureDetector(
+            onTap: onMenuTap,
+            child: SvgPicture.asset(
+              'assets/icons/icon_ContextMenu.svg',
+              width: 24,
+              height: 24,
+              colorFilter: const ColorFilter.mode(
+                AppColors.greyMedio,
+                BlendMode.srcIn,
+              ),
             ),
           ),
         ],
@@ -183,12 +249,13 @@ class AnimalCard extends StatelessWidget {
       child: animal.imageUrl != null
           ? ClipRRect(
               borderRadius: BorderRadius.circular(borderRadius),
-              child: Image.network(
-                animal.imageUrl!,
+              child: CachedNetworkImage(
+                imageUrl: animal.imageUrl!,
                 fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return _buildPlaceholderIcon(size);
-                },
+                width: size,
+                height: size,
+                placeholder: (context, url) => _buildPlaceholderIcon(size),
+                errorWidget: (context, url, error) => _buildPlaceholderIcon(size),
               ),
             )
           : _buildPlaceholderIcon(size),
@@ -197,11 +264,7 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildPlaceholderIcon(double size) {
     return Center(
-      child: Icon(
-        Icons.pets,
-        color: AppColors.greyBordes,
-        size: size * 0.5,
-      ),
+      child: Icon(Icons.pets, color: AppColors.greyBordes, size: size * 0.5),
     );
   }
 }

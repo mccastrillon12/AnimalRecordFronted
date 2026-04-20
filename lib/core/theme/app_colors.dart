@@ -44,26 +44,35 @@ class AppColors {
     ],
   );
 
+  // ── Grey scale (ordered light → dark) ──────────────────────
   static const Color greyBlanco = Color(0xFFFFFFFF);
   static const Color greyDelineante = Color(0xFFE8E9EC);
   static const Color greyBordes = Color(0xFFA8AFBD);
+  /// Medium grey – used for secondary text and icons. 0xFF59667A
   static const Color greyMedio = Color(0xFF59667A);
-  static const Color greyIconos = Color(0xFF59667A);
+  /// Same as [greyMedio]. Prefer [greyMedio] for new code.
+  static const Color greyIconos = greyMedio;
   static const Color greyIconosBackground = Color(0xFFE8E9EC);
+  /// Dark grey – primary text color. 0xFF2E3949
   static const Color greyTextos = Color(0xFF2E3949);
   static const Color greyNegro = Color(0xFF0F1925);
-  static const Color greyNegroV2 = Color(0xFF2E3949);
+  /// Same as [greyTextos]. Prefer [greyTextos] for new code.
+  static const Color greyNegroV2 = greyTextos;
   
   static const Color iosKeyboardGray = Color(0xFFD1D5DF);
   static const Color overlayBlack = Colors.black54;
 
+  // ── Semantic aliases ──────────────────────────────────────
   static const Color background = bgBlancoAntiFlash;
   static const Color error = errorRojo;
   static const Color textPrimary = greyTextos;
-  static const Color textSecondary = greyIconos;
+  static const Color textSecondary = greyMedio;
   static const Color border = greyDelineante;
 
+  /// Alias for [greyBlanco]. Prefer [greyBlanco] for consistency.
   static const Color white = greyBlanco;
+  /// Alias for [greyDelineante]. Prefer [greyDelineante] for consistency.
   static const Color greyClaro = greyDelineante;
+  /// Alias for [secondaryCoral]. Prefer [secondaryCoral] for consistency.
   static const Color primaryOrange = secondaryCoral;
 }

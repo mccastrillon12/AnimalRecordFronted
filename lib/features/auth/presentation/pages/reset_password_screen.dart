@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -56,7 +57,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       Future.microtask(
         () => Navigator.pushReplacementNamed(
           context,
-          '/link-expired',
+          AppRoutes.linkExpired,
           arguments: {'isPinFlow': false},
         ),
       );
@@ -127,11 +128,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           });
         } else if (state is ResetPasswordSuccess) {
           ErrorDisplay.showSuccess(context, 'Contraseña cambiada con éxito.');
-          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (route) => false);
         } else if (state is ResetTokenInvalid) {
           Navigator.pushReplacementNamed(
             context,
-            '/link-expired',
+            AppRoutes.linkExpired,
             arguments: {'isPinFlow': false},
           );
         } else if (state is AuthError) {
@@ -141,7 +142,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               state.message.toLowerCase().contains('expirado')) {
             Navigator.pushReplacementNamed(
               context,
-              '/link-expired',
+              AppRoutes.linkExpired,
               arguments: {'isPinFlow': false},
             );
           } else {
@@ -154,7 +155,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
         showLogo: false,
         title: 'Cambiar contraseña',
         onCancel: () =>
-            Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+            Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (route) => false),
         child: Column(
           children: [
             Expanded(

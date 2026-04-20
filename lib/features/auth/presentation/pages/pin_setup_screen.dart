@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -125,7 +126,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           if (context.mounted) {
             Navigator.pushNamedAndRemoveUntil(
               context,
-              '/home',
+              AppRoutes.home,
               (route) => false,
             );
           }
@@ -189,7 +190,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     );
                     Navigator.pushNamedAndRemoveUntil(
                       context,
-                      '/login',
+                      AppRoutes.login,
                       (route) => false,
                     );
                   }

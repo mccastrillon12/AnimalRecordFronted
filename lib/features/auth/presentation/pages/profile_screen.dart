@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -26,7 +27,7 @@ class ProfileScreen extends StatelessWidget {
         if (state is AuthInitial) {
           Navigator.pushNamedAndRemoveUntil(
             context,
-            '/login',
+            AppRoutes.login,
             (route) => false,
           );
         }
@@ -189,7 +190,7 @@ class ProfileScreen extends StatelessWidget {
                                       icon: 'assets/icons/Edit.svg',
                                       label: 'Editar perfil',
                                       onTap: () {
-                                        Navigator.pushNamed(context, '/edit-profile');
+                                        Navigator.pushNamed(context, AppRoutes.editProfile);
                                       },
                                     ),
                                   ],
@@ -377,7 +378,7 @@ class ProfileScreen extends StatelessWidget {
               icon: 'assets/icons/bold-frame.svg',
               label: 'Mi cuenta',
               onTap: () {
-                Navigator.pushNamed(context, '/my-account');
+                Navigator.pushNamed(context, AppRoutes.myAccount);
               },
             ),
             Divider(color: AppColors.greyClaro, height: 1),

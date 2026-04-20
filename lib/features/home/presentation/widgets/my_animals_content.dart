@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
-import 'package:animal_record/features/home/domain/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
@@ -84,13 +85,20 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         final filtered = _searchQuery.isEmpty
             ? allAnimals
             : allAnimals
-                .where((a) =>
-                    a.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                    a.code.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                    (a.breed?.toLowerCase().contains(
-                            _searchQuery.toLowerCase()) ??
-                        false))
-                .toList();
+                  .where(
+                    (a) =>
+                        a.name.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
+                        ) ||
+                        a.code.toLowerCase().contains(
+                          _searchQuery.toLowerCase(),
+                        ) ||
+                        (a.breed?.toLowerCase().contains(
+                              _searchQuery.toLowerCase(),
+                            ) ??
+                            false),
+                  )
+                  .toList();
 
         // Group by family
         final Map<String, List<AnimalModel>> grouped = {};
@@ -130,14 +138,13 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                           decoration: BoxDecoration(
                             color: AppColors.white,
                             borderRadius: BorderRadius.circular(
-                                AppBorders.radiusMedium),
-                            border:
-                                Border.all(color: AppColors.greyDelineante),
+                              AppBorders.radiusMedium,
+                            ),
+                            border: Border.all(color: AppColors.greyDelineante),
                           ),
                           child: TextField(
                             controller: _searchController,
-                            onChanged: (v) =>
-                                setState(() => _searchQuery = v),
+                            onChanged: (v) => setState(() => _searchQuery = v),
                             style: AppTypography.body4,
                             decoration: InputDecoration(
                               hintText: 'Buscar',
@@ -150,8 +157,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                 size: 20,
                               ),
                               border: InputBorder.none,
-                              contentPadding:
-                                  const EdgeInsets.symmetric(vertical: 10),
+                              contentPadding: const EdgeInsets.symmetric(
+                                vertical: 10,
+                              ),
                             ),
                           ),
                         ),
@@ -161,9 +169,17 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
                       // View toggle
                       _buildIconButton(
-                        icon: _viewMode == AnimalCardMode.grid
-                            ? Icons.grid_view_rounded
-                            : Icons.view_list_rounded,
+                        child: SvgPicture.asset(
+                          _viewMode == AnimalCardMode.list
+                              ? 'assets/icons/vuesax-bold-element-3.svg'
+                              : 'assets/icons/vuesax-bold-fatrows.svg',
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.greyMedio,
+                            BlendMode.srcIn,
+                          ),
+                          width: 24,
+                          height: 24,
+                        ),
                         onTap: _toggleViewMode,
                       ),
 
@@ -171,7 +187,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
                       // Filter button
                       _buildIconButton(
-                        icon: Icons.tune_rounded,
+                        child: const Icon(
+                          Icons.tune_rounded,
+                          color: AppColors.greyMedio,
+                          size: 24,
+                        ),
                         onTap: () {
                           // TODO: Implement filter
                         },
@@ -195,10 +215,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                         )
                       : ListView(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.l),
+                            horizontal: AppSpacing.l,
+                          ),
                           children: grouped.entries
-                              .map((entry) => _buildGroup(
-                                  entry.key, entry.value))
+                              .map(
+                                (entry) => _buildGroup(entry.key, entry.value),
+                              )
                               .toList(),
                         ),
                 ),
@@ -217,8 +239,10 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
     );
   }
 
-  Widget _buildIconButton(
-      {required IconData icon, required VoidCallback onTap}) {
+  Widget _buildIconButton({
+    required Widget child,
+    required VoidCallback onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -229,7 +253,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
           border: Border.all(color: AppColors.greyDelineante),
         ),
-        child: Icon(icon, color: AppColors.greyMedio, size: 20),
+        child: Center(child: child),
       ),
     );
   }
@@ -243,24 +267,32 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         // Group header
         GestureDetector(
           onTap: () => _toggleGroup(family),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                family,
-                style: AppTypography.body2.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.greyNegro,
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.greyDelineante, width: 1),
+              ),
+            ),
+            height: 56,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  family,
+                  style: AppTypography.heading2.copyWith(
+                    color: AppColors.greyNegro,
+                  ),
                 ),
-              ),
-              Icon(
-                isCollapsed
-                    ? Icons.chevron_right_rounded
-                    : Icons.expand_more_rounded,
-                color: AppColors.greyBordes,
-                size: 24,
-              ),
-            ],
+                Icon(
+                  isCollapsed
+                      ? Icons.chevron_right_rounded
+                      : Icons.expand_more_rounded,
+                  color: AppColors.greyBordes,
+                  size: 24,
+                ),
+              ],
+            ),
           ),
         ),
 
@@ -271,30 +303,33 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               : _buildGroupList(animals),
         ],
 
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
       ],
     );
   }
 
   Widget _buildGroupGrid(List<AnimalModel> animals) {
     return SizedBox(
-      height: 152,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: animals.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          return SizedBox(
-            width: 110,
-            child: AnimalCard(
-              animal: animals[index],
-              mode: AnimalCardMode.grid,
-              onTap: () {
-                // TODO: Navigate to animal detail
-              },
-            ),
-          );
-        },
+      height: 131,
+      child: Center(
+        child: ListView.separated(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          itemCount: animals.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            return SizedBox(
+              width: 107,
+              child: AnimalCard(
+                animal: animals[index],
+                mode: AnimalCardMode.grid,
+                onTap: () {
+                  // TODO: Navigate to animal detail
+                },
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -302,96 +337,15 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
   Widget _buildGroupList(List<AnimalModel> animals) {
     return Column(
       children: animals.map((animal) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-                horizontal: 12, vertical: 10),
-            decoration: BoxDecoration(
-              color: AppColors.white,
-              borderRadius: AppBorders.large(),
-              border:
-                  Border.all(color: AppColors.greyDelineante, width: 1),
-            ),
-            child: Row(
-              children: [
-                // Photo
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: AppColors.greyDelineante,
-                    borderRadius: BorderRadius.circular(
-                        AppBorders.radiusMedium),
-                  ),
-                  child: animal.imageUrl != null
-                      ? ClipRRect(
-                          borderRadius: BorderRadius.circular(
-                              AppBorders.radiusMedium),
-                          child: Image.network(
-                            animal.imageUrl!,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Center(
-                              child: Icon(Icons.pets,
-                                  color: AppColors.greyBordes,
-                                  size: 22),
-                            ),
-                          ),
-                        )
-                      : const Center(
-                          child: Icon(Icons.pets,
-                              color: AppColors.greyBordes, size: 22),
-                        ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // Name + code
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        animal.name,
-                        style: AppTypography.body3.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.greyNegro,
-                        ),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        animal.code,
-                        style: AppTypography.body6.copyWith(
-                          color: AppColors.greyBordes,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                // More options
-                GestureDetector(
-                  onTap: () {
-                    // TODO: Show animal options
-                  },
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.bgHielo,
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.more_vert_rounded,
-                      color: AppColors.primaryFrances,
-                      size: 18,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+        return AnimalCard(
+          animal: animal,
+          mode: AnimalCardMode.compactList,
+          onTap: () {
+            // TODO: Navigate to animal detail
+          },
+          onMenuTap: () {
+            // TODO: Show animal options
+          },
         );
       }).toList(),
     );
@@ -425,9 +379,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               const SizedBox(width: 10),
               Text(
                 'Agregar animal',
-                style: AppTypography.body3.copyWith(
-                  color: AppColors.greyNegro,
-                ),
+                style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
               ),
             ],
           ),
@@ -444,9 +396,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               const SizedBox(width: 10),
               Text(
                 'Transferir animales',
-                style: AppTypography.body3.copyWith(
-                  color: AppColors.greyNegro,
-                ),
+                style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
               ),
             ],
           ),

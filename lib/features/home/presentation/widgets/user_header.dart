@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -39,7 +40,7 @@ class UserHeader extends StatelessWidget {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, '/profile'),
+                  onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
                   child: Container(
                     width: 52,
                     height: 52,
@@ -104,7 +105,7 @@ class UserHeader extends StatelessWidget {
                       }
 
                       return GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/profile'),
+                        onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
                         behavior: HitTestBehavior.opaque,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,4 +1,6 @@
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 
 class TokenStorage {
   final FlutterSecureStorage _secureStorage;
@@ -96,19 +98,52 @@ class TokenStorage {
     return value == 'true';
   }
 
+  // ── PIN storage (hashed with SHA-256) ──────────────────────────────────
+
   static const String _userPinKey = 'user_pin';
 
-  Future<void> saveUserPin(String userId, String pin) async {
-    await _secureStorage.write(key: '${_userPinKey}_$userId', value: pin);
+  /// Hashes a plaintext PIN with SHA-256.
+  String _hashPin(String pin) {
+    final bytes = utf8.encode(pin);
+    return sha256.convert(bytes).toString();
   }
 
+  /// Returns true if [value] looks like a SHA-256 hex digest (64 hex chars).
+  bool _isHashed(String value) {
+    return value.length == 64 && RegExp(r'^[0-9a-f]+$').hasMatch(value);
+  }
+
+  /// Saves the PIN as a SHA-256 hash. The plaintext PIN is never stored.
+  Future<void> saveUserPin(String userId, String pin) async {
+    final hashed = _hashPin(pin);
+    await _secureStorage.write(key: '${_userPinKey}_$userId', value: hashed);
+  }
+
+  /// Returns the stored hash (or null). Callers should NOT interpret this value.
   Future<String?> getUserPin(String userId) async {
     return await _secureStorage.read(key: '${_userPinKey}_$userId');
   }
 
+  /// Validates [inputPin] against the stored hash.
+  ///
+  /// Includes automatic migration: if the stored value is a plaintext PIN
+  /// (from before hashing was introduced), it re-hashes and saves it.
   Future<bool> validateUserPin(String userId, String inputPin) async {
-    final storedPin = await getUserPin(userId);
-    return storedPin == inputPin;
+    final stored = await getUserPin(userId);
+    if (stored == null) return false;
+
+    // Migration: if the stored PIN is plaintext (not a 64-char hex hash),
+    // compare directly and then re-save as a hash for future validations.
+    if (!_isHashed(stored)) {
+      if (stored == inputPin) {
+        await saveUserPin(userId, inputPin); // migrates to hash
+        return true;
+      }
+      return false;
+    }
+
+    // Normal path: compare hashes
+    return stored == _hashPin(inputPin);
   }
 
   Future<void> clearAll() async {

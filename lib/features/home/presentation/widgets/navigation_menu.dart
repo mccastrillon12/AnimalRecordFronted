@@ -9,11 +9,7 @@ class NavigationMenu extends StatefulWidget {
   final ValueChanged<String?>? onSectionChanged;
   final String? activeSection;
 
-  const NavigationMenu({
-    super.key,
-    this.onSectionChanged,
-    this.activeSection,
-  });
+  const NavigationMenu({super.key, this.onSectionChanged, this.activeSection});
 
   @override
   State<NavigationMenu> createState() => _NavigationMenuState();
@@ -207,7 +203,7 @@ class _NavItem extends StatelessWidget {
               label,
               style: AppTypography.body6.copyWith(
                 color: textColor,
-                fontSize: 10,
+
                 fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
               ),
               textAlign: TextAlign.center,

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/features/home/domain/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
@@ -60,8 +61,9 @@ class _AnimalsSectionState extends State<AnimalsSection> {
 
         final hasAnimals = animals.isNotEmpty;
         // Max 3 in home preview
-        final previewAnimals =
-            animals.length > 3 ? animals.sublist(0, 3) : animals;
+        final previewAnimals = animals.length > 3
+            ? animals.sublist(0, 3)
+            : animals;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
@@ -86,8 +88,9 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                       child: Text(
                         'Ver todos',
                         style: AppTypography.body3.copyWith(
-                          color:
-                              AppColors.primaryFrances.withValues(alpha: 0.6),
+                          color: AppColors.primaryFrances.withValues(
+                            alpha: 0.6,
+                          ),
                         ),
                       ),
                     ),
@@ -99,16 +102,18 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                 _viewMode == AnimalCardMode.grid
                     ? _buildGridView(previewAnimals)
                     : _buildListView(previewAnimals),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 // "Ver todos" link
-                Center(
+                Align(
+                  alignment: _viewMode == AnimalCardMode.list
+                      ? Alignment.centerRight
+                      : Alignment.center,
                   child: GestureDetector(
                     onTap: widget.onViewAll,
                     child: Text(
                       'Ver todos',
                       style: AppTypography.body3.copyWith(
                         color: AppColors.primaryFrances,
-                        fontWeight: FontWeight.w500,
                       ),
                     ),
                   ),
@@ -128,18 +133,21 @@ class _AnimalsSectionState extends State<AnimalsSection> {
     return GestureDetector(
       onTap: _toggleViewMode,
       child: Container(
-        width: 32,
-        height: 32,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
-          color: AppColors.greyDelineante,
+          color: AppColors.white,
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Icon(
-          _viewMode == AnimalCardMode.list
-              ? Icons.grid_view_rounded
-              : Icons.view_list_rounded,
-          color: AppColors.greyMedio,
-          size: 20,
+        child: Center(
+          child: SvgPicture.asset(
+            _viewMode == AnimalCardMode.list
+                ? 'assets/icons/vuesax-bold-element-3.svg'
+                : 'assets/icons/vuesax-bold-fatrows.svg',
+            colorFilter: ColorFilter.mode(AppColors.greyMedio, BlendMode.srcIn),
+            width: 24,
+            height: 24,
+          ),
         ),
       ),
     );
@@ -147,21 +155,24 @@ class _AnimalsSectionState extends State<AnimalsSection> {
 
   Widget _buildGridView(List<AnimalModel> animals) {
     return SizedBox(
-      height: 152,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: animals.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 12),
-        itemBuilder: (context, index) {
-          return SizedBox(
-            width: 110,
-            child: AnimalCard(
-              animal: animals[index],
-              mode: AnimalCardMode.grid,
-              onTap: () {},
-            ),
-          );
-        },
+      height: 131,
+      child: Center(
+        child: ListView.separated(
+          shrinkWrap: true,
+          scrollDirection: Axis.horizontal,
+          itemCount: animals.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          itemBuilder: (context, index) {
+            return SizedBox(
+              width: 107,
+              child: AnimalCard(
+                animal: animals[index],
+                mode: AnimalCardMode.grid,
+                onTap: () {},
+              ),
+            );
+          },
+        ),
       ),
     );
   }
@@ -169,14 +180,16 @@ class _AnimalsSectionState extends State<AnimalsSection> {
   Widget _buildListView(List<AnimalModel> animals) {
     return Column(
       children: animals
-          .map((animal) => Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: AnimalCard(
-                  animal: animal,
-                  mode: AnimalCardMode.list,
-                  onTap: () {},
-                ),
-              ))
+          .map(
+            (animal) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: AnimalCard(
+                animal: animal,
+                mode: AnimalCardMode.list,
+                onTap: () {},
+              ),
+            ),
+          )
           .toList(),
     );
   }

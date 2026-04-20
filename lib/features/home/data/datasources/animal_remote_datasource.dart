@@ -13,8 +13,6 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
 
   @override
   Future<AnimalDataModel> createAnimal(Map<String, dynamic> data) async {
-    // ignore: avoid_print
-    print('📤 POST /animals body: $data');
     final response = await apiClient.post('/animals', data: data);
     return AnimalDataModel.fromJson(response.data);
   }

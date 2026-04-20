@@ -22,10 +22,11 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 
 /// Opens the AnimalCreationModal as an overlay dialog on the current screen.
 void showAnimalCreationModal(BuildContext context) {
+  final animalCubit = context.read<AnimalCubit>();
   showBaseModalCard(
     context: context,
     builder: (dialogContext) => BlocProvider.value(
-      value: sl<AnimalCubit>(),
+      value: animalCubit,
       child: const AnimalCreationModal(),
     ),
   );

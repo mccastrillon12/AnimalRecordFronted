@@ -124,7 +124,21 @@ app.*.symbols
 .metadata
 
 # Environment files (keep .env.example)
-#.env.development
-#.env.physical
-#.env.production
-#.env
+.env.development
+.env.physical
+.env.production
+.env
+
+# Temporary analysis / refactoring scripts
+analysis_output.txt
+analysis_results.txt
+analyze.txt
+analyze_output.txt
+analyze_result.txt
+final_analysis.txt
+errors.txt
+temp_diff.txt
+temp_encoded.txt
+clean_colors.dart
+refactor_spacing.dart
+remove_comments.py

@@ -8,7 +8,7 @@ class AnimalModel {
   final String family;
   final String? breed;
   final String? sex;
-  final int? ageYears;
+  final String ageDisplay;
   final String? imageUrl;
 
   const AnimalModel({
@@ -18,7 +18,7 @@ class AnimalModel {
     required this.family,
     this.breed,
     this.sex,
-    this.ageYears,
+    this.ageDisplay = '',
     this.imageUrl,
   });
 
@@ -28,31 +28,54 @@ class AnimalModel {
     String familyLabel;
     switch (entity.species.toUpperCase()) {
       case 'CAT':
+      case 'FELINE':
         familyLabel = 'Felino';
         break;
       case 'DOG':
+      case 'CANINE':
         familyLabel = 'Canino';
         break;
       case 'COW':
+      case 'BOVINE':
         familyLabel = 'Bovino';
         break;
       case 'HORSE':
+      case 'EQUINE':
         familyLabel = 'Equino';
         break;
       default:
-        familyLabel = entity.species;
+        if (entity.species.isNotEmpty) {
+          familyLabel = entity.species[0].toUpperCase() + entity.species.substring(1).toLowerCase();
+        } else {
+          familyLabel = entity.species;
+        }
+    }
+
+    String formattedName = entity.name.trim();
+    if (formattedName.isNotEmpty) {
+      formattedName = formattedName[0].toUpperCase() + formattedName.substring(1).toLowerCase();
     }
 
     // Calculate age from birthdate
-    int? ageYears;
+    String calculatedAgeDisplay = '';
     if (entity.birthdate != null && entity.birthdate!.isNotEmpty) {
       try {
         final birthDate = DateTime.parse(entity.birthdate!);
         final now = DateTime.now();
-        ageYears = now.year - birthDate.year;
-        if (now.month < birthDate.month ||
-            (now.month == birthDate.month && now.day < birthDate.day)) {
-          ageYears--;
+        final days = now.difference(birthDate).inDays;
+        
+        if (days < 30) {
+          calculatedAgeDisplay = '$days día${days == 1 ? '' : 's'}';
+        } else if (days < 365) {
+          int months = (days / 30.4167).floor();
+          if (months == 0) months = 1;
+          calculatedAgeDisplay = '$months mes${months == 1 ? '' : 'es'}';
+        } else {
+          int years = now.year - birthDate.year;
+          if (now.month < birthDate.month || (now.month == birthDate.month && now.day < birthDate.day)) {
+            years--;
+          }
+          calculatedAgeDisplay = '$years año${years == 1 ? '' : 's'}';
         }
       } catch (_) {}
     }
@@ -72,20 +95,17 @@ class AnimalModel {
 
     return AnimalModel(
       id: entity.id,
-      name: entity.name,
-      code: 'AR-${entity.id.substring(0, 4).toUpperCase()}',
+      name: formattedName,
+      code: entity.code ?? 'AR-${entity.id.substring(0, 4).toUpperCase()}',
       family: familyLabel,
       breed: entity.breed,
       sex: sexDisplay,
-      ageYears: ageYears,
+      ageDisplay: calculatedAgeDisplay,
       imageUrl: null,
     );
   }
 
-  String get ageDisplay {
-    if (ageYears == null) return '';
-    return '$ageYears año${ageYears == 1 ? '' : 's'}';
-  }
+
 
   String get sexDisplay {
     if (sex == null) return '';

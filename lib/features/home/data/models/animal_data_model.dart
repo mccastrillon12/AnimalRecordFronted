@@ -5,6 +5,7 @@ class AnimalDataModel extends AnimalEntity {
   const AnimalDataModel({
     required super.id,
     required super.name,
+    super.code,
     required super.species,
     required super.breed,
     required super.sex,
@@ -24,11 +25,12 @@ class AnimalDataModel extends AnimalEntity {
     return AnimalDataModel(
       id: json['id'] as String,
       name: json['name'] as String,
+      code: json['code'] as String?,
       species: json['species'] as String,
       breed: json['breed'] as String? ?? '',
       sex: json['sex'] as String,
       reproductiveStatus: json['reproductiveStatus'] as String? ?? '',
-      birthdate: json['birthdate'] as String?,
+      birthdate: (json['birthdate'] ?? json['birthDate']) as String?,
       hasChip: json['hasChip'] as bool? ?? false,
       isAssociationMember: json['isAssociationMember'] as bool? ?? false,
       temperament: (json['temperament'] as List<dynamic>?)
@@ -50,6 +52,7 @@ class AnimalDataModel extends AnimalEntity {
     return {
       'id': id,
       'name': name,
+      if (code != null) 'code': code,
       'species': species,
       'breed': breed,
       'sex': sex,
