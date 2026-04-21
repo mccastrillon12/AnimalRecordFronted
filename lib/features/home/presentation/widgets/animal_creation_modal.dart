@@ -15,18 +15,28 @@ import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/dropdowns/custom_dropdown_field.dart';
-import 'package:animal_record/features/home/domain/models/animal_family.dart';
+import 'package:animal_record/core/widgets/dropdowns/custom_multi_search_dropdown.dart';
+
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/catalogs/domain/entities/species_entity.dart';
+import 'package:animal_record/features/catalogs/domain/entities/breed_entity.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_state.dart';
 
 /// Opens the AnimalCreationModal as an overlay dialog on the current screen.
 void showAnimalCreationModal(BuildContext context) {
   final animalCubit = context.read<AnimalCubit>();
   showBaseModalCard(
     context: context,
-    builder: (dialogContext) => BlocProvider.value(
-      value: animalCubit,
+    builder: (dialogContext) => MultiBlocProvider(
+      providers: [
+        BlocProvider.value(value: animalCubit),
+        BlocProvider.value(
+          value: sl<CatalogsCubit>()..loadSpecies(),
+        ),
+      ],
       child: const AnimalCreationModal(),
     ),
   );
@@ -44,7 +54,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   static const int _totalSteps = 3;
 
   // — Step 1 state —
-  AnimalFamily? _selectedFamily;
+  SpeciesEntity? _selectedSpecies;
 
   // — Step 2 state —
   final _nameController = TextEditingController();
@@ -60,7 +70,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _belongsToAssociation;
 
   // — Step 3 state —
-  String? _selectedTemperament;
+  List<String> _selectedTemperaments = [];
   final _allergyController = TextEditingController();
   final Map<String, bool> _diagnoses = {
     'Ninguno/Desconocido': false,
@@ -94,16 +104,34 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     }
   }
 
-  void _onFamilySelected(AnimalFamily family) {
+  void _onFamilySelected(SpeciesEntity species) {
     setState(() {
-      _selectedFamily = family;
+      _selectedSpecies = species;
+      _selectedBreed = null;
       _currentStep = 2;
     });
+    // Load breeds for the selected species
+    context.read<CatalogsCubit>().loadBreeds(species.id);
   }
 
   // =========================================================================
   // Validation
   // =========================================================================
+
+  String _mapSpeciesToApi(String name) {
+    switch (name.toLowerCase()) {
+      case 'canino':
+        return 'DOG';
+      case 'felino':
+        return 'CAT';
+      case 'bovino':
+        return 'BOVINE';
+      case 'equino':
+        return 'EQUINE';
+      default:
+        return name.toUpperCase();
+    }
+  }
 
   bool get _isStep2Valid {
     return _nameController.text.trim().isNotEmpty &&
@@ -116,7 +144,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   bool get _isStep3Valid {
-    return _selectedTemperament != null &&
+    return _selectedTemperaments.isNotEmpty &&
         _diagnoses.values.any((v) => v);
   }
 
@@ -138,8 +166,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     return CreateAnimalParams(
       id: uuid.v4(),
       name: _nameController.text.trim(),
-      species: _selectedFamily!.apiSpecies, // "BOVINE", "CAT", "DOG", "HORSE"
-      breed: _selectedBreed!, // ej: "mestizo", "labrador"
+      species: _mapSpeciesToApi(_selectedSpecies!.name),
+      breed: _selectedBreed!,
       sex: _selectedSex!, // ej: "macho", "hembra"
       reproductiveStatus: _reproductiveState!, // ej: "esterilizado"
       birthdate: _birthDate != null
@@ -147,7 +175,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           : null,
       hasChip: _hasIdentification == 'Sí',
       isAssociationMember: _belongsToAssociation == 'Sí',
-      temperament: [_selectedTemperament!], // ej: "independiente"
+      temperament: _selectedTemperaments.isEmpty ? ['Desconocido'] : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
       ownerId: ownerId,
       weight: double.tryParse(_weightKgController.text.trim()),
@@ -173,7 +201,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   void _resetForm() {
     setState(() {
       _currentStep = 1;
-      _selectedFamily = null;
+      _selectedSpecies = null;
       _nameController.clear();
       _selectedBreed = null;
       _selectedSex = null;
@@ -185,7 +213,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _colorDescController.clear();
       _hasIdentification = null;
       _belongsToAssociation = null;
-      _selectedTemperament = null;
+      _selectedTemperaments = [];
       _allergyController.clear();
       _diagnoses.updateAll((key, value) => false);
       _otherDiagnosisController.clear();
@@ -265,15 +293,40 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   Widget _buildStepContent() {
     switch (_currentStep) {
       case 1:
-        return _FamilySelectionStep(
-          onFamilySelected: _onFamilySelected,
+        return BlocBuilder<CatalogsCubit, CatalogsState>(
+          builder: (context, catalogState) {
+            final isLoading = catalogState is CatalogsLoading;
+            final speciesRaw = catalogState is SpeciesLoaded
+                ? catalogState.species
+                : catalogState is BreedsLoaded
+                    ? catalogState.species
+                    : catalogState is BreedsLoading
+                        ? catalogState.species
+                        : <SpeciesEntity>[];
+            final species = speciesRaw
+                .where((s) => s.name.toLowerCase() != 'porcino')
+                .toList();
+            return _FamilySelectionStep(
+              species: species,
+              isLoading: isLoading,
+              onFamilySelected: _onFamilySelected,
+            );
+          },
         );
       case 2:
-        return _AnimalInfoStep(
-          selectedFamily: _selectedFamily!,
-          nameController: _nameController,
-          selectedBreed: _selectedBreed,
-          onBreedChanged: (v) => setState(() => _selectedBreed = v),
+        return BlocBuilder<CatalogsCubit, CatalogsState>(
+          builder: (context, catalogState) {
+            final breeds = catalogState is BreedsLoaded
+                ? catalogState.breeds
+                : <BreedEntity>[];
+            final breedsLoading = catalogState is BreedsLoading;
+            return _AnimalInfoStep(
+              selectedSpecies: _selectedSpecies!,
+              nameController: _nameController,
+              selectedBreed: _selectedBreed,
+              onBreedChanged: (v) => setState(() => _selectedBreed = v),
+              breeds: breeds,
+              breedsLoading: breedsLoading,
           selectedSex: _selectedSex,
           onSexChanged: (v) => setState(() => _selectedSex = v),
           reproductiveState: _reproductiveState,
@@ -293,17 +346,19 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           belongsToAssociation: _belongsToAssociation,
           onBelongsToAssociationChanged: (v) =>
               setState(() => _belongsToAssociation = v),
-          isValid: _isStep2Valid,
-          onContinue: _isStep2Valid ? _goNext : null,
+              isValid: _isStep2Valid,
+              onContinue: _isStep2Valid ? _goNext : null,
+            );
+          },
         );
       case 3:
         return BlocBuilder<AnimalCubit, AnimalState>(
           builder: (context, state) {
             final isLoading = state is AnimalCreating;
             return _AdditionalInfoStep(
-              selectedTemperament: _selectedTemperament,
-              onTemperamentChanged: (v) =>
-                  setState(() => _selectedTemperament = v),
+              selectedTemperaments: _selectedTemperaments,
+              onTemperamentsChanged: (v) =>
+                  setState(() => _selectedTemperaments = v),
               allergyController: _allergyController,
               diagnoses: _diagnoses,
               onDiagnosisChanged: (key, value) =>
@@ -331,12 +386,72 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
 // =============================================================================
 
 class _FamilySelectionStep extends StatelessWidget {
-  final ValueChanged<AnimalFamily> onFamilySelected;
+  final List<SpeciesEntity> species;
+  final bool isLoading;
+  final ValueChanged<SpeciesEntity> onFamilySelected;
 
-  const _FamilySelectionStep({required this.onFamilySelected});
+  const _FamilySelectionStep({
+    required this.species,
+    required this.isLoading,
+    required this.onFamilySelected,
+  });
+
+  /// Map species name to an SVG asset path.
+  static String _iconForSpecies(String name) {
+    switch (name.toLowerCase()) {
+      case 'felino':
+        return 'assets/illustrations/cat_icon.svg';
+      case 'canino':
+        return 'assets/illustrations/dog_icon.svg';
+      case 'bovino':
+        return 'assets/illustrations/bovino_icon.svg';
+      case 'equino':
+        return 'assets/illustrations/equino_icon.svg';
+      default:
+        // Fallback for species without a dedicated icon (e.g. Porcino)
+        return 'assets/illustrations/bovino_icon.svg';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (isLoading) {
+      return const Padding(
+        padding: EdgeInsets.all(48),
+        child: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    // Build rows of 2 cards each
+    final rows = <Widget>[];
+    for (int i = 0; i < species.length; i += 2) {
+      rows.add(
+        Row(
+          children: [
+            Expanded(
+              child: _FamilyCard(
+                name: species[i].name,
+                iconAsset: _iconForSpecies(species[i].name),
+                onTap: () => onFamilySelected(species[i]),
+              ),
+            ),
+            const SizedBox(width: 16),
+            if (i + 1 < species.length)
+              Expanded(
+                child: _FamilyCard(
+                  name: species[i + 1].name,
+                  iconAsset: _iconForSpecies(species[i + 1].name),
+                  onTap: () => onFamilySelected(species[i + 1]),
+                ),
+              )
+            else
+              const Expanded(child: SizedBox()),
+          ],
+        ),
+      );
+      if (i + 2 < species.length) rows.add(const SizedBox(height: 16));
+    }
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -351,42 +466,7 @@ class _FamilySelectionStep extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          // 2x2 Grid
-          Row(
-            children: [
-              Expanded(
-                child: _FamilyCard(
-                  family: AnimalFamily.felino,
-                  onTap: () => onFamilySelected(AnimalFamily.felino),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _FamilyCard(
-                  family: AnimalFamily.canino,
-                  onTap: () => onFamilySelected(AnimalFamily.canino),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _FamilyCard(
-                  family: AnimalFamily.bovino,
-                  onTap: () => onFamilySelected(AnimalFamily.bovino),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _FamilyCard(
-                  family: AnimalFamily.equino,
-                  onTap: () => onFamilySelected(AnimalFamily.equino),
-                ),
-              ),
-            ],
-          ),
+          ...rows,
         ],
       ),
     );
@@ -394,10 +474,15 @@ class _FamilySelectionStep extends StatelessWidget {
 }
 
 class _FamilyCard extends StatelessWidget {
-  final AnimalFamily family;
+  final String name;
+  final String iconAsset;
   final VoidCallback onTap;
 
-  const _FamilyCard({required this.family, required this.onTap});
+  const _FamilyCard({
+    required this.name,
+    required this.iconAsset,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -417,13 +502,13 @@ class _FamilyCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             SvgPicture.asset(
-              family.iconAsset,
+              iconAsset,
               width: 48,
               height: 48,
             ),
             const SizedBox(height: 4),
             Text(
-              family.displayName,
+              name,
               style: AppTypography.body4.copyWith(
                 color: AppColors.greyTextos,
               ),
@@ -440,10 +525,12 @@ class _FamilyCard extends StatelessWidget {
 // =============================================================================
 
 class _AnimalInfoStep extends StatelessWidget {
-  final AnimalFamily selectedFamily;
+  final SpeciesEntity selectedSpecies;
   final TextEditingController nameController;
   final String? selectedBreed;
   final ValueChanged<String?> onBreedChanged;
+  final List<BreedEntity> breeds;
+  final bool breedsLoading;
   final String? selectedSex;
   final ValueChanged<String?> onSexChanged;
   final String? reproductiveState;
@@ -463,10 +550,12 @@ class _AnimalInfoStep extends StatelessWidget {
   final VoidCallback? onContinue;
 
   const _AnimalInfoStep({
-    required this.selectedFamily,
+    required this.selectedSpecies,
     required this.nameController,
     required this.selectedBreed,
     required this.onBreedChanged,
+    required this.breeds,
+    required this.breedsLoading,
     required this.selectedSex,
     required this.onSexChanged,
     required this.reproductiveState,
@@ -516,7 +605,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           ),
                         ),
                         TextSpan(
-                          text: selectedFamily.displayName,
+                          text: selectedSpecies.name,
                           style: AppTypography.body3.copyWith(
                             fontWeight: FontWeight.w400,
                             color: AppColors.greyNegro,
@@ -541,16 +630,16 @@ class _AnimalInfoStep extends StatelessWidget {
                   // Breed dropdown
                   CustomDropdownField<String>(
                     label: 'Raza',
-                    hint: 'Seleccionar raza',
+                    hint: breedsLoading ? 'Cargando razas...' : 'Seleccionar raza',
                     value: selectedBreed,
-                    items: const [
-                      DropdownMenuItem(value: 'mestizo', child: Text('Mestizo')),
-                      DropdownMenuItem(value: 'labrador', child: Text('Labrador')),
-                      DropdownMenuItem(value: 'pastor_aleman', child: Text('Pastor Alemán')),
-                      DropdownMenuItem(value: 'bulldog', child: Text('Bulldog')),
-                      DropdownMenuItem(value: 'golden', child: Text('Golden Retriever')),
-                      DropdownMenuItem(value: 'poodle', child: Text('Poodle')),
-                    ],
+                    searchable: true,
+                    enabled: !breedsLoading && breeds.isNotEmpty,
+                    items: breeds
+                        .map((b) => DropdownMenuItem(
+                              value: b.name,
+                              child: Text(b.name),
+                            ))
+                        .toList(),
                     onChanged: onBreedChanged,
                   ),
                   const SizedBox(height: 16),
@@ -796,7 +885,7 @@ class _AnimalInfoStep extends StatelessWidget {
                 ),
                 child: Center(
                   child: SvgPicture.asset(
-                    selectedFamily.iconAsset,
+                    _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
                     width: 56,
                     height: 56,
                   ),
@@ -964,8 +1053,8 @@ class _AnimalInfoStep extends StatelessWidget {
 // =============================================================================
 
 class _AdditionalInfoStep extends StatelessWidget {
-  final String? selectedTemperament;
-  final ValueChanged<String?> onTemperamentChanged;
+  final List<String> selectedTemperaments;
+  final ValueChanged<List<String>> onTemperamentsChanged;
   final TextEditingController allergyController;
   final Map<String, bool> diagnoses;
   final void Function(String key, bool value) onDiagnosisChanged;
@@ -976,8 +1065,8 @@ class _AdditionalInfoStep extends StatelessWidget {
   final VoidCallback? onSaveAndAddAnother;
 
   const _AdditionalInfoStep({
-    required this.selectedTemperament,
-    required this.onTemperamentChanged,
+    required this.selectedTemperaments,
+    required this.onTemperamentsChanged,
     required this.allergyController,
     required this.diagnoses,
     required this.onDiagnosisChanged,
@@ -1006,33 +1095,19 @@ class _AdditionalInfoStep extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Temperament
-                  CustomDropdownField<String>(
+                  CustomMultiSearchDropdown<String>(
                     label: 'Temperamento',
-                    hint: 'Seleccionar',
-                    value: selectedTemperament,
+                    hint: 'Buscar o escribir',
+                    selectedItems: selectedTemperaments,
                     items: const [
-                      DropdownMenuItem(
-                        value: 'independiente',
-                        child: Text('Independiente'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'docil',
-                        child: Text('Dócil'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'agresivo',
-                        child: Text('Agresivo'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'miedoso',
-                        child: Text('Miedoso'),
-                      ),
-                      DropdownMenuItem(
-                        value: 'jugueton',
-                        child: Text('Juguetón'),
-                      ),
+                      'Independiente',
+                      'Dócil',
+                      'Agresivo',
+                      'Miedoso',
+                      'Juguetón'
                     ],
-                    onChanged: onTemperamentChanged,
+                    itemAsString: (item) => item,
+                    onChanged: onTemperamentsChanged,
                   ),
                   const SizedBox(height: 16),
 

@@ -10,6 +10,9 @@ class AnimalModel {
   final String? sex;
   final String ageDisplay;
   final String? imageUrl;
+  final List<String> temperament;
+  final String? allergies;
+  final List<String> diagnosis;
 
   const AnimalModel({
     required this.id,
@@ -20,6 +23,9 @@ class AnimalModel {
     this.sex,
     this.ageDisplay = '',
     this.imageUrl,
+    this.temperament = const [],
+    this.allergies,
+    this.diagnosis = const [],
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -102,6 +108,9 @@ class AnimalModel {
       sex: sexDisplay,
       ageDisplay: calculatedAgeDisplay,
       imageUrl: null,
+      temperament: entity.temperament,
+      allergies: entity.allergies,
+      diagnosis: entity.diagnosis,
     );
   }
 

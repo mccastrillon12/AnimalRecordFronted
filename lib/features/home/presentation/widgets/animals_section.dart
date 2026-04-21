@@ -9,6 +9,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 
 class AnimalsSection extends StatefulWidget {
   final VoidCallback? onViewAll;
@@ -168,7 +169,13 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               child: AnimalCard(
                 animal: animals[index],
                 mode: AnimalCardMode.grid,
-                onTap: () {},
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.animalDetail,
+                    arguments: animals[index],
+                  );
+                },
               ),
             );
           },
@@ -186,7 +193,13 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               child: AnimalCard(
                 animal: animal,
                 mode: AnimalCardMode.list,
-                onTap: () {},
+                onTap: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.animalDetail,
+                    arguments: animal,
+                  );
+                },
               ),
             ),
           )

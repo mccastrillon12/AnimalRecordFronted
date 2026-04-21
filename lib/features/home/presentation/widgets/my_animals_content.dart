@@ -10,6 +10,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 
 /// Full "Mis Animales" page with search bar, grid/list toggle, filter, and
 /// animals grouped by species (family).
@@ -324,7 +325,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 animal: animals[index],
                 mode: AnimalCardMode.grid,
                 onTap: () {
-                  // TODO: Navigate to animal detail
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.animalDetail,
+                    arguments: animals[index],
+                  );
                 },
               ),
             );
@@ -341,7 +346,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           animal: animal,
           mode: AnimalCardMode.compactList,
           onTap: () {
-            // TODO: Navigate to animal detail
+            Navigator.pushNamed(
+              context,
+              AppRoutes.animalDetail,
+              arguments: animal,
+            );
           },
           onMenuTap: () {
             // TODO: Show animal options

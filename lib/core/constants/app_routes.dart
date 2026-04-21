@@ -13,4 +13,5 @@ abstract class AppRoutes {
   static const String forgotPassword = '/forgot-password';
   static const String forgotPin = '/forgot-pin';
   static const String resetPin = '/reset-pin';
+  static const String animalDetail = '/animal-detail';
 }

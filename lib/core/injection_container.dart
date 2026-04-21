@@ -48,6 +48,13 @@ import 'package:animal_record/features/home/domain/usecases/create_animal_usecas
 import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
+import 'package:animal_record/features/catalogs/data/datasources/catalogs_remote_datasource.dart';
+import 'package:animal_record/features/catalogs/data/repositories/catalogs_repository_impl.dart';
+import 'package:animal_record/features/catalogs/domain/repositories/catalogs_repository.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_species_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_breeds_usecase.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
+
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/services/apple_auth_service.dart';
@@ -179,6 +186,25 @@ Future<void> init() async {
 
   sl.registerLazySingleton<AnimalRemoteDataSource>(
     () => AnimalRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // — Catalogs feature —
+  sl.registerLazySingleton(
+    () => CatalogsCubit(
+      getSpeciesUseCase: sl(),
+      getBreedsBySpeciesUseCase: sl(),
+    ),
+  );
+
+  sl.registerLazySingleton(() => GetSpeciesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetBreedsBySpeciesUseCase(repository: sl()));
+
+  sl.registerLazySingleton<CatalogsRepository>(
+    () => CatalogsRepositoryImpl(remoteDataSource: sl()),
+  );
+
+  sl.registerLazySingleton<CatalogsRemoteDataSource>(
+    () => CatalogsRemoteDataSourceImpl(apiClient: sl()),
   );
 
   sl.registerLazySingleton<TokenStorage>(

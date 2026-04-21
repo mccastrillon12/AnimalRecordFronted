@@ -361,12 +361,9 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _buildOptionsList(BuildContext context, AuthState state) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppSpacing.l,
-      ),
+    return Center(
       child: Container(
-        width: double.infinity,
+        width: 327,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(8),

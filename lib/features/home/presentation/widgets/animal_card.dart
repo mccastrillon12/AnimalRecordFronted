@@ -7,7 +7,7 @@ import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 /// Display mode for the animal card.
-enum AnimalCardMode { list, grid, compactList }
+enum AnimalCardMode { list, grid, compactList, detailHeader }
 
 /// A reusable card for displaying an animal.
 ///
@@ -37,6 +37,7 @@ class AnimalCard extends StatelessWidget {
         AnimalCardMode.list => _buildListCard(),
         AnimalCardMode.grid => _buildGridCard(),
         AnimalCardMode.compactList => _buildCompactListCard(),
+        AnimalCardMode.detailHeader => _buildDetailHeader(),
       },
     );
   }
@@ -265,6 +266,103 @@ class AnimalCard extends StatelessWidget {
   Widget _buildPlaceholderIcon(double size) {
     return Center(
       child: Icon(Icons.pets, color: AppColors.greyBordes, size: size * 0.5),
+    );
+  }
+
+  // ===========================================================================
+  // DETAIL HEADER MODE — large card with full-bleed image and gradient overlay
+  // ===========================================================================
+
+  Widget _buildDetailHeader() {
+    return Container(
+      height: 180,
+      decoration: BoxDecoration(
+        color: AppColors.greyDelineante,
+        borderRadius: AppBorders.large(),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Background image
+          if (animal.imageUrl != null)
+            CachedNetworkImage(
+              imageUrl: animal.imageUrl!,
+              fit: BoxFit.cover,
+              placeholder: (context, url) => _buildDetailPlaceholder(),
+              errorWidget: (context, url, error) => _buildDetailPlaceholder(),
+            )
+          else
+            _buildDetailPlaceholder(),
+
+          // Gradient overlay
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.bottomCenter,
+                end: Alignment.topCenter,
+                colors: [
+                  Colors.black.withValues(alpha: 0.7),
+                  Colors.black.withValues(alpha: 0.1),
+                  Colors.transparent,
+                ],
+                stops: const [0.0, 0.5, 1.0],
+              ),
+            ),
+          ),
+
+          // Text content
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        animal.name,
+                        style: AppTypography.heading1.copyWith(
+                          color: AppColors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        animal.code,
+                        style: AppTypography.body5.copyWith(
+                          color: AppColors.white.withValues(alpha: 0.8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (animal.ageDisplay.isNotEmpty)
+                  Text(
+                    animal.ageDisplay,
+                    style: AppTypography.body3.copyWith(
+                      color: AppColors.white,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDetailPlaceholder() {
+    return Container(
+      color: AppColors.primaryIndigo.withValues(alpha: 0.3),
+      child: const Center(
+        child: Icon(Icons.pets, color: AppColors.greyBordes, size: 64),
+      ),
     );
   }
 }
