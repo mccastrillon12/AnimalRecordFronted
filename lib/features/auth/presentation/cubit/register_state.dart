@@ -76,19 +76,23 @@ class RegisterState extends Equatable {
   bool get isCurrentStepValid {
     if (role == 'PROPIETARIO_MASCOTA') {
       if (currentStep == 0) {
-        if (accessMethod == AccessMethod.email) return email.isValid;
-        if (accessMethod == AccessMethod.phone) return phone.isValid;
+        if (accessMethod == AccessMethod.email) return email.isValid && email.value.isNotEmpty;
+        if (accessMethod == AccessMethod.phone) return phone.isValid && phone.value.isNotEmpty;
         return false;
       }
       if (currentStep == 1) {
-        return name.isValid && identificationNumber.isValid && countryId.isNotEmpty;
+        return name.isValid &&
+               identificationNumber.isValid &&
+               countryId.isNotEmpty &&
+               email.isValid &&
+               phone.isValid;
       }
     } else if (role == 'VETERINARIO') {
       if (currentStep == 0) {
         return name.isValid &&
-            email.isValid &&
+            email.isValid && email.value.isNotEmpty &&
             identificationNumber.isValid &&
-            phone.isValid &&
+            phone.isValid && phone.value.isNotEmpty &&
             countryId.isNotEmpty;
       }
       if (currentStep == 1) {
@@ -98,9 +102,9 @@ class RegisterState extends Equatable {
       // Estudiante, laboratorio
       if (currentStep == 0) {
         return name.isValid &&
-            email.isValid &&
+            email.isValid && email.value.isNotEmpty &&
             identificationNumber.isValid &&
-            phone.isValid &&
+            phone.isValid && phone.value.isNotEmpty &&
             countryId.isNotEmpty;
       }
     }

@@ -13,8 +13,10 @@ class CustomDropdownField<T> extends StatefulWidget {
   final bool enabled;
   final double? width;
   final TextStyle? labelStyle;
+
   /// When true the trigger box becomes a search field; typing filters the list.
   final bool searchable;
+  final bool isInline;
 
   const CustomDropdownField({
     super.key,
@@ -28,6 +30,7 @@ class CustomDropdownField<T> extends StatefulWidget {
     this.width,
     this.labelStyle,
     this.searchable = false,
+    this.isInline = false,
   });
 
   @override
@@ -108,9 +111,13 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
       // Show current selection so user can clear it and search
       _searchController.text = _labelOf(widget.value);
     }
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
+    if (widget.isInline) {
+      setState(() => _isOpen = true);
+    } else {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+      setState(() => _isOpen = true);
+    }
     if (widget.searchable) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _focusNode.requestFocus();
@@ -124,8 +131,10 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
 
   void _closeDropdown() {
     if (!_isOpen) return;
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+    if (!widget.isInline) {
+      _overlayEntry?.remove();
+      _overlayEntry = null;
+    }
     _filtered = widget.items;
     if (widget.searchable) {
       _focusNode.unfocus();
@@ -182,47 +191,57 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
                       color: Colors.white,
                     ),
                     constraints: BoxConstraints(maxHeight: maxH),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: _filtered.length + 1,
-                      itemBuilder: (_, index) {
-                        if (index == 0) {
-                          return InkWell(
-                            onTap: () => _selectItem(null),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 12),
-                              child: Text(
-                                '-- Seleccionar --',
-                                style: AppTypography.body4
-                                    .copyWith(color: AppColors.greyMedio),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          );
-                        }
-
-                        final item = _filtered[index - 1];
-                        return InkWell(
-                          onTap: () => _selectItem(item.value),
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 12),
-                            child: DefaultTextStyle(
-                              style: AppTypography.body4
-                                  .copyWith(color: AppColors.greyTextos),
-                              child: item.child,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                    child: _buildOptionsList(),
                   ),
                 ),
               ),
             ),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildOptionsList() {
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      itemCount: _filtered.length + 1,
+      itemBuilder: (_, index) {
+        if (index == 0) {
+          return InkWell(
+            onTap: () => _selectItem(null),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              child: Text(
+                '-- Seleccionar --',
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyMedio,
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
+        }
+
+        final item = _filtered[index - 1];
+        return InkWell(
+          onTap: () => _selectItem(item.value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
+            child: DefaultTextStyle(
+              style: AppTypography.body4.copyWith(
+                color: AppColors.greyTextos,
+              ),
+              child: item.child,
+            ),
+          ),
         );
       },
     );
@@ -260,17 +279,14 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
                   children: [
                     TextSpan(
                       text: displayLabel,
-                      style:
-                          (widget.labelStyle ?? AppTypography.body6).copyWith(
-                        color:
-                            widget.labelStyle?.color ?? AppColors.greyNegroV2,
-                      ),
+                      style: (widget.labelStyle ?? AppTypography.body6),
                     ),
                     if (isOptional)
                       TextSpan(
                         text: ' (Opcional)',
-                        style: AppTypography.body6
-                            .copyWith(color: AppColors.greyBordes),
+                        style: AppTypography.body6.copyWith(
+                          color: AppColors.greyBordes,
+                        ),
                       ),
                   ],
                 ),
@@ -293,8 +309,8 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
                   color: _isOpen
                       ? AppColors.primaryFrances
                       : widget.errorText != null
-                          ? AppColors.errorRojo
-                          : AppColors.greyBordes,
+                      ? AppColors.errorRojo
+                      : AppColors.greyBordes,
                 ),
                 borderRadius: BorderRadius.circular(4),
                 color: widget.enabled
@@ -310,8 +326,9 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
                             controller: _searchController,
                             focusNode: _focusNode,
                             onChanged: _applyFilter,
-                            style: AppTypography.body4
-                                .copyWith(color: AppColors.greyTextos),
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                            ),
                             decoration: InputDecoration(
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
@@ -319,23 +336,26 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
                               enabledBorder: InputBorder.none,
                               focusedBorder: InputBorder.none,
                               hintText: widget.hint,
-                              hintStyle: AppTypography.body4
-                                  .copyWith(color: AppColors.greyBordes),
+                              hintStyle: AppTypography.body4.copyWith(
+                                color: AppColors.greyBordes,
+                              ),
                             ),
                           )
                         // ── Closed or non-searchable: show value/hint ─
                         : selectedItem == null
-                            ? Text(
-                                widget.hint,
-                                style: AppTypography.body4
-                                    .copyWith(color: AppColors.greyBordes),
-                                overflow: TextOverflow.ellipsis,
-                              )
-                            : DefaultTextStyle(
-                                style: AppTypography.body4
-                                    .copyWith(color: AppColors.greyTextos),
-                                child: selectedItem.child,
-                              ),
+                        ? Text(
+                            widget.hint,
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyBordes,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : DefaultTextStyle(
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                            ),
+                            child: selectedItem.child,
+                          ),
                   ),
                   Icon(
                     _isOpen
@@ -355,10 +375,34 @@ class _CustomDropdownFieldState<T> extends State<CustomDropdownField<T>> {
           const SizedBox(height: 4),
           Text(
             widget.errorText!,
-            style: AppTypography.body5
-                .copyWith(color: AppColors.error, height: 1.2),
+            style: AppTypography.body5.copyWith(
+              color: AppColors.error,
+              height: 1.2,
+            ),
           ),
         ],
+
+        // ── Spacer for Overlay ──────────────────────────────────────
+        // Injects space into the layout when open so the parent scroll view can expand
+        if (_isOpen && !widget.isInline)
+          SizedBox(height: ((_filtered.length + 1) * 44.0).clamp(80.0, 250.0)),
+
+        // ── Inline List ─────────────────────────────────────────────
+        if (_isOpen && widget.isInline)
+          Material(
+            elevation: 4,
+            borderRadius: BorderRadius.circular(4),
+            color: Colors.white,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.greyDelineante),
+                borderRadius: BorderRadius.circular(4),
+                color: Colors.white,
+              ),
+              constraints: const BoxConstraints(maxHeight: 250.0),
+              child: _buildOptionsList(),
+            ),
+          ),
       ],
     );
   }

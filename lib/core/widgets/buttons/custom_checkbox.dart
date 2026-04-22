@@ -22,33 +22,25 @@ class CustomCheckbox extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 24,
-            height: 24,
+            width: 22,
+            height: 22,
             decoration: BoxDecoration(
               color: value ? AppColors.primaryFrances : Colors.transparent,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: value
-                    ? AppColors.primaryFrances
-                    : AppColors.greyBordes,
-                width: 2,
+                color: value ? AppColors.primaryFrances : AppColors.greyBordes,
+                width: 1,
               ),
             ),
             child: value
-                ? const Icon(
-                    Icons.check,
-                    size: 16,
-                    color: Colors.white,
-                  )
+                ? const Icon(Icons.check, size: 16, color: Colors.white)
                 : null,
           ),
           const SizedBox(width: AppSpacing.xs),
           Expanded(
             child: Text(
               label,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
           ),
         ],

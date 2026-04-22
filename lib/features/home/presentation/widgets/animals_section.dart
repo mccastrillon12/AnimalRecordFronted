@@ -138,7 +138,14 @@ class _AnimalsSectionState extends State<AnimalsSection> {
         height: 40,
         decoration: BoxDecoration(
           color: AppColors.white,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(4),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+              offset: const Offset(0, 4),
+              blurRadius: 8,
+            ),
+          ],
         ),
         child: Center(
           child: SvgPicture.asset(
@@ -165,7 +172,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
           separatorBuilder: (_, __) => const SizedBox(width: 8),
           itemBuilder: (context, index) {
             return SizedBox(
-              width: 107,
+              width: 103,
               child: AnimalCard(
                 animal: animals[index],
                 mode: AnimalCardMode.grid,

@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -178,12 +177,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                           .replaceAll(' (Opcional)', '')
                           .replaceAll('(Opcional)', '')
                           .trim(),
-                      style: (widget.labelStyle ?? AppTypography.body6)
-                          .copyWith(
-                            color:
-                                widget.labelStyle?.color ??
-                                AppColors.greyNegroV2,
-                          ),
+                      style: (widget.labelStyle ?? AppTypography.body6),
                     ),
                     if (widget.label.contains('(Opcional)'))
                       TextSpan(
@@ -252,7 +246,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 hintStyle:
                     widget.hintStyle ??
                     AppTypography.body4.copyWith(
-                      color: AppColors.greyDelineante,
+                      color: AppColors.greyBordes,
                     ),
                 prefixIcon: widget.prefixIcon,
 

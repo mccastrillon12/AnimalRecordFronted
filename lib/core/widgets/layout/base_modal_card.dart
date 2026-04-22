@@ -149,21 +149,12 @@ class BaseModalCard extends StatelessWidget {
           ),
 
           // Title
-          Text(
-            title,
-            style: AppTypography.body3.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.greyNegro,
-            ),
-          ),
+          Text(title, style: AppTypography.body3),
 
           // Subtitle
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            subtitle!,
-          ],
+          if (subtitle != null) ...[const SizedBox(height: 4), subtitle!],
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
         ],
       ),
     );
@@ -175,9 +166,7 @@ class BaseModalCard extends StatelessWidget {
       return Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Flexible(
-            child: scrollable ? _buildScrollableChild() : child,
-          ),
+          Flexible(child: scrollable ? _buildScrollableChild() : child),
           Padding(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
             child: bottomChild!,
@@ -202,9 +191,13 @@ class BaseModalCard extends StatelessWidget {
       thickness: 2,
       trackVisibility: true,
       thumbVisibility: true,
+      minThumbLength: 36,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(
-          contentHorizontalPadding, 0, contentHorizontalPadding, 16,
+          contentHorizontalPadding,
+          0,
+          contentHorizontalPadding,
+          16,
         ),
         child: child,
       ),

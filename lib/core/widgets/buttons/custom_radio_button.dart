@@ -30,10 +30,11 @@ class CustomRadioButton<T> extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 24,
-              height: 24,
+              width: 22,
+              height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
@@ -47,13 +48,9 @@ class CustomRadioButton<T> extends StatelessWidget {
 
             const SizedBox(width: AppSpacing.xs),
 
-            Expanded(
-              child: Text(
-                label,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
+            Text(
+              label,
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
           ],
         ),

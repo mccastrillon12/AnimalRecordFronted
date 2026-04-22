@@ -59,7 +59,7 @@ class AnimalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Photo
-          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
+          _buildPhoto(size: 52, borderRadius: 8),
 
           const SizedBox(width: 16),
 
@@ -142,21 +142,21 @@ class AnimalCard extends StatelessWidget {
       alignment: Alignment.center,
       decoration: BoxDecoration(
         color: AppColors.white,
-        borderRadius: AppBorders.large(),
+        borderRadius: AppBorders.medium(),
         border: Border.all(color: AppColors.greyDelineante, width: 1),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           // Photo
-          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
+          _buildPhoto(size: 52, borderRadius: 8),
 
           const SizedBox(height: 8),
 
           // Name
           Text(
             animal.name,
-            style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
+            style: AppTypography.body3,
             overflow: TextOverflow.ellipsis,
             maxLines: 1,
             textAlign: TextAlign.center,
@@ -165,7 +165,7 @@ class AnimalCard extends StatelessWidget {
           // Code
           Text(
             animal.code,
-            style: AppTypography.body5.copyWith(color: AppColors.greyBordes),
+            style: AppTypography.body5.copyWith(color: AppColors.greyMedio),
             textAlign: TextAlign.center,
           ),
         ],
@@ -179,16 +179,18 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildCompactListCard() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      height: 63,
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: const BoxDecoration(
         border: Border(
           bottom: BorderSide(color: AppColors.greyDelineante, width: 1),
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Photo
-          _buildPhoto(size: 52, borderRadius: AppBorders.radiusMedium),
+          _buildPhoto(size: 32, borderRadius: 5),
 
           const SizedBox(width: 12),
 
@@ -202,15 +204,14 @@ class AnimalCard extends StatelessWidget {
                   animal.name,
                   style: AppTypography.body3.copyWith(
                     fontWeight: FontWeight.w700,
-                    color: AppColors.greyNegro,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   animal.code,
-                  style: AppTypography.body6.copyWith(
-                    color: AppColors.greyBordes,
+                  style: AppTypography.body5.copyWith(
+                    color: AppColors.greyMedio,
                   ),
                 ),
               ],
@@ -256,7 +257,8 @@ class AnimalCard extends StatelessWidget {
                 width: size,
                 height: size,
                 placeholder: (context, url) => _buildPlaceholderIcon(size),
-                errorWidget: (context, url, error) => _buildPlaceholderIcon(size),
+                errorWidget: (context, url, error) =>
+                    _buildPlaceholderIcon(size),
               ),
             )
           : _buildPlaceholderIcon(size),

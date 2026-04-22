@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -22,33 +24,130 @@ class CustomDateField extends StatelessWidget {
 
   String _formatDate(DateTime date) {
     const months = [
-      'January', 'February', 'March', 'April', 'May', 'June',
-      'July', 'August', 'September', 'October', 'November', 'December',
+      'enero',
+      'febrero',
+      'marzo',
+      'abril',
+      'mayo',
+      'junio',
+      'julio',
+      'agosto',
+      'septiembre',
+      'octubre',
+      'noviembre',
+      'diciembre',
     ];
-    return '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
+    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
   }
 
   Future<void> _pickDate(BuildContext context) async {
     if (!enabled) return;
 
     final now = DateTime.now();
-    final picked = await showDatePicker(
+    DateTime tempDate = value ?? now;
+
+    final picked = await showDialog<DateTime>(
       context: context,
-      initialDate: value ?? now,
-      firstDate: DateTime(1990),
-      lastDate: now,
-      builder: (context, child) {
-        return Theme(
+      builder: (context) {
+        return Localizations.override(
+          context: context,
+          locale: const Locale('es', 'ES'),
+          delegates: const [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          child: Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
+            textTheme: GoogleFonts.notoSansTextTheme(Theme.of(context).textTheme),
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primaryFrances,
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: AppColors.greyTextos,
             ),
+            textButtonTheme: TextButtonThemeData(
+              style: TextButton.styleFrom(
+                foregroundColor: AppColors.primaryFrances,
+                textStyle: AppTypography.body3,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
           ),
-          child: child!,
-        );
+          child: Transform.scale(
+            scale: 0.85,
+            child: Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 320),
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 16, 8, 8),
+                  child: StatefulBuilder(
+                    builder: (context, setState) {
+                      return Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Compact header
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Seleccionar fecha', style: AppTypography.body6.copyWith(color: AppColors.greyMedio)),
+                                const SizedBox(height: 2),
+                                Text(
+                                  _formatDate(tempDate),
+                                  style: AppTypography.heading1.copyWith(fontSize: 24),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Divider(height: 1),
+                          
+                          // Calendar body
+                          CalendarDatePicker(
+                            initialDate: tempDate,
+                            firstDate: DateTime(1990),
+                            lastDate: now,
+                            onDateChanged: (DateTime date) {
+                              setState(() {
+                                tempDate = date;
+                              });
+                            },
+                          ),
+
+                          // Actions tightly packed
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Cancelar'),
+                                ),
+                                const SizedBox(width: 16),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context, tempDate),
+                                  child: const Text('OK'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ));
       },
     );
 
@@ -67,12 +166,7 @@ class CustomDateField extends StatelessWidget {
             height: 18,
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text(
-                label,
-                style: AppTypography.body6.copyWith(
-                  color: AppColors.greyNegroV2,
-                ),
-              ),
+              child: Text(label, style: AppTypography.body6),
             ),
           ),
 
@@ -87,10 +181,7 @@ class CustomDateField extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled ? AppColors.white : const Color(0xFFF5F6FA),
               borderRadius: AppBorders.small(),
-              border: Border.all(
-                color: AppColors.greyBordes,
-                width: 1.0,
-              ),
+              border: Border.all(color: AppColors.greyBordes, width: 1.0),
             ),
             child: Row(
               children: [

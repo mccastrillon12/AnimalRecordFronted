@@ -137,7 +137,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
           ),
         ),
 
-        const SizedBox(height: AppSpacing.xs),
+        const SizedBox(height: AppSpacing.m),
 
         GestureDetector(
           onTap: () {

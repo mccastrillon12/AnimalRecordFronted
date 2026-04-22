@@ -33,9 +33,7 @@ void showAnimalCreationModal(BuildContext context) {
     builder: (dialogContext) => MultiBlocProvider(
       providers: [
         BlocProvider.value(value: animalCubit),
-        BlocProvider.value(
-          value: sl<CatalogsCubit>()..loadSpecies(),
-        ),
+        BlocProvider.value(value: sl<CatalogsCubit>()..loadSpecies()),
       ],
       child: const AnimalCreationModal(),
     ),
@@ -68,6 +66,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   final _colorDescController = TextEditingController();
   String? _hasIdentification;
   String? _belongsToAssociation;
+  String? _selectedAssociation;
 
   // — Step 3 state —
   List<String> _selectedTemperaments = [];
@@ -140,12 +139,12 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         _reproductiveState != null &&
         (_birthDate != null || _unknownExactDate) &&
         _hasIdentification != null &&
-        _belongsToAssociation != null;
+        _belongsToAssociation != null &&
+        (_belongsToAssociation != 'si' || _selectedAssociation != null);
   }
 
   bool get _isStep3Valid {
-    return _selectedTemperaments.isNotEmpty &&
-        _diagnoses.values.any((v) => v);
+    return _selectedTemperaments.isNotEmpty && _diagnoses.values.any((v) => v);
   }
 
   // =========================================================================
@@ -175,7 +174,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           : null,
       hasChip: _hasIdentification == 'Sí',
       isAssociationMember: _belongsToAssociation == 'Sí',
-      temperament: _selectedTemperaments.isEmpty ? ['Desconocido'] : _selectedTemperaments,
+      temperament: _selectedTemperaments.isEmpty
+          ? ['Desconocido']
+          : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
       ownerId: ownerId,
       weight: double.tryParse(_weightKgController.text.trim()),
@@ -213,6 +214,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _colorDescController.clear();
       _hasIdentification = null;
       _belongsToAssociation = null;
+      _selectedAssociation = null;
       _selectedTemperaments = [];
       _allergyController.clear();
       _diagnoses.updateAll((key, value) => false);
@@ -239,17 +241,11 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         children: [
           TextSpan(
             text: _stepSubtitle,
-            style: AppTypography.body3.copyWith(
-              color: AppColors.greyTextos,
-              fontWeight: FontWeight.w400,
-            ),
+            style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
           ),
           TextSpan(
             text: ' - $_currentStep de $_totalSteps',
-            style: AppTypography.body3.copyWith(
-              color: AppColors.greyBordes,
-              fontWeight: FontWeight.w400,
-            ),
+            style: AppTypography.body3.copyWith(color: AppColors.greyBordes),
           ),
         ],
       ),
@@ -299,10 +295,10 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
             final speciesRaw = catalogState is SpeciesLoaded
                 ? catalogState.species
                 : catalogState is BreedsLoaded
-                    ? catalogState.species
-                    : catalogState is BreedsLoading
-                        ? catalogState.species
-                        : <SpeciesEntity>[];
+                ? catalogState.species
+                : catalogState is BreedsLoading
+                ? catalogState.species
+                : <SpeciesEntity>[];
             final species = speciesRaw
                 .where((s) => s.name.toLowerCase() != 'porcino')
                 .toList();
@@ -327,25 +323,30 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               onBreedChanged: (v) => setState(() => _selectedBreed = v),
               breeds: breeds,
               breedsLoading: breedsLoading,
-          selectedSex: _selectedSex,
-          onSexChanged: (v) => setState(() => _selectedSex = v),
-          reproductiveState: _reproductiveState,
-          onReproductiveStateChanged: (v) =>
-              setState(() => _reproductiveState = v),
-          birthDate: _birthDate,
-          onBirthDateChanged: (v) => setState(() => _birthDate = v),
-          unknownExactDate: _unknownExactDate,
-          onUnknownExactDateChanged: (v) =>
-              setState(() => _unknownExactDate = v),
-          weightKgController: _weightKgController,
-          weightLbController: _weightLbController,
-          colorDescController: _colorDescController,
-          hasIdentification: _hasIdentification,
-          onHasIdentificationChanged: (v) =>
-              setState(() => _hasIdentification = v),
-          belongsToAssociation: _belongsToAssociation,
-          onBelongsToAssociationChanged: (v) =>
-              setState(() => _belongsToAssociation = v),
+              selectedSex: _selectedSex,
+              onSexChanged: (v) => setState(() => _selectedSex = v),
+              reproductiveState: _reproductiveState,
+              onReproductiveStateChanged: (v) =>
+                  setState(() => _reproductiveState = v),
+              birthDate: _birthDate,
+              onBirthDateChanged: (v) => setState(() => _birthDate = v),
+              unknownExactDate: _unknownExactDate,
+              onUnknownExactDateChanged: (v) =>
+                  setState(() => _unknownExactDate = v),
+              weightKgController: _weightKgController,
+              weightLbController: _weightLbController,
+              colorDescController: _colorDescController,
+              hasIdentification: _hasIdentification,
+              onHasIdentificationChanged: (v) =>
+                  setState(() => _hasIdentification = v),
+              belongsToAssociation: _belongsToAssociation,
+              onBelongsToAssociationChanged: (v) =>
+                  setState(() {
+                    _belongsToAssociation = v;
+                    if (v != 'si') _selectedAssociation = null;
+                  }),
+              selectedAssociation: _selectedAssociation,
+              onAssociationChanged: (v) => setState(() => _selectedAssociation = v),
               isValid: _isStep2Valid,
               onContinue: _isStep2Valid ? _goNext : null,
             );
@@ -366,9 +367,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               otherDiagnosisController: _otherDiagnosisController,
               isValid: _isStep3Valid,
               isLoading: isLoading,
-              onSave: _isStep3Valid && !isLoading
-                  ? () => _saveAnimal()
-                  : null,
+              onSave: _isStep3Valid && !isLoading ? () => _saveAnimal() : null,
               onSaveAndAddAnother: _isStep3Valid && !isLoading
                   ? () => _saveAnimal(addAnother: true)
                   : null,
@@ -418,38 +417,11 @@ class _FamilySelectionStep extends StatelessWidget {
     if (isLoading) {
       return const Padding(
         padding: EdgeInsets.all(48),
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
-    // Build rows of 2 cards each
-    final rows = <Widget>[];
-    for (int i = 0; i < species.length; i += 2) {
-      rows.add(
-        Row(
-          children: [
-            Expanded(
-              child: _FamilyCard(
-                name: species[i].name,
-                iconAsset: _iconForSpecies(species[i].name),
-                onTap: () => onFamilySelected(species[i]),
-              ),
-            ),
-            const SizedBox(width: 16),
-            if (i + 1 < species.length)
-              Expanded(
-                child: _FamilyCard(
-                  name: species[i + 1].name,
-                  iconAsset: _iconForSpecies(species[i + 1].name),
-                  onTap: () => onFamilySelected(species[i + 1]),
-                ),
-              )
-            else
-              const Expanded(child: SizedBox()),
-          ],
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [CircularProgressIndicator()],
         ),
       );
-      if (i + 2 < species.length) rows.add(const SizedBox(height: 16));
     }
 
     return Padding(
@@ -460,13 +432,27 @@ class _FamilySelectionStep extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             'Elige a qué familia pertenece tu animal',
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyTextos,
-            ),
+            style: AppTypography.body4.copyWith(),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
-          ...rows,
+          SizedBox(
+            width: 170,
+            child: Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              alignment: WrapAlignment.center,
+              children: species
+                  .map(
+                    (s) => _FamilyCard(
+                      name: s.name,
+                      iconAsset: _iconForSpecies(s.name),
+                      onTap: () => onFamilySelected(s),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
         ],
       ),
     );
@@ -489,29 +475,22 @@ class _FamilyCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
+        width: 72,
+        height: 72,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: AppBorders.medium(),
-          border: Border.all(
-            color: AppColors.greyDelineante,
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AppColors.greyBordes, width: 1),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(
-              iconAsset,
-              width: 48,
-              height: 48,
-            ),
-            const SizedBox(height: 4),
+            SvgPicture.asset(iconAsset, width: 40, height: 35),
+            const SizedBox(height: 2),
             Text(
               name,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-              ),
+              style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
             ),
           ],
         ),
@@ -546,6 +525,8 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<String?> onHasIdentificationChanged;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
+  final String? selectedAssociation;
+  final ValueChanged<String?> onAssociationChanged;
   final bool isValid;
   final VoidCallback? onContinue;
 
@@ -571,6 +552,8 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onHasIdentificationChanged,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
+    required this.selectedAssociation,
+    required this.onAssociationChanged,
     required this.isValid,
     required this.onContinue,
   });
@@ -581,268 +564,278 @@ class _AnimalInfoStep extends StatelessWidget {
       children: [
         // Scrollable content
         Expanded(
-          child: RawScrollbar(
-            thumbColor: AppColors.primaryIndigo,
-            trackColor: AppColors.greyDelineante,
-            radius: const Radius.circular(AppBorders.radiusSmall),
-            thickness: 2,
-            trackVisibility: true,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Family label
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Familia - ',
-                          style: AppTypography.body3.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.greyNegro,
-                          ),
-                        ),
-                        TextSpan(
-                          text: selectedSpecies.name,
-                          style: AppTypography.body3.copyWith(
-                            fontWeight: FontWeight.w400,
-                            color: AppColors.greyNegro,
-                          ),
-                        ),
-                      ],
-                    ),
+          child: Stack(
+            children: [
+              Positioned(
+                right: 16,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: AppColors.greyDelineante,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Photo area
-                  _buildPhotoArea(),
-                  const SizedBox(height: 24),
-
-                  // Name
-                  CustomTextField(
-                    label: 'Nombre',
-                    controller: nameController,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Breed dropdown
-                  CustomDropdownField<String>(
-                    label: 'Raza',
-                    hint: breedsLoading ? 'Cargando razas...' : 'Seleccionar raza',
-                    value: selectedBreed,
-                    searchable: true,
-                    enabled: !breedsLoading && breeds.isNotEmpty,
-                    items: breeds
-                        .map((b) => DropdownMenuItem(
-                              value: b.name,
-                              child: Text(b.name),
-                            ))
-                        .toList(),
-                    onChanged: onBreedChanged,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Sex
-                  Text(
-                    'Sexo',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'macho',
-                          groupValue: selectedSex,
-                          label: 'Macho',
-                          onChanged: onSexChanged,
-                        ),
-                      ),
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'hembra',
-                          groupValue: selectedSex,
-                          label: 'Hembra',
-                          onChanged: onSexChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Reproductive state
-                  Text(
-                    'Estado reproductivo',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  CustomRadioButton<String>(
-                    value: 'esterilizado',
-                    groupValue: reproductiveState,
-                    label: 'Esterilizado',
-                    onChanged: onReproductiveStateChanged,
-                  ),
-                  const SizedBox(height: 8),
-                  CustomRadioButton<String>(
-                    value: 'no_esterilizado',
-                    groupValue: reproductiveState,
-                    label: 'No esterilizado',
-                    onChanged: onReproductiveStateChanged,
-                  ),
-                  const SizedBox(height: 8),
-                  CustomRadioButton<String>(
-                    value: 'desconocido',
-                    groupValue: reproductiveState,
-                    label: 'Desconocido',
-                    onChanged: onReproductiveStateChanged,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Birth date
-                  CustomDateField(
-                    label: 'Fecha de nacimiento',
-                    value: birthDate,
-                    onChanged: onBirthDateChanged,
-                    enabled: !unknownExactDate,
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Unknown date toggle
-                  _buildToggle(
-                    label: 'No sé la fecha exacta',
-                    value: unknownExactDate,
-                    onChanged: onUnknownExactDateChanged,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Weight
-                  RichText(
-                    text: TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'Peso ',
-                          style: AppTypography.body6.copyWith(
-                            color: AppColors.greyNegroV2,
-                          ),
-                        ),
-                        TextSpan(
-                          text: '(Opcional)',
-                          style: AppTypography.body6.copyWith(
-                            color: AppColors.greyBordes,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.inputTopPadding),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomTextField(
-                          label: '',
-                          hint: '- kg',
-                          controller: weightKgController,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: CustomTextField(
-                          label: '',
-                          hint: '- lb',
-                          controller: weightLbController,
-                          keyboardType: TextInputType.number,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Color and markings
-                  _buildTextArea(
-                    label: 'Color y marcas distintivas (Opcional)',
-                    hint: 'Haz una breve descripción',
-                    controller: colorDescController,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Has identification?
-                  Text(
-                    '¿Tiene identificación? (Chip, arete, otros)',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'si',
-                          groupValue: hasIdentification,
-                          label: 'Si',
-                          onChanged: onHasIdentificationChanged,
-                        ),
-                      ),
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'no',
-                          groupValue: hasIdentification,
-                          label: 'No',
-                          onChanged: onHasIdentificationChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Belongs to association?
-                  Text(
-                    '¿Pertenece a alguna asociación?',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'si',
-                          groupValue: belongsToAssociation,
-                          label: 'Si',
-                          onChanged: onBelongsToAssociationChanged,
-                        ),
-                      ),
-                      Expanded(
-                        child: CustomRadioButton<String>(
-                          value: 'no',
-                          groupValue: belongsToAssociation,
-                          label: 'No',
-                          onChanged: onBelongsToAssociationChanged,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                ],
+                ),
               ),
-            ),
+              Positioned.fill(
+                child: RawScrollbar(
+                  thumbColor: AppColors.primaryIndigo,
+                  radius: const Radius.circular(AppBorders.radiusSmall),
+                  thickness: 2,
+                  thumbVisibility: true,
+                  crossAxisMargin: 16,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Family label
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Familia - ',
+                                style: AppTypography.body3,
+                              ),
+                              TextSpan(
+                                text: selectedSpecies.name,
+                                style: AppTypography.body4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Photo area
+                        _buildPhotoArea(),
+                        const SizedBox(height: 16),
+
+                        // Name
+                        CustomTextField(
+                          label: 'Nombre',
+                          controller: nameController,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Breed dropdown
+                        CustomDropdownField<String>(
+                          label: 'Raza',
+                          hint: breedsLoading
+                              ? 'Cargando razas...'
+                              : 'Seleccionar raza',
+                          value: selectedBreed,
+                          searchable: true,
+                          enabled: !breedsLoading && breeds.isNotEmpty,
+                          items: breeds
+                              .map(
+                                (b) => DropdownMenuItem(
+                                  value: b.name,
+                                  child: Text(b.name),
+                                ),
+                              )
+                              .toList(),
+                          onChanged: onBreedChanged,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Sex
+                        Text('Sexo', style: AppTypography.body6),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            CustomRadioButton<String>(
+                              value: 'macho',
+                              groupValue: selectedSex,
+                              label: 'Macho',
+                              onChanged: onSexChanged,
+                            ),
+                            const SizedBox(width: 56),
+                            CustomRadioButton<String>(
+                              value: 'hembra',
+                              groupValue: selectedSex,
+                              label: 'Hembra',
+                              onChanged: onSexChanged,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Reproductive state
+                        Text('Estado reproductivo', style: AppTypography.body6),
+                        const SizedBox(height: 8),
+                        CustomRadioButton<String>(
+                          value: 'esterilizado',
+                          groupValue: reproductiveState,
+                          label: 'Esterilizado',
+                          onChanged: onReproductiveStateChanged,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomRadioButton<String>(
+                          value: 'no_esterilizado',
+                          groupValue: reproductiveState,
+                          label: 'No esterilizado',
+                          onChanged: onReproductiveStateChanged,
+                        ),
+                        const SizedBox(height: 16),
+                        CustomRadioButton<String>(
+                          value: 'desconocido',
+                          groupValue: reproductiveState,
+                          label: 'Desconocido',
+                          onChanged: onReproductiveStateChanged,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Birth date
+                        CustomDateField(
+                          label: 'Fecha de nacimiento',
+                          value: birthDate,
+                          onChanged: onBirthDateChanged,
+                          enabled: !unknownExactDate,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Unknown date toggle
+                        _buildToggle(
+                          label: 'No sé la fecha exacta',
+                          value: unknownExactDate,
+                          onChanged: onUnknownExactDateChanged,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Weight
+                        RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: 'Peso ',
+                                style: AppTypography.body6,
+                              ),
+                              TextSpan(
+                                text: '(Opcional)',
+                                style: AppTypography.body6.copyWith(
+                                  color: AppColors.greyBordes,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.inputTopPadding),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: CustomTextField(
+                                label: '',
+                                hint: '- kg',
+                                controller: weightKgController,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: CustomTextField(
+                                label: '',
+                                hint: '- lb',
+                                controller: weightLbController,
+                                keyboardType: TextInputType.number,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Color and markings
+                        _buildTextArea(
+                          label: 'Color y marcas distintivas (Opcional)',
+                          hint: 'Haz una breve descripción',
+                          controller: colorDescController,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Has identification?
+                        Text(
+                          '¿Tiene identificación? (Chip, arete, otros)',
+                          style: AppTypography.body6,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            CustomRadioButton<String>(
+                              value: 'si',
+                              groupValue: hasIdentification,
+                              label: 'Si',
+                              onChanged: onHasIdentificationChanged,
+                            ),
+                            const SizedBox(width: 56),
+                            CustomRadioButton<String>(
+                              value: 'no',
+                              groupValue: hasIdentification,
+                              label: 'No',
+                              onChanged: onHasIdentificationChanged,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Belongs to association?
+                        Text(
+                          '¿Pertenece a alguna asociación?',
+                          style: AppTypography.body6,
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            CustomRadioButton<String>(
+                              value: 'si',
+                              groupValue: belongsToAssociation,
+                              label: 'Si',
+                              onChanged: onBelongsToAssociationChanged,
+                            ),
+                            const SizedBox(width: 56),
+                            CustomRadioButton<String>(
+                              value: 'no',
+                              groupValue: belongsToAssociation,
+                              label: 'No',
+                              onChanged: onBelongsToAssociationChanged,
+                            ),
+                          ],
+                        ),
+                        if (belongsToAssociation == 'si') ...[
+                          const SizedBox(height: 16),
+                          CustomDropdownField<String>(
+                            label: 'Asociaciones',
+                            hint: 'Seleccionar asociación',
+                            value: selectedAssociation,
+                            isInline: true,
+                            items: const [
+                              DropdownMenuItem(value: 'Asociación 1', child: Text('Asociación 1')),
+                              DropdownMenuItem(value: 'Asociación 2', child: Text('Asociación 2')),
+                              DropdownMenuItem(value: 'Asociación 3', child: Text('Asociación 3')),
+                            ],
+                            onChanged: onAssociationChanged,
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-
         // Fixed bottom button
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: CustomButton(
-            text: 'Continuar',
-            onPressed: isValid ? onContinue : null,
+          child: Center(
+            child: SizedBox(
+              width: 128,
+              height: 39,
+              child: CustomButton(
+                text: 'Continuar',
+                onPressed: isValid ? onContinue : null,
+              ),
+            ),
           ),
         ),
       ],
@@ -856,12 +849,7 @@ class _AnimalInfoStep extends StatelessWidget {
           RichText(
             text: TextSpan(
               children: [
-                TextSpan(
-                  text: 'Foto del animal ',
-                  style: AppTypography.body6.copyWith(
-                    color: AppColors.greyNegroV2,
-                  ),
-                ),
+                TextSpan(text: 'Foto del animal ', style: AppTypography.body6),
                 TextSpan(
                   text: '(Opcional)',
                   style: AppTypography.body6.copyWith(
@@ -871,14 +859,14 @@ class _AnimalInfoStep extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Stack(
             clipBehavior: Clip.none,
             children: [
               // Photo container
               Container(
-                width: 88,
-                height: 88,
+                width: 96,
+                height: 96,
                 decoration: BoxDecoration(
                   color: AppColors.bgHielo,
                   borderRadius: AppBorders.medium(),
@@ -886,8 +874,8 @@ class _AnimalInfoStep extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.asset(
                     _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
-                    width: 56,
-                    height: 56,
+                    width: 40,
+                    height: 35,
                   ),
                 ),
               ),
@@ -937,7 +925,9 @@ class _AnimalInfoStep extends StatelessWidget {
             height: 24,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              color: value ? AppColors.primaryFrances : AppColors.greyDelineante,
+              color: value
+                  ? AppColors.primaryFrances
+                  : AppColors.greyDelineante,
             ),
             child: AnimatedAlign(
               duration: const Duration(milliseconds: 200),
@@ -957,9 +947,7 @@ class _AnimalInfoStep extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTypography.body4.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
           ),
         ],
@@ -987,9 +975,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         .replaceAll(' (Opcional)', '')
                         .replaceAll('(Opcional)', '')
                         .trim(),
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
+                    style: AppTypography.body6,
                   ),
                   if (label.contains('(Opcional)'))
                     TextSpan(
@@ -1082,97 +1068,127 @@ class _AdditionalInfoStep extends StatelessWidget {
     return Column(
       children: [
         Expanded(
-          child: RawScrollbar(
-            thumbColor: AppColors.primaryIndigo,
-            trackColor: AppColors.greyDelineante,
-            radius: const Radius.circular(AppBorders.radiusSmall),
-            thickness: 2,
-            trackVisibility: true,
-            thumbVisibility: true,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Temperament
-                  CustomMultiSearchDropdown<String>(
-                    label: 'Temperamento',
-                    hint: 'Buscar o escribir',
-                    selectedItems: selectedTemperaments,
-                    items: const [
-                      'Independiente',
-                      'Dócil',
-                      'Agresivo',
-                      'Miedoso',
-                      'Juguetón'
-                    ],
-                    itemAsString: (item) => item,
-                    onChanged: onTemperamentsChanged,
+          child: Stack(
+            children: [
+              Positioned(
+                right: 16,
+                top: 0,
+                bottom: 0,
+                child: Container(
+                  width: 2,
+                  decoration: BoxDecoration(
+                    color: AppColors.greyDelineante,
+                    borderRadius: BorderRadius.circular(2),
                   ),
-                  const SizedBox(height: 16),
-
-                  // Allergy
-                  CustomTextField(
-                    label: 'Alergia a (Opcional)',
-                    controller: allergyController,
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Diagnoses checkboxes
-                  Text(
-                    'Diagnosticado con',
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyNegroV2,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  ...diagnoses.entries.map((entry) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: CustomCheckbox(
-                      value: entry.value,
-                      label: entry.key,
-                      onChanged: (v) => onDiagnosisChanged(entry.key, v),
-                    ),
-                  )),
-
-                  // "¿Cuál?" field (visible when "Otro" is checked)
-                  if (diagnoses['Otro'] == true) ...[
-                    const SizedBox(height: 4),
-                    CustomTextField(
-                      label: '¿Cuál?',
-                      controller: otherDiagnosisController,
-                    ),
-                    const SizedBox(height: 16),
-                  ],
-
-                  if (diagnoses['Otro'] != true)
-                    const SizedBox(height: 16),
-                ],
+                ),
               ),
-            ),
+              Positioned.fill(
+                child: RawScrollbar(
+                  thumbColor: AppColors.primaryIndigo,
+                  trackColor: Colors.transparent,
+                  trackBorderColor: Colors.transparent,
+                  radius: const Radius.circular(AppBorders.radiusSmall),
+                  thickness: 2,
+                  trackVisibility: false,
+                  thumbVisibility: true,
+                  crossAxisMargin: 16,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Temperament
+                        CustomMultiSearchDropdown<String>(
+                          label: 'Temperamento',
+                          hint: 'Buscar o escribir',
+                          selectedItems: selectedTemperaments,
+                          items: const [
+                            'Independiente',
+                            'Dócil',
+                            'Agresivo',
+                            'Miedoso',
+                            'Juguetón',
+                          ],
+                          itemAsString: (item) => item,
+                          onChanged: onTemperamentsChanged,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Allergy
+                        CustomTextField(
+                          label: 'Alergia a (Opcional)',
+                          controller: allergyController,
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Diagnoses checkboxes
+                        Text(
+                          'Diagnosticado con',
+                          style: AppTypography.body6.copyWith(
+                            color: AppColors.greyNegroV2,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+
+                        ...diagnoses.entries.map(
+                          (entry) => Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: CustomCheckbox(
+                              value: entry.value,
+                              label: entry.key,
+                              onChanged: (v) =>
+                                  onDiagnosisChanged(entry.key, v),
+                            ),
+                          ),
+                        ),
+
+                        // "¿Cuál?" field (visible when "Otro" is checked)
+                        if (diagnoses['Otro'] == true) ...[
+                          const SizedBox(height: 4),
+                          CustomTextField(
+                            label: '¿Cuál?',
+                            controller: otherDiagnosisController,
+                          ),
+                          const SizedBox(height: 16),
+                        ],
+
+                        if (diagnoses['Otro'] != true)
+                          const SizedBox(height: 16),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-
         // Fixed bottom: Save buttons
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
           child: Column(
             children: [
-              CustomButton(
-                text: 'Guardar',
-                isLoading: isLoading,
-                onPressed: isValid && !isLoading ? onSave : null,
+              SizedBox(
+                width: 128,
+                height: 39,
+                child: CustomButton(
+                  text: 'Guardar',
+                  isLoading: isLoading,
+                  onPressed: isValid && !isLoading ? onSave : null,
+                ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 24),
               GestureDetector(
                 onTap: isValid && !isLoading ? onSaveAndAddAnother : null,
-                child: Text(
-                  'Guardar y agregar otro animal',
-                  style: AppTypography.body3.copyWith(
-                    color: isValid && !isLoading
-                        ? AppColors.primaryFrances
-                        : AppColors.greyBordes,
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  child: Text(
+                    'Guardar y agregar otro animal',
+                    style: AppTypography.body3.copyWith(
+                      color: isValid && !isLoading
+                          ? AppColors.primaryFrances
+                          : AppColors.primaryFrances.withOpacity(0.4),
+                    ),
                   ),
                 ),
               ),

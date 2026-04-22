@@ -7,14 +7,16 @@ import 'package:animal_record/core/theme/app_borders.dart';
 
 /// A single item in the [TopMenuOverlay].
 class TopMenuItem {
-  final IconData icon;
+  final String svgPath;
   final String label;
   final VoidCallback onTap;
+  final bool isActive;
 
   const TopMenuItem({
-    required this.icon,
+    required this.svgPath,
     required this.label,
     required this.onTap,
+    this.isActive = false,
   });
 }
 
@@ -104,11 +106,9 @@ class TopMenuOverlay extends StatelessWidget {
                       height: 32, // The persistent white peek area when closed
                     ),
                     secondChild: Padding(
-                      padding: const EdgeInsets.only(
-                        left: AppSpacing.xl,
-                        right: AppSpacing.xl,
-                        top: AppSpacing.s,
-                        bottom: AppSpacing.l,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 35,
+                        vertical: 16,
                       ),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -126,6 +126,7 @@ class TopMenuOverlay extends StatelessWidget {
                   onTap: onToggle,
                   behavior: HitTestBehavior.opaque,
                   child: Container(
+                    width: 64,
                     height: 40,
                     alignment: Alignment.center,
                     child: SvgPicture.asset(
@@ -177,6 +178,13 @@ class TopMenuOverlay extends StatelessWidget {
   }
 
   Widget _buildMenuItem(TopMenuItem item) {
+    final iconColor = item.isActive
+        ? const Color(0xFF0072BB)
+        : const Color(0xFF59667A);
+    final textColor = item.isActive
+        ? const Color(0xFF2E3949)
+        : const Color(0xFF59667A);
+
     return GestureDetector(
       onTap: () {
         onClose();
@@ -184,18 +192,23 @@ class TopMenuOverlay extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 72,
+        width: 80,
         height: 46,
         child: Column(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(item.icon, size: 24, color: AppColors.greyTextos),
+            SvgPicture.asset(
+              item.svgPath,
+              width: 24,
+              height: 24,
+              colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
+            ),
             const SizedBox(height: 4),
             Text(
               item.label,
               style: AppTypography.body6.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.w500,
+                color: textColor,
+                fontWeight: item.isActive ? FontWeight.w600 : FontWeight.normal,
               ),
               textAlign: TextAlign.center,
               maxLines: 1,

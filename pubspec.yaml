@@ -63,6 +63,8 @@ dependencies:
   sms_autofill: ^2.4.1
   keyboard_actions: ^4.2.1
   formz: ^0.8.0
+  flutter_localizations:
+    sdk: flutter
 
 dev_dependencies:
   flutter_test:

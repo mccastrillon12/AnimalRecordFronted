@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -40,33 +41,38 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
   List<TopMenuItem> get _menuItems => [
     TopMenuItem(
-      icon: Icons.calendar_month_outlined,
+      svgPath: 'assets/icons/mapa.svg',
+      label: 'Mapa',
+      onTap: () {},
+    ),
+    TopMenuItem(
+      svgPath: 'assets/icons/+animal.svg',
+      label: '+ Animal',
+      onTap: () {},
+    ),
+    TopMenuItem(
+      svgPath: 'assets/icons/agenda.svg',
       label: 'Agenda',
       onTap: () {},
     ),
     TopMenuItem(
-      icon: Icons.access_time_rounded,
-      label: 'Actividad',
+      svgPath: 'assets/icons/animales.svg',
+      label: 'Mis animales',
+      isActive: true,
       onTap: () {},
     ),
     TopMenuItem(
-      icon: Icons.people_outline_rounded,
-      label: 'Profesionales',
-      onTap: () {},
-    ),
-    TopMenuItem(
-      icon: Icons.inventory_2_outlined,
-      label: 'Archivo',
-      onTap: () {},
-    ),
-    TopMenuItem(
-      icon: Icons.home_outlined,
+      svgPath: 'assets/icons/inicio.svg',
       label: 'Inicio',
       onTap: () {
         Navigator.of(context).popUntil((route) => route.isFirst);
       },
     ),
-    TopMenuItem(icon: Icons.post_add_rounded, label: '+Historia', onTap: () {}),
+    TopMenuItem(
+      svgPath: 'assets/icons/vacunas.svg',
+      label: 'Carné vacunas',
+      onTap: () {},
+    ),
   ];
 
   @override
@@ -94,15 +100,36 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
                     // Back button row
                     Padding(
-                      padding: const EdgeInsets.only(left: AppSpacing.xs),
+                      padding: const EdgeInsets.only(left: AppSpacing.l),
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: IconButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          icon: const Icon(
-                            Icons.arrow_back_ios_new_rounded,
-                            color: AppColors.white,
-                            size: 20,
+                        child: GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          behavior: HitTestBehavior.opaque,
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8.0),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SvgPicture.asset(
+                                  'assets/icons/arrow-left.svg',
+                                  width: 24,
+                                  height: 24,
+                                  colorFilter: const ColorFilter.mode(
+                                    AppColors.white,
+                                    BlendMode.srcIn,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Atrás',
+                                  style: AppTypography.body4.copyWith(
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
@@ -139,7 +166,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                     mode: AnimalCardMode.detailHeader,
                                   ),
                                   const SizedBox(
-                                    height: 16,
+                                    height: 14,
                                   ), // Spacing between image and text
                                   // Info section
                                   Expanded(child: _buildInfoSection()),
@@ -147,17 +174,17 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                               ),
                             ),
 
-                            const SizedBox(height: AppSpacing.l),
+                            const SizedBox(height: AppSpacing.xl),
 
                             // Action buttons
                             _buildActionButtons(),
 
-                            const SizedBox(height: AppSpacing.l),
+                            const SizedBox(height: AppSpacing.xl),
 
                             // Options list
                             _buildOptionsList(),
 
-                            const SizedBox(height: AppSpacing.xl),
+                            const SizedBox(height: AppSpacing.l),
 
                             // Footer logo
                             _buildFooterLogo(),
@@ -201,17 +228,20 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         ? animal.diagnosis.join(', ')
         : 'No registrado';
 
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildInfoRow('Temperamento:', temperamentText),
-          const SizedBox(height: 6),
-          _buildInfoRow('Alergias a:', allergiesText),
-          const SizedBox(height: 6),
-          _buildInfoRow('Diagnosticado con:', diagnosisText),
-        ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildInfoRow('Temperamento:', temperamentText),
+            const SizedBox(height: 6),
+            _buildInfoRow('Alergias a:', allergiesText),
+            const SizedBox(height: 6),
+            _buildInfoRow('Diagnosticado con:', diagnosisText),
+          ],
+        ),
       ),
     );
   }
@@ -222,11 +252,11 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         children: [
           TextSpan(
             text: '$label ',
-            style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+            style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),
           TextSpan(
             text: value,
-            style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
+            style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
           ),
         ],
       ),
@@ -240,19 +270,19 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildActionButton(
-          icon: Icons.book_outlined,
+          iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
           onTap: () {},
         ),
-        const SizedBox(width: AppSpacing.xxl),
+        const SizedBox(width: 74),
         _buildActionButton(
-          icon: Icons.swap_horiz_rounded,
+          iconPath: 'assets/icons/vuesax-bold-send-sqaure-2.svg',
           label: 'Transferir',
           onTap: () {},
         ),
-        const SizedBox(width: AppSpacing.xxl),
+        const SizedBox(width: 74),
         _buildActionButton(
-          icon: Icons.share_outlined,
+          iconPath: 'assets/icons/vuesax-bold-scan-barcode.svg',
           label: 'Compartir',
           onTap: () {},
         ),
@@ -261,37 +291,53 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   }
 
   Widget _buildActionButton({
-    required IconData icon,
+    required String iconPath,
     required String label,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.white.withValues(alpha: 0.15),
-              borderRadius: AppBorders.medium(),
-              border: Border.all(
-                color: AppColors.white.withValues(alpha: 0.2),
-                width: 1,
+      child: SizedBox(
+        height: 66,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1A345C),
+                borderRadius: AppBorders.medium(),
+              ),
+              child: SvgPicture.asset(
+                iconPath,
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.white,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
-            child: Icon(icon, size: 24, color: AppColors.white),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            label,
-            style: AppTypography.body6.copyWith(
-              color: AppColors.white.withValues(alpha: 0.85),
+            const SizedBox(
+              height: 4,
+            ), // Reduced slightly to fit exactly in 66px with text
+            Expanded(
+              child: Text(
+                label,
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.white.withValues(alpha: 0.85),
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
