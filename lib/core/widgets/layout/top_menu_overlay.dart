@@ -70,47 +70,47 @@ class TopMenuOverlay extends StatelessWidget {
           top: 0,
           left: 0,
           right: 0,
-          child: SafeArea(
-            bottom: false,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // The expanding white menu component
-                Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: AppColors.bgBlancoAntiFlash,
-                    borderRadius: AppBorders.onlyBottom(
-                      AppBorders.radiusXLarge,
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.15),
-                        offset: const Offset(0, 4),
-                        blurRadius: 16,
-                      ),
-                    ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // The expanding white menu component
+              Container(
+                width: double.infinity,
+                decoration: BoxDecoration(
+                  color: AppColors.bgBlancoAntiFlash,
+                  borderRadius: AppBorders.onlyBottom(
+                    AppBorders.radiusXLarge,
                   ),
-                  clipBehavior: Clip.antiAlias,
-                  child: AnimatedCrossFade(
-                    duration: const Duration(milliseconds: 450),
-                    firstCurve: Curves.easeOutCubic,
-                    secondCurve: Curves.easeOutCubic,
-                    sizeCurve: Curves.easeOutCubic,
-                    alignment: Alignment.topCenter,
-                    crossFadeState: isOpen
-                        ? CrossFadeState.showSecond
-                        : CrossFadeState.showFirst,
-                    firstChild: const SizedBox(
-                      width: double.infinity,
-                      height: 32, // The persistent white peek area when closed
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      offset: const Offset(0, 4),
+                      blurRadius: 16,
                     ),
-                    secondChild: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 35,
-                        vertical: 16,
-                      ),
-                      child: Column(
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: AnimatedCrossFade(
+                  duration: const Duration(milliseconds: 450),
+                  firstCurve: Curves.easeOutCubic,
+                  secondCurve: Curves.easeOutCubic,
+                  sizeCurve: Curves.easeOutCubic,
+                  alignment: Alignment.topCenter,
+                  crossFadeState: isOpen
+                      ? CrossFadeState.showSecond
+                      : CrossFadeState.showFirst,
+                  firstChild: const SizedBox(
+                    width: double.infinity,
+                    height: 48, // Exact 48px height when closed
+                  ),
+                  secondChild: Padding(
+                    padding: EdgeInsets.only(
+                      left: 35,
+                      right: 35,
+                      top: MediaQuery.of(context).padding.top + 16, // Safe area padding for items when open
+                      bottom: 16,
+                    ),
+                    child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           // Close button row
@@ -134,9 +134,7 @@ class TopMenuOverlay extends StatelessWidget {
                       width: 24,
                       height: 24,
                       colorFilter: ColorFilter.mode(
-                        isOpen
-                            ? AppColors.white.withValues(alpha: 0.5)
-                            : AppColors.white,
+                        isOpen ? AppColors.white : AppColors.white,
                         BlendMode.srcIn,
                       ),
                     ),
@@ -144,7 +142,6 @@ class TopMenuOverlay extends StatelessWidget {
                 ),
               ],
             ),
-          ),
         ),
       ],
     );
