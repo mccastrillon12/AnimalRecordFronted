@@ -96,14 +96,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
                                   errorBuilder: (_, __, ___) =>
                                       SvgPicture.asset(
                                         _iconForFamily(animal.family),
-                                        width: 40,
+                                        width: AppSpacing.iconSizeMedium,
                                         height: 35,
                                       ),
                                 ),
                               )
                             : SvgPicture.asset(
                                 _iconForFamily(animal.family),
-                                width: 40,
+                                width: AppSpacing.iconSizeMedium,
                                 height: 35,
                               ),
                       ),
@@ -123,7 +123,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                           child: const Icon(
                             Icons.edit,
                             color: Colors.white,
-                            size: 16,
+                            size: AppSpacing.m,
                           ),
                         ),
                       ),
@@ -141,7 +141,11 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    Icon(Icons.edit, size: 16, color: AppColors.greyBordes),
+                    Icon(
+                      Icons.edit,
+                      size: AppSpacing.m,
+                      color: AppColors.greyBordes,
+                    ),
                   ],
                 ),
                 Text(
@@ -171,14 +175,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
             label: 'No esterilizado',
             onChanged: onReproductiveStateChanged,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           CustomRadioButton<String>(
             value: 'desconocido',
             groupValue: reproductiveState,
             label: 'Desconocido',
             onChanged: onReproductiveStateChanged,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
 
           // Fecha de nacimiento
           CustomDateField(
@@ -188,7 +192,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             enabled: !unknownExactDate,
             showAge: true,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
 
           // Toggle fecha exacta
           GestureDetector(
@@ -198,7 +202,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                 AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
                   width: 44,
-                  height: 24,
+                  height: AppSpacing.iconSizeSmall,
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     color: unknownExactDate
@@ -233,7 +237,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
 
           // Color y marcas
           _buildTextArea(
@@ -241,14 +245,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
             hint: 'Haz una breve descripción',
             controller: colorDescController,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
 
           // Identificación
           Text(
             '¿Tiene identificación? (Chip, arete, otros)',
             style: AppTypography.body6,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               CustomRadioButton<String>(
@@ -268,7 +272,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
           ),
 
           if (hasIdentification == 'si') ...[
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomDropdownField<String>(
               label: 'Tipo de identificación',
               hint: 'Seleccionar',
@@ -281,17 +285,17 @@ class AnimalInfoBasicTab extends StatelessWidget {
               ],
               onChanged: (_) {},
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Número de identificación',
               controller: TextEditingController(),
             ),
           ],
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
 
           // Asociación
           Text('¿Pertenece a alguna asociación?', style: AppTypography.body6),
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Row(
             children: [
               CustomRadioButton<String>(
@@ -317,9 +321,18 @@ class AnimalInfoBasicTab extends StatelessWidget {
               value: selectedAssociation,
               isInline: true,
               items: const [
-                DropdownMenuItem(value: 'Asociación 1', child: Text('Asociación 1')),
-                DropdownMenuItem(value: 'Asociación 2', child: Text('Asociación 2')),
-                DropdownMenuItem(value: 'Asociación 3', child: Text('Asociación 3')),
+                DropdownMenuItem(
+                  value: 'Asociación 1',
+                  child: Text('Asociación 1'),
+                ),
+                DropdownMenuItem(
+                  value: 'Asociación 2',
+                  child: Text('Asociación 2'),
+                ),
+                DropdownMenuItem(
+                  value: 'Asociación 3',
+                  child: Text('Asociación 3'),
+                ),
               ],
               onChanged: onAssociationChanged,
             ),

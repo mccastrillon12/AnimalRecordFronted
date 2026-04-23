@@ -96,12 +96,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _weightKgController = TextEditingController(
       text: a.weight != null ? a.weight.toString() : '',
     )..addListener(_onFieldChanged);
-    _colorDescController = TextEditingController(
-      text: a.colorAndMarkings ?? '',
-    )..addListener(_onFieldChanged);
+    _colorDescController = TextEditingController(text: a.colorAndMarkings ?? '')
+      ..addListener(_onFieldChanged);
     _hasIdentification = a.hasChip ? 'si' : 'no';
     _belongsToAssociation = a.isAssociationMember ? 'si' : 'no';
-    _selectedAssociation = null; // Backend does not currently store the association name
+    _selectedAssociation =
+        null; // Backend does not currently store the association name
 
     _selectedTemperaments = List<String>.from(a.temperament);
     _allergyController = TextEditingController(text: a.allergies ?? '')
@@ -284,7 +284,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     return BlocListener<AnimalCubit, AnimalState>(
       listener: (context, state) {
         if (state is AnimalUpdated) {
-          ErrorDisplay.showSuccess(context, 'Información guardada exitosamente.');
+          ErrorDisplay.showSuccess(
+            context,
+            'Información guardada exitosamente.',
+          );
           _updateOriginalsToCurrent();
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalError) {
@@ -328,7 +331,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         Align(
                           alignment: Alignment.topRight,
                           child: Padding(
-                            padding: const EdgeInsets.only(top: AppSpacing.m, right: AppSpacing.l),
+                            padding: const EdgeInsets.only(
+                              top: AppSpacing.m,
+                              right: AppSpacing.l,
+                            ),
                             child: IconButton(
                               onPressed: () => Navigator.pop(context),
                               icon: const Icon(Icons.close),
@@ -347,7 +353,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                               color: Colors.white,
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+                                  color: const Color(
+                                    0xFF0F1925,
+                                  ).withValues(alpha: 0.08),
                                   offset: const Offset(0, 4),
                                   blurRadius: 8,
                                 ),
@@ -355,7 +363,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                             ),
                             child: TabBar(
                               controller: _tabController,
-                              dividerColor: Colors.transparent, // Disable default line
+                              dividerColor:
+                                  Colors.transparent, // Disable default line
                               labelColor: AppColors.textPrimary,
                               unselectedLabelColor: AppColors.greyMedio,
                               labelStyle: AppTypography.body3.copyWith(
@@ -364,14 +373,15 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                               unselectedLabelStyle: AppTypography.body4,
                               indicatorColor: AppColors.primaryFrances,
                               indicatorWeight: 2,
-                              indicatorSize: TabBarIndicatorSize.label, // Indicator matches text width
+                              indicatorSize: TabBarIndicatorSize
+                                  .label, // Indicator matches text width
                               tabs: const [
-                              Tab(text: 'Datos básicos'),
-                              Tab(text: 'Info. Adicional'),
-                              Tab(text: 'General'),
-                            ],
+                                Tab(text: 'Datos básicos'),
+                                Tab(text: 'Info. Adicional'),
+                                Tab(text: 'General'),
+                              ],
+                            ),
                           ),
-                        ),
                         ),
 
                         // Tab content
@@ -440,8 +450,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                     },
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.errorRojo,
-                                      minimumSize: const Size(double.infinity, 36),
-                                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        36,
+                                      ),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
                                       side: const BorderSide(
                                         color: AppColors.errorRojo,
                                         width: 1,
@@ -458,17 +472,20 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                     ),
                                   )
                                 : (_hasChanges
-                                    ? BlocBuilder<AnimalCubit, AnimalState>(
-                                        builder: (context, state) {
-                                          final isUpdating = state is AnimalUpdating;
-                                          return CustomButton(
-                                            text: 'Guardar cambios',
-                                            isLoading: isUpdating,
-                                            onPressed: isUpdating ? null : _saveChanges,
-                                          );
-                                        },
-                                      )
-                                    : const SizedBox.shrink()),
+                                      ? BlocBuilder<AnimalCubit, AnimalState>(
+                                          builder: (context, state) {
+                                            final isUpdating =
+                                                state is AnimalUpdating;
+                                            return CustomButton(
+                                              text: 'Guardar cambios',
+                                              isLoading: isUpdating,
+                                              onPressed: isUpdating
+                                                  ? null
+                                                  : _saveChanges,
+                                            );
+                                          },
+                                        )
+                                      : const SizedBox.shrink()),
                           ),
                         ),
                       ],

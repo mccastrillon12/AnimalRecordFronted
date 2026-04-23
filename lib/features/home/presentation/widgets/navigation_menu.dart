@@ -147,8 +147,8 @@ class _NavigationMenuState extends State<NavigationMenu> {
           },
           child: SvgPicture.asset(
             _isExpanded ? 'assets/icons/Up.svg' : 'assets/icons/Down.svg',
-            width: 24,
-            height: 24,
+            width: AppSpacing.iconSizeSmall,
+            height: AppSpacing.iconSizeSmall,
             colorFilter: const ColorFilter.mode(
               AppColors.greyBordes,
               BlendMode.srcIn,
@@ -192,8 +192,8 @@ class _NavItem extends StatelessWidget {
           children: [
             SvgPicture.asset(
               svgPath,
-              width: 24,
-              height: 24,
+              width: AppSpacing.iconSizeSmall,
+              height: AppSpacing.iconSizeSmall,
               colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
             ),
 

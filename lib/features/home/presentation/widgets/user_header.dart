@@ -21,171 +21,177 @@ class UserHeader extends StatelessWidget {
         child: SizedBox(
           height: 168,
           child: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: 0),
-            child: Image.asset(
-              'assets/Logo/Imagotipo_blanco.png',
-              width: 40,
-              height: 28,
-              fit: BoxFit.contain,
-            ),
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.l,
-              vertical: AppSpacing.m,
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryIndigo,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: BlocBuilder<AuthBloc, AuthState>(
-                      builder: (context, state) {
-                        String name = '';
-                        String? profilePic;
-                        if (state is AuthSuccess) {
-                          name = state.user.name;
-                          profilePic = state.user.profilePicture;
-                        }
-
-                        if (profilePic != null && profilePic.isNotEmpty) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: CachedNetworkImage(
-                              imageUrl: profilePic,
-                              fit: BoxFit.cover,
-                              width: 52,
-                              height: 52,
-                              fadeInDuration: Duration.zero,
-                              fadeOutDuration: Duration.zero,
-                              placeholder: (context, url) =>
-                                  _buildInitials(name),
-                              errorWidget: (context, url, error) =>
-                                  _buildInitials(name),
-                            ),
-                          );
-                        }
-
-                        return _buildInitials(name);
-                      },
-                    ),
-                  ),
+            children: [
+              Padding(
+                padding: const EdgeInsets.only(top: AppSpacing.xxxl, bottom: 0),
+                child: Image.asset(
+                  'assets/Logo/Imagotipo_blanco.png',
+                  width: AppSpacing.iconSizeMedium,
+                  height: 28,
+                  fit: BoxFit.contain,
                 ),
+              ),
 
-                const SizedBox(width: AppSpacing.xs),
-
-                Expanded(
-                  child: BlocBuilder<AuthBloc, AuthState>(
-                    buildWhen: (previous, current) {
-                      if (current is AuthSuccess || previous is AuthSuccess) {
-                        return true;
-                      }
-                      return false;
-                    },
-                    builder: (context, state) {
-                      String name = 'Usuario';
-                      String role = 'Propietario';
-
-                      if (state is AuthSuccess) {
-                        name = state.user.name;
-                        if (state.user.roles.isNotEmpty) {
-                          role = state.user.roles.first == 'PROPIETARIO_MASCOTA'
-                              ? 'Propietario'
-                              : state.user.roles.first;
-                        }
-                      }
-
-                      return GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, AppRoutes.profile),
-                        behavior: HitTestBehavior.opaque,
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            SizedBox(
-                              height: 21,
-                              child: Align(
-                                alignment: Alignment.centerLeft,
-                                child: RichText(
-                                  text: TextSpan(
-                                    children: [
-                                      TextSpan(
-                                        text: 'Hola, ',
-                                        style: AppTypography.heading2.copyWith(
-                                          color: AppColors.white.withOpacity(
-                                            0.54,
-                                          ),
-                                          fontWeight: FontWeight.normal,
-                                        ),
-                                      ),
-                                      TextSpan(
-                                        text: _formatName(name),
-                                        style: AppTypography.heading2.copyWith(
-                                          color: AppColors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 1,
-                                ),
-                              ),
-                            ),
-
-                            const SizedBox(height: 4),
-
-                            Container(
-                              height: 21,
-                              alignment: Alignment.centerLeft,
-                              child: Text(
-                                role,
-                                style: AppTypography.body4.copyWith(
-                                  color: AppColors.primaryAzulClaro,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                                maxLines: 1,
-                              ),
-                            ),
-                          ],
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppSpacing.l,
+                  vertical: AppSpacing.m,
+                ),
+                child: Row(
+                  children: [
+                    GestureDetector(
+                      onTap: () =>
+                          Navigator.pushNamed(context, AppRoutes.profile),
+                      child: Container(
+                        width: 52,
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: AppColors.primaryIndigo,
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      );
-                    },
-                  ),
-                ),
+                        child: BlocBuilder<AuthBloc, AuthState>(
+                          builder: (context, state) {
+                            String name = '';
+                            String? profilePic;
+                            if (state is AuthSuccess) {
+                              name = state.user.name;
+                              profilePic = state.user.profilePicture;
+                            }
 
-                SizedBox(
-                  width: 42,
-                  height: 42,
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    icon: SvgPicture.asset(
-                      'assets/icons/notification.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: const ColorFilter.mode(
-                        AppColors.white,
-                        BlendMode.srcIn,
+                            if (profilePic != null && profilePic.isNotEmpty) {
+                              return ClipRRect(
+                                borderRadius: BorderRadius.circular(12),
+                                child: CachedNetworkImage(
+                                  imageUrl: profilePic,
+                                  fit: BoxFit.cover,
+                                  width: 52,
+                                  height: 52,
+                                  fadeInDuration: Duration.zero,
+                                  fadeOutDuration: Duration.zero,
+                                  placeholder: (context, url) =>
+                                      _buildInitials(name),
+                                  errorWidget: (context, url, error) =>
+                                      _buildInitials(name),
+                                ),
+                              );
+                            }
+
+                            return _buildInitials(name);
+                          },
+                        ),
                       ),
                     ),
-                    onPressed: () {},
-                  ),
+
+                    const SizedBox(width: AppSpacing.xs),
+
+                    Expanded(
+                      child: BlocBuilder<AuthBloc, AuthState>(
+                        buildWhen: (previous, current) {
+                          if (current is AuthSuccess ||
+                              previous is AuthSuccess) {
+                            return true;
+                          }
+                          return false;
+                        },
+                        builder: (context, state) {
+                          String name = 'Usuario';
+                          String role = 'Propietario';
+
+                          if (state is AuthSuccess) {
+                            name = state.user.name;
+                            if (state.user.roles.isNotEmpty) {
+                              role =
+                                  state.user.roles.first ==
+                                      'PROPIETARIO_MASCOTA'
+                                  ? 'Propietario'
+                                  : state.user.roles.first;
+                            }
+                          }
+
+                          return GestureDetector(
+                            onTap: () =>
+                                Navigator.pushNamed(context, AppRoutes.profile),
+                            behavior: HitTestBehavior.opaque,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                SizedBox(
+                                  height: 21,
+                                  child: Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: RichText(
+                                      text: TextSpan(
+                                        children: [
+                                          TextSpan(
+                                            text: 'Hola, ',
+                                            style: AppTypography.heading2
+                                                .copyWith(
+                                                  color: AppColors.white
+                                                      .withOpacity(0.54),
+                                                  fontWeight: FontWeight.normal,
+                                                ),
+                                          ),
+                                          TextSpan(
+                                            text: _formatName(name),
+                                            style: AppTypography.heading2
+                                                .copyWith(
+                                                  color: AppColors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                          ),
+                                        ],
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 4),
+
+                                Container(
+                                  height: 21,
+                                  alignment: Alignment.centerLeft,
+                                  child: Text(
+                                    role,
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.primaryAzulClaro,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+
+                    SizedBox(
+                      width: 42,
+                      height: 42,
+                      child: IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        icon: SvgPicture.asset(
+                          'assets/icons/notification.svg',
+                          width: AppSpacing.iconSizeSmall,
+                          height: AppSpacing.iconSizeSmall,
+                          colorFilter: const ColorFilter.mode(
+                            AppColors.white,
+                            BlendMode.srcIn,
+                          ),
+                        ),
+                        onPressed: () {},
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
         ),
       ),
     );

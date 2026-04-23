@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 /// Display mode for the animal card.
@@ -61,7 +62,7 @@ class AnimalCard extends StatelessWidget {
           // Photo
           _buildPhoto(size: 52, borderRadius: 8),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.m),
 
           // Info column
           Expanded(
@@ -103,7 +104,7 @@ class AnimalCard extends StatelessWidget {
                 ),
 
                 if (animal.sexDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   // Sex tag
                   _buildSexTag(),
                 ],
@@ -151,7 +152,7 @@ class AnimalCard extends StatelessWidget {
           // Photo
           _buildPhoto(size: 52, borderRadius: 8),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
 
           // Name
           Text(
@@ -192,7 +193,7 @@ class AnimalCard extends StatelessWidget {
           // Photo
           _buildPhoto(size: 32, borderRadius: 5),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.s),
 
           // Name + Code
           Expanded(
@@ -223,8 +224,8 @@ class AnimalCard extends StatelessWidget {
             onTap: onMenuTap,
             child: SvgPicture.asset(
               'assets/icons/icon_ContextMenu.svg',
-              width: 24,
-              height: 24,
+              width: AppSpacing.iconSizeSmall,
+              height: AppSpacing.iconSizeSmall,
               colorFilter: const ColorFilter.mode(
                 AppColors.greyMedio,
                 BlendMode.srcIn,

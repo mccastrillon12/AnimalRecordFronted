@@ -79,7 +79,9 @@ class AnimalModel {
         break;
       default:
         if (entity.species.isNotEmpty) {
-          familyLabel = entity.species[0].toUpperCase() + entity.species.substring(1).toLowerCase();
+          familyLabel =
+              entity.species[0].toUpperCase() +
+              entity.species.substring(1).toLowerCase();
         } else {
           familyLabel = entity.species;
         }
@@ -87,7 +89,9 @@ class AnimalModel {
 
     String formattedName = entity.name.trim();
     if (formattedName.isNotEmpty) {
-      formattedName = formattedName[0].toUpperCase() + formattedName.substring(1).toLowerCase();
+      formattedName =
+          formattedName[0].toUpperCase() +
+          formattedName.substring(1).toLowerCase();
     }
 
     // Calculate age from birthdate
@@ -97,7 +101,7 @@ class AnimalModel {
         final birthDate = DateTime.parse(entity.birthdate!);
         final now = DateTime.now();
         final days = now.difference(birthDate).inDays;
-        
+
         if (days < 30) {
           calculatedAgeDisplay = '$days día${days == 1 ? '' : 's'}';
         } else if (days < 365) {
@@ -106,7 +110,8 @@ class AnimalModel {
           calculatedAgeDisplay = '$months mes${months == 1 ? '' : 'es'}';
         } else {
           int years = now.year - birthDate.year;
-          if (now.month < birthDate.month || (now.month == birthDate.month && now.day < birthDate.day)) {
+          if (now.month < birthDate.month ||
+              (now.month == birthDate.month && now.day < birthDate.day)) {
             years--;
           }
           calculatedAgeDisplay = '$years año${years == 1 ? '' : 's'}';
@@ -154,8 +159,6 @@ class AnimalModel {
       birthCondition: entity.birthCondition,
     );
   }
-
-
 
   String get sexDisplay {
     if (sex == null) return '';

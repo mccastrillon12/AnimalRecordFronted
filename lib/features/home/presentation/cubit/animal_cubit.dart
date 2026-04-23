@@ -35,13 +35,10 @@ class AnimalCubit extends Cubit<AnimalState> {
 
     final result = await getAnimalsByOwnerUseCase(ownerId);
 
-    result.fold(
-      (failure) => emit(AnimalError(failure.message)),
-      (animals) {
-        _animals = animals;
-        emit(AnimalsLoaded(animals));
-      },
-    );
+    result.fold((failure) => emit(AnimalError(failure.message)), (animals) {
+      _animals = animals;
+      emit(AnimalsLoaded(animals));
+    });
   }
 
   Future<void> createAnimal(CreateAnimalParams params) async {
@@ -50,7 +47,8 @@ class AnimalCubit extends Cubit<AnimalState> {
     final result = await createAnimalUseCase(params);
 
     result.fold(
-      (failure) => emit(AnimalError(failure.message, existingAnimals: _animals)),
+      (failure) =>
+          emit(AnimalError(failure.message, existingAnimals: _animals)),
       (animal) {
         _animals = [..._animals, animal];
         emit(AnimalCreated(animal, allAnimals: _animals));
@@ -64,7 +62,8 @@ class AnimalCubit extends Cubit<AnimalState> {
     final result = await updateAnimalUseCase(params);
 
     result.fold(
-      (failure) => emit(AnimalError(failure.message, existingAnimals: _animals)),
+      (failure) =>
+          emit(AnimalError(failure.message, existingAnimals: _animals)),
       (updatedAnimal) async {
         if (_currentOwnerId != null) {
           // Re-fetch to guarantee we have all backend-generated fields (like code, image, etc.)
@@ -73,21 +72,27 @@ class AnimalCubit extends Cubit<AnimalState> {
           fetchResult.fold(
             (l) {
               // Fallback if re-fetch fails
-              _animals = _animals.map((a) => a.id == updatedAnimal.id ? updatedAnimal : a).toList();
+              _animals = _animals
+                  .map((a) => a.id == updatedAnimal.id ? updatedAnimal : a)
+                  .toList();
               emit(AnimalUpdated(updatedAnimal, allAnimals: _animals));
             },
             (fetchedAnimals) {
               _animals = fetchedAnimals;
               AnimalEntity realUpdated = updatedAnimal;
               try {
-                realUpdated = _animals.firstWhere((a) => a.id == updatedAnimal.id);
+                realUpdated = _animals.firstWhere(
+                  (a) => a.id == updatedAnimal.id,
+                );
               } catch (_) {}
-              
+
               emit(AnimalUpdated(realUpdated, allAnimals: _animals));
             },
           );
         } else {
-          _animals = _animals.map((a) => a.id == updatedAnimal.id ? updatedAnimal : a).toList();
+          _animals = _animals
+              .map((a) => a.id == updatedAnimal.id ? updatedAnimal : a)
+              .toList();
           emit(AnimalUpdated(updatedAnimal, allAnimals: _animals));
         }
       },

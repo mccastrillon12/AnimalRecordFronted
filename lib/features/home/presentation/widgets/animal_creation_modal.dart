@@ -340,13 +340,13 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               onHasIdentificationChanged: (v) =>
                   setState(() => _hasIdentification = v),
               belongsToAssociation: _belongsToAssociation,
-              onBelongsToAssociationChanged: (v) =>
-                  setState(() {
-                    _belongsToAssociation = v;
-                    if (v != 'si') _selectedAssociation = null;
-                  }),
+              onBelongsToAssociationChanged: (v) => setState(() {
+                _belongsToAssociation = v;
+                if (v != 'si') _selectedAssociation = null;
+              }),
               selectedAssociation: _selectedAssociation,
-              onAssociationChanged: (v) => setState(() => _selectedAssociation = v),
+              onAssociationChanged: (v) =>
+                  setState(() => _selectedAssociation = v),
               isValid: _isStep2Valid,
               onContinue: _isStep2Valid ? _goNext : null,
             );
@@ -429,13 +429,13 @@ class _FamilySelectionStep extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
           Text(
             'Elige a qué familia pertenece tu animal',
-            style: AppTypography.body4.copyWith(),
+            style: AppTypography.body4,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.l),
           SizedBox(
             width: 170,
             child: Wrap(
@@ -486,12 +486,13 @@ class _FamilyCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(iconAsset, width: 40, height: 35),
-            const SizedBox(height: 2),
-            Text(
-              name,
-              style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
+            SvgPicture.asset(
+              iconAsset,
+              width: AppSpacing.iconSizeMedium,
+              height: 35,
             ),
+            const SizedBox(height: 2),
+            Text(name, style: AppTypography.body5),
           ],
         ),
       ),
@@ -605,18 +606,18 @@ class _AnimalInfoStep extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Photo area
                         _buildPhotoArea(),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Name
                         CustomTextField(
                           label: 'Nombre',
                           controller: nameController,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Breed dropdown
                         CustomDropdownField<String>(
@@ -637,11 +638,11 @@ class _AnimalInfoStep extends StatelessWidget {
                               .toList(),
                           onChanged: onBreedChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Sex
                         Text('Sexo', style: AppTypography.body6),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
                             CustomRadioButton<String>(
@@ -650,7 +651,7 @@ class _AnimalInfoStep extends StatelessWidget {
                               label: 'Macho',
                               onChanged: onSexChanged,
                             ),
-                            const SizedBox(width: 56),
+                            const SizedBox(width: AppSpacing.xxxl),
                             CustomRadioButton<String>(
                               value: 'hembra',
                               groupValue: selectedSex,
@@ -659,32 +660,32 @@ class _AnimalInfoStep extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Reproductive state
                         Text('Estado reproductivo', style: AppTypography.body6),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         CustomRadioButton<String>(
                           value: 'esterilizado',
                           groupValue: reproductiveState,
                           label: 'Esterilizado',
                           onChanged: onReproductiveStateChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
                         CustomRadioButton<String>(
                           value: 'no_esterilizado',
                           groupValue: reproductiveState,
                           label: 'No esterilizado',
                           onChanged: onReproductiveStateChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
                         CustomRadioButton<String>(
                           value: 'desconocido',
                           groupValue: reproductiveState,
                           label: 'Desconocido',
                           onChanged: onReproductiveStateChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Birth date
                         CustomDateField(
@@ -694,7 +695,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           enabled: !unknownExactDate,
                           showAge: true,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Unknown date toggle
                         _buildToggle(
@@ -702,7 +703,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: unknownExactDate,
                           onChanged: onUnknownExactDateChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Weight
                         RichText(
@@ -732,7 +733,7 @@ class _AnimalInfoStep extends StatelessWidget {
                                 keyboardType: TextInputType.number,
                               ),
                             ),
-                            const SizedBox(width: 16),
+                            const SizedBox(width: AppSpacing.m),
                             Expanded(
                               child: CustomTextField(
                                 label: '',
@@ -743,7 +744,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Color and markings
                         _buildTextArea(
@@ -751,14 +752,14 @@ class _AnimalInfoStep extends StatelessWidget {
                           hint: 'Haz una breve descripción',
                           controller: colorDescController,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Has identification?
                         Text(
                           '¿Tiene identificación? (Chip, arete, otros)',
                           style: AppTypography.body6,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
                             CustomRadioButton<String>(
@@ -767,7 +768,7 @@ class _AnimalInfoStep extends StatelessWidget {
                               label: 'Si',
                               onChanged: onHasIdentificationChanged,
                             ),
-                            const SizedBox(width: 56),
+                            const SizedBox(width: AppSpacing.xxxl),
                             CustomRadioButton<String>(
                               value: 'no',
                               groupValue: hasIdentification,
@@ -776,14 +777,14 @@ class _AnimalInfoStep extends StatelessWidget {
                             ),
                           ],
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Belongs to association?
                         Text(
                           '¿Pertenece a alguna asociación?',
                           style: AppTypography.body6,
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
                             CustomRadioButton<String>(
@@ -792,7 +793,7 @@ class _AnimalInfoStep extends StatelessWidget {
                               label: 'Si',
                               onChanged: onBelongsToAssociationChanged,
                             ),
-                            const SizedBox(width: 56),
+                            const SizedBox(width: AppSpacing.xxxl),
                             CustomRadioButton<String>(
                               value: 'no',
                               groupValue: belongsToAssociation,
@@ -802,21 +803,30 @@ class _AnimalInfoStep extends StatelessWidget {
                           ],
                         ),
                         if (belongsToAssociation == 'si') ...[
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.m),
                           CustomDropdownField<String>(
                             label: 'Asociaciones',
                             hint: 'Seleccionar asociación',
                             value: selectedAssociation,
                             isInline: true,
                             items: const [
-                              DropdownMenuItem(value: 'Asociación 1', child: Text('Asociación 1')),
-                              DropdownMenuItem(value: 'Asociación 2', child: Text('Asociación 2')),
-                              DropdownMenuItem(value: 'Asociación 3', child: Text('Asociación 3')),
+                              DropdownMenuItem(
+                                value: 'Asociación 1',
+                                child: Text('Asociación 1'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Asociación 2',
+                                child: Text('Asociación 2'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'Asociación 3',
+                                child: Text('Asociación 3'),
+                              ),
                             ],
                             onChanged: onAssociationChanged,
                           ),
                         ],
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
                       ],
                     ),
                   ),
@@ -875,7 +885,7 @@ class _AnimalInfoStep extends StatelessWidget {
                 child: Center(
                   child: SvgPicture.asset(
                     _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
-                    width: 40,
+                    width: AppSpacing.iconSizeMedium,
                     height: 35,
                   ),
                 ),
@@ -898,7 +908,7 @@ class _AnimalInfoStep extends StatelessWidget {
                     child: const Icon(
                       Icons.edit,
                       color: Colors.white,
-                      size: 16,
+                      size: AppSpacing.m,
                     ),
                   ),
                 ),
@@ -923,7 +933,7 @@ class _AnimalInfoStep extends StatelessWidget {
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             width: 44,
-            height: 24,
+            height: AppSpacing.iconSizeSmall,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
               color: value
@@ -1113,14 +1123,14 @@ class _AdditionalInfoStep extends StatelessWidget {
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Allergy
                         CustomTextField(
                           label: 'Alergia a (Opcional)',
                           controller: allergyController,
                         ),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: AppSpacing.m),
 
                         // Diagnoses checkboxes
                         Text(
@@ -1129,7 +1139,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                             color: AppColors.greyNegroV2,
                           ),
                         ),
-                        const SizedBox(height: 8),
+                        const SizedBox(height: AppSpacing.xs),
 
                         ...diagnoses.entries.map(
                           (entry) => Padding(
@@ -1150,11 +1160,11 @@ class _AdditionalInfoStep extends StatelessWidget {
                             label: '¿Cuál?',
                             controller: otherDiagnosisController,
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.m),
                         ],
 
                         if (diagnoses['Otro'] != true)
-                          const SizedBox(height: 16),
+                          const SizedBox(height: AppSpacing.m),
                       ],
                     ),
                   ),
@@ -1177,12 +1187,15 @@ class _AdditionalInfoStep extends StatelessWidget {
                   onPressed: isValid && !isLoading ? onSave : null,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: AppSpacing.l),
               GestureDetector(
                 onTap: isValid && !isLoading ? onSaveAndAddAnother : null,
                 behavior: HitTestBehavior.opaque,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 8.0,
+                    horizontal: 16.0,
+                  ),
                   child: Text(
                     'Guardar y agregar otro animal',
                     style: AppTypography.body3.copyWith(
@@ -1193,7 +1206,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: AppSpacing.xs),
             ],
           ),
         ),

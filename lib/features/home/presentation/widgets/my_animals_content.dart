@@ -110,7 +110,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.l),
 
                 // Search bar + view toggle + filter
                 Padding(
@@ -120,7 +120,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                       // Search field
                       Expanded(
                         child: SizedBox(
-                          height: 40,
+                          height: AppSpacing.iconSizeMedium,
                           child: TextField(
                             controller: _searchController,
                             onChanged: (v) => setState(() => _searchQuery = v),
@@ -141,8 +141,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                 ),
                                 child: SvgPicture.asset(
                                   'assets/icons/vuesax-linear-search-2.svg',
-                                  width: 24,
-                                  height: 24,
+                                  width: AppSpacing.iconSizeSmall,
+                                  height: AppSpacing.iconSizeSmall,
                                   colorFilter: const ColorFilter.mode(
                                     Color(0xFF59667A),
                                     BlendMode.srcIn,
@@ -182,7 +182,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                         ),
                       ),
 
-                      const SizedBox(width: 24),
+                      const SizedBox(width: AppSpacing.l),
 
                       // View toggle
                       _buildIconButton(
@@ -194,13 +194,13 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                             AppColors.greyMedio,
                             BlendMode.srcIn,
                           ),
-                          width: 24,
-                          height: 24,
+                          width: AppSpacing.iconSizeSmall,
+                          height: AppSpacing.iconSizeSmall,
                         ),
                         onTap: _toggleViewMode,
                       ),
 
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.m),
 
                       // Filter button
                       _buildIconButton(
@@ -210,8 +210,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                             AppColors.greyMedio,
                             BlendMode.srcIn,
                           ),
-                          width: 24,
-                          height: 24,
+                          width: AppSpacing.iconSizeSmall,
+                          height: AppSpacing.iconSizeSmall,
                         ),
                         onTap: () {
                           // TODO: Implement filter
@@ -221,7 +221,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.m),
 
                 // Grouped animals
                 Expanded(
@@ -267,8 +267,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4),
@@ -305,19 +305,20 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               Text(family, style: AppTypography.heading2.copyWith()),
               SvgPicture.asset(
                 'assets/icons/arrow-right.svg',
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
               ),
             ],
           ),
         ),
 
-        if (_viewMode == AnimalCardMode.grid) const SizedBox(height: 16),
+        if (_viewMode == AnimalCardMode.grid)
+          const SizedBox(height: AppSpacing.m),
         _viewMode == AnimalCardMode.grid
             ? _buildGroupGrid(animals)
             : _buildGroupList(animals),
 
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.l),
       ],
     );
   }
@@ -330,7 +331,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,
@@ -386,10 +387,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
       ),
-      constraints: const BoxConstraints(
-        minWidth: 203,
-        maxWidth: 203,
-      ),
+      constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
       color: AppColors.white,
       elevation: 4,
       itemBuilder: (context) => [
@@ -401,8 +399,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             children: [
               SvgPicture.asset(
                 'assets/icons/add-circle.svg',
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
               Text(
@@ -422,8 +420,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             children: [
               SvgPicture.asset(
                 'assets/icons/vuesax-bold-send-sqaure-2.svg',
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
               Text(
@@ -437,8 +435,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         ),
       ],
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.secondaryCoral,
           borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
@@ -453,7 +451,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         child: const Icon(
           Icons.more_vert_rounded,
           color: AppColors.white,
-          size: 24,
+          size: AppSpacing.iconSizeSmall,
         ),
       ),
     );

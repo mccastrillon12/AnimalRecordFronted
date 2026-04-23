@@ -54,7 +54,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.l),
 
           // Temperamento
           CustomMultiSearchDropdown<String>(
@@ -85,9 +85,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           // Diagnósticos
           Text(
             'Diagnosticado con',
-            style: AppTypography.body6.copyWith(
-              color: AppColors.greyNegroV2,
-            ),
+            style: AppTypography.body6.copyWith(color: AppColors.greyNegroV2),
           ),
           const SizedBox(height: AppSpacing.xs),
           ...diagnoses.entries.map(
@@ -109,7 +107,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             ),
             const SizedBox(height: AppSpacing.m),
           ],
-          if (diagnoses['Otro'] != true) const SizedBox(height: 16),
+          if (diagnoses['Otro'] != true) const SizedBox(height: AppSpacing.m),
 
           // Tipo de vivienda
           CustomDropdownField<String>(
@@ -118,7 +116,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             value: housingType,
             items: const [
               DropdownMenuItem(value: 'Casa', child: Text('Casa')),
-              DropdownMenuItem(value: 'Apartamento', child: Text('Apartamento')),
+              DropdownMenuItem(
+                value: 'Apartamento',
+                child: Text('Apartamento'),
+              ),
               DropdownMenuItem(value: 'Finca', child: Text('Finca')),
               DropdownMenuItem(value: 'Otro', child: Text('Otro')),
             ],
@@ -134,8 +135,14 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             items: const [
               DropdownMenuItem(value: 'Compañía', child: Text('Compañía')),
               DropdownMenuItem(value: 'Trabajo', child: Text('Trabajo')),
-              DropdownMenuItem(value: 'Producción de Leche', child: Text('Producción de Leche')),
-              DropdownMenuItem(value: 'Reproducción', child: Text('Reproducción')),
+              DropdownMenuItem(
+                value: 'Producción de Leche',
+                child: Text('Producción de Leche'),
+              ),
+              DropdownMenuItem(
+                value: 'Reproducción',
+                child: Text('Reproducción'),
+              ),
               DropdownMenuItem(value: 'Otro', child: Text('Otro')),
             ],
             onChanged: onPurposeChanged,
@@ -161,7 +168,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             label: 'Condición al nacer',
             controller: birthConditionController,
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.l),
         ],
       ),
     );

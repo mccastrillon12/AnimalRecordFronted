@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
@@ -56,43 +57,43 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.light,
+        statusBarBrightness: Brightness.dark,
+      ),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            if (state is! AuthSuccess) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            // Load animals for the authenticated user
+            final cubit = context.read<AnimalCubit>();
+            cubit.loadAnimals(state.user.id);
+
+            return SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  const UserHeader(),
+
+                  NavigationMenu(
+                    onSectionChanged: _navigateToSection,
+                    activeSection: _activeSection,
+                  ),
+
+                  const SizedBox(height: AppSpacing.l),
+
+                  Expanded(child: _buildContent()),
+                ],
+              ),
+            );
+          },
         ),
-        child: Scaffold(
-          backgroundColor: AppColors.background,
-          body: BlocBuilder<AuthBloc, AuthState>(
-            builder: (context, state) {
-              if (state is! AuthSuccess) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              // Load animals for the authenticated user
-              final cubit = context.read<AnimalCubit>();
-              cubit.loadAnimals(state.user.id);
-
-              return SafeArea(
-                top: false,
-                child: Column(
-                  children: [
-                    const UserHeader(),
-
-                    NavigationMenu(
-                      onSectionChanged: _navigateToSection,
-                      activeSection: _activeSection,
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Expanded(child: _buildContent()),
-                  ],
-                ),
-              );
-            },
-          ),
-        ),
+      ),
     );
   }
 

@@ -33,13 +33,13 @@ class AnimalInfoGeneralTab extends StatelessWidget {
           const SizedBox(height: AppSpacing.xl),
 
           _buildInfoField('Identificación AR', animal.code),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           _buildInfoField('Creada por', 'Marc Doe'),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           _buildInfoField('Última modificación', 'Octubre 30, 2024. 9:02 p.m.'),
-          const SizedBox(height: 16),
+          const SizedBox(height: AppSpacing.m),
           _buildInfoField('Última persona en modificar', 'Marc Doe'),
-          const SizedBox(height: 24),
+          const SizedBox(height: AppSpacing.l),
 
           // Historial de propietarios
           Text(

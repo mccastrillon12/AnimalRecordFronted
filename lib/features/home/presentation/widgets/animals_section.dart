@@ -99,11 +99,11 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               ),
 
               if (hasAnimals) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.m),
                 _viewMode == AnimalCardMode.grid
                     ? _buildGridView(previewAnimals)
                     : _buildListView(previewAnimals),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 // "Ver todos" link
                 Align(
                   alignment: _viewMode == AnimalCardMode.list
@@ -134,8 +134,8 @@ class _AnimalsSectionState extends State<AnimalsSection> {
     return GestureDetector(
       onTap: _toggleViewMode,
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4),
@@ -153,8 +153,8 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                 ? 'assets/icons/vuesax-bold-element-3.svg'
                 : 'assets/icons/vuesax-bold-fatrows.svg',
             colorFilter: ColorFilter.mode(AppColors.greyMedio, BlendMode.srcIn),
-            width: 24,
-            height: 24,
+            width: AppSpacing.iconSizeSmall,
+            height: AppSpacing.iconSizeSmall,
           ),
         ),
       ),
@@ -169,7 +169,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,

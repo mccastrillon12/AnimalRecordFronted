@@ -14,6 +14,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_card.dar
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+
 /// Detail screen for a single animal.
 ///
 /// Receives an [AnimalModel] and displays:
@@ -43,11 +44,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   }
 
   List<TopMenuItem> get _menuItems => [
-    TopMenuItem(
-      svgPath: 'assets/icons/mapa.svg',
-      label: 'Mapa',
-      onTap: () {},
-    ),
+    TopMenuItem(svgPath: 'assets/icons/mapa.svg', label: 'Mapa', onTap: () {}),
     TopMenuItem(
       svgPath: 'assets/icons/+animal.svg',
       label: '+ Animal',
@@ -86,12 +83,16 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
         if (state is AnimalsLoaded) {
           try {
-            final updatedEntity = state.animals.firstWhere((a) => a.id == widget.animal.id);
+            final updatedEntity = state.animals.firstWhere(
+              (a) => a.id == widget.animal.id,
+            );
             currentAnimal = AnimalModel.fromEntity(updatedEntity);
           } catch (_) {}
         } else if (state is AnimalUpdated) {
           try {
-            final updatedEntity = state.allAnimals.firstWhere((a) => a.id == widget.animal.id);
+            final updatedEntity = state.allAnimals.firstWhere(
+              (a) => a.id == widget.animal.id,
+            );
             currentAnimal = AnimalModel.fromEntity(updatedEntity);
           } catch (_) {}
         }
@@ -126,21 +127,23 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                               onTap: () => Navigator.of(context).pop(),
                               behavior: HitTestBehavior.opaque,
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8.0,
+                                ),
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   crossAxisAlignment: CrossAxisAlignment.center,
                                   children: [
                                     SvgPicture.asset(
                                       'assets/icons/arrow-left.svg',
-                                      width: 24,
-                                      height: 24,
+                                      width: AppSpacing.iconSizeSmall,
+                                      height: AppSpacing.iconSizeSmall,
                                       colorFilter: const ColorFilter.mode(
                                         AppColors.white,
                                         BlendMode.srcIn,
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: AppSpacing.xs),
                                     Text(
                                       'Atrás',
                                       style: AppTypography.body4.copyWith(
@@ -170,14 +173,15 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                   width: 311,
                                   height: 339,
                                   padding: const EdgeInsets.all(
-                                    16,
+                                    AppSpacing.m,
                                   ), // 16px padding on all sides per Figma
                                   decoration: BoxDecoration(
                                     color: AppColors.white,
                                     borderRadius: AppBorders.large(),
                                   ),
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.stretch,
                                     children: [
                                       // The hero image
                                       AnimalCard(
@@ -188,7 +192,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                         height: 14,
                                       ), // Spacing between image and text
                                       // Info section
-                                      Expanded(child: _buildInfoSection(currentAnimal)),
+                                      Expanded(
+                                        child: _buildInfoSection(currentAnimal),
+                                      ),
                                     ],
                                   ),
                                 ),
@@ -274,10 +280,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
             text: '$label ',
             style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),
-          TextSpan(
-            text: value,
-            style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
-          ),
+          TextSpan(text: value, style: AppTypography.body4),
         ],
       ),
     );
@@ -324,8 +327,8 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: AppSpacing.iconSizeMedium,
+              height: AppSpacing.iconSizeMedium,
               alignment: Alignment.center,
               decoration: BoxDecoration(
                 color: const Color(0xFF1A345C),
@@ -333,8 +336,8 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               ),
               child: SvgPicture.asset(
                 iconPath,
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
                 colorFilter: const ColorFilter.mode(
                   AppColors.white,
                   BlendMode.srcIn,
