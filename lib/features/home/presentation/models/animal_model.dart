@@ -14,6 +14,21 @@ class AnimalModel {
   final String? allergies;
   final List<String> diagnosis;
 
+  // Fields needed for the info/edit screen
+  final String species;
+  final String reproductiveStatus;
+  final String? birthdate;
+  final double? weight;
+  final String? colorAndMarkings;
+  final bool hasChip;
+  final bool isAssociationMember;
+  final String ownerId;
+  final String? housingType;
+  final String? purpose;
+  final String? feedingType;
+  final String? birthType;
+  final String? birthCondition;
+
   const AnimalModel({
     required this.id,
     required this.name,
@@ -26,6 +41,19 @@ class AnimalModel {
     this.temperament = const [],
     this.allergies,
     this.diagnosis = const [],
+    this.species = '',
+    this.reproductiveStatus = '',
+    this.birthdate,
+    this.weight,
+    this.colorAndMarkings,
+    this.hasChip = false,
+    this.isAssociationMember = false,
+    this.ownerId = '',
+    this.housingType,
+    this.purpose,
+    this.feedingType,
+    this.birthType,
+    this.birthCondition,
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -111,6 +139,19 @@ class AnimalModel {
       temperament: entity.temperament,
       allergies: entity.allergies,
       diagnosis: entity.diagnosis,
+      species: entity.species,
+      reproductiveStatus: entity.reproductiveStatus,
+      birthdate: entity.birthdate,
+      weight: entity.weight,
+      colorAndMarkings: entity.colorAndMarkings,
+      hasChip: entity.hasChip,
+      isAssociationMember: entity.isAssociationMember,
+      ownerId: entity.ownerId,
+      housingType: entity.housingType,
+      purpose: entity.purpose,
+      feedingType: entity.feedingType,
+      birthType: entity.birthType,
+      birthCondition: entity.birthCondition,
     );
   }
 

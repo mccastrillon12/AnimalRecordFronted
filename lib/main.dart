@@ -27,6 +27,7 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_password_s
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -98,6 +99,11 @@ class MyApp extends StatelessWidget {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalDetailScreen(animal: animal);
+          },
+          AppRoutes.animalInfo: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalInfoScreen(animal: animal);
           },
         },
       ),

@@ -1,8 +1,10 @@
+import 'dart:convert';
 import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/home/data/models/animal_data_model.dart';
 
 abstract class AnimalRemoteDataSource {
   Future<AnimalDataModel> createAnimal(Map<String, dynamic> data);
+  Future<AnimalDataModel> updateAnimal(String id, Map<String, dynamic> data);
   Future<List<AnimalDataModel>> getAnimalsByOwner(String ownerId);
 }
 
@@ -15,6 +17,31 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
   Future<AnimalDataModel> createAnimal(Map<String, dynamic> data) async {
     final response = await apiClient.post('/animals', data: data);
     return AnimalDataModel.fromJson(response.data);
+  }
+
+  @override
+  Future<AnimalDataModel> updateAnimal(
+    String id,
+    Map<String, dynamic> data,
+  ) async {
+    final response = await apiClient.put('/animals/$id', data: data);
+    
+    dynamic responseData = response.data;
+    if (responseData is String) {
+      try {
+        responseData = jsonDecode(responseData);
+      } catch (_) {}
+    }
+
+    if (responseData is Map<String, dynamic>) {
+      return AnimalDataModel.fromJson(responseData);
+    }
+    
+    // Fallback in case backend returns a simple success string instead of the object
+    // We try to construct a partial model using the sent data.
+    final patchedData = Map<String, dynamic>.from(data);
+    patchedData['id'] = id;
+    return AnimalDataModel.fromJson(patchedData);
   }
 
   @override

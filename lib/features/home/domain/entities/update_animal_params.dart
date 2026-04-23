@@ -1,10 +1,9 @@
 import 'package:equatable/equatable.dart';
 
-/// Entity representing an animal returned from the API.
-class AnimalEntity extends Equatable {
+/// Parameters for the PUT /animals/{id} endpoint.
+class UpdateAnimalParams extends Equatable {
   final String id;
   final String name;
-  final String? code;
   final String species;
   final String breed;
   final String sex;
@@ -24,10 +23,9 @@ class AnimalEntity extends Equatable {
   final String? birthType;
   final String? birthCondition;
 
-  const AnimalEntity({
+  const UpdateAnimalParams({
     required this.id,
     required this.name,
-    this.code,
     required this.species,
     required this.breed,
     required this.sex,
@@ -48,11 +46,39 @@ class AnimalEntity extends Equatable {
     this.birthCondition,
   });
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'species': species,
+      'breed': breed,
+      'sex': sex,
+      'reproductiveStatus': reproductiveStatus,
+      if (birthdate != null) 'birthDate': birthdate,
+      'hasChip': hasChip,
+      'isAssociationMember': isAssociationMember,
+      'temperament': temperament,
+      'diagnosis': diagnosis,
+      'ownerId': ownerId,
+      if (weight != null) 'weight': weight,
+      if (colorAndMarkings != null && colorAndMarkings!.isNotEmpty)
+        'colorAndMarkings': colorAndMarkings,
+      if (allergies != null && allergies!.isNotEmpty) 'allergies': allergies,
+      if (housingType != null && housingType!.isNotEmpty)
+        'housingType': housingType,
+      if (purpose != null && purpose!.isNotEmpty) 'purpose': purpose,
+      if (feedingType != null && feedingType!.isNotEmpty)
+        'feedingType': feedingType,
+      if (birthType != null && birthType!.isNotEmpty) 'birthType': birthType,
+      if (birthCondition != null && birthCondition!.isNotEmpty)
+        'birthCondition': birthCondition,
+    };
+  }
+
   @override
   List<Object?> get props => [
         id,
         name,
-        code,
         species,
         breed,
         sex,

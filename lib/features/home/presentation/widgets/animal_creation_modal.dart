@@ -692,6 +692,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: birthDate,
                           onChanged: onBirthDateChanged,
                           enabled: !unknownExactDate,
+                          showAge: true,
                         ),
                         const SizedBox(height: 16),
 

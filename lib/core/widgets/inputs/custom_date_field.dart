@@ -12,6 +12,7 @@ class CustomDateField extends StatelessWidget {
   final DateTime? value;
   final ValueChanged<DateTime>? onChanged;
   final bool enabled;
+  final bool showAge;
 
   const CustomDateField({
     super.key,
@@ -20,24 +21,48 @@ class CustomDateField extends StatelessWidget {
     this.value,
     this.onChanged,
     this.enabled = true,
+    this.showAge = false,
   });
 
   String _formatDate(DateTime date) {
     const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
     ];
-    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
+    final monthName = months[date.month - 1];
+    final dayStr = date.day.toString().padLeft(2, '0');
+    final formattedDate = '$monthName $dayStr, ${date.year}';
+
+    if (!showAge) return formattedDate;
+
+    final now = DateTime.now();
+    int ageYears = now.year - date.year;
+    int ageMonths = now.month - date.month;
+
+    if (now.day < date.day) {
+      ageMonths--;
+    }
+
+    if (ageMonths < 0) {
+      ageYears--;
+      ageMonths += 12;
+    }
+
+    String ageDisplay = '';
+    if (ageYears > 0) {
+      ageDisplay = '$ageYears ${ageYears == 1 ? 'año' : 'años'}';
+    } else if (ageMonths > 0) {
+      ageDisplay = '$ageMonths ${ageMonths == 1 ? 'mes' : 'meses'}';
+    } else {
+      final days = now.difference(date).inDays;
+      if (days > 0) {
+        ageDisplay = '$days ${days == 1 ? 'día' : 'días'}';
+      } else {
+        ageDisplay = 'Recién nacido';
+      }
+    }
+
+    return '$formattedDate ($ageDisplay)';
   }
 
   Future<void> _pickDate(BuildContext context) async {

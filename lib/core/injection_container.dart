@@ -46,6 +46,7 @@ import 'package:animal_record/features/home/data/repositories/animal_repository_
 import 'package:animal_record/features/home/domain/repositories/animal_repository.dart';
 import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
 import 'package:animal_record/features/catalogs/data/datasources/catalogs_remote_datasource.dart';
@@ -174,11 +175,13 @@ Future<void> init() async {
     () => AnimalCubit(
       createAnimalUseCase: sl(),
       getAnimalsByOwnerUseCase: sl(),
+      updateAnimalUseCase: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => CreateAnimalUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalsByOwnerUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateAnimalUseCase(sl()));
 
   sl.registerLazySingleton<AnimalRepository>(
     () => AnimalRepositoryImpl(remoteDataSource: sl()),

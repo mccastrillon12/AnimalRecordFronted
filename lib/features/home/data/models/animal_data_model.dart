@@ -19,6 +19,11 @@ class AnimalDataModel extends AnimalEntity {
     super.weight,
     super.colorAndMarkings,
     super.allergies,
+    super.housingType,
+    super.purpose,
+    super.feedingType,
+    super.birthType,
+    super.birthCondition,
   });
 
   factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +50,11 @@ class AnimalDataModel extends AnimalEntity {
       weight: (json['weight'] as num?)?.toDouble(),
       colorAndMarkings: json['colorAndMarkings'] as String?,
       allergies: json['allergies'] as String?,
+      housingType: json['housingType'] as String?,
+      purpose: json['purpose'] as String?,
+      feedingType: json['feedingType'] as String?,
+      birthType: json['birthType'] as String?,
+      birthCondition: json['birthCondition'] as String?,
     );
   }
 
@@ -66,6 +76,11 @@ class AnimalDataModel extends AnimalEntity {
       if (weight != null) 'weight': weight,
       if (colorAndMarkings != null) 'colorAndMarkings': colorAndMarkings,
       if (allergies != null) 'allergies': allergies,
+      if (housingType != null) 'housingType': housingType,
+      if (purpose != null) 'purpose': purpose,
+      if (feedingType != null) 'feedingType': feedingType,
+      if (birthType != null) 'birthType': birthType,
+      if (birthCondition != null) 'birthCondition': birthCondition,
     };
   }
 }
