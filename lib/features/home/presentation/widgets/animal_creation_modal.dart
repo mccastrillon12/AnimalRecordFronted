@@ -663,6 +663,7 @@ class _AnimalInfoStep extends StatelessWidget {
                               : 'Seleccionar raza',
                           value: selectedBreed,
                           searchable: true,
+                          isInline: true,
                           enabled: !breedsLoading && breeds.isNotEmpty,
                           items: breeds.map((b) => b.name).toList(),
                           itemAsString: (name) => name,

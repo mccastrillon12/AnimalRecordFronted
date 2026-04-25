@@ -25,6 +25,9 @@ class AnimalDataModel extends AnimalEntity {
     super.feedingType,
     super.birthType,
     super.birthCondition,
+    super.createdAt,
+    super.updatedAt,
+    super.ownerName,
   });
 
   factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +61,9 @@ class AnimalDataModel extends AnimalEntity {
       feedingType: json['feedingType'] as String?,
       birthType: json['birthType'] as String?,
       birthCondition: json['birthCondition'] as String?,
+      createdAt: json['createdAt'] as String?,
+      updatedAt: json['updatedAt'] as String?,
+      ownerName: json['ownerName'] as String?,
     );
   }
 
@@ -85,6 +91,9 @@ class AnimalDataModel extends AnimalEntity {
       if (feedingType != null) 'feedingType': feedingType,
       if (birthType != null) 'birthType': birthType,
       if (birthCondition != null) 'birthCondition': birthCondition,
+      if (createdAt != null) 'createdAt': createdAt,
+      if (updatedAt != null) 'updatedAt': updatedAt,
+      if (ownerName != null) 'ownerName': ownerName,
     };
   }
 }

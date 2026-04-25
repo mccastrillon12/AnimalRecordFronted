@@ -48,6 +48,7 @@ class DepartmentDropdown extends StatelessWidget {
       enabled: enabled,
       width: width,
       labelStyle: labelStyle,
+      isInline: true,
       pushContent: pushContent,
     );
   }

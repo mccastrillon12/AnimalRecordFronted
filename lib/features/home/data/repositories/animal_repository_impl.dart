@@ -41,6 +41,17 @@ class AnimalRepositoryImpl implements AnimalRepository {
   }
 
   @override
+  Future<Either<Failure, AnimalEntity>> getAnimalById(String id) async {
+    try {
+      final result = await remoteDataSource.getAnimalById(id);
+      return Right(result);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<AnimalEntity>>> getAnimalsByOwner(
     String ownerId,
   ) async {

@@ -85,7 +85,8 @@ class MyApp extends StatelessWidget {
             return LinkExpiredScreen(isPinFlow: args?['isPinFlow'] == true);
           },
           AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-          AppRoutes.forgotPin: (context) => const ForgotPinScreen(identifier: ''),
+          AppRoutes.forgotPin: (context) =>
+              const ForgotPinScreen(identifier: ''),
           AppRoutes.resetPin: (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments

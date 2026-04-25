@@ -30,6 +30,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  // — Live animal model that updates from cubit state —
+  late AnimalModel _currentAnimal;
+
   // — Datos básicos state —
   late TextEditingController _nameController;
   String? _reproductiveState;
@@ -82,11 +85,19 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   @override
   void initState() {
     super.initState();
+    _currentAnimal = widget.animal;
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
       setState(() {});
     });
     _initializeFromAnimal();
+    
+    // Fetch detailed info (createdAt, updatedAt, ownerName) which are not returned by the owner list endpoint
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        context.read<AnimalCubit>().loadAnimalDetails(widget.animal.id);
+      }
+    });
   }
 
   void _initializeFromAnimal() {
@@ -204,18 +215,18 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     return false;
   }
 
-  void _saveChanges() {
+  void _saveNameOnly(String newName) {
     final selectedDiagnoses = _diagnoses.entries
         .where((e) => e.value)
         .map((e) => e.key)
         .toList();
 
     final params = UpdateAnimalParams(
-      id: widget.animal.id,
-      name: _nameController.text.trim(),
-      species: widget.animal.species,
-      breed: widget.animal.breed ?? '',
-      sex: widget.animal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      id: _currentAnimal.id,
+      name: newName,
+      species: _currentAnimal.species,
+      breed: _currentAnimal.breed ?? '',
+      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
       reproductiveStatus: _reproductiveState ?? '',
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -226,7 +237,53 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           ? ['Desconocido']
           : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
-      ownerId: widget.animal.ownerId,
+      ownerId: _currentAnimal.ownerId,
+      weight: double.tryParse(_weightKgController.text.trim()),
+      colorAndMarkings: _colorDescController.text.trim().isNotEmpty
+          ? _colorDescController.text.trim()
+          : null,
+      allergies: _allergyController.text.trim().isNotEmpty
+          ? _allergyController.text.trim()
+          : null,
+      housingType: _housingType,
+      purpose: _purpose,
+      feedingType: _feedingTypeController.text.trim().isNotEmpty
+          ? _feedingTypeController.text.trim()
+          : null,
+      birthType: _birthTypeController.text.trim().isNotEmpty
+          ? _birthTypeController.text.trim()
+          : null,
+      birthCondition: _birthConditionController.text.trim().isNotEmpty
+          ? _birthConditionController.text.trim()
+          : null,
+    );
+
+    context.read<AnimalCubit>().updateAnimal(params);
+  }
+
+  void _saveChanges() {
+    final selectedDiagnoses = _diagnoses.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+
+    final params = UpdateAnimalParams(
+      id: _currentAnimal.id,
+      name: _nameController.text.trim(),
+      species: _currentAnimal.species,
+      breed: _currentAnimal.breed ?? '',
+      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      reproductiveStatus: _reproductiveState ?? '',
+      birthdate: _birthDate != null
+          ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
+          : null,
+      hasChip: _hasIdentification == 'si',
+      isAssociationMember: _belongsToAssociation == 'si',
+      temperament: _selectedTemperaments.isEmpty
+          ? ['Desconocido']
+          : _selectedTemperaments,
+      diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
+      ownerId: _currentAnimal.ownerId,
       weight: double.tryParse(_weightKgController.text.trim()),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
@@ -286,7 +343,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
 
   void _showImageSourceSheet() {
     final picker = ImagePicker();
-    final hasExistingPicture = widget.animal.imageUrl != null || _localPhotoPath != null;
+    final hasExistingPicture = _currentAnimal.imageUrl != null || _localPhotoPath != null;
 
     showModalBottomSheet(
       context: context,
@@ -334,7 +391,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                       ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
                       // Then upload in background
                       context.read<AnimalCubit>().updateProfilePicture(
-                        widget.animal.id,
+                        _currentAnimal.id,
                         picked.path,
                       );
                     }
@@ -360,7 +417,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                       ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
                       // Then upload in background
                       context.read<AnimalCubit>().updateProfilePicture(
-                        widget.animal.id,
+                        _currentAnimal.id,
                         picked.path,
                       );
                     }
@@ -386,7 +443,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                       ErrorDisplay.showSuccess(context, 'Foto eliminada exitosamente.');
                       // Then delete in background
                       context.read<AnimalCubit>().deleteProfilePicture(
-                        widget.animal.id,
+                        _currentAnimal.id,
                       );
                     },
                   ),
@@ -400,9 +457,23 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AnimalCubit, AnimalState>(
+    return BlocConsumer<AnimalCubit, AnimalState>(
+      listenWhen: (previous, current) {
+        return current is AnimalUpdated ||
+            current is AnimalPictureUploaded ||
+            current is AnimalError;
+      },
       listener: (context, state) {
         if (state is AnimalUpdated) {
+          // Refresh _currentAnimal with fresh data from the backend
+          try {
+            final updatedEntity = state.allAnimals.firstWhere(
+              (a) => a.id == _currentAnimal.id,
+            );
+            setState(() {
+              _currentAnimal = AnimalModel.fromEntity(updatedEntity);
+            });
+          } catch (_) {}
           ErrorDisplay.showSuccess(
             context,
             'Información guardada exitosamente.',
@@ -410,14 +481,51 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           _updateOriginalsToCurrent();
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalPictureUploaded) {
-          // Photo already shows instantly via local path — just reset cubit
+          // Refresh _currentAnimal with updated picture URL
+          try {
+            final updatedEntity = state.allAnimals.firstWhere(
+              (a) => a.id == _currentAnimal.id,
+            );
+            setState(() {
+              _currentAnimal = AnimalModel.fromEntity(updatedEntity);
+            });
+          } catch (_) {}
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalError) {
           ErrorDisplay.showError(context, state.message);
           context.read<AnimalCubit>().resetToLoaded();
         }
       },
-      child: AnnotatedRegion<SystemUiOverlayStyle>(
+      buildWhen: (previous, current) {
+        // Rebuild when animals are loaded (initial fetch or re-fetch)
+        return current is AnimalsLoaded;
+      },
+      builder: (context, state) {
+        // Update _currentAnimal from the latest loaded state
+        if (state is AnimalsLoaded) {
+          try {
+            final freshEntity = state.animals.firstWhere(
+              (a) => a.id == _currentAnimal.id,
+            );
+            // Use a post-frame callback to avoid setState during build
+            final freshModel = AnimalModel.fromEntity(freshEntity);
+            if (freshModel.createdAt != _currentAnimal.createdAt ||
+                freshModel.updatedAt != _currentAnimal.updatedAt ||
+                freshModel.ownerName != _currentAnimal.ownerName ||
+                freshModel.name != _currentAnimal.name ||
+                freshModel.imageUrl != _currentAnimal.imageUrl) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _currentAnimal = freshModel;
+                  });
+                }
+              });
+            }
+          } catch (_) {}
+        }
+
+        return AnnotatedRegion<SystemUiOverlayStyle>(
         value: const SystemUiOverlayStyle(
           statusBarColor: Colors.transparent,
           statusBarIconBrightness: Brightness.light,
@@ -556,7 +664,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                               controller: _tabController,
                               children: [
                                 AnimalInfoBasicTab(
-                                  animal: widget.animal,
+                                  animal: _currentAnimal,
                                   nameController: _nameController,
                                   reproductiveState: _reproductiveState,
                                   onReproductiveStateChanged: (v) =>
@@ -582,6 +690,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   isUploadingPicture: context.watch<AnimalCubit>().state is AnimalPictureUploading,
                                   localPhotoPath: _localPhotoPath,
                                   photoDeleted: _photoDeleted,
+                                  onNameSaved: _saveNameOnly,
                                 ),
                                 AnimalInfoAdditionalTab(
                                   selectedTemperaments: _selectedTemperaments,
@@ -605,7 +714,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                       _birthConditionController,
                                 ),
                                 AnimalInfoGeneralTab(
-                                  animal: widget.animal,
+                                  animal: _currentAnimal,
                                   onInactivate: () {
                                     // TODO: Implement inactivate
                                   },
@@ -626,7 +735,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
             ),
           ),
         ),
-      ),
+      );
+      },
     );
   }
 }

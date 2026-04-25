@@ -24,6 +24,9 @@ class AnimalEntity extends Equatable {
   final String? feedingType;
   final String? birthType;
   final String? birthCondition;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? ownerName;
 
   const AnimalEntity({
     required this.id,
@@ -48,6 +51,9 @@ class AnimalEntity extends Equatable {
     this.feedingType,
     this.birthType,
     this.birthCondition,
+    this.createdAt,
+    this.updatedAt,
+    this.ownerName,
   });
 
   @override
@@ -74,5 +80,8 @@ class AnimalEntity extends Equatable {
         feedingType,
         birthType,
         birthCondition,
+        createdAt,
+        updatedAt,
+        ownerName,
       ];
 }

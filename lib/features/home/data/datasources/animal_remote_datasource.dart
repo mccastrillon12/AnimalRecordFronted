@@ -5,6 +5,7 @@ import 'package:animal_record/features/home/data/models/animal_data_model.dart';
 abstract class AnimalRemoteDataSource {
   Future<AnimalDataModel> createAnimal(Map<String, dynamic> data);
   Future<AnimalDataModel> updateAnimal(String id, Map<String, dynamic> data);
+  Future<AnimalDataModel> getAnimalById(String id);
   Future<List<AnimalDataModel>> getAnimalsByOwner(String ownerId);
   Future<Map<String, dynamic>> getProfilePictureUploadUrl(
     String animalId,
@@ -48,6 +49,20 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     final patchedData = Map<String, dynamic>.from(data);
     patchedData['id'] = id;
     return AnimalDataModel.fromJson(patchedData);
+  }
+
+  @override
+  Future<AnimalDataModel> getAnimalById(String id) async {
+    final response = await apiClient.get('/animals/$id');
+
+    dynamic responseData = response.data;
+    if (responseData is String) {
+      try {
+        responseData = jsonDecode(responseData);
+      } catch (_) {}
+    }
+
+    return AnimalDataModel.fromJson(responseData as Map<String, dynamic>);
   }
 
   @override

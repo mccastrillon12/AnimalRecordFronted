@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 
 class AnimalInfoGeneralTab extends StatelessWidget {
   final AnimalModel animal;
@@ -14,52 +17,124 @@ class AnimalInfoGeneralTab extends StatelessWidget {
     required this.onInactivate,
   });
 
+  /// Formats an ISO 8601 date string into a human-readable Spanish format.
+  /// Example: '2026-04-25T15:00:00.000Z' → 'Abril 25, 2026. 10:00 a.m.'
+  String _formatDate(String? isoDate) {
+    if (isoDate == null || isoDate.isEmpty) return 'No disponible';
+    try {
+      final date = DateTime.parse(isoDate).toLocal();
+      final months = [
+        '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      ];
+      final month = months[date.month];
+      final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+      final minute = date.minute.toString().padLeft(2, '0');
+      final amPm = date.hour >= 12 ? 'p.m.' : 'a.m.';
+      return '$month ${date.day}, ${date.year}. $hour:$minute $amPm';
+    } catch (_) {
+      return 'No disponible';
+    }
+  }
+
+  /// Formats a short date (without time) for history items.
+  /// Example: '2026-04-25T15:00:00.000Z' → 'Abril 25, 2026'
+  String _formatShortDate(String? isoDate) {
+    if (isoDate == null || isoDate.isEmpty) return 'No disponible';
+    try {
+      final date = DateTime.parse(isoDate).toLocal();
+      final months = [
+        '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+      ];
+      final month = months[date.month];
+      return '$month ${date.day}, ${date.year}';
+    } catch (_) {
+      return 'No disponible';
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(AppSpacing.l),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Center(child: Text('General', style: AppTypography.heading2)),
-          const SizedBox(height: AppSpacing.xxs),
-          Center(
-            child: Text(
-              'Creada: Enero 18, 2024. 7:10 a.m.',
-              style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
-            ),
-          ),
-          const SizedBox(height: AppSpacing.xl),
+    return BlocBuilder<AuthBloc, AuthState>(
+      builder: (context, authState) {
+        // Get the owner name from the animal data or fall back to the auth user
+        String ownerName = animal.ownerName ?? '';
+        if (ownerName.isEmpty && authState is AuthSuccess) {
+          ownerName = authState.user.name;
+        }
+        if (ownerName.isEmpty) {
+          ownerName = 'No disponible';
+        }
 
-          _buildInfoField('Identificación AR', animal.code),
-          const SizedBox(height: AppSpacing.m),
-          _buildInfoField('Creada por', 'Marc Doe'),
-          const SizedBox(height: AppSpacing.m),
-          _buildInfoField('Última modificación', 'Octubre 30, 2024. 9:02 p.m.'),
-          const SizedBox(height: AppSpacing.m),
-          _buildInfoField('Última persona en modificar', 'Marc Doe'),
-          const SizedBox(height: AppSpacing.l),
+        // Format the owner name (capitalize each word, max 3 words)
+        final formattedOwnerName = _formatOwnerName(ownerName);
 
-          // Historial de propietarios
-          Text(
-            'Historial de propietarios',
-            style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
-          ),
-          const SizedBox(height: AppSpacing.xxs),
-          _buildHistoryItem('1. John Doe', 'Enero 18, 2024'),
-          _buildHistoryItem('2. Bárbara James', 'Octubre 30, 2024'),
-          const SizedBox(height: AppSpacing.l),
+        return SingleChildScrollView(
+          padding: const EdgeInsets.all(AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(child: Text('General', style: AppTypography.heading2)),
+              const SizedBox(height: AppSpacing.xxs),
+              Center(
+                child: Text(
+                  'Creada: ${_formatDate(animal.createdAt)}',
+                  style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
+                ),
+              ),
+              const SizedBox(height: AppSpacing.xl),
 
-          // Historial de nombres
-          Text(
-            'Historial de nombres',
-            style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+              _buildInfoField('Identificación AR', animal.code),
+              const SizedBox(height: AppSpacing.m),
+              _buildInfoField('Creada por', formattedOwnerName),
+              const SizedBox(height: AppSpacing.m),
+              _buildInfoField(
+                'Última modificación',
+                _formatDate(animal.updatedAt ?? animal.createdAt),
+              ),
+              const SizedBox(height: AppSpacing.m),
+              _buildInfoField('Última persona en modificar', formattedOwnerName),
+              const SizedBox(height: AppSpacing.l),
+
+              // Historial de propietarios
+              Text(
+                'Historial de propietarios',
+                style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              _buildHistoryItem(
+                '1. $formattedOwnerName',
+                _formatShortDate(animal.createdAt),
+              ),
+              const SizedBox(height: AppSpacing.l),
+
+              // Historial de nombres
+              Text(
+                'Historial de nombres',
+                style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+              ),
+              const SizedBox(height: AppSpacing.xxs),
+              _buildHistoryItem(
+                '1. ${animal.name}',
+                _formatShortDate(animal.updatedAt),
+              ),
+            ],
           ),
-          const SizedBox(height: AppSpacing.xxs),
-          _buildHistoryItem('1. ${animal.name}', 'Enero 18, 2024'),
-        ],
-      ),
+        );
+      },
     );
+  }
+
+  /// Formats a full name: capitalize each word, limit to 3 words.
+  String _formatOwnerName(String name) {
+    if (name.isEmpty) return '';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    final limitedParts = parts.take(3);
+    return limitedParts.map((part) {
+      if (part.isEmpty) return '';
+      return part[0].toUpperCase() + part.substring(1).toLowerCase();
+    }).join(' ');
   }
 
   Widget _buildInfoField(String label, String value) {

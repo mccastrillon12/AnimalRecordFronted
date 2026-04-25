@@ -33,6 +33,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final bool isUploadingPicture;
   final String? localPhotoPath;
   final bool photoDeleted;
+  final ValueChanged<String>? onNameSaved;
 
   const AnimalInfoBasicTab({
     super.key,
@@ -56,6 +57,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
     this.isUploadingPicture = false,
     this.localPhotoPath,
     this.photoDeleted = false,
+    this.onNameSaved,
   });
 
   String _iconForFamily(String family) {
@@ -199,7 +201,8 @@ class AnimalInfoBasicTab extends StatelessWidget {
                                 : animal.name,
                             onSave: (newName) {
                               nameController.text = newName;
-                              // The parent should detect dirty state via nameController
+                              // Trigger the API update for the name change
+                              onNameSaved?.call(newName);
                             },
                           ),
                         );
@@ -341,6 +344,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               label: 'Tipo de identificación',
               hint: 'Seleccionar',
               value: null,
+              isInline: true,
               items: const ['Microchip', 'Arete', 'Tatuaje', 'Otro'],
               itemAsString: (name) => name,
               onChanged: (_) {},

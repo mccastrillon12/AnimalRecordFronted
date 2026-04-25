@@ -28,6 +28,9 @@ class AnimalModel {
   final String? feedingType;
   final String? birthType;
   final String? birthCondition;
+  final String? createdAt;
+  final String? updatedAt;
+  final String? ownerName;
 
   const AnimalModel({
     required this.id,
@@ -54,6 +57,9 @@ class AnimalModel {
     this.feedingType,
     this.birthType,
     this.birthCondition,
+    this.createdAt,
+    this.updatedAt,
+    this.ownerName,
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -157,6 +163,9 @@ class AnimalModel {
       feedingType: entity.feedingType,
       birthType: entity.birthType,
       birthCondition: entity.birthCondition,
+      createdAt: entity.createdAt,
+      updatedAt: entity.updatedAt,
+      ownerName: entity.ownerName,
     );
   }
 

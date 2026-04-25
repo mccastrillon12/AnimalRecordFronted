@@ -114,6 +114,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             label: 'Tipo de vivienda',
             hint: 'Seleccionar',
             value: housingType,
+            isInline: true,
             items: const ['Casa', 'Apartamento', 'Finca', 'Otro'],
             itemAsString: (name) => name,
             onChanged: onHousingTypeChanged,
@@ -125,6 +126,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             label: 'Propósito del animal',
             hint: 'Seleccionar',
             value: purpose,
+            isInline: true,
             items: const [
               'Compañía',
               'Trabajo',

@@ -9,11 +9,13 @@ import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner
 import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 
 class AnimalCubit extends Cubit<AnimalState> {
   final CreateAnimalUseCase createAnimalUseCase;
   final GetAnimalsByOwnerUseCase getAnimalsByOwnerUseCase;
+  final GetAnimalByIdUseCase getAnimalByIdUseCase;
   final UpdateAnimalUseCase updateAnimalUseCase;
   final GetAnimalPictureUploadUrlUseCase getAnimalPictureUploadUrlUseCase;
   final ConfirmAnimalPictureUseCase confirmAnimalPictureUseCase;
@@ -22,6 +24,7 @@ class AnimalCubit extends Cubit<AnimalState> {
   AnimalCubit({
     required this.createAnimalUseCase,
     required this.getAnimalsByOwnerUseCase,
+    required this.getAnimalByIdUseCase,
     required this.updateAnimalUseCase,
     required this.getAnimalPictureUploadUrlUseCase,
     required this.confirmAnimalPictureUseCase,
@@ -49,6 +52,26 @@ class AnimalCubit extends Cubit<AnimalState> {
       _animals = animals;
       emit(AnimalsLoaded(animals));
     });
+  }
+
+  Future<void> loadAnimalDetails(String animalId) async {
+    final result = await getAnimalByIdUseCase(animalId);
+    
+    result.fold(
+      (failure) => emit(AnimalError(failure.message, existingAnimals: _animals)),
+      (animal) {
+        // Update the animal in the local cache
+        final index = _animals.indexWhere((a) => a.id == animal.id);
+        if (index != -1) {
+          _animals[index] = animal;
+        } else {
+          _animals.add(animal);
+        }
+        
+        // Just emit loaded state so the UI rebuilds without showing a success message
+        emit(AnimalsLoaded(_animals));
+      }
+    );
   }
 
   Future<void> createAnimal(CreateAnimalParams params) async {
@@ -299,6 +322,9 @@ class AnimalCubit extends Cubit<AnimalState> {
           feedingType: a.feedingType,
           birthType: a.birthType,
           birthCondition: a.birthCondition,
+          createdAt: a.createdAt,
+          updatedAt: a.updatedAt,
+          ownerName: a.ownerName,
         );
       }
       return a;
