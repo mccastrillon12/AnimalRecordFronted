@@ -47,6 +47,8 @@ import 'package:animal_record/features/home/domain/repositories/animal_repositor
 import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
 import 'package:animal_record/features/catalogs/data/datasources/catalogs_remote_datasource.dart';
@@ -176,12 +178,17 @@ Future<void> init() async {
       createAnimalUseCase: sl(),
       getAnimalsByOwnerUseCase: sl(),
       updateAnimalUseCase: sl(),
+      getAnimalPictureUploadUrlUseCase: sl(),
+      confirmAnimalPictureUseCase: sl(),
+      s3UploadService: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => CreateAnimalUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalsByOwnerUseCase(sl()));
   sl.registerLazySingleton(() => UpdateAnimalUseCase(sl()));
+  sl.registerLazySingleton(() => GetAnimalPictureUploadUrlUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmAnimalPictureUseCase(sl()));
 
   sl.registerLazySingleton<AnimalRepository>(
     () => AnimalRepositoryImpl(remoteDataSource: sl()),

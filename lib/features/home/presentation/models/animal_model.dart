@@ -140,7 +140,7 @@ class AnimalModel {
       breed: entity.breed,
       sex: sexDisplay,
       ageDisplay: calculatedAgeDisplay,
-      imageUrl: null,
+      imageUrl: entity.profilePictureUrl,
       temperament: entity.temperament,
       allergies: entity.allergies,
       diagnosis: entity.diagnosis,

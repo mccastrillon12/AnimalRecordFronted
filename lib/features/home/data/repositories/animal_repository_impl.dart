@@ -52,4 +52,37 @@ class AnimalRepositoryImpl implements AnimalRepository {
       return Left(ServerFailure(errorMsg));
     }
   }
+
+  @override
+  Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
+    String animalId,
+    String mimeType,
+    int fileSize,
+  ) async {
+    try {
+      final data = await remoteDataSource.getProfilePictureUploadUrl(
+        animalId,
+        mimeType,
+        fileSize,
+      );
+      return Right(data);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
+
+  @override
+  Future<Either<Failure, void>> confirmProfilePicture(
+    String animalId,
+    String finalUrl,
+  ) async {
+    try {
+      await remoteDataSource.confirmProfilePicture(animalId, finalUrl);
+      return const Right(null);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

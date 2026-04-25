@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -67,6 +69,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _hasIdentification;
   String? _belongsToAssociation;
   String? _selectedAssociation;
+  String? _selectedPhotoPath;
 
   // — Step 3 state —
   List<String> _selectedTemperaments = [];
@@ -215,6 +218,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _hasIdentification = null;
       _belongsToAssociation = null;
       _selectedAssociation = null;
+      _selectedPhotoPath = null;
       _selectedTemperaments = [];
       _allergyController.clear();
       _diagnoses.updateAll((key, value) => false);
@@ -257,6 +261,29 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     return BlocListener<AnimalCubit, AnimalState>(
       listener: (context, state) {
         if (state is AnimalCreated) {
+          // If a photo was selected during creation, upload it now
+          // but DON'T close the modal yet — wait for upload to finish
+          if (_selectedPhotoPath != null) {
+            final photoPath = _selectedPhotoPath!;
+            _selectedPhotoPath = null;
+            context.read<AnimalCubit>().updateProfilePicture(
+              state.animal.id,
+              photoPath,
+            );
+            // Modal stays open showing the loading state
+          } else {
+            // No photo — close immediately
+            if (_pendingAddAnother) {
+              _pendingAddAnother = false;
+              context.read<AnimalCubit>().resetToLoaded();
+              _resetForm();
+            } else {
+              context.read<AnimalCubit>().resetToLoaded();
+              Navigator.pop(context);
+            }
+          }
+        } else if (state is AnimalPictureUploaded) {
+          // Photo upload finished after creation — now close/reset
           if (_pendingAddAnother) {
             _pendingAddAnother = false;
             context.read<AnimalCubit>().resetToLoaded();
@@ -349,6 +376,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
                   setState(() => _selectedAssociation = v),
               isValid: _isStep2Valid,
               onContinue: _isStep2Valid ? _goNext : null,
+              selectedPhotoPath: _selectedPhotoPath,
+              onPhotoSelected: (path) => setState(() => _selectedPhotoPath = path),
+              onPhotoRemoved: () => setState(() => _selectedPhotoPath = null),
             );
           },
         );
@@ -530,6 +560,9 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<String?> onAssociationChanged;
   final bool isValid;
   final VoidCallback? onContinue;
+  final String? selectedPhotoPath;
+  final ValueChanged<String> onPhotoSelected;
+  final VoidCallback onPhotoRemoved;
 
   const _AnimalInfoStep({
     required this.selectedSpecies,
@@ -557,6 +590,9 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onAssociationChanged,
     required this.isValid,
     required this.onContinue,
+    required this.selectedPhotoPath,
+    required this.onPhotoSelected,
+    required this.onPhotoRemoved,
   });
 
   @override
@@ -609,7 +645,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         const SizedBox(height: AppSpacing.m),
 
                         // Photo area
-                        _buildPhotoArea(),
+                        _buildPhotoArea(context),
                         const SizedBox(height: AppSpacing.m),
 
                         // Name
@@ -839,7 +875,9 @@ class _AnimalInfoStep extends StatelessWidget {
     );
   }
 
-  Widget _buildPhotoArea() {
+  Widget _buildPhotoArea(BuildContext context) {
+    final hasLocalPhoto = selectedPhotoPath != null;
+
     return Center(
       child: Column(
         children: [
@@ -868,22 +906,28 @@ class _AnimalInfoStep extends StatelessWidget {
                   color: AppColors.bgHielo,
                   borderRadius: AppBorders.medium(),
                 ),
-                child: Center(
-                  child: SvgPicture.asset(
-                    _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
-                    width: AppSpacing.iconSizeMedium,
-                    height: 35,
-                  ),
-                ),
+                clipBehavior: Clip.antiAlias,
+                child: hasLocalPhoto
+                    ? Image.file(
+                        File(selectedPhotoPath!),
+                        width: 96,
+                        height: 96,
+                        fit: BoxFit.cover,
+                      )
+                    : Center(
+                        child: SvgPicture.asset(
+                          _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
+                          width: AppSpacing.iconSizeMedium,
+                          height: 35,
+                        ),
+                      ),
               ),
               // Edit button
               Positioned(
                 top: 0,
                 right: -4,
                 child: GestureDetector(
-                  onTap: () {
-                    // TODO: Implement photo picker
-                  },
+                  onTap: () => _showImageSourceSheet(context),
                   child: Container(
                     width: 28,
                     height: 28,
@@ -903,6 +947,87 @@ class _AnimalInfoStep extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showImageSourceSheet(BuildContext context) {
+    final picker = ImagePicker();
+    final hasPhoto = selectedPhotoPath != null;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyBordes,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Foto del animal',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Tomar foto'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.camera,
+                      maxWidth: 1920,
+                      maxHeight: 1920,
+                      imageQuality: 95,
+                    );
+                    if (picked != null) onPhotoSelected(picked.path);
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Elegir de la galería'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 1920,
+                      maxHeight: 1920,
+                      imageQuality: 95,
+                    );
+                    if (picked != null) onPhotoSelected(picked.path);
+                  },
+                ),
+                if (hasPhoto)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.error,
+                    ),
+                    title: const Text(
+                      'Eliminar foto',
+                      style: TextStyle(color: AppColors.error),
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      onPhotoRemoved();
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

@@ -6,6 +6,12 @@ abstract class AnimalRemoteDataSource {
   Future<AnimalDataModel> createAnimal(Map<String, dynamic> data);
   Future<AnimalDataModel> updateAnimal(String id, Map<String, dynamic> data);
   Future<List<AnimalDataModel>> getAnimalsByOwner(String ownerId);
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String animalId,
+    String mimeType,
+    int fileSize,
+  );
+  Future<void> confirmProfilePicture(String animalId, String finalUrl);
 }
 
 class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
@@ -51,5 +57,29 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     return list
         .map((json) => AnimalDataModel.fromJson(json as Map<String, dynamic>))
         .toList();
+  }
+
+  @override
+  Future<Map<String, dynamic>> getProfilePictureUploadUrl(
+    String animalId,
+    String mimeType,
+    int fileSize,
+  ) async {
+    final response = await apiClient.get(
+      '/animals/$animalId/profile-picture/upload-url',
+      queryParameters: {'mimeType': mimeType, 'fileSize': fileSize.toString()},
+    );
+    return response.data as Map<String, dynamic>;
+  }
+
+  @override
+  Future<void> confirmProfilePicture(
+    String animalId,
+    String finalUrl,
+  ) async {
+    await apiClient.patch(
+      '/animals/$animalId/profile-picture',
+      data: {'finalUrl': finalUrl},
+    );
   }
 }

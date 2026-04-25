@@ -8,4 +8,13 @@ abstract class AnimalRepository {
   Future<Either<Failure, AnimalEntity>> createAnimal(CreateAnimalParams params);
   Future<Either<Failure, AnimalEntity>> updateAnimal(UpdateAnimalParams params);
   Future<Either<Failure, List<AnimalEntity>>> getAnimalsByOwner(String ownerId);
+  Future<Either<Failure, Map<String, dynamic>>> getProfilePictureUploadUrl(
+    String animalId,
+    String mimeType,
+    int fileSize,
+  );
+  Future<Either<Failure, void>> confirmProfilePicture(
+    String animalId,
+    String finalUrl,
+  );
 }

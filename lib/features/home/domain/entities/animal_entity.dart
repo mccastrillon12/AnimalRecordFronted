@@ -15,6 +15,7 @@ class AnimalEntity extends Equatable {
   final List<String> temperament;
   final List<String> diagnosis;
   final String ownerId;
+  final String? profilePictureUrl;
   final double? weight;
   final String? colorAndMarkings;
   final String? allergies;
@@ -38,6 +39,7 @@ class AnimalEntity extends Equatable {
     required this.temperament,
     required this.diagnosis,
     required this.ownerId,
+    this.profilePictureUrl,
     this.weight,
     this.colorAndMarkings,
     this.allergies,
@@ -63,6 +65,7 @@ class AnimalEntity extends Equatable {
         temperament,
         diagnosis,
         ownerId,
+        profilePictureUrl,
         weight,
         colorAndMarkings,
         allergies,

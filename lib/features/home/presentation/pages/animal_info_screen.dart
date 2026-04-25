@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -56,6 +57,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late TextEditingController _feedingTypeController;
   late TextEditingController _birthTypeController;
   late TextEditingController _birthConditionController;
+
+  // — Photo state (for instant visual feedback) —
+  String? _localPhotoPath;
+  bool _photoDeleted = false;
 
   // — Original values for change detection —
   late String _originalName;
@@ -279,6 +284,120 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     });
   }
 
+  void _showImageSourceSheet() {
+    final picker = ImagePicker();
+    final hasExistingPicture = widget.animal.imageUrl != null || _localPhotoPath != null;
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.greyBordes,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Text(
+                  'Foto del animal',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
+                ),
+                const SizedBox(height: 16),
+                ListTile(
+                  leading: const Icon(Icons.camera_alt_outlined),
+                  title: const Text('Tomar foto'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.camera,
+                      maxWidth: 1920,
+                      maxHeight: 1920,
+                      imageQuality: 95,
+                    );
+                    if (picked != null && mounted) {
+                      // Instant visual feedback
+                      setState(() {
+                        _localPhotoPath = picked.path;
+                        _photoDeleted = false;
+                      });
+                      ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
+                      // Then upload in background
+                      context.read<AnimalCubit>().updateProfilePicture(
+                        widget.animal.id,
+                        picked.path,
+                      );
+                    }
+                  },
+                ),
+                ListTile(
+                  leading: const Icon(Icons.photo_library_outlined),
+                  title: const Text('Elegir de la galería'),
+                  onTap: () async {
+                    Navigator.pop(sheetContext);
+                    final picked = await picker.pickImage(
+                      source: ImageSource.gallery,
+                      maxWidth: 1920,
+                      maxHeight: 1920,
+                      imageQuality: 95,
+                    );
+                    if (picked != null && mounted) {
+                      // Instant visual feedback
+                      setState(() {
+                        _localPhotoPath = picked.path;
+                        _photoDeleted = false;
+                      });
+                      ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
+                      // Then upload in background
+                      context.read<AnimalCubit>().updateProfilePicture(
+                        widget.animal.id,
+                        picked.path,
+                      );
+                    }
+                  },
+                ),
+                if (hasExistingPicture)
+                  ListTile(
+                    leading: const Icon(
+                      Icons.delete_outline,
+                      color: AppColors.errorRojo,
+                    ),
+                    title: Text(
+                      'Eliminar foto',
+                      style: TextStyle(color: AppColors.errorRojo),
+                    ),
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      // Instant visual feedback
+                      setState(() {
+                        _localPhotoPath = null;
+                        _photoDeleted = true;
+                      });
+                      ErrorDisplay.showSuccess(context, 'Foto eliminada exitosamente.');
+                      // Then delete in background
+                      context.read<AnimalCubit>().deleteProfilePicture(
+                        widget.animal.id,
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AnimalCubit, AnimalState>(
@@ -289,6 +408,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
             'Información guardada exitosamente.',
           );
           _updateOriginalsToCurrent();
+          context.read<AnimalCubit>().resetToLoaded();
+        } else if (state is AnimalPictureUploaded) {
+          // Photo already shows instantly via local path — just reset cubit
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalError) {
           ErrorDisplay.showError(context, state.message);
@@ -456,6 +578,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   selectedAssociation: _selectedAssociation,
                                   onAssociationChanged: (v) =>
                                       setState(() => _selectedAssociation = v),
+                                  onEditPhoto: () => _showImageSourceSheet(),
+                                  isUploadingPicture: context.watch<AnimalCubit>().state is AnimalPictureUploading,
+                                  localPhotoPath: _localPhotoPath,
+                                  photoDeleted: _photoDeleted,
                                 ),
                                 AnimalInfoAdditionalTab(
                                   selectedTemperaments: _selectedTemperaments,

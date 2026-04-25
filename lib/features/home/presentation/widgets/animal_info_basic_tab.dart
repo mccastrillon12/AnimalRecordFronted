@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -28,6 +29,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final ValueChanged<String?> onBelongsToAssociationChanged;
   final String? selectedAssociation;
   final ValueChanged<String?> onAssociationChanged;
+  final VoidCallback? onEditPhoto;
+  final bool isUploadingPicture;
+  final String? localPhotoPath;
+  final bool photoDeleted;
 
   const AnimalInfoBasicTab({
     super.key,
@@ -47,6 +52,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
     required this.onBelongsToAssociationChanged,
     required this.selectedAssociation,
     required this.onAssociationChanged,
+    this.onEditPhoto,
+    this.isUploadingPicture = false,
+    this.localPhotoPath,
+    this.photoDeleted = false,
   });
 
   String _iconForFamily(String family) {
@@ -62,6 +71,60 @@ class AnimalInfoBasicTab extends StatelessWidget {
       default:
         return 'assets/illustrations/bovino_icon.svg';
     }
+  }
+
+  /// Builds the photo content with priority:
+  /// 1. Local file (just picked, not yet uploaded)
+  /// 2. Deleted state (show placeholder)
+  /// 3. Network image (from backend)
+  /// 4. Fallback placeholder
+  Widget _buildPhotoContent() {
+    // Priority 1: Local file selected (instant preview)
+    if (localPhotoPath != null) {
+      return Image.file(
+        File(localPhotoPath!),
+        width: 96,
+        height: 96,
+        fit: BoxFit.cover,
+      );
+    }
+
+    // Priority 2: Photo was deleted (show placeholder immediately)
+    if (photoDeleted) {
+      return Center(
+        child: SvgPicture.asset(
+          _iconForFamily(animal.family),
+          width: AppSpacing.iconSizeMedium,
+          height: 35,
+        ),
+      );
+    }
+
+    // Priority 3: Network image from backend
+    if (animal.imageUrl != null) {
+      return Image.network(
+        animal.imageUrl!,
+        width: 96,
+        height: 96,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Center(
+          child: SvgPicture.asset(
+            _iconForFamily(animal.family),
+            width: AppSpacing.iconSizeMedium,
+            height: 35,
+          ),
+        ),
+      );
+    }
+
+    // Priority 4: Fallback placeholder
+    return Center(
+      child: SvgPicture.asset(
+        _iconForFamily(animal.family),
+        width: AppSpacing.iconSizeMedium,
+        height: 35,
+      ),
+    );
   }
 
   @override
@@ -85,35 +148,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
                         color: AppColors.bgHielo,
                         borderRadius: AppBorders.medium(),
                       ),
-                      child: Center(
-                        child: animal.imageUrl != null
-                            ? ClipRRect(
-                                borderRadius: AppBorders.medium(),
-                                child: Image.network(
-                                  animal.imageUrl!,
-                                  width: 96,
-                                  height: 96,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      SvgPicture.asset(
-                                        _iconForFamily(animal.family),
-                                        width: AppSpacing.iconSizeMedium,
-                                        height: 35,
-                                      ),
-                                ),
-                              )
-                            : SvgPicture.asset(
-                                _iconForFamily(animal.family),
-                                width: AppSpacing.iconSizeMedium,
-                                height: 35,
-                              ),
-                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildPhotoContent(),
                     ),
                     Positioned(
                       top: AppSpacing.xs,
                       right: AppSpacing.xs,
                       child: GestureDetector(
-                        onTap: () {},
+                        onTap: onEditPhoto,
                         child: Container(
                           width: AppSpacing.xl,
                           height: AppSpacing.xl,

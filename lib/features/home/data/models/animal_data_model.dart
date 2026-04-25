@@ -16,6 +16,7 @@ class AnimalDataModel extends AnimalEntity {
     required super.temperament,
     required super.diagnosis,
     required super.ownerId,
+    super.profilePictureUrl,
     super.weight,
     super.colorAndMarkings,
     super.allergies,
@@ -47,6 +48,8 @@ class AnimalDataModel extends AnimalEntity {
               .toList() ??
           [],
       ownerId: json['ownerId'] as String? ?? '',
+      profilePictureUrl:
+          json['profilePictureUrl'] as String?,
       weight: (json['weight'] as num?)?.toDouble(),
       colorAndMarkings: json['colorAndMarkings'] as String?,
       allergies: json['allergies'] as String?,
@@ -73,6 +76,7 @@ class AnimalDataModel extends AnimalEntity {
       'temperament': temperament,
       'diagnosis': diagnosis,
       'ownerId': ownerId,
+      if (profilePictureUrl != null) 'profilePictureUrl': profilePictureUrl,
       if (weight != null) 'weight': weight,
       if (colorAndMarkings != null) 'colorAndMarkings': colorAndMarkings,
       if (allergies != null) 'allergies': allergies,
