@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 class AnimalInfoGeneralTab extends StatelessWidget {
@@ -23,7 +22,7 @@ class AnimalInfoGeneralTab extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(child: Text('General', style: AppTypography.heading2)),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Center(
             child: Text(
               'Creada: Enero 18, 2024. 7:10 a.m.',
@@ -46,7 +45,7 @@ class AnimalInfoGeneralTab extends StatelessWidget {
             'Historial de propietarios',
             style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           _buildHistoryItem('1. John Doe', 'Enero 18, 2024'),
           _buildHistoryItem('2. Bárbara James', 'Octubre 30, 2024'),
           const SizedBox(height: AppSpacing.l),
@@ -56,7 +55,7 @@ class AnimalInfoGeneralTab extends StatelessWidget {
             'Historial de nombres',
             style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           _buildHistoryItem('1. ${animal.name}', 'Enero 18, 2024'),
         ],
       ),
@@ -71,7 +70,7 @@ class AnimalInfoGeneralTab extends StatelessWidget {
           label,
           style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         Text(
           value,
           style: AppTypography.body4.copyWith(color: AppColors.greyTextos),

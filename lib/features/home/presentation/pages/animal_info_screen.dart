@@ -387,6 +387,49 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         // Tab content
                         Expanded(
                           child: FixedBottomActionLayout(
+                            bottomChild: _tabController.index == 2
+                                ? OutlinedButton(
+                                    onPressed: () {
+                                      // TODO: Implement inactivate
+                                    },
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.errorRojo,
+                                      minimumSize: const Size(
+                                        double.infinity,
+                                        36,
+                                      ),
+                                      tapTargetSize:
+                                          MaterialTapTargetSize.shrinkWrap,
+                                      side: const BorderSide(
+                                        color: AppColors.errorRojo,
+                                        width: 1,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: AppBorders.medium(),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      'Inactivar historia',
+                                      style: AppTypography.body3.copyWith(
+                                        color: AppColors.errorRojo,
+                                      ),
+                                    ),
+                                  )
+                                : (_hasChanges
+                                      ? BlocBuilder<AnimalCubit, AnimalState>(
+                                          builder: (context, state) {
+                                            final isUpdating =
+                                                state is AnimalUpdating;
+                                            return CustomButton(
+                                              text: 'Guardar cambios',
+                                              isLoading: isUpdating,
+                                              onPressed: isUpdating
+                                                  ? null
+                                                  : _saveChanges,
+                                            );
+                                          },
+                                        )
+                                      : const SizedBox.shrink()),
                             child: TabBarView(
                               controller: _tabController,
                               children: [
@@ -443,49 +486,6 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                 ),
                               ],
                             ),
-                            bottomChild: _tabController.index == 2
-                                ? OutlinedButton(
-                                    onPressed: () {
-                                      // TODO: Implement inactivate
-                                    },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.errorRojo,
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        36,
-                                      ),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      side: const BorderSide(
-                                        color: AppColors.errorRojo,
-                                        width: 1,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: AppBorders.medium(),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Inactivar historia',
-                                      style: AppTypography.body3.copyWith(
-                                        color: AppColors.errorRojo,
-                                      ),
-                                    ),
-                                  )
-                                : (_hasChanges
-                                      ? BlocBuilder<AnimalCubit, AnimalState>(
-                                          builder: (context, state) {
-                                            final isUpdating =
-                                                state is AnimalUpdating;
-                                            return CustomButton(
-                                              text: 'Guardar cambios',
-                                              isLoading: isUpdating,
-                                              onPressed: isUpdating
-                                                  ? null
-                                                  : _saveChanges,
-                                            );
-                                          },
-                                        )
-                                      : const SizedBox.shrink()),
                           ),
                         ),
                       ],

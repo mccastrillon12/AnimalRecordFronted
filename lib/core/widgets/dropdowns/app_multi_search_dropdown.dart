@@ -2,8 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 
-class CustomMultiSearchDropdown<T> extends StatefulWidget {
+/// Multi-select dropdown with search and chips.
+///
+/// Follows the same design language as [AppDropdown]:
+/// - Consistent label/error rendering
+/// - Same overlay positioning (bottomLeft → topLeft)
+/// - Same border states and icon size
+class AppMultiSearchDropdown<T> extends StatefulWidget {
   final String label;
   final String hint;
   final List<T> selectedItems;
@@ -12,7 +19,7 @@ class CustomMultiSearchDropdown<T> extends StatefulWidget {
   final ValueChanged<List<T>> onChanged;
   final String? errorText;
 
-  const CustomMultiSearchDropdown({
+  const AppMultiSearchDropdown({
     super.key,
     required this.label,
     required this.hint,
@@ -24,12 +31,12 @@ class CustomMultiSearchDropdown<T> extends StatefulWidget {
   });
 
   @override
-  State<CustomMultiSearchDropdown<T>> createState() =>
-      _CustomMultiSearchDropdownState<T>();
+  State<AppMultiSearchDropdown<T>> createState() =>
+      _AppMultiSearchDropdownState<T>();
 }
 
-class _CustomMultiSearchDropdownState<T>
-    extends State<CustomMultiSearchDropdown<T>> {
+class _AppMultiSearchDropdownState<T>
+    extends State<AppMultiSearchDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
@@ -55,7 +62,7 @@ class _CustomMultiSearchDropdownState<T>
   }
 
   @override
-  void didUpdateWidget(covariant CustomMultiSearchDropdown<T> oldWidget) {
+  void didUpdateWidget(covariant AppMultiSearchDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Sync if parent resets the list externally
     if (oldWidget.selectedItems != widget.selectedItems) {
@@ -67,6 +74,7 @@ class _CustomMultiSearchDropdownState<T>
 
   @override
   void dispose() {
+    _removeOverlay();
     _focusNode.dispose();
     _searchController.dispose();
     super.dispose();
@@ -110,8 +118,7 @@ class _CustomMultiSearchDropdownState<T>
 
   void _closeDropdown() {
     if (!_isOpen) return;
-    _overlayEntry?.remove();
-    _overlayEntry = null;
+    _removeOverlay();
     if (mounted) {
       setState(() {
         _isOpen = false;
@@ -121,10 +128,14 @@ class _CustomMultiSearchDropdownState<T>
     }
   }
 
+  void _removeOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
   OverlayEntry _createOverlayEntry() {
     return OverlayEntry(
       builder: (ctx) {
-        // Re-read size on every rebuild so position tracks input height changes
         final renderBox = context.findRenderObject() as RenderBox?;
         final width = renderBox?.size.width ?? 200;
 
@@ -133,7 +144,8 @@ class _CustomMultiSearchDropdownState<T>
         final boxHeight = renderBox?.size.height ?? AppSpacing.inputHeight;
         final dropdownTop = position.dy + boxHeight;
         final bottomBoundary = mq.size.height - mq.padding.bottom - 60.0;
-        final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(80.0, 250.0);
+        final maxDropdownHeight =
+            (bottomBoundary - dropdownTop).clamp(80.0, 250.0);
 
         return Stack(
           children: [
@@ -149,18 +161,17 @@ class _CustomMultiSearchDropdownState<T>
               child: CompositedTransformFollower(
                 link: _layerLink,
                 showWhenUnlinked: false,
-                // Always track the bottom-left of the input, even as it grows
                 targetAnchor: Alignment.bottomLeft,
                 followerAnchor: Alignment.topLeft,
                 offset: Offset.zero,
                 child: Material(
                   elevation: 4,
-                  borderRadius: BorderRadius.circular(4),
+                  borderRadius: AppBorders.small(),
                   color: Colors.white,
                   child: Container(
                     decoration: BoxDecoration(
                       border: Border.all(color: AppColors.greyDelineante),
-                      borderRadius: BorderRadius.circular(4),
+                      borderRadius: AppBorders.small(),
                       color: Colors.white,
                     ),
                     constraints: BoxConstraints(maxHeight: maxDropdownHeight),
@@ -233,7 +244,7 @@ class _CustomMultiSearchDropdownState<T>
         // ── Label ────────────────────────────────────────────────
         if (hasLabel)
           SizedBox(
-            height: 18,
+            height: AppSpacing.labelHeight,
             child: Align(
               alignment: Alignment.centerLeft,
               child: RichText(
@@ -259,7 +270,7 @@ class _CustomMultiSearchDropdownState<T>
           ),
         if (hasLabel) const SizedBox(height: AppSpacing.inputTopPadding),
 
-        // ── Input box (same design as CustomDropdownField) ───────
+        // ── Input box ────────────────────────────────────────────
         CompositedTransformTarget(
           link: _layerLink,
           child: GestureDetector(
@@ -277,7 +288,7 @@ class _CustomMultiSearchDropdownState<T>
                           ? AppColors.errorRojo
                           : AppColors.greyBordes,
                 ),
-                borderRadius: BorderRadius.circular(4),
+                borderRadius: AppBorders.small(),
                 color: Colors.white,
               ),
               child: Row(
@@ -312,7 +323,8 @@ class _CustomMultiSearchDropdownState<T>
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                hintText: _selected.isEmpty ? widget.hint : null,
+                                hintText:
+                                    _selected.isEmpty ? widget.hint : null,
                                 hintStyle: AppTypography.body4.copyWith(
                                   color: AppColors.greyBordes,
                                 ),
@@ -323,13 +335,13 @@ class _CustomMultiSearchDropdownState<T>
                       ),
                     ),
                   ),
-                  // Arrow icon — mirrors CustomDropdownField
+                  // Arrow icon
                   Icon(
                     _isOpen
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
                     color: AppColors.greyMedio,
-                    size: 24,
+                    size: AppSpacing.iconSizeSmall,
                   ),
                 ],
               ),
@@ -339,7 +351,7 @@ class _CustomMultiSearchDropdownState<T>
 
         // ── Error text ───────────────────────────────────────────
         if (widget.errorText != null) ...[
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Text(
             widget.errorText!,
             style: AppTypography.body5.copyWith(
@@ -348,6 +360,14 @@ class _CustomMultiSearchDropdownState<T>
             ),
           ),
         ],
+
+        // ── Spacer for Overlay ─────────────────────────────────────
+        // Injects space so sibling content below is pushed down while
+        // the overlay is visible.
+        if (_isOpen)
+          SizedBox(
+            height: (_filtered.length * 44.0).clamp(80.0, 250.0),
+          ),
       ],
     );
   }
@@ -366,7 +386,7 @@ class _Chip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
         color: AppColors.bgHielo,
-        borderRadius: BorderRadius.circular(4),
+        borderRadius: AppBorders.small(),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

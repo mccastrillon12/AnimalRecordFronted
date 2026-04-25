@@ -6,8 +6,9 @@ import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
-import 'package:animal_record/core/widgets/dropdowns/custom_dropdown_field.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalInfoBasicTab extends StatelessWidget {
@@ -93,7 +94,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                                   width: 96,
                                   height: 96,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, __, ___) =>
+                                  errorBuilder: (_, _, _) =>
                                       SvgPicture.asset(
                                         _iconForFamily(animal.family),
                                         width: AppSpacing.iconSizeMedium,
@@ -109,16 +110,16 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       ),
                     ),
                     Positioned(
-                      top: 0,
-                      right: -4,
+                      top: AppSpacing.xs,
+                      right: AppSpacing.xs,
                       child: GestureDetector(
                         onTap: () {},
                         child: Container(
-                          width: 28,
-                          height: 28,
+                          width: AppSpacing.xl,
+                          height: AppSpacing.xl,
                           decoration: BoxDecoration(
-                            color: AppColors.primaryIndigo,
-                            borderRadius: BorderRadius.circular(6),
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: AppBorders.small(),
                           ),
                           child: const Icon(
                             Icons.edit,
@@ -134,17 +135,38 @@ class AnimalInfoBasicTab extends StatelessWidget {
                 Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      animal.name,
-                      style: AppTypography.heading2.copyWith(
-                        color: AppColors.textPrimary,
-                      ),
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: nameController,
+                      builder: (context, value, child) {
+                        return Text(
+                          value.text.isNotEmpty ? value.text : animal.name,
+                          style: AppTypography.heading2.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        );
+                      },
                     ),
-                    const SizedBox(width: 4),
-                    Icon(
-                      Icons.edit,
-                      size: AppSpacing.m,
-                      color: AppColors.greyBordes,
+                    const SizedBox(width: AppSpacing.xxs),
+                    GestureDetector(
+                      onTap: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => EditNameDialog(
+                            currentName: nameController.text.isNotEmpty
+                                ? nameController.text
+                                : animal.name,
+                            onSave: (newName) {
+                              nameController.text = newName;
+                              // The parent should detect dirty state via nameController
+                            },
+                          ),
+                        );
+                      },
+                      child: const Icon(
+                        Icons.edit,
+                        size: AppSpacing.m,
+                        color: AppColors.greyBordes,
+                      ),
                     ),
                   ],
                 ),
@@ -273,16 +295,12 @@ class AnimalInfoBasicTab extends StatelessWidget {
 
           if (hasIdentification == 'si') ...[
             const SizedBox(height: AppSpacing.m),
-            CustomDropdownField<String>(
+            AppDropdown<String>(
               label: 'Tipo de identificación',
               hint: 'Seleccionar',
               value: null,
-              items: const [
-                DropdownMenuItem(value: 'Microchip', child: Text('Microchip')),
-                DropdownMenuItem(value: 'Arete', child: Text('Arete')),
-                DropdownMenuItem(value: 'Tatuaje', child: Text('Tatuaje')),
-                DropdownMenuItem(value: 'Otro', child: Text('Otro')),
-              ],
+              items: const ['Microchip', 'Arete', 'Tatuaje', 'Otro'],
+              itemAsString: (name) => name,
               onChanged: (_) {},
             ),
             const SizedBox(height: AppSpacing.m),
@@ -315,25 +333,17 @@ class AnimalInfoBasicTab extends StatelessWidget {
           ),
           if (belongsToAssociation == 'si') ...[
             const SizedBox(height: AppSpacing.m),
-            CustomDropdownField<String>(
+            AppDropdown<String>(
               label: 'Asociaciones',
               hint: 'Seleccionar asociación',
               value: selectedAssociation,
               isInline: true,
               items: const [
-                DropdownMenuItem(
-                  value: 'Asociación 1',
-                  child: Text('Asociación 1'),
-                ),
-                DropdownMenuItem(
-                  value: 'Asociación 2',
-                  child: Text('Asociación 2'),
-                ),
-                DropdownMenuItem(
-                  value: 'Asociación 3',
-                  child: Text('Asociación 3'),
-                ),
+                'Asociación 1',
+                'Asociación 2',
+                'Asociación 3',
               ],
+              itemAsString: (name) => name,
               onChanged: onAssociationChanged,
             ),
           ],
@@ -377,7 +387,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         TextField(
           controller: controller,
           maxLines: 4,

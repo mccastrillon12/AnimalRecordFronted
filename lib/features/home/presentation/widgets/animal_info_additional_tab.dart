@@ -4,8 +4,8 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
-import 'package:animal_record/core/widgets/dropdowns/custom_dropdown_field.dart';
-import 'package:animal_record/core/widgets/dropdowns/custom_multi_search_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 
 class AnimalInfoAdditionalTab extends StatelessWidget {
   final List<String> selectedTemperaments;
@@ -57,7 +57,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           const SizedBox(height: AppSpacing.l),
 
           // Temperamento
-          CustomMultiSearchDropdown<String>(
+          AppMultiSearchDropdown<String>(
             label: 'Temperamento',
             hint: 'Buscar o escribir',
             selectedItems: selectedTemperaments,
@@ -100,7 +100,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           ),
 
           if (diagnoses['Otro'] == true) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xxs),
             CustomTextField(
               label: '¿Cuál?',
               controller: otherDiagnosisController,
@@ -110,41 +110,29 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           if (diagnoses['Otro'] != true) const SizedBox(height: AppSpacing.m),
 
           // Tipo de vivienda
-          CustomDropdownField<String>(
+          AppDropdown<String>(
             label: 'Tipo de vivienda',
             hint: 'Seleccionar',
             value: housingType,
-            items: const [
-              DropdownMenuItem(value: 'Casa', child: Text('Casa')),
-              DropdownMenuItem(
-                value: 'Apartamento',
-                child: Text('Apartamento'),
-              ),
-              DropdownMenuItem(value: 'Finca', child: Text('Finca')),
-              DropdownMenuItem(value: 'Otro', child: Text('Otro')),
-            ],
+            items: const ['Casa', 'Apartamento', 'Finca', 'Otro'],
+            itemAsString: (name) => name,
             onChanged: onHousingTypeChanged,
           ),
           const SizedBox(height: AppSpacing.m),
 
           // Propósito del animal
-          CustomDropdownField<String>(
+          AppDropdown<String>(
             label: 'Propósito del animal',
             hint: 'Seleccionar',
             value: purpose,
             items: const [
-              DropdownMenuItem(value: 'Compañía', child: Text('Compañía')),
-              DropdownMenuItem(value: 'Trabajo', child: Text('Trabajo')),
-              DropdownMenuItem(
-                value: 'Producción de Leche',
-                child: Text('Producción de Leche'),
-              ),
-              DropdownMenuItem(
-                value: 'Reproducción',
-                child: Text('Reproducción'),
-              ),
-              DropdownMenuItem(value: 'Otro', child: Text('Otro')),
+              'Compañía',
+              'Trabajo',
+              'Producción de Leche',
+              'Reproducción',
+              'Otro',
             ],
+            itemAsString: (name) => name,
             onChanged: onPurposeChanged,
           ),
           const SizedBox(height: AppSpacing.m),

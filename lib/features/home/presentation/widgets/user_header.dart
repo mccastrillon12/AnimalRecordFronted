@@ -128,7 +128,7 @@ class UserHeader extends StatelessWidget {
                                             style: AppTypography.heading2
                                                 .copyWith(
                                                   color: AppColors.white
-                                                      .withOpacity(0.54),
+                                                      .withValues(alpha: 0.54),
                                                   fontWeight: FontWeight.normal,
                                                 ),
                                           ),
@@ -148,7 +148,7 @@ class UserHeader extends StatelessWidget {
                                   ),
                                 ),
 
-                                const SizedBox(height: 4),
+                                const SizedBox(height: AppSpacing.xxs),
 
                                 Container(
                                   height: 21,

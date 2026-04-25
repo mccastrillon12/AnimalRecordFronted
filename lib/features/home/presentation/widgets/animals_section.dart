@@ -169,7 +169,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,
@@ -226,7 +226,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               textAlign: TextAlign.center,
               style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xxs),
             Text(
               'Empieza agregando uno desde',
               textAlign: TextAlign.center,

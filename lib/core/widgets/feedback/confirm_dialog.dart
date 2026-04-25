@@ -4,18 +4,24 @@ import 'package:animal_record/core/theme/app_typography.dart';
 
 class ConfirmDialog extends StatelessWidget {
   final String title;
-  final String description;
+  final String? description;
+  final InlineSpan? richDescription;
+  final Widget? content;
   final String confirmLabel;
   final Color confirmColor;
+  final bool isConfirmEnabled;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
 
   const ConfirmDialog({
     super.key,
     required this.title,
-    required this.description,
+    this.description,
+    this.richDescription,
+    this.content,
     required this.confirmLabel,
     this.confirmColor = const Color(0xFFFA2844),
+    this.isConfirmEnabled = true,
     required this.onConfirm,
     this.onCancel,
   });
@@ -60,15 +66,33 @@ class ConfirmDialog extends StatelessWidget {
               ),
               const SizedBox(height: 16),
               // Description
-              Text(
-                description,
-                style: AppTypography.body6.copyWith(
-                  color: AppColors.greyIconos,
-                  height: 1.6,
+              if (description != null)
+                Text(
+                  description!,
+                  style: AppTypography.body6.copyWith(
+                    color: AppColors.greyIconos,
+                    height: 1.6,
+                  ),
+                  textAlign: TextAlign.left,
+                )
+              else if (richDescription != null)
+                RichText(
+                  text: TextSpan(
+                    style: AppTypography.body6.copyWith(
+                      color: AppColors.greyIconos,
+                      height: 1.6,
+                    ),
+                    children: [richDescription!],
+                  ),
+                  textAlign: TextAlign.left,
                 ),
-                textAlign: TextAlign.left,
-              ),
-              const SizedBox(height: 16),
+              if (description != null || richDescription != null)
+                const SizedBox(height: 16),
+              // Custom Content
+              if (content != null) ...[
+                content!,
+                const SizedBox(height: 16),
+              ],
               // Buttons row
               Row(
                 children: [
@@ -82,6 +106,7 @@ class ConfirmDialog extends StatelessWidget {
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
+                        minimumSize: const Size(double.infinity, 40),
                       ),
                       child: Text(
                         'Cancelar',
@@ -95,23 +120,28 @@ class ConfirmDialog extends StatelessWidget {
                   const SizedBox(width: 8),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        onConfirm();
-                      },
+                      onPressed: isConfirmEnabled
+                          ? () {
+                              Navigator.of(context).pop();
+                              onConfirm();
+                            }
+                          : null,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: confirmColor,
                         foregroundColor: Colors.white,
+                        disabledBackgroundColor: AppColors.greyDelineante,
+                        disabledForegroundColor: AppColors.greyMedio,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(6),
                         ),
+                        minimumSize: const Size(double.infinity, 40),
                         padding: const EdgeInsets.symmetric(horizontal: 6),
                       ),
                       child: Text(
                         confirmLabel,
                         style: AppTypography.body3.copyWith(
-                          color: Colors.white,
+                          color: isConfirmEnabled ? Colors.white : AppColors.greyMedio,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,

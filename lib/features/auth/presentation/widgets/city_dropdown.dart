@@ -1,10 +1,12 @@
-import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/features/locations/domain/entities/city_entity.dart';
 import 'package:flutter/material.dart';
 
-class CityDropdown extends StatefulWidget {
+/// Thin wrapper over [AppDropdown] for selecting a city.
+///
+/// Accepts [CityEntity] list and exposes the selected city's **id**
+/// through [onChanged], matching the previous API.
+class CityDropdown extends StatelessWidget {
   final String label;
   final String? value;
   final ValueChanged<String?>? onChanged;
@@ -12,6 +14,7 @@ class CityDropdown extends StatefulWidget {
   final double? width;
   final bool enabled;
   final TextStyle? labelStyle;
+  final bool pushContent;
 
   const CityDropdown({
     super.key,
@@ -22,235 +25,33 @@ class CityDropdown extends StatefulWidget {
     this.width,
     this.enabled = true,
     this.labelStyle,
+    this.pushContent = true,
   });
 
   @override
-  State<CityDropdown> createState() => _CityDropdownState();
-}
-
-class _CityDropdownState extends State<CityDropdown> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-
-  void _toggleDropdown() {
-    if (!widget.enabled) return;
-
-    if (_isOpen) {
-      _closeDropdown();
-    } else {
-      _openDropdown();
-    }
-  }
-
-  bool _isOpening = false;
-
-  void _openDropdown() async {
-    if (_isOpening) return;
-    _isOpening = true;
-
-    final scrollable = Scrollable.maybeOf(context);
-    if (scrollable != null) {
-      await scrollable.position.animateTo(
-        scrollable.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 50),
-        curve: Curves.easeOut,
-      );
-    }
-
-    if (!mounted) {
-      _isOpening = false;
-      return;
-    }
-
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
-    _isOpening = false;
-  }
-
-  void _closeDropdown() {
-    _overlayEntry?.remove();
-    setState(() => _isOpen = false);
-  }
-
-  OverlayEntry _createOverlayEntry() {
-    RenderBox renderBox = context.findRenderObject() as RenderBox;
-    var size = renderBox.size;
-    final validCities = widget.cities
-        .where((c) => c.name.trim().isNotEmpty)
-        .toList();
-
-    // Same bottom boundary as the fixed button:
-    //   screenHeight - safeArea.bottom - buttonBottomPadding(24) - buttonHeight(36)
-    final mq = MediaQuery.of(context);
-    final position = renderBox.localToGlobal(Offset.zero);
-    final dropdownTop = position.dy + AppSpacing.inputHeight;
-    final bottomBoundary = mq.size.height - mq.padding.bottom - 88.0;
-    final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(80.0, 200.0);
-
-    return OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _closeDropdown,
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          Positioned(
-            width: size.width,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: const Offset(0.0, AppSpacing.inputHeight),
-              child: Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(4),
-                color: Colors.white,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.greyDelineante),
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.white,
-                  ),
-                  constraints: BoxConstraints(maxHeight: maxDropdownHeight),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: validCities.length + 1,
-                    itemBuilder: (context, index) {
-                      if (index == 0) {
-                        return InkWell(
-                          onTap: () {
-                            if (widget.onChanged != null) {
-                              widget.onChanged!(null);
-                            }
-                            _closeDropdown();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              '-- Seleccionar --',
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyMedio,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        );
-                      }
-
-                      final city = validCities[index - 1];
-                      return InkWell(
-                        onTap: () {
-                          if (widget.onChanged != null) {
-                            widget.onChanged!(city.id);
-                          }
-                          _closeDropdown();
-                        },
-                        child: Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            city.name,
-                            style: AppTypography.body4,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
+    final validCities =
+        cities.where((c) => c.name.trim().isNotEmpty).toList();
+
+    // Resolve the selected entity from the id
     CityEntity? selectedCity;
-    if (widget.value != null) {
+    if (value != null) {
       try {
-        selectedCity = widget.cities.cast<CityEntity>().firstWhere(
-          (c) => c.id == widget.value,
-        );
-      } catch (e) {
-        selectedCity = null;
-      }
+        selectedCity = validCities.firstWhere((c) => c.id == value);
+      } catch (_) {}
     }
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          height: 18,
-          child: Align(
-            alignment: Alignment.centerLeft,
-            child: Text(
-              widget.label,
-              style: (widget.labelStyle ?? AppTypography.body6).copyWith(
-                color: widget.labelStyle?.color ?? AppColors.greyNegroV2,
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(height: AppSpacing.inputTopPadding),
 
-        CompositedTransformTarget(
-          link: _layerLink,
-          child: InkWell(
-            onTap: _toggleDropdown,
-            child: Container(
-              height: AppSpacing.inputHeight,
-              width: widget.width ?? double.infinity,
-              padding: const EdgeInsets.only(left: 12, right: 8),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: _isOpen
-                      ? AppColors.primaryFrances
-                      : AppColors.greyBordes,
-                ),
-                borderRadius: BorderRadius.circular(4),
-                color: widget.enabled
-                    ? Colors.white
-                    : AppColors.bgBlancoAntiFlash,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      selectedCity?.name ?? 'Selecciona una ciudad',
-                      style: AppTypography.body4.copyWith(
-                        color: selectedCity == null
-                            ? AppColors.greyBordes
-                            : AppColors.greyTextos,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-
-                  Icon(
-                    _isOpen
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    color: AppColors.greyMedio,
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ],
+    return AppDropdown<CityEntity>(
+      label: label,
+      hint: 'Selecciona una ciudad',
+      value: selectedCity,
+      items: validCities,
+      itemAsString: (c) => c.name,
+      onChanged: (city) => onChanged?.call(city?.id),
+      enabled: enabled,
+      width: width,
+      labelStyle: labelStyle,
+      pushContent: pushContent,
     );
   }
 }

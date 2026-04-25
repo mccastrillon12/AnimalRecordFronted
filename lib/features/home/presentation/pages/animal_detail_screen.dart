@@ -7,7 +7,6 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
-import 'package:animal_record/core/widgets/layout/top_menu_trigger.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
@@ -345,7 +344,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               ),
             ),
             const SizedBox(
-              height: 4,
+              height: AppSpacing.xxs,
             ), // Reduced slightly to fit exactly in 66px with text
             Expanded(
               child: Text(
@@ -422,11 +421,11 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       children: [
         Image.asset(
           'assets/Logo/Imagotipo_blanco.png',
-          width: 32,
+          width: AppSpacing.xl,
           height: 22,
           fit: BoxFit.contain,
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: AppSpacing.xxs),
         Text(
           'ANIMAL RECORD',
           style: AppTypography.body6.copyWith(

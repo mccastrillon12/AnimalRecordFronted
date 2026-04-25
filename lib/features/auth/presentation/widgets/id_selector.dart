@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 
-class IdSelector extends StatefulWidget {
+class IdSelector extends StatelessWidget {
   final String? initialValue;
   final ValueChanged<String>? onChanged;
   final TextEditingController? controller;
@@ -24,120 +25,17 @@ class IdSelector extends StatefulWidget {
     this.hideErrorText = false,
   });
 
-  @override
-  State<IdSelector> createState() => _IdSelectorState();
-}
-
-class _IdSelectorState extends State<IdSelector> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _overlayEntry;
-  bool _isOpen = false;
-  late String _selectedIdType;
-  final List<String> _idTypes = ['C.C.', 'C.E.', 'Pasaporte'];
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIdType = widget.initialIdType ?? 'C.C.';
-  }
-
-  void _toggleDropdown() {
-    if (_isOpen) {
-      _closeDropdown();
-    } else {
-      _openDropdown();
-    }
-  }
-
-  void _openDropdown() {
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
-  }
-
-  void _closeDropdown() {
-    _overlayEntry?.remove();
-    setState(() => _isOpen = false);
-  }
-
-  OverlayEntry _createOverlayEntry() {
-    return OverlayEntry(
-      builder: (context) => Stack(
-        children: [
-          Positioned.fill(
-            child: GestureDetector(
-              onTap: _closeDropdown,
-              behavior: HitTestBehavior.translucent,
-              child: Container(color: Colors.transparent),
-            ),
-          ),
-          Positioned(
-            width: _selectedIdType == 'Pasaporte' ? 140 : 100,
-            child: CompositedTransformFollower(
-              link: _layerLink,
-              showWhenUnlinked: false,
-              offset: const Offset(0.0, AppSpacing.inputHeight),
-              child: Material(
-                elevation: 4.0,
-                borderRadius: BorderRadius.circular(4),
-                color: Colors.white,
-                child: Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: AppColors.greyDelineante),
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.white,
-                  ),
-                  child: ListView.builder(
-                    padding: EdgeInsets.zero,
-                    shrinkWrap: true,
-                    itemCount: _idTypes.length,
-                    itemBuilder: (context, index) {
-                      final type = _idTypes[index];
-
-                      final isSelected = type == _selectedIdType;
-
-                      return InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedIdType = type;
-                          });
-                          widget.onIdTypeChanged?.call(type);
-                          _closeDropdown();
-                        },
-                        child: Container(
-                          color: isSelected ? AppColors.greyClaro : null,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          child: Text(
-                            type,
-                            style: AppTypography.body4.copyWith(
-                              fontWeight: isSelected
-                                  ? FontWeight.w600
-                                  : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  static const List<String> _idTypes = ['C.C.', 'C.E.', 'Pasaporte'];
 
   @override
   Widget build(BuildContext context) {
+    final selectedType = initialIdType ?? 'C.C.';
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          height: 18,
+          height: AppSpacing.labelHeight,
           child: Align(
             alignment: Alignment.centerLeft,
             child: Text('Identificación', style: AppTypography.body6),
@@ -147,43 +45,26 @@ class _IdSelectorState extends State<IdSelector> {
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CompositedTransformTarget(
-              link: _layerLink,
-              child: InkWell(
-                onTap: _toggleDropdown,
-                child: Container(
-                  height: AppSpacing.inputHeight,
-                  width: _selectedIdType == 'Pasaporte' ? 140 : 100,
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _isOpen
-                          ? AppColors.primaryFrances
-                          : (widget.errorText != null
-                                ? AppColors.error
-                                : AppColors.greyBordes),
-                    ),
-                    borderRadius: BorderRadius.circular(4),
-                    color: Colors.white,
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(_selectedIdType, style: AppTypography.body4),
-                      Icon(
-                        _isOpen
-                            ? Icons.keyboard_arrow_up
-                            : Icons.keyboard_arrow_down,
-                        color: AppColors.greyMedio,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+            // ── ID Type Dropdown (uses AppDropdown) ──────────────
+            AppDropdown<String>(
+              label: '',
+              hint: 'Tipo',
+              value: selectedType,
+              items: _idTypes,
+              itemAsString: (type) => type,
+              onChanged: (value) {
+                if (value != null) {
+                  onIdTypeChanged?.call(value);
+                }
+              },
+              width: selectedType == 'Pasaporte' ? 140 : 100,
+              showClearOption: false,
+              pushContent: false,
             ),
+
             const SizedBox(width: AppSpacing.xs),
 
+            // ── ID Number Input ─────────────────────────────────
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,9 +72,10 @@ class _IdSelectorState extends State<IdSelector> {
                   SizedBox(
                     height: AppSpacing.inputHeight,
                     child: TextFormField(
-                      controller: widget.controller,
-                      initialValue: widget.controller == null ? widget.initialValue : null,
-                      onChanged: widget.onChanged,
+                      controller: controller,
+                      initialValue:
+                          controller == null ? initialValue : null,
+                      onChanged: onChanged,
                       keyboardType: TextInputType.text,
                       inputFormatters: [
                         FilteringTextInputFormatter.allow(
@@ -201,13 +83,13 @@ class _IdSelectorState extends State<IdSelector> {
                         ),
                       ],
                       maxLength: 50,
-                      buildCounter:
-                          (
-                            context, {
-                            required currentLength,
-                            required isFocused,
-                            maxLength,
-                          }) => null,
+                      buildCounter: (
+                        context, {
+                        required currentLength,
+                        required isFocused,
+                        maxLength,
+                      }) =>
+                          null,
                       style: AppTypography.body4,
                       decoration: InputDecoration(
                         hintText: '1234567890',
@@ -221,7 +103,7 @@ class _IdSelectorState extends State<IdSelector> {
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                           borderSide: BorderSide(
-                            color: widget.errorText != null
+                            color: errorText != null
                                 ? AppColors.error
                                 : AppColors.greyBordes,
                             width: 1.0,
@@ -230,7 +112,7 @@ class _IdSelectorState extends State<IdSelector> {
                         enabledBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                           borderSide: BorderSide(
-                            color: widget.errorText != null
+                            color: errorText != null
                                 ? AppColors.error
                                 : AppColors.greyBordes,
                             width: 1.0,
@@ -239,7 +121,7 @@ class _IdSelectorState extends State<IdSelector> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(4),
                           borderSide: BorderSide(
-                            color: widget.errorText != null
+                            color: errorText != null
                                 ? AppColors.error
                                 : AppColors.greyBordes,
                             width: 1.0,
@@ -248,10 +130,10 @@ class _IdSelectorState extends State<IdSelector> {
                       ),
                     ),
                   ),
-                  if (widget.errorText != null && !widget.hideErrorText) ...[
+                  if (errorText != null && !hideErrorText) ...[
                     const SizedBox(height: 4),
                     Text(
-                      widget.errorText!,
+                      errorText!,
                       style: AppTypography.body5.copyWith(
                         color: AppColors.error,
                         height: 1.2,

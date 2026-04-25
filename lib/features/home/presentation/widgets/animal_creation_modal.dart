@@ -14,8 +14,8 @@ import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
 import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
-import 'package:animal_record/core/widgets/dropdowns/custom_dropdown_field.dart';
-import 'package:animal_record/core/widgets/dropdowns/custom_multi_search_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
@@ -620,7 +620,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         const SizedBox(height: AppSpacing.m),
 
                         // Breed dropdown
-                        CustomDropdownField<String>(
+                        AppDropdown<String>(
                           label: 'Raza',
                           hint: breedsLoading
                               ? 'Cargando razas...'
@@ -628,14 +628,8 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: selectedBreed,
                           searchable: true,
                           enabled: !breedsLoading && breeds.isNotEmpty,
-                          items: breeds
-                              .map(
-                                (b) => DropdownMenuItem(
-                                  value: b.name,
-                                  child: Text(b.name),
-                                ),
-                              )
-                              .toList(),
+                          items: breeds.map((b) => b.name).toList(),
+                          itemAsString: (name) => name,
                           onChanged: onBreedChanged,
                         ),
                         const SizedBox(height: AppSpacing.m),
@@ -804,25 +798,17 @@ class _AnimalInfoStep extends StatelessWidget {
                         ),
                         if (belongsToAssociation == 'si') ...[
                           const SizedBox(height: AppSpacing.m),
-                          CustomDropdownField<String>(
+                          AppDropdown<String>(
                             label: 'Asociaciones',
                             hint: 'Seleccionar asociación',
                             value: selectedAssociation,
                             isInline: true,
                             items: const [
-                              DropdownMenuItem(
-                                value: 'Asociación 1',
-                                child: Text('Asociación 1'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Asociación 2',
-                                child: Text('Asociación 2'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Asociación 3',
-                                child: Text('Asociación 3'),
-                              ),
+                              'Asociación 1',
+                              'Asociación 2',
+                              'Asociación 3',
                             ],
+                            itemAsString: (name) => name,
                             onChanged: onAssociationChanged,
                           ),
                         ],
@@ -870,7 +856,7 @@ class _AnimalInfoStep extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: AppSpacing.xxs),
           Stack(
             clipBehavior: Clip.none,
             children: [
@@ -1109,7 +1095,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Temperament
-                        CustomMultiSearchDropdown<String>(
+                        AppMultiSearchDropdown<String>(
                           label: 'Temperamento',
                           hint: 'Buscar o escribir',
                           selectedItems: selectedTemperaments,
@@ -1155,7 +1141,7 @@ class _AdditionalInfoStep extends StatelessWidget {
 
                         // "¿Cuál?" field (visible when "Otro" is checked)
                         if (diagnoses['Otro'] == true) ...[
-                          const SizedBox(height: 4),
+                          const SizedBox(height: AppSpacing.xxs),
                           CustomTextField(
                             label: '¿Cuál?',
                             controller: otherDiagnosisController,
@@ -1201,7 +1187,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                     style: AppTypography.body3.copyWith(
                       color: isValid && !isLoading
                           ? AppColors.primaryFrances
-                          : AppColors.primaryFrances.withOpacity(0.4),
+                          : AppColors.primaryFrances.withValues(alpha: 0.4),
                     ),
                   ),
                 ),

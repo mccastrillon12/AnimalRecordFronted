@@ -297,7 +297,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               bottom: BorderSide(color: AppColors.greyDelineante, width: 2),
             ),
           ),
-          height: 56,
+          height: AppSpacing.xxxl,
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -331,7 +331,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: AppSpacing.xs),
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,

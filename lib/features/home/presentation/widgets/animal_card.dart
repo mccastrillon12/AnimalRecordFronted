@@ -84,7 +84,7 @@ class AnimalCard extends StatelessWidget {
                       ),
                     ),
                     if (animal.ageDisplay.isNotEmpty) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xxs),
                       Text(
                         animal.ageDisplay,
                         style: AppTypography.body5.copyWith(
@@ -191,7 +191,7 @@ class AnimalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Photo
-          _buildPhoto(size: 32, borderRadius: 5),
+          _buildPhoto(size: AppSpacing.xl, borderRadius: 5),
 
           const SizedBox(width: AppSpacing.s),
 

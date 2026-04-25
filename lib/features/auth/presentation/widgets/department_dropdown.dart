@@ -1,7 +1,8 @@
-import 'package:animal_record/core/widgets/dropdowns/custom_dropdown_field.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/features/locations/domain/entities/department_entity.dart';
 import 'package:flutter/material.dart';
 
+/// Thin wrapper over [AppDropdown] for selecting a department.
 class DepartmentDropdown extends StatelessWidget {
   final String label;
   final String? value;
@@ -10,6 +11,7 @@ class DepartmentDropdown extends StatelessWidget {
   final double? width;
   final bool enabled;
   final TextStyle? labelStyle;
+  final bool pushContent;
 
   const DepartmentDropdown({
     super.key,
@@ -20,6 +22,7 @@ class DepartmentDropdown extends StatelessWidget {
     this.width,
     this.enabled = true,
     this.labelStyle,
+    this.pushContent = true,
   });
 
   @override
@@ -27,20 +30,25 @@ class DepartmentDropdown extends StatelessWidget {
     final validDepartments =
         departments.where((d) => d.name.trim().isNotEmpty).toList();
 
-    return CustomDropdownField<String>(
+    // Resolve the selected entity from the id
+    DepartmentEntity? selectedDept;
+    if (value != null) {
+      try {
+        selectedDept = validDepartments.firstWhere((d) => d.id == value);
+      } catch (_) {}
+    }
+
+    return AppDropdown<DepartmentEntity>(
       label: label,
       hint: 'Selecciona un departamento',
-      value: value,
+      value: selectedDept,
+      items: validDepartments,
+      itemAsString: (d) => d.name,
+      onChanged: (dept) => onChanged?.call(dept?.id),
       enabled: enabled,
       width: width,
       labelStyle: labelStyle,
-      items: validDepartments.map((dept) {
-        return DropdownMenuItem<String>(
-          value: dept.id,
-          child: Text(dept.name),
-        );
-      }).toList(),
-      onChanged: onChanged,
+      pushContent: pushContent,
     );
   }
 }
