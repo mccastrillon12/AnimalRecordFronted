@@ -114,17 +114,23 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
 
+  List<T> _getSortedItems(List<T> items) {
+    final list = List<T>.from(items);
+    list.sort((a, b) => widget.itemAsString(a).toLowerCase().compareTo(widget.itemAsString(b).toLowerCase()));
+    return list;
+  }
+
   @override
   void initState() {
     super.initState();
-    _filtered = widget.items;
+    _filtered = _getSortedItems(widget.items);
   }
 
   @override
   void didUpdateWidget(covariant AppDropdown<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.items != widget.items) {
-      _filtered = widget.items;
+      _filtered = _getSortedItems(widget.items);
     }
   }
 
@@ -145,12 +151,13 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   void _applyFilter(String query) {
     if (query.isEmpty) {
-      _filtered = widget.items;
+      _filtered = _getSortedItems(widget.items);
     } else {
       final lowerQuery = query.toLowerCase();
-      _filtered = widget.items.where((item) {
+      final matched = widget.items.where((item) {
         return widget.itemAsString(item).toLowerCase().contains(lowerQuery);
       }).toList();
+      _filtered = _getSortedItems(matched);
     }
     _overlayEntry?.markNeedsBuild();
   }
@@ -164,7 +171,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   void _openDropdown() {
     if (_isOpen) return;
-    _filtered = widget.items;
+    _filtered = _getSortedItems(widget.items);
 
     if (widget.searchable) {
       _searchController.text = _labelOf(widget.value);
@@ -178,20 +185,26 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
       setState(() => _isOpen = true);
     }
 
-    if (widget.searchable) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.searchable) {
         _focusNode.requestFocus();
         _searchController.selection = TextSelection.collapsed(
           offset: _searchController.text.length,
         );
-      });
-    }
+      }
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+      );
+    });
   }
 
   void _closeDropdown() {
     if (!_isOpen) return;
     _removeOverlay();
-    _filtered = widget.items;
+    _filtered = _getSortedItems(widget.items);
 
     if (widget.searchable) {
       _focusNode.unfocus();

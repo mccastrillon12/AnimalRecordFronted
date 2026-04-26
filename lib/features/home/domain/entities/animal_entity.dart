@@ -1,5 +1,20 @@
 import 'package:equatable/equatable.dart';
 
+class NameHistoryItem extends Equatable {
+  final String id;
+  final String name;
+  final String date;
+
+  const NameHistoryItem({
+    required this.id,
+    required this.name,
+    required this.date,
+  });
+
+  @override
+  List<Object?> get props => [id, name, date];
+}
+
 /// Entity representing an animal returned from the API.
 class AnimalEntity extends Equatable {
   final String id;
@@ -24,9 +39,12 @@ class AnimalEntity extends Equatable {
   final String? feedingType;
   final String? birthType;
   final String? birthCondition;
+  final String? identificationType;
+  final String? registrationAssociation;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
+  final List<NameHistoryItem> nameHistory;
 
   const AnimalEntity({
     required this.id,
@@ -51,9 +69,12 @@ class AnimalEntity extends Equatable {
     this.feedingType,
     this.birthType,
     this.birthCondition,
+    this.identificationType,
+    this.registrationAssociation,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
+    this.nameHistory = const [],
   });
 
   @override
@@ -80,8 +101,11 @@ class AnimalEntity extends Equatable {
         feedingType,
         birthType,
         birthCondition,
+        identificationType,
+        registrationAssociation,
         createdAt,
         updatedAt,
         ownerName,
+        nameHistory,
       ];
 }

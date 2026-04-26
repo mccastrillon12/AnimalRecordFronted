@@ -115,10 +115,18 @@ class AnimalInfoGeneralTab extends StatelessWidget {
                 style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
               ),
               const SizedBox(height: AppSpacing.xxs),
-              _buildHistoryItem(
-                '1. ${animal.name}',
-                _formatShortDate(animal.updatedAt),
-              ),
+              if (animal.nameHistory.isNotEmpty)
+                ...animal.nameHistory.asMap().entries.map((entry) {
+                  return _buildHistoryItem(
+                    '${entry.key + 1}. ${entry.value.name}',
+                    _formatShortDate(entry.value.date),
+                  );
+                })
+              else
+                _buildHistoryItem(
+                  '1. ${animal.name}',
+                  _formatShortDate(animal.updatedAt),
+                ),
             ],
           ),
         );

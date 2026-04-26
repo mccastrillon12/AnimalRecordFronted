@@ -6,6 +6,7 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
+import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 
 class AnimalInfoAdditionalTab extends StatelessWidget {
   final List<String> selectedTemperaments;
@@ -21,6 +22,12 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
   final TextEditingController feedingTypeController;
   final TextEditingController birthTypeController;
   final TextEditingController birthConditionController;
+  final bool isBovine;
+
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> temperamentOptions;
+  final List<CatalogItemEntity> housingTypeOptions;
+  final List<CatalogItemEntity> purposeOptions;
 
   const AnimalInfoAdditionalTab({
     super.key,
@@ -37,6 +44,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
     required this.feedingTypeController,
     required this.birthTypeController,
     required this.birthConditionController,
+    required this.isBovine,
+    this.temperamentOptions = const [],
+    this.housingTypeOptions = const [],
+    this.purposeOptions = const [],
   });
 
   @override
@@ -61,15 +72,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             label: 'Temperamento',
             hint: 'Buscar o escribir',
             selectedItems: selectedTemperaments,
-            items: const [
-              'Independiente',
-              'Dócil',
-              'Agresivo',
-              'Miedoso',
-              'Juguetón',
-              'Tranquilo',
-              'Sociable',
-            ],
+            items: temperamentOptions.map((t) => t.name).toList(),
             itemAsString: (item) => item,
             onChanged: onTemperamentsChanged,
           ),
@@ -115,7 +118,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             hint: 'Seleccionar',
             value: housingType,
             isInline: true,
-            items: const ['Casa', 'Apartamento', 'Finca', 'Otro'],
+            items: housingTypeOptions.map((h) => h.name).toList(),
             itemAsString: (name) => name,
             onChanged: onHousingTypeChanged,
           ),
@@ -123,17 +126,11 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
 
           // Propósito del animal
           AppDropdown<String>(
-            label: 'Propósito del animal',
+            label: isBovine ? 'Propósito productivo' : 'Propósito',
             hint: 'Seleccionar',
             value: purpose,
             isInline: true,
-            items: const [
-              'Compañía',
-              'Trabajo',
-              'Producción de Leche',
-              'Reproducción',
-              'Otro',
-            ],
+            items: purposeOptions.map((p) => p.name).toList(),
             itemAsString: (name) => name,
             onChanged: onPurposeChanged,
           ),

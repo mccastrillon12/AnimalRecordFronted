@@ -20,6 +20,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 import 'package:animal_record/core/services/deep_link_service.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/link_expired_screen.dart';
@@ -62,6 +63,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<AuthBloc>()),
         BlocProvider(create: (context) => di.sl<LocationsCubit>()),
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
+        BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

@@ -57,6 +57,12 @@ import 'package:animal_record/features/catalogs/data/repositories/catalogs_repos
 import 'package:animal_record/features/catalogs/domain/repositories/catalogs_repository.dart';
 import 'package:animal_record/features/catalogs/domain/usecases/get_species_usecase.dart';
 import 'package:animal_record/features/catalogs/domain/usecases/get_breeds_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_housing_types_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_animal_purposes_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_temperaments_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_adoption_sources_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_identification_types_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_registration_associations_usecase.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
@@ -206,11 +212,23 @@ Future<void> init() async {
     () => CatalogsCubit(
       getSpeciesUseCase: sl(),
       getBreedsBySpeciesUseCase: sl(),
+      getHousingTypesUseCase: sl(),
+      getAnimalPurposesUseCase: sl(),
+      getTemperamentsUseCase: sl(),
+      getAdoptionSourcesUseCase: sl(),
+      getIdentificationTypesUseCase: sl(),
+      getRegistrationAssociationsUseCase: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => GetSpeciesUseCase(repository: sl()));
   sl.registerLazySingleton(() => GetBreedsBySpeciesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetHousingTypesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetAnimalPurposesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetTemperamentsUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetAdoptionSourcesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetIdentificationTypesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetRegistrationAssociationsUseCase(repository: sl()));
 
   sl.registerLazySingleton<CatalogsRepository>(
     () => CatalogsRepositoryImpl(remoteDataSource: sl()),

@@ -6,7 +6,7 @@ class GetBreedsBySpeciesUseCase {
 
   GetBreedsBySpeciesUseCase({required this.repository});
 
-  Future<List<BreedEntity>> call(String speciesId) async {
-    return await repository.getBreedsBySpecies(speciesId);
+  Future<List<BreedEntity>> call(String speciesId, {String? purposeId}) async {
+    return await repository.getBreedsBySpecies(speciesId, purposeId: purposeId);
   }
 }

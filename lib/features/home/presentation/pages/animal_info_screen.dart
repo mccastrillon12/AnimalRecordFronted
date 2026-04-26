@@ -16,6 +16,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_info_add
 import 'package:animal_record/features/home/presentation/widgets/animal_info_general_tab.dart';
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 
 class AnimalInfoScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -43,6 +44,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   String? _hasIdentification;
   String? _belongsToAssociation;
   String? _selectedAssociation;
+  String? _selectedIdentificationType;
+  final _identificationNumberController = TextEditingController();
 
   // — Info Adicional state —
   List<String> _selectedTemperaments = [];
@@ -73,6 +76,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late String? _originalHasIdentification;
   late String? _originalBelongsToAssociation;
   late String? _originalSelectedAssociation;
+  late String? _originalSelectedIdentificationType;
   late List<String> _originalTemperaments;
   late String? _originalAllergy;
   late Map<String, bool> _originalDiagnoses;
@@ -93,9 +97,20 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _initializeFromAnimal();
     
     // Fetch detailed info (createdAt, updatedAt, ownerName) which are not returned by the owner list endpoint
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         context.read<AnimalCubit>().loadAnimalDetails(widget.animal.id);
+        
+        // Ensure species are loaded to resolve speciesId
+        final catalogsCubit = context.read<CatalogsCubit>();
+        if (catalogsCubit.species.isEmpty) {
+          await catalogsCubit.loadSpecies();
+        }
+        
+        if (mounted) {
+          final speciesId = _getSpeciesId(context, widget.animal.species);
+          catalogsCubit.loadAnimalCatalogs(speciesId: speciesId);
+        }
       }
     });
   }
@@ -115,9 +130,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _colorDescController = TextEditingController(text: a.colorAndMarkings ?? '')
       ..addListener(_onFieldChanged);
     _hasIdentification = a.hasChip ? 'si' : 'no';
+    _selectedIdentificationType = a.identificationType;
     _belongsToAssociation = a.isAssociationMember ? 'si' : 'no';
-    _selectedAssociation =
-        null; // Backend does not currently store the association name
+    _selectedAssociation = a.registrationAssociation;
 
     _selectedTemperaments = List<String>.from(a.temperament);
     _allergyController = TextEditingController(text: a.allergies ?? '')
@@ -153,6 +168,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _originalBirthDate = _birthDate;
     _originalColorDesc = a.colorAndMarkings ?? '';
     _originalHasIdentification = _hasIdentification;
+    _originalSelectedIdentificationType = _selectedIdentificationType;
     _originalBelongsToAssociation = _belongsToAssociation;
     _originalSelectedAssociation = _selectedAssociation;
     _originalTemperaments = List<String>.from(a.temperament);
@@ -183,6 +199,31 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     }
   }
 
+  String? _getSpeciesId(BuildContext context, String apiSpeciesName) {
+    final speciesList = context.read<CatalogsCubit>().species;
+    for (final s in speciesList) {
+      if (_mapSpeciesToApi(s.name) == apiSpeciesName) {
+        return s.id;
+      }
+    }
+    return null;
+  }
+
+  String _mapSpeciesToApi(String name) {
+    switch (name.toLowerCase()) {
+      case 'canino':
+        return 'DOG';
+      case 'felino':
+        return 'CAT';
+      case 'bovino':
+        return 'BOVINE';
+      case 'equino':
+        return 'EQUINE';
+      default:
+        return name.toUpperCase();
+    }
+  }
+
   void _onFieldChanged() {
     setState(() {});
   }
@@ -193,6 +234,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     if (_birthDate != _originalBirthDate) return true;
     if (_colorDescController.text.trim() != _originalColorDesc) return true;
     if (_hasIdentification != _originalHasIdentification) return true;
+    if (_selectedIdentificationType != _originalSelectedIdentificationType) return true;
     if (_belongsToAssociation != _originalBelongsToAssociation) return true;
     if (_selectedAssociation != _originalSelectedAssociation) return true;
     if (_selectedTemperaments.length != _originalTemperaments.length) {
@@ -256,6 +298,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       birthCondition: _birthConditionController.text.trim().isNotEmpty
           ? _birthConditionController.text.trim()
           : null,
+      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -302,6 +346,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       birthCondition: _birthConditionController.text.trim().isNotEmpty
           ? _birthConditionController.text.trim()
           : null,
+      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -313,6 +359,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _nameController.dispose();
     _weightKgController.dispose();
     _colorDescController.dispose();
+    _identificationNumberController.dispose();
     _allergyController.dispose();
     _otherDiagnosisController.dispose();
     _feedingTypeController.dispose();
@@ -678,11 +725,23 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   weightKgController: _weightKgController,
                                   colorDescController: _colorDescController,
                                   hasIdentification: _hasIdentification,
-                                  onHasIdentificationChanged: (v) =>
-                                      setState(() => _hasIdentification = v),
+                                  onHasIdentificationChanged: (v) => setState(() {
+                                    _hasIdentification = v;
+                                    if (v != 'si') {
+                                      _selectedIdentificationType = null;
+                                    }
+                                  }),
+                                  selectedIdentificationType: _selectedIdentificationType,
+                                  onIdentificationTypeChanged: (v) =>
+                                      setState(() => _selectedIdentificationType = v),
+                                  identificationNumberController: _identificationNumberController,
                                   belongsToAssociation: _belongsToAssociation,
-                                  onBelongsToAssociationChanged: (v) =>
-                                      setState(() => _belongsToAssociation = v),
+                                  onBelongsToAssociationChanged: (v) => setState(() {
+                                    _belongsToAssociation = v;
+                                    if (v != 'si') {
+                                      _selectedAssociation = null;
+                                    }
+                                  }),
                                   selectedAssociation: _selectedAssociation,
                                   onAssociationChanged: (v) =>
                                       setState(() => _selectedAssociation = v),
@@ -691,6 +750,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   localPhotoPath: _localPhotoPath,
                                   photoDeleted: _photoDeleted,
                                   onNameSaved: _saveNameOnly,
+                                  identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
+                                  associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
                                 ),
                                 AnimalInfoAdditionalTab(
                                   selectedTemperaments: _selectedTemperaments,
@@ -712,6 +773,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   birthTypeController: _birthTypeController,
                                   birthConditionController:
                                       _birthConditionController,
+                                  isBovine: _currentAnimal.family.toLowerCase() == 'bovino',
+                                  temperamentOptions: context.watch<CatalogsCubit>().temperaments,
+                                  housingTypeOptions: context.watch<CatalogsCubit>().housingTypes,
+                                  purposeOptions: context.watch<CatalogsCubit>().animalPurposes,
                                 ),
                                 AnimalInfoGeneralTab(
                                   animal: _currentAnimal,

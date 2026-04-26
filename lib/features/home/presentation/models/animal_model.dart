@@ -28,9 +28,12 @@ class AnimalModel {
   final String? feedingType;
   final String? birthType;
   final String? birthCondition;
+  final String? identificationType;
+  final String? registrationAssociation;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
+  final List<NameHistoryItem> nameHistory;
 
   const AnimalModel({
     required this.id,
@@ -57,9 +60,12 @@ class AnimalModel {
     this.feedingType,
     this.birthType,
     this.birthCondition,
+    this.identificationType,
+    this.registrationAssociation,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
+    this.nameHistory = const [],
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -163,9 +169,12 @@ class AnimalModel {
       feedingType: entity.feedingType,
       birthType: entity.birthType,
       birthCondition: entity.birthCondition,
+      identificationType: entity.identificationType,
+      registrationAssociation: entity.registrationAssociation,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       ownerName: entity.ownerName,
+      nameHistory: entity.nameHistory,
     );
   }
 

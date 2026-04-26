@@ -25,9 +25,12 @@ class AnimalDataModel extends AnimalEntity {
     super.feedingType,
     super.birthType,
     super.birthCondition,
+    super.identificationType,
+    super.registrationAssociation,
     super.createdAt,
     super.updatedAt,
     super.ownerName,
+    super.nameHistory,
   });
 
   factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
@@ -61,9 +64,19 @@ class AnimalDataModel extends AnimalEntity {
       feedingType: json['feedingType'] as String?,
       birthType: json['birthType'] as String?,
       birthCondition: json['birthCondition'] as String?,
+      identificationType: json['identificationType'] as String?,
+      registrationAssociation: json['registrationAssociation'] as String?,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
       ownerName: json['ownerName'] as String?,
+      nameHistory: (json['nameHistory'] as List<dynamic>?)?.map((e) {
+        final item = e as Map<String, dynamic>;
+        return NameHistoryItem(
+          id: item['_id']?.toString() ?? '',
+          name: item['name']?.toString() ?? '',
+          date: item['date']?.toString() ?? '',
+        );
+      }).toList() ?? [],
     );
   }
 
@@ -91,9 +104,16 @@ class AnimalDataModel extends AnimalEntity {
       if (feedingType != null) 'feedingType': feedingType,
       if (birthType != null) 'birthType': birthType,
       if (birthCondition != null) 'birthCondition': birthCondition,
+      if (identificationType != null) 'identificationType': identificationType,
+      if (registrationAssociation != null) 'registrationAssociation': registrationAssociation,
       if (createdAt != null) 'createdAt': createdAt,
       if (updatedAt != null) 'updatedAt': updatedAt,
       if (ownerName != null) 'ownerName': ownerName,
+      'nameHistory': nameHistory.map((e) => {
+        '_id': e.id,
+        'name': e.name,
+        'date': e.date,
+      }).toList(),
     };
   }
 }

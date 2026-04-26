@@ -10,6 +10,7 @@ import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
+import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalInfoBasicTab extends StatelessWidget {
@@ -25,6 +26,9 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final TextEditingController colorDescController;
   final String? hasIdentification;
   final ValueChanged<String?> onHasIdentificationChanged;
+  final String? selectedIdentificationType;
+  final ValueChanged<String?> onIdentificationTypeChanged;
+  final TextEditingController identificationNumberController;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
   final String? selectedAssociation;
@@ -34,6 +38,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final String? localPhotoPath;
   final bool photoDeleted;
   final ValueChanged<String>? onNameSaved;
+
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> identificationTypeOptions;
+  final List<CatalogItemEntity> associationOptions;
 
   const AnimalInfoBasicTab({
     super.key,
@@ -49,6 +57,9 @@ class AnimalInfoBasicTab extends StatelessWidget {
     required this.colorDescController,
     required this.hasIdentification,
     required this.onHasIdentificationChanged,
+    this.selectedIdentificationType,
+    required this.onIdentificationTypeChanged,
+    required this.identificationNumberController,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
     required this.selectedAssociation,
@@ -58,6 +69,8 @@ class AnimalInfoBasicTab extends StatelessWidget {
     this.localPhotoPath,
     this.photoDeleted = false,
     this.onNameSaved,
+    this.identificationTypeOptions = const [],
+    this.associationOptions = const [],
   });
 
   String _iconForFamily(String family) {
@@ -343,16 +356,16 @@ class AnimalInfoBasicTab extends StatelessWidget {
             AppDropdown<String>(
               label: 'Tipo de identificación',
               hint: 'Seleccionar',
-              value: null,
+              value: selectedIdentificationType,
               isInline: true,
-              items: const ['Microchip', 'Arete', 'Tatuaje', 'Otro'],
+              items: identificationTypeOptions.map((t) => t.name).toList(),
               itemAsString: (name) => name,
-              onChanged: (_) {},
+              onChanged: onIdentificationTypeChanged,
             ),
             const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Número de identificación',
-              controller: TextEditingController(),
+              controller: identificationNumberController,
             ),
           ],
           const SizedBox(height: AppSpacing.m),
@@ -384,11 +397,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               hint: 'Seleccionar asociación',
               value: selectedAssociation,
               isInline: true,
-              items: const [
-                'Asociación 1',
-                'Asociación 2',
-                'Asociación 3',
-              ],
+              items: associationOptions.map((a) => a.name).toList(),
               itemAsString: (name) => name,
               onChanged: onAssociationChanged,
             ),

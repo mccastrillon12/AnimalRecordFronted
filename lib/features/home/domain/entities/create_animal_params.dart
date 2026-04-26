@@ -17,6 +17,13 @@ class CreateAnimalParams extends Equatable {
   final double? weight;
   final String? colorAndMarkings;
   final String? allergies;
+  final String? housingType;
+  final String? purpose;
+  final String? feedingType;
+  final String? birthType;
+  final String? birthCondition;
+  final String? identificationType;
+  final String? registrationAssociation;
 
   const CreateAnimalParams({
     required this.id,
@@ -34,6 +41,13 @@ class CreateAnimalParams extends Equatable {
     this.weight,
     this.colorAndMarkings,
     this.allergies,
+    this.housingType,
+    this.purpose,
+    this.feedingType,
+    this.birthType,
+    this.birthCondition,
+    this.identificationType,
+    this.registrationAssociation,
   });
 
   Map<String, dynamic> toJson() {
@@ -54,6 +68,18 @@ class CreateAnimalParams extends Equatable {
       if (colorAndMarkings != null && colorAndMarkings!.isNotEmpty)
         'colorAndMarkings': colorAndMarkings,
       if (allergies != null && allergies!.isNotEmpty) 'allergies': allergies,
+      if (housingType != null && housingType!.isNotEmpty)
+        'housingType': housingType,
+      if (purpose != null && purpose!.isNotEmpty) 'purpose': purpose,
+      if (feedingType != null && feedingType!.isNotEmpty)
+        'feedingType': feedingType,
+      if (birthType != null && birthType!.isNotEmpty) 'birthType': birthType,
+      if (birthCondition != null && birthCondition!.isNotEmpty)
+        'birthCondition': birthCondition,
+      if (identificationType != null && identificationType!.isNotEmpty)
+        'identificationType': identificationType,
+      if (registrationAssociation != null && registrationAssociation!.isNotEmpty)
+        'registrationAssociation': registrationAssociation,
     };
   }
 
@@ -74,5 +100,12 @@ class CreateAnimalParams extends Equatable {
         weight,
         colorAndMarkings,
         allergies,
+        housingType,
+        purpose,
+        feedingType,
+        birthType,
+        birthCondition,
+        identificationType,
+        registrationAssociation,
       ];
 }

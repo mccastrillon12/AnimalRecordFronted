@@ -24,6 +24,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/catalogs/domain/entities/species_entity.dart';
 import 'package:animal_record/features/catalogs/domain/entities/breed_entity.dart';
+import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_state.dart';
 
@@ -67,9 +68,12 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   final _weightLbController = TextEditingController();
   final _colorDescController = TextEditingController();
   String? _hasIdentification;
+  String? _selectedIdentificationType;
+  final _identificationNumberController = TextEditingController();
   String? _belongsToAssociation;
   String? _selectedAssociation;
   String? _selectedPhotoPath;
+  String? _selectedPurpose;
 
   // — Step 3 state —
   List<String> _selectedTemperaments = [];
@@ -89,6 +93,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     _weightKgController.dispose();
     _weightLbController.dispose();
     _colorDescController.dispose();
+    _identificationNumberController.dispose();
     _allergyController.dispose();
     _otherDiagnosisController.dispose();
     super.dispose();
@@ -110,10 +115,34 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     setState(() {
       _selectedSpecies = species;
       _selectedBreed = null;
+      _selectedPurpose = null;
       _currentStep = 2;
     });
-    // Load breeds for the selected species
-    context.read<CatalogsCubit>().loadBreeds(species.id);
+    final catalogsCubit = context.read<CatalogsCubit>();
+    // Load breeds without purpose filter initially only if not bovino
+    if (species.name.toLowerCase() != 'bovino') {
+      catalogsCubit.loadBreeds(species.id);
+    }
+    // Load all animal-specific catalogs filtered by species
+    catalogsCubit.loadAnimalCatalogs(speciesId: species.id);
+  }
+
+  void _onPurposeChanged(String? purposeName) {
+    final cubit = context.read<CatalogsCubit>();
+    // Find the purpose ID from the catalog items
+    String? purposeId;
+    if (purposeName != null) {
+      final match = cubit.animalPurposes.where((p) => p.name == purposeName);
+      if (match.isNotEmpty) purposeId = match.first.id;
+    }
+    setState(() {
+      _selectedPurpose = purposeName;
+      _selectedBreed = null; // Reset breed when purpose changes
+    });
+    // Reload breeds filtered by purpose only for bovinos
+    if (_selectedSpecies != null && _selectedSpecies!.name.toLowerCase() == 'bovino') {
+      cubit.loadBreeds(_selectedSpecies!.id, purposeId: purposeId);
+    }
   }
 
   // =========================================================================
@@ -175,8 +204,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
           : null,
-      hasChip: _hasIdentification == 'Sí',
-      isAssociationMember: _belongsToAssociation == 'Sí',
+      hasChip: _hasIdentification == 'si',
+      isAssociationMember: _belongsToAssociation == 'si',
       temperament: _selectedTemperaments.isEmpty
           ? ['Desconocido']
           : _selectedTemperaments,
@@ -189,6 +218,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       allergies: _allergyController.text.trim().isNotEmpty
           ? _allergyController.text.trim()
           : null,
+      purpose: _selectedPurpose,
+      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
     );
   }
 
@@ -216,9 +248,12 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _weightLbController.clear();
       _colorDescController.clear();
       _hasIdentification = null;
+      _selectedIdentificationType = null;
+      _identificationNumberController.clear();
       _belongsToAssociation = null;
       _selectedAssociation = null;
       _selectedPhotoPath = null;
+      _selectedPurpose = null;
       _selectedTemperaments = [];
       _allergyController.clear();
       _diagnoses.updateAll((key, value) => false);
@@ -318,15 +353,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       case 1:
         return BlocBuilder<CatalogsCubit, CatalogsState>(
           builder: (context, catalogState) {
+            final cubit = context.watch<CatalogsCubit>();
             final isLoading = catalogState is CatalogsLoading;
-            final speciesRaw = catalogState is SpeciesLoaded
-                ? catalogState.species
-                : catalogState is BreedsLoaded
-                ? catalogState.species
-                : catalogState is BreedsLoading
-                ? catalogState.species
-                : <SpeciesEntity>[];
-            final species = speciesRaw
+            final species = cubit.species
                 .where((s) => s.name.toLowerCase() != 'porcino')
                 .toList();
             return _FamilySelectionStep(
@@ -339,9 +368,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       case 2:
         return BlocBuilder<CatalogsCubit, CatalogsState>(
           builder: (context, catalogState) {
-            final breeds = catalogState is BreedsLoaded
-                ? catalogState.breeds
-                : <BreedEntity>[];
+            final cubit = context.watch<CatalogsCubit>();
+            final breeds = cubit.breeds;
             final breedsLoading = catalogState is BreedsLoading;
             return _AnimalInfoStep(
               selectedSpecies: _selectedSpecies!,
@@ -364,8 +392,17 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               weightLbController: _weightLbController,
               colorDescController: _colorDescController,
               hasIdentification: _hasIdentification,
-              onHasIdentificationChanged: (v) =>
-                  setState(() => _hasIdentification = v),
+              onHasIdentificationChanged: (v) => setState(() {
+                _hasIdentification = v;
+                if (v != 'si') {
+                  _selectedIdentificationType = null;
+                  _identificationNumberController.clear();
+                }
+              }),
+              selectedIdentificationType: _selectedIdentificationType,
+              onIdentificationTypeChanged: (v) =>
+                  setState(() => _selectedIdentificationType = v),
+              identificationNumberController: _identificationNumberController,
               belongsToAssociation: _belongsToAssociation,
               onBelongsToAssociationChanged: (v) => setState(() {
                 _belongsToAssociation = v;
@@ -379,6 +416,11 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               selectedPhotoPath: _selectedPhotoPath,
               onPhotoSelected: (path) => setState(() => _selectedPhotoPath = path),
               onPhotoRemoved: () => setState(() => _selectedPhotoPath = null),
+              associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
+              selectedPurpose: _selectedPurpose,
+              onPurposeChanged: _onPurposeChanged,
+              purposeOptions: context.watch<CatalogsCubit>().animalPurposes,
+              identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
             );
           },
         );
@@ -401,6 +443,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               onSaveAndAddAnother: _isStep3Valid && !isLoading
                   ? () => _saveAnimal(addAnother: true)
                   : null,
+              temperamentOptions: context.watch<CatalogsCubit>().temperaments,
             );
           },
         );
@@ -554,6 +597,9 @@ class _AnimalInfoStep extends StatelessWidget {
   final TextEditingController colorDescController;
   final String? hasIdentification;
   final ValueChanged<String?> onHasIdentificationChanged;
+  final String? selectedIdentificationType;
+  final ValueChanged<String?> onIdentificationTypeChanged;
+  final TextEditingController identificationNumberController;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
   final String? selectedAssociation;
@@ -563,6 +609,13 @@ class _AnimalInfoStep extends StatelessWidget {
   final String? selectedPhotoPath;
   final ValueChanged<String> onPhotoSelected;
   final VoidCallback onPhotoRemoved;
+
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> associationOptions;
+  final String? selectedPurpose;
+  final ValueChanged<String?> onPurposeChanged;
+  final List<CatalogItemEntity> purposeOptions;
+  final List<CatalogItemEntity> identificationTypeOptions;
 
   const _AnimalInfoStep({
     required this.selectedSpecies,
@@ -584,6 +637,9 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.colorDescController,
     required this.hasIdentification,
     required this.onHasIdentificationChanged,
+    this.selectedIdentificationType,
+    required this.onIdentificationTypeChanged,
+    required this.identificationNumberController,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
     required this.selectedAssociation,
@@ -593,6 +649,11 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.selectedPhotoPath,
     required this.onPhotoSelected,
     required this.onPhotoRemoved,
+    this.associationOptions = const [],
+    this.selectedPurpose,
+    required this.onPurposeChanged,
+    this.purposeOptions = const [],
+    this.identificationTypeOptions = const [],
   });
 
   @override
@@ -652,6 +713,18 @@ class _AnimalInfoStep extends StatelessWidget {
                         CustomTextField(
                           label: 'Nombre',
                           controller: nameController,
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+
+                        // Productive purpose
+                        AppDropdown<String>(
+                          label: selectedSpecies.name.toLowerCase() == 'bovino' ? 'Propósito productivo' : 'Propósito',
+                          hint: 'Seleccionar',
+                          value: selectedPurpose,
+                          isInline: true,
+                          items: purposeOptions.map((p) => p.name).toList(),
+                          itemAsString: (name) => name,
+                          onChanged: onPurposeChanged,
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -808,6 +881,23 @@ class _AnimalInfoStep extends StatelessWidget {
                             ),
                           ],
                         ),
+                        if (hasIdentification == 'si') ...[
+                          const SizedBox(height: AppSpacing.m),
+                          AppDropdown<String>(
+                            label: 'Tipo de identificación',
+                            hint: 'Seleccionar',
+                            value: selectedIdentificationType,
+                            isInline: true,
+                            items: identificationTypeOptions.map((t) => t.name).toList(),
+                            itemAsString: (name) => name,
+                            onChanged: onIdentificationTypeChanged,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          CustomTextField(
+                            label: 'Número de identificación',
+                            controller: identificationNumberController,
+                          ),
+                        ],
                         const SizedBox(height: AppSpacing.m),
 
                         // Belongs to association?
@@ -840,11 +930,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             hint: 'Seleccionar asociación',
                             value: selectedAssociation,
                             isInline: true,
-                            items: const [
-                              'Asociación 1',
-                              'Asociación 2',
-                              'Asociación 3',
-                            ],
+                            items: associationOptions.map((a) => a.name).toList(),
                             itemAsString: (name) => name,
                             onChanged: onAssociationChanged,
                           ),
@@ -1173,6 +1259,9 @@ class _AdditionalInfoStep extends StatelessWidget {
   final VoidCallback? onSave;
   final VoidCallback? onSaveAndAddAnother;
 
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> temperamentOptions;
+
   const _AdditionalInfoStep({
     required this.selectedTemperaments,
     required this.onTemperamentsChanged,
@@ -1184,6 +1273,7 @@ class _AdditionalInfoStep extends StatelessWidget {
     required this.isLoading,
     required this.onSave,
     required this.onSaveAndAddAnother,
+    this.temperamentOptions = const [],
   });
 
   @override
@@ -1225,13 +1315,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                           label: 'Temperamento',
                           hint: 'Buscar o escribir',
                           selectedItems: selectedTemperaments,
-                          items: const [
-                            'Independiente',
-                            'Dócil',
-                            'Agresivo',
-                            'Miedoso',
-                            'Juguetón',
-                          ],
+                          items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,
                         ),
