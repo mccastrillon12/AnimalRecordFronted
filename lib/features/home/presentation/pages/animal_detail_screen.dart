@@ -201,7 +201,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                 const SizedBox(height: AppSpacing.xl),
 
                                 // Action buttons
-                                _buildActionButtons(),
+                                _buildActionButtons(currentAnimal),
 
                                 const SizedBox(height: AppSpacing.xl),
 
@@ -287,14 +287,20 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
   // ── Action Buttons ────────────────────────────────────────────
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(AnimalModel currentAnimal) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
-          onTap: () {},
+          onTap: () {
+            Navigator.pushNamed(
+              context,
+              AppRoutes.animalDiary,
+              arguments: currentAnimal,
+            );
+          },
         ),
         const SizedBox(width: 74),
         _buildActionButton(

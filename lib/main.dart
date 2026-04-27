@@ -30,6 +30,10 @@ import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
+import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
+import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -64,6 +68,7 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<LocationsCubit>()),
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
         BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
+        BlocProvider(create: (context) => di.sl<DiaryCubit>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -107,6 +112,27 @@ class MyApp extends StatelessWidget {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalInfoScreen(animal: animal);
+          },
+          AppRoutes.animalDiary: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalDiaryScreen(animal: animal);
+          },
+          AppRoutes.animalDiaryCreate: (context) {
+            final args = ModalRoute.of(context)!.settings.arguments;
+            AnimalModel animal;
+            DiaryEntryEntity? entry;
+            
+            if (args is AnimalModel) {
+              animal = args;
+            } else if (args is Map<String, dynamic>) {
+              animal = args['animal'] as AnimalModel;
+              entry = args['entry'] as DiaryEntryEntity?;
+            } else {
+              throw Exception('Invalid arguments for animalDiaryCreate route');
+            }
+            
+            return AnimalDiaryCreateScreen(animal: animal, entry: entry);
           },
         },
       ),

@@ -65,6 +65,19 @@ import 'package:animal_record/features/catalogs/domain/usecases/get_identificati
 import 'package:animal_record/features/catalogs/domain/usecases/get_registration_associations_usecase.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 
+// — Diary feature —
+import 'package:animal_record/features/diary/data/datasources/diary_remote_datasource.dart';
+import 'package:animal_record/features/diary/data/repositories/diary_repository_impl.dart';
+import 'package:animal_record/features/diary/domain/repositories/diary_repository.dart';
+import 'package:animal_record/features/diary/domain/usecases/get_diary_entries_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/create_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/update_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/delete_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/get_attachment_upload_url_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/confirm_attachment_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/delete_attachment_usecase.dart';
+import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
+
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
 import 'package:animal_record/core/services/apple_auth_service.dart';
@@ -236,6 +249,33 @@ Future<void> init() async {
 
   sl.registerLazySingleton<CatalogsRemoteDataSource>(
     () => CatalogsRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // — Diary feature —
+  sl.registerFactory(
+    () => DiaryCubit(
+      getDiaryEntriesUseCase: sl(),
+      createDiaryEntryUseCase: sl(),
+      updateDiaryEntryUseCase: sl(),
+      deleteDiaryEntryUseCase: sl(),
+      getAttachmentUploadUrlUseCase: sl(),
+      confirmAttachmentUseCase: sl(),
+      deleteAttachmentUseCase: sl(),
+      s3UploadService: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetDiaryEntriesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => GetAttachmentUploadUrlUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmAttachmentUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAttachmentUseCase(sl()));
+  sl.registerLazySingleton<DiaryRepository>(
+    () => DiaryRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<DiaryRemoteDataSource>(
+    () => DiaryRemoteDataSourceImpl(apiClient: sl()),
   );
 
   sl.registerLazySingleton<TokenStorage>(
