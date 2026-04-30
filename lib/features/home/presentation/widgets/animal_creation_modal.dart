@@ -18,6 +18,10 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
+import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
+import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
@@ -105,7 +109,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   void _goBack() {
-    if (_currentStep > 1) {
+    if (_currentStep == 2) {
+      _resetForm();
+    } else if (_currentStep > 1) {
       setState(() => _currentStep--);
     }
   }
@@ -185,6 +191,53 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
 
   bool get _isStep3Valid {
     return _selectedTemperaments.isNotEmpty && _diagnoses.values.any((v) => v);
+  }
+
+  /// Returns true if the user has filled in at least one field after step 1.
+  bool get _hasAnyFieldFilled {
+    return _nameController.text.trim().isNotEmpty ||
+        _selectedBreed != null ||
+        _selectedSex != null ||
+        _reproductiveState != null ||
+        _birthDate != null ||
+        _unknownExactDate ||
+        _weightKgController.text.trim().isNotEmpty ||
+        _weightLbController.text.trim().isNotEmpty ||
+        _colorDescController.text.trim().isNotEmpty ||
+        _hasIdentification != null ||
+        _selectedIdentificationType != null ||
+        _identificationNumberController.text.trim().isNotEmpty ||
+        _belongsToAssociation != null ||
+        _selectedAssociation != null ||
+        _selectedPhotoPath != null ||
+        _selectedPurpose != null ||
+        _isAdopted != null ||
+        _selectedAdoptionSource != null ||
+        _adoptionPlaceNameController.text.trim().isNotEmpty ||
+        _selectedTemperaments.isNotEmpty ||
+        _allergyController.text.trim().isNotEmpty ||
+        _diagnoses.values.any((v) => v) ||
+        _otherDiagnosisController.text.trim().isNotEmpty;
+  }
+
+  void _onCloseRequested() {
+    if (_hasAnyFieldFilled) {
+      showDialog(
+        context: context,
+        builder: (_) => ConfirmDialog(
+          title: '¿Desea cancelar el proceso?',
+          description: 'Perderá los datos diligenciados al momento.',
+          confirmLabel: 'Si',
+          cancelLabel: 'No',
+          width: 325,
+          confirmColor: const Color(0xFFFA2844),
+          onConfirm: () => Navigator.pop(context),
+          onCancel: () {},
+        ),
+      );
+    } else {
+      Navigator.pop(context);
+    }
   }
 
   // =========================================================================
@@ -337,7 +390,11 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               _resetForm();
             } else {
               context.read<AnimalCubit>().resetToLoaded();
-              Navigator.pop(context);
+              final animalModel = AnimalModel.fromEntity(state.animal);
+              final nav = Navigator.of(context);
+              nav.pop();
+              nav.pushNamed(AppRoutes.animalDetail, arguments: animalModel);
+              ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
             }
           }
         } else if (state is AnimalPictureUploaded) {
@@ -348,7 +405,11 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
             _resetForm();
           } else {
             context.read<AnimalCubit>().resetToLoaded();
-            Navigator.pop(context);
+            final animalModel = AnimalModel.fromEntity(state.animal);
+            final nav = Navigator.of(context);
+            nav.pop();
+            nav.pushNamed(AppRoutes.animalDetail, arguments: animalModel);
+            ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
           }
         } else if (state is AnimalError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -365,7 +426,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         subtitle: _buildSubtitle(),
         showBackButton: _currentStep > 1,
         onBack: _goBack,
-        onClose: () => Navigator.pop(context),
+        onClose: _onCloseRequested,
         child: _buildStepContent(),
       ),
     );

@@ -8,10 +8,12 @@ class ConfirmDialog extends StatelessWidget {
   final InlineSpan? richDescription;
   final Widget? content;
   final String confirmLabel;
+  final String cancelLabel;
   final Color confirmColor;
   final bool isConfirmEnabled;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
+  final double width;
 
   const ConfirmDialog({
     super.key,
@@ -20,10 +22,12 @@ class ConfirmDialog extends StatelessWidget {
     this.richDescription,
     this.content,
     required this.confirmLabel,
+    this.cancelLabel = 'Cancelar',
     this.confirmColor = const Color(0xFFFA2844),
     this.isConfirmEnabled = true,
     required this.onConfirm,
     this.onCancel,
+    this.width = 347,
   });
 
   @override
@@ -34,7 +38,7 @@ class ConfirmDialog extends StatelessWidget {
       insetPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: SizedBox(
-        width: 347,
+        width: width,
         child: Padding(
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -89,10 +93,7 @@ class ConfirmDialog extends StatelessWidget {
               if (description != null || richDescription != null)
                 const SizedBox(height: 16),
               // Custom Content
-              if (content != null) ...[
-                content!,
-                const SizedBox(height: 16),
-              ],
+              if (content != null) ...[content!, const SizedBox(height: 16)],
               // Buttons row
               Row(
                 children: [
@@ -109,7 +110,7 @@ class ConfirmDialog extends StatelessWidget {
                         minimumSize: const Size(double.infinity, 40),
                       ),
                       child: Text(
-                        'Cancelar',
+                        cancelLabel,
                         style: AppTypography.body3.copyWith(
                           color: const Color(0xFF0072BB),
                           fontWeight: FontWeight.bold,
@@ -141,7 +142,9 @@ class ConfirmDialog extends StatelessWidget {
                       child: Text(
                         confirmLabel,
                         style: AppTypography.body3.copyWith(
-                          color: isConfirmEnabled ? Colors.white : AppColors.greyMedio,
+                          color: isConfirmEnabled
+                              ? Colors.white
+                              : AppColors.greyMedio,
                           fontWeight: FontWeight.bold,
                         ),
                         textAlign: TextAlign.center,
