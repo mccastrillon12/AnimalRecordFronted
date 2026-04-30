@@ -36,6 +36,11 @@ class CustomTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final Duration? validationDelay;
   final bool hideErrorText;
+  final bool enforceMaxLength;
+  final RegExp? allowPattern;
+  final String? patternErrorMessage;
+  final bool strictValidation;
+  final ValueChanged<String?>? onErrorChanged;
 
   const CustomTextField({
     super.key,
@@ -68,6 +73,11 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.validationDelay,
     this.hideErrorText = false,
+    this.enforceMaxLength = true,
+    this.allowPattern,
+    this.patternErrorMessage,
+    this.strictValidation = false,
+    this.onErrorChanged,
   });
 
   @override
@@ -108,6 +118,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
     if (_internalErrorText != error) {
       setState(() => _internalErrorText = error);
+      widget.onErrorChanged?.call(error);
     }
   }
 
@@ -127,12 +138,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
         _validationTimer?.cancel();
         if (_internalErrorText != null) {
           setState(() => _internalErrorText = null);
+          widget.onErrorChanged?.call(null);
         }
       } else {
         if (_internalErrorText != null) {
           // If already showing an error, update it immediately to stay responsive
           _validationTimer?.cancel();
           setState(() => _internalErrorText = newError);
+          widget.onErrorChanged?.call(newError);
         } else {
           // If no error is showing, use the delay
           _validationTimer?.cancel();
@@ -160,6 +173,38 @@ class _CustomTextFieldState extends State<CustomTextField> {
     );
 
     final currentErrorText = widget.errorText ?? _internalErrorText;
+
+    List<TextInputFormatter> formatters =
+        widget.inputFormatters?.toList() ?? [];
+    if (widget.strictValidation) {
+      formatters.add(
+        _ErrorTriggeringTextInputFormatter(
+          allowPattern: widget.allowPattern,
+          patternErrorMessage: widget.patternErrorMessage,
+          maxLength: widget.maxLength,
+          onError: (error) {
+            if (_internalErrorText != error) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _internalErrorText = error);
+                  widget.onErrorChanged?.call(error);
+                }
+              });
+            }
+          },
+          onSuccess: () {
+            if (_internalErrorText != null && widget.errorText == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _internalErrorText = null);
+                  widget.onErrorChanged?.call(null);
+                }
+              });
+            }
+          },
+        ),
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,7 +261,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     required isFocused,
                     maxLength,
                   }) => null,
-              inputFormatters: widget.inputFormatters,
+              inputFormatters: formatters,
               onFieldSubmitted: widget.onSubmitted,
               onEditingComplete: widget.onEditingComplete,
               textInputAction: widget.textInputAction,
@@ -245,9 +290,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 errorText: null,
                 hintStyle:
                     widget.hintStyle ??
-                    AppTypography.body4.copyWith(
-                      color: AppColors.greyBordes,
-                    ),
+                    AppTypography.body4.copyWith(color: AppColors.greyBordes),
                 prefixIcon: widget.prefixIcon,
 
                 prefix: widget.prefixText != null
@@ -316,5 +359,45 @@ class _CustomTextFieldState extends State<CustomTextField> {
         ],
       ],
     );
+  }
+}
+
+class _ErrorTriggeringTextInputFormatter extends TextInputFormatter {
+  final RegExp? allowPattern;
+  final String? patternErrorMessage;
+  final int? maxLength;
+  final void Function(String) onError;
+  final VoidCallback onSuccess;
+
+  _ErrorTriggeringTextInputFormatter({
+    this.allowPattern,
+    this.patternErrorMessage,
+    this.maxLength,
+    required this.onError,
+    required this.onSuccess,
+  });
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      onSuccess();
+      return newValue;
+    }
+
+    if (maxLength != null && newValue.text.length > maxLength!) {
+      onError('Este campo recibe un máximo de $maxLength caracteres');
+      return oldValue;
+    }
+
+    if (allowPattern != null && !allowPattern!.hasMatch(newValue.text)) {
+      onError(patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9');
+      return oldValue;
+    }
+
+    onSuccess();
+    return newValue;
   }
 }

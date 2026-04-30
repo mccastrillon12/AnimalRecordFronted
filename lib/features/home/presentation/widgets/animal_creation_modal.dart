@@ -71,6 +71,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   bool _unknownExactDate = false;
   final _weightKgController = TextEditingController();
   final _weightLbController = TextEditingController();
+  String? _weightErrorText;
   final _colorDescController = TextEditingController();
   String? _hasIdentification;
   String? _selectedIdentificationType;
@@ -476,6 +477,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               }),
               weightKgController: _weightKgController,
               weightLbController: _weightLbController,
+              weightErrorText: _weightErrorText,
+              onWeightErrorChanged: (error) => setState(() => _weightErrorText = error),
               colorDescController: _colorDescController,
               hasIdentification: _hasIdentification,
               onHasIdentificationChanged: (v) => setState(() {
@@ -693,6 +696,8 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<bool> onUnknownExactDateChanged;
   final TextEditingController weightKgController;
   final TextEditingController weightLbController;
+  final String? weightErrorText;
+  final ValueChanged<String?> onWeightErrorChanged;
   final TextEditingController colorDescController;
   final String? hasIdentification;
   final ValueChanged<String?> onHasIdentificationChanged;
@@ -739,6 +744,8 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onUnknownExactDateChanged,
     required this.weightKgController,
     required this.weightLbController,
+    this.weightErrorText,
+    required this.onWeightErrorChanged,
     required this.colorDescController,
     required this.hasIdentification,
     required this.onHasIdentificationChanged,
@@ -825,9 +832,8 @@ class _AnimalInfoStep extends StatelessWidget {
                           label: 'Nombre',
                           controller: nameController,
                           maxLength: 50,
-                          inputFormatters: [
-                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
-                          ],
+                          strictValidation: true,
+                          allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -944,33 +950,62 @@ class _AnimalInfoStep extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.inputTopPadding),
-                        Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: CustomTextField(
-                                label: '',
-                                hint: '- kg',
-                                controller: weightKgController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                maxLength: 5,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                                ],
-                              ),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: CustomTextField(
+                                    label: '',
+                                    hint: '- kg',
+                                    controller: weightKgController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    maxLength: 5,
+                                    strictValidation: true,
+                                    allowPattern: RegExp(r'^[0-9.]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    hideErrorText: true,
+                                    onErrorChanged: (error) {
+                                      if (weightErrorText != error) {
+                                        onWeightErrorChanged(error);
+                                      }
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.m),
+                                Expanded(
+                                  child: CustomTextField(
+                                    label: '',
+                                    hint: '- lb',
+                                    controller: weightLbController,
+                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    maxLength: 5,
+                                    strictValidation: true,
+                                    allowPattern: RegExp(r'^[0-9.]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    hideErrorText: true,
+                                    onErrorChanged: (error) {
+                                      if (weightErrorText != error) {
+                                        onWeightErrorChanged(error);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: AppSpacing.m),
-                            Expanded(
-                              child: CustomTextField(
-                                label: '',
-                                hint: '- lb',
-                                controller: weightLbController,
-                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                maxLength: 5,
-                                inputFormatters: [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
-                                ],
+                            if (weightErrorText != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                weightErrorText!,
+                                style: AppTypography.body5.copyWith(
+                                  color: AppColors.error,
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                            ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: AppSpacing.m),
@@ -1024,9 +1059,8 @@ class _AnimalInfoStep extends StatelessWidget {
                             label: 'Número de identificación',
                             controller: identificationNumberController,
                             maxLength: 15,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-                            ],
+                            strictValidation: true,
+                            allowPattern: RegExp(r'^[a-zA-Z0-9]+$'),
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),
@@ -1506,6 +1540,9 @@ class _AdditionalInfoStep extends StatelessWidget {
                         CustomTextField(
                           label: 'Alergia a (Opcional)',
                           controller: allergyController,
+                          maxLength: 80,
+                          strictValidation: true,
+                          allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -1536,6 +1573,9 @@ class _AdditionalInfoStep extends StatelessWidget {
                           CustomTextField(
                             label: '¿Cuál?',
                             controller: otherDiagnosisController,
+                            maxLength: 80,
+                            strictValidation: true,
+                            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                           ),
                           const SizedBox(height: AppSpacing.m),
                         ],
