@@ -40,7 +40,11 @@ class AnimalEntity extends Equatable {
   final String? birthType;
   final String? birthCondition;
   final String? identificationType;
+  final String? identificationNumber;
   final String? registrationAssociation;
+  final bool? isAdopted;
+  final String? adoptionSource;
+  final String? adoptionPlaceName;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
@@ -70,7 +74,11 @@ class AnimalEntity extends Equatable {
     this.birthType,
     this.birthCondition,
     this.identificationType,
+    this.identificationNumber,
     this.registrationAssociation,
+    this.isAdopted,
+    this.adoptionSource,
+    this.adoptionPlaceName,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
@@ -102,7 +110,11 @@ class AnimalEntity extends Equatable {
         birthType,
         birthCondition,
         identificationType,
+        identificationNumber,
         registrationAssociation,
+        isAdopted,
+        adoptionSource,
+        adoptionPlaceName,
         createdAt,
         updatedAt,
         ownerName,

@@ -29,7 +29,11 @@ class AnimalModel {
   final String? birthType;
   final String? birthCondition;
   final String? identificationType;
+  final String? identificationNumber;
   final String? registrationAssociation;
+  final bool? isAdopted;
+  final String? adoptionSource;
+  final String? adoptionPlaceName;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
@@ -61,7 +65,11 @@ class AnimalModel {
     this.birthType,
     this.birthCondition,
     this.identificationType,
+    this.identificationNumber,
     this.registrationAssociation,
+    this.isAdopted,
+    this.adoptionSource,
+    this.adoptionPlaceName,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
@@ -170,7 +178,11 @@ class AnimalModel {
       birthType: entity.birthType,
       birthCondition: entity.birthCondition,
       identificationType: entity.identificationType,
+      identificationNumber: entity.identificationNumber,
       registrationAssociation: entity.registrationAssociation,
+      isAdopted: entity.isAdopted,
+      adoptionSource: entity.adoptionSource,
+      adoptionPlaceName: entity.adoptionPlaceName,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       ownerName: entity.ownerName,

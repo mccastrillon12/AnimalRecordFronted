@@ -10,6 +10,7 @@ import 'package:animal_record/features/home/domain/usecases/update_animal_usecas
 import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/search_animals_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 
 class AnimalCubit extends Cubit<AnimalState> {
@@ -19,6 +20,7 @@ class AnimalCubit extends Cubit<AnimalState> {
   final UpdateAnimalUseCase updateAnimalUseCase;
   final GetAnimalPictureUploadUrlUseCase getAnimalPictureUploadUrlUseCase;
   final ConfirmAnimalPictureUseCase confirmAnimalPictureUseCase;
+  final SearchAnimalsUseCase searchAnimalsUseCase;
   final S3UploadService s3UploadService;
 
   AnimalCubit({
@@ -28,6 +30,7 @@ class AnimalCubit extends Cubit<AnimalState> {
     required this.updateAnimalUseCase,
     required this.getAnimalPictureUploadUrlUseCase,
     required this.confirmAnimalPictureUseCase,
+    required this.searchAnimalsUseCase,
     required this.s3UploadService,
   }) : super(AnimalInitial());
 
@@ -36,6 +39,8 @@ class AnimalCubit extends Cubit<AnimalState> {
 
   /// The owner ID whose animals are currently loaded.
   String? _currentOwnerId;
+
+  String? get currentOwnerId => _currentOwnerId;
 
   List<AnimalEntity> get animals => _animals;
 
@@ -49,6 +54,24 @@ class AnimalCubit extends Cubit<AnimalState> {
     final result = await getAnimalsByOwnerUseCase(ownerId);
 
     result.fold((failure) => emit(AnimalError(failure.message)), (animals) {
+      _animals = animals;
+      emit(AnimalsLoaded(animals));
+    });
+  }
+
+  Future<void> searchAnimals(Map<String, dynamic> queryParams) async {
+    emit(AnimalsLoading());
+
+    // If an ownerId is set in the cubit, ensure we include it in the query so we only search their animals
+    if (_currentOwnerId != null && !queryParams.containsKey('ownerId')) {
+      queryParams['ownerId'] = _currentOwnerId;
+    }
+
+    final result = await searchAnimalsUseCase(queryParams);
+
+    result.fold((failure) {
+      emit(AnimalError(failure.message, existingAnimals: _animals));
+    }, (animals) {
       _animals = animals;
       emit(AnimalsLoaded(animals));
     });

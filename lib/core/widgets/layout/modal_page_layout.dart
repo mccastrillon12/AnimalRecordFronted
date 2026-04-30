@@ -21,6 +21,10 @@ class ModalPageLayout extends StatelessWidget {
   final EdgeInsetsGeometry? bottomPadding;
   /// Si es true, el scroll solo se habilita cuando el teclado está visible.
   final bool scrollOnlyWithKeyboard;
+  final TextStyle? titleStyle;
+  final EdgeInsetsGeometry? titlePadding;
+  final double? trailingTop;
+  final double? trailingRight;
 
   const ModalPageLayout({
     super.key,
@@ -32,12 +36,16 @@ class ModalPageLayout extends StatelessWidget {
     this.bottomChild,
     this.bottomPadding,
     this.scrollOnlyWithKeyboard = false,
+    this.titleStyle,
+    this.titlePadding,
+    this.trailingTop,
+    this.trailingRight,
   });
 
   Widget _buildTrailingContent(BuildContext context) {
     return Positioned(
-      top: 32,
-      right: 24,
+      top: trailingTop ?? 32,
+      right: trailingRight ?? 24,
       child:
           trailingIcon ??
           Row(
@@ -66,13 +74,14 @@ class ModalPageLayout extends StatelessWidget {
 
   Widget _buildHeaderTitle() {
     return Padding(
-      padding: const EdgeInsets.only(top: 96, bottom: 24),
+      padding: titlePadding ?? const EdgeInsets.only(top: 96, bottom: 24),
       child: Center(
         child: Text(
           title,
-          style: AppTypography.heading1.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: titleStyle ??
+              AppTypography.heading1.copyWith(
+                color: AppColors.textPrimary,
+              ),
         ),
       ),
     );

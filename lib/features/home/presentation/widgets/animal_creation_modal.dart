@@ -25,6 +25,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/catalogs/domain/entities/species_entity.dart';
 import 'package:animal_record/features/catalogs/domain/entities/breed_entity.dart';
 import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_state.dart';
 
@@ -74,6 +75,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _selectedAssociation;
   String? _selectedPhotoPath;
   String? _selectedPurpose;
+  bool? _isAdopted;
+  String? _selectedAdoptionSource;
+  final _adoptionPlaceNameController = TextEditingController();
 
   // — Step 3 state —
   List<String> _selectedTemperaments = [];
@@ -96,6 +100,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     _identificationNumberController.dispose();
     _allergyController.dispose();
     _otherDiagnosisController.dispose();
+    _adoptionPlaceNameController.dispose();
     super.dispose();
   }
 
@@ -140,7 +145,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _selectedBreed = null; // Reset breed when purpose changes
     });
     // Reload breeds filtered by purpose only for bovinos
-    if (_selectedSpecies != null && _selectedSpecies!.name.toLowerCase() == 'bovino') {
+    if (_selectedSpecies != null &&
+        _selectedSpecies!.name.toLowerCase() == 'bovino') {
       cubit.loadBreeds(_selectedSpecies!.id, purposeId: purposeId);
     }
   }
@@ -172,7 +178,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         (_birthDate != null || _unknownExactDate) &&
         _hasIdentification != null &&
         _belongsToAssociation != null &&
-        (_belongsToAssociation != 'si' || _selectedAssociation != null);
+        (_belongsToAssociation != 'si' || _selectedAssociation != null) &&
+        _isAdopted != null &&
+        (_isAdopted == false || _selectedAdoptionSource != null);
   }
 
   bool get _isStep3Valid {
@@ -219,8 +227,20 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ? _allergyController.text.trim()
           : null,
       purpose: _selectedPurpose,
-      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
-      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      identificationType: _hasIdentification == 'si'
+          ? _selectedIdentificationType
+          : null,
+      identificationNumber: _hasIdentification == 'si'
+          ? _identificationNumberController.text.trim()
+          : null,
+      registrationAssociation: _belongsToAssociation == 'si'
+          ? _selectedAssociation
+          : null,
+      isAdopted: _isAdopted,
+      adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
+      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+          ? _adoptionPlaceNameController.text.trim()
+          : null,
     );
   }
 
@@ -254,6 +274,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _selectedAssociation = null;
       _selectedPhotoPath = null;
       _selectedPurpose = null;
+      _isAdopted = null;
+      _selectedAdoptionSource = null;
+      _adoptionPlaceNameController.clear();
       _selectedTemperaments = [];
       _allergyController.clear();
       _diagnoses.updateAll((key, value) => false);
@@ -284,7 +307,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ),
           TextSpan(
             text: ' - $_currentStep de $_totalSteps',
-            style: AppTypography.body3.copyWith(color: AppColors.greyBordes),
+            style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),
         ],
       ),
@@ -386,8 +409,10 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               birthDate: _birthDate,
               onBirthDateChanged: (v) => setState(() => _birthDate = v),
               unknownExactDate: _unknownExactDate,
-              onUnknownExactDateChanged: (v) =>
-                  setState(() => _unknownExactDate = v),
+              onUnknownExactDateChanged: (v) => setState(() {
+                _unknownExactDate = v;
+                if (v) _birthDate = null;
+              }),
               weightKgController: _weightKgController,
               weightLbController: _weightLbController,
               colorDescController: _colorDescController,
@@ -409,18 +434,32 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
                 if (v != 'si') _selectedAssociation = null;
               }),
               selectedAssociation: _selectedAssociation,
-              onAssociationChanged: (v) =>
-                  setState(() => _selectedAssociation = v),
+              onAssociationChanged: (val) =>
+                  setState(() => _selectedAssociation = val),
+              isAdopted: _isAdopted,
+              onIsAdoptedChanged: (val) => setState(() {
+                _isAdopted = val;
+                if (val == false) {
+                  _selectedAdoptionSource = null;
+                  _adoptionPlaceNameController.clear();
+                }
+              }),
+              selectedAdoptionSource: _selectedAdoptionSource,
+              onAdoptionSourceChanged: (val) =>
+                  setState(() => _selectedAdoptionSource = val),
+              adoptionPlaceNameController: _adoptionPlaceNameController,
+              adoptionSourceOptions: cubit.adoptionSources,
               isValid: _isStep2Valid,
               onContinue: _isStep2Valid ? _goNext : null,
               selectedPhotoPath: _selectedPhotoPath,
-              onPhotoSelected: (path) => setState(() => _selectedPhotoPath = path),
+              onPhotoSelected: (path) =>
+                  setState(() => _selectedPhotoPath = path),
               onPhotoRemoved: () => setState(() => _selectedPhotoPath = null),
-              associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
+              associationOptions: cubit.registrationAssociations,
               selectedPurpose: _selectedPurpose,
               onPurposeChanged: _onPurposeChanged,
-              purposeOptions: context.watch<CatalogsCubit>().animalPurposes,
-              identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
+              purposeOptions: cubit.animalPurposes,
+              identificationTypeOptions: cubit.identificationTypes,
             );
           },
         );
@@ -502,13 +541,12 @@ class _FamilySelectionStep extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const SizedBox(height: AppSpacing.xs),
           Text(
             'Elige a qué familia pertenece tu animal',
             style: AppTypography.body4,
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: AppSpacing.l),
+          const SizedBox(height: AppSpacing.m),
           SizedBox(
             width: 170,
             child: Wrap(
@@ -565,7 +603,7 @@ class _FamilyCard extends StatelessWidget {
               height: 35,
             ),
             const SizedBox(height: 2),
-            Text(name, style: AppTypography.body5),
+            Text(name, style: AppTypography.body4),
           ],
         ),
       ),
@@ -604,6 +642,11 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<String?> onBelongsToAssociationChanged;
   final String? selectedAssociation;
   final ValueChanged<String?> onAssociationChanged;
+  final bool? isAdopted;
+  final ValueChanged<bool?> onIsAdoptedChanged;
+  final String? selectedAdoptionSource;
+  final ValueChanged<String?> onAdoptionSourceChanged;
+  final TextEditingController adoptionPlaceNameController;
   final bool isValid;
   final VoidCallback? onContinue;
   final String? selectedPhotoPath;
@@ -616,6 +659,7 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<String?> onPurposeChanged;
   final List<CatalogItemEntity> purposeOptions;
   final List<CatalogItemEntity> identificationTypeOptions;
+  final List<CatalogItemEntity> adoptionSourceOptions;
 
   const _AnimalInfoStep({
     required this.selectedSpecies,
@@ -644,9 +688,14 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onBelongsToAssociationChanged,
     required this.selectedAssociation,
     required this.onAssociationChanged,
+    required this.isAdopted,
+    required this.onIsAdoptedChanged,
+    required this.selectedAdoptionSource,
+    required this.onAdoptionSourceChanged,
+    required this.adoptionPlaceNameController,
     required this.isValid,
     required this.onContinue,
-    required this.selectedPhotoPath,
+    this.selectedPhotoPath,
     required this.onPhotoSelected,
     required this.onPhotoRemoved,
     this.associationOptions = const [],
@@ -654,6 +703,7 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onPurposeChanged,
     this.purposeOptions = const [],
     this.identificationTypeOptions = const [],
+    this.adoptionSourceOptions = const [],
   });
 
   @override
@@ -713,12 +763,18 @@ class _AnimalInfoStep extends StatelessWidget {
                         CustomTextField(
                           label: 'Nombre',
                           controller: nameController,
+                          maxLength: 50,
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+                          ],
                         ),
                         const SizedBox(height: AppSpacing.m),
 
                         // Productive purpose
                         AppDropdown<String>(
-                          label: selectedSpecies.name.toLowerCase() == 'bovino' ? 'Propósito productivo' : 'Propósito',
+                          label: selectedSpecies.name.toLowerCase() == 'bovino'
+                              ? 'Propósito productivo'
+                              : 'Propósito',
                           hint: 'Seleccionar',
                           value: selectedPurpose,
                           isInline: true,
@@ -834,7 +890,11 @@ class _AnimalInfoStep extends StatelessWidget {
                                 label: '',
                                 hint: '- kg',
                                 controller: weightKgController,
-                                keyboardType: TextInputType.number,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                maxLength: 5,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                ],
                               ),
                             ),
                             const SizedBox(width: AppSpacing.m),
@@ -843,7 +903,11 @@ class _AnimalInfoStep extends StatelessWidget {
                                 label: '',
                                 hint: '- lb',
                                 controller: weightLbController,
-                                keyboardType: TextInputType.number,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                maxLength: 5,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.allow(RegExp(r'[0-9.]')),
+                                ],
                               ),
                             ),
                           ],
@@ -888,7 +952,9 @@ class _AnimalInfoStep extends StatelessWidget {
                             hint: 'Seleccionar',
                             value: selectedIdentificationType,
                             isInline: true,
-                            items: identificationTypeOptions.map((t) => t.name).toList(),
+                            items: identificationTypeOptions
+                                .map((t) => t.name)
+                                .toList(),
                             itemAsString: (name) => name,
                             onChanged: onIdentificationTypeChanged,
                           ),
@@ -896,6 +962,10 @@ class _AnimalInfoStep extends StatelessWidget {
                           CustomTextField(
                             label: 'Número de identificación',
                             controller: identificationNumberController,
+                            maxLength: 15,
+                            inputFormatters: [
+                              FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+                            ],
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),
@@ -930,9 +1000,54 @@ class _AnimalInfoStep extends StatelessWidget {
                             hint: 'Seleccionar asociación',
                             value: selectedAssociation,
                             isInline: true,
-                            items: associationOptions.map((a) => a.name).toList(),
+                            items: associationOptions
+                                .map((a) => a.name)
+                                .toList(),
                             itemAsString: (name) => name,
                             onChanged: onAssociationChanged,
+                          ),
+                        ],
+                        const SizedBox(height: AppSpacing.m),
+
+                        // Is Adopted?
+                        Text(
+                          '¿Es adoptado?',
+                          style: AppTypography.body6,
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        Row(
+                          children: [
+                            CustomRadioButton<bool>(
+                              value: true,
+                              groupValue: isAdopted,
+                              label: 'Si',
+                              onChanged: onIsAdoptedChanged,
+                            ),
+                            const SizedBox(width: AppSpacing.xxxl),
+                            CustomRadioButton<bool>(
+                              value: false,
+                              groupValue: isAdopted,
+                              label: 'No',
+                              onChanged: onIsAdoptedChanged,
+                            ),
+                          ],
+                        ),
+                        if (isAdopted == true) ...[
+                          const SizedBox(height: AppSpacing.m),
+                          AppDropdown<String>(
+                            label: '¿Dónde fue adoptado?',
+                            hint: 'Seleccionar',
+                            value: selectedAdoptionSource,
+                            items: adoptionSourceOptions
+                                .map((a) => a.name)
+                                .toList(),
+                            itemAsString: (name) => name,
+                            onChanged: onAdoptionSourceChanged,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          CustomTextField(
+                            label: 'Nombre del lugar (Opcional)',
+                            controller: adoptionPlaceNameController,
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),
@@ -1003,7 +1118,9 @@ class _AnimalInfoStep extends StatelessWidget {
                       )
                     : Center(
                         child: SvgPicture.asset(
-                          _FamilySelectionStep._iconForSpecies(selectedSpecies.name),
+                          _FamilySelectionStep._iconForSpecies(
+                            selectedSpecies.name,
+                          ),
                           width: AppSpacing.iconSizeMedium,
                           height: 35,
                         ),
@@ -1011,16 +1128,16 @@ class _AnimalInfoStep extends StatelessWidget {
               ),
               // Edit button
               Positioned(
-                top: 0,
-                right: -4,
+                top: AppSpacing.xs,
+                right: AppSpacing.xs,
                 child: GestureDetector(
                   onTap: () => _showImageSourceSheet(context),
                   child: Container(
-                    width: 28,
-                    height: 28,
+                    width: AppSpacing.xl,
+                    height: AppSpacing.xl,
                     decoration: BoxDecoration(
-                      color: AppColors.primaryIndigo,
-                      borderRadius: BorderRadius.circular(6),
+                      color: Colors.black.withValues(alpha: 0.6),
+                      borderRadius: AppBorders.small(),
                     ),
                     child: const Icon(
                       Icons.edit,
@@ -1202,7 +1319,10 @@ class _AnimalInfoStep extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: 4,
-          maxLength: 200,
+          maxLength: 150,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+          ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(
             filled: true,

@@ -46,6 +46,11 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   String? _selectedAssociation;
   String? _selectedIdentificationType;
   final _identificationNumberController = TextEditingController();
+  
+  // — Adoption state —
+  bool? _isAdopted;
+  String? _selectedAdoptionSource;
+  late TextEditingController _adoptionPlaceNameController;
 
   // — Info Adicional state —
   List<String> _selectedTemperaments = [];
@@ -77,6 +82,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late String? _originalBelongsToAssociation;
   late String? _originalSelectedAssociation;
   late String? _originalSelectedIdentificationType;
+  late String _originalIdentificationNumber;
+  late bool? _originalIsAdopted;
+  late String? _originalSelectedAdoptionSource;
+  late String _originalAdoptionPlaceName;
   late List<String> _originalTemperaments;
   late String? _originalAllergy;
   late Map<String, bool> _originalDiagnoses;
@@ -131,8 +140,15 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       ..addListener(_onFieldChanged);
     _hasIdentification = a.hasChip ? 'si' : 'no';
     _selectedIdentificationType = a.identificationType;
+    _identificationNumberController.text = a.identificationNumber ?? '';
+    _identificationNumberController.addListener(_onFieldChanged);
     _belongsToAssociation = a.isAssociationMember ? 'si' : 'no';
     _selectedAssociation = a.registrationAssociation;
+    
+    _isAdopted = a.isAdopted;
+    _selectedAdoptionSource = a.adoptionSource;
+    _adoptionPlaceNameController = TextEditingController(text: a.adoptionPlaceName ?? '')
+      ..addListener(_onFieldChanged);
 
     _selectedTemperaments = List<String>.from(a.temperament);
     _allergyController = TextEditingController(text: a.allergies ?? '')
@@ -169,8 +185,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _originalColorDesc = a.colorAndMarkings ?? '';
     _originalHasIdentification = _hasIdentification;
     _originalSelectedIdentificationType = _selectedIdentificationType;
+    _originalIdentificationNumber = a.identificationNumber ?? '';
     _originalBelongsToAssociation = _belongsToAssociation;
     _originalSelectedAssociation = _selectedAssociation;
+    _originalIsAdopted = _isAdopted;
+    _originalSelectedAdoptionSource = _selectedAdoptionSource;
+    _originalAdoptionPlaceName = a.adoptionPlaceName ?? '';
     _originalTemperaments = List<String>.from(a.temperament);
     _originalAllergy = a.allergies ?? '';
     _originalDiagnoses = Map<String, bool>.from(_diagnoses);
@@ -235,8 +255,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     if (_colorDescController.text.trim() != _originalColorDesc) return true;
     if (_hasIdentification != _originalHasIdentification) return true;
     if (_selectedIdentificationType != _originalSelectedIdentificationType) return true;
+    if (_identificationNumberController.text.trim() != _originalIdentificationNumber) return true;
     if (_belongsToAssociation != _originalBelongsToAssociation) return true;
     if (_selectedAssociation != _originalSelectedAssociation) return true;
+    if (_isAdopted != _originalIsAdopted) return true;
+    if (_selectedAdoptionSource != _originalSelectedAdoptionSource) return true;
+    if (_adoptionPlaceNameController.text.trim() != _originalAdoptionPlaceName) return true;
     if (_selectedTemperaments.length != _originalTemperaments.length) {
       return true;
     }
@@ -299,7 +323,13 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           ? _birthConditionController.text.trim()
           : null,
       identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
       registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      isAdopted: _isAdopted,
+      adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
+      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+          ? _adoptionPlaceNameController.text.trim()
+          : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -347,7 +377,13 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           ? _birthConditionController.text.trim()
           : null,
       identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
       registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      isAdopted: _isAdopted,
+      adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
+      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+          ? _adoptionPlaceNameController.text.trim()
+          : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -360,6 +396,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _weightKgController.dispose();
     _colorDescController.dispose();
     _identificationNumberController.dispose();
+    _adoptionPlaceNameController.dispose();
     _allergyController.dispose();
     _otherDiagnosisController.dispose();
     _feedingTypeController.dispose();
@@ -375,8 +412,13 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       _originalBirthDate = _birthDate;
       _originalColorDesc = _colorDescController.text.trim();
       _originalHasIdentification = _hasIdentification;
+      _originalSelectedIdentificationType = _selectedIdentificationType;
+      _originalIdentificationNumber = _identificationNumberController.text.trim();
       _originalBelongsToAssociation = _belongsToAssociation;
       _originalSelectedAssociation = _selectedAssociation;
+      _originalIsAdopted = _isAdopted;
+      _originalSelectedAdoptionSource = _selectedAdoptionSource;
+      _originalAdoptionPlaceName = _adoptionPlaceNameController.text.trim();
       _originalTemperaments = List<String>.from(_selectedTemperaments);
       _originalAllergy = _allergyController.text.trim();
       _originalDiagnoses = Map<String, bool>.from(_diagnoses);
@@ -720,8 +762,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   onBirthDateChanged: (v) =>
                                       setState(() => _birthDate = v),
                                   unknownExactDate: _unknownExactDate,
-                                  onUnknownExactDateChanged: (v) =>
-                                      setState(() => _unknownExactDate = v),
+                                  onUnknownExactDateChanged: (v) => setState(() {
+                                    _unknownExactDate = v;
+                                    if (v) _birthDate = null;
+                                  }),
                                   weightKgController: _weightKgController,
                                   colorDescController: _colorDescController,
                                   hasIdentification: _hasIdentification,
@@ -750,8 +794,21 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   localPhotoPath: _localPhotoPath,
                                   photoDeleted: _photoDeleted,
                                   onNameSaved: _saveNameOnly,
+                                  isAdopted: _isAdopted,
+                                  onIsAdoptedChanged: (v) => setState(() {
+                                    _isAdopted = v;
+                                    if (v == false) {
+                                      _selectedAdoptionSource = null;
+                                      _adoptionPlaceNameController.clear();
+                                    }
+                                  }),
+                                  selectedAdoptionSource: _selectedAdoptionSource,
+                                  onAdoptionSourceChanged: (v) =>
+                                      setState(() => _selectedAdoptionSource = v),
+                                  adoptionPlaceNameController: _adoptionPlaceNameController,
                                   identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
                                   associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
+                                  adoptionSourceOptions: context.watch<CatalogsCubit>().adoptionSources,
                                 ),
                                 AnimalInfoAdditionalTab(
                                   selectedTemperaments: _selectedTemperaments,

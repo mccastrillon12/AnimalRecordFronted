@@ -14,8 +14,9 @@ import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
-import 'package:animal_record/core/widgets/media/audio_player_widget.dart';
+import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
 
 class AnimalDiaryScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -29,6 +30,19 @@ class AnimalDiaryScreen extends StatefulWidget {
 class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   bool _showSuccessSnackbar = false;
   String _snackbarMessage = 'Nota guardada exitosamente.';
+  final Set<String> _expandedEntryIds = {};
+  String? _openMenuEntryId;
+  String? _playingAttachmentId;
+
+  void _toggleExpand(String entryId) {
+    setState(() {
+      if (_expandedEntryIds.contains(entryId)) {
+        _expandedEntryIds.remove(entryId);
+      } else {
+        _expandedEntryIds.add(entryId);
+      }
+    });
+  }
 
   @override
   void initState() {
@@ -37,10 +51,23 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   void _navigateToCreate() async {
-    final result = await Navigator.pushNamed(
+    final result = await Navigator.push(
       context,
-      AppRoutes.animalDiaryCreate,
-      arguments: widget.animal,
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            AnimalDiaryCreateScreen(animal: widget.animal),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.ease;
+          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
     );
 
     if (result == true && mounted) {
@@ -50,13 +77,23 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   void _navigateToEdit(DiaryEntryEntity entry) async {
-    final result = await Navigator.pushNamed(
+    final result = await Navigator.push(
       context,
-      AppRoutes.animalDiaryCreate,
-      arguments: {
-        'animal': widget.animal,
-        'entry': entry,
-      },
+      PageRouteBuilder(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            AnimalDiaryCreateScreen(animal: widget.animal, entry: entry),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          const begin = Offset(0.0, 1.0);
+          const end = Offset.zero;
+          const curve = Curves.ease;
+          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
     );
 
     if (result == true && mounted) {
@@ -80,7 +117,8 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       context: context,
       builder: (_) => ConfirmDialog(
         title: 'Eliminar nota',
-        description: '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
+        description:
+            '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
         confirmLabel: 'Eliminar',
         onConfirm: () {
           context.read<DiaryCubit>().deleteDiaryEntry(
@@ -92,30 +130,19 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     );
   }
 
-  void _handleAttachmentTap(DiaryAttachmentEntity attachment, DiaryEntryEntity entry) {
+  void _handleAttachmentTap(
+    DiaryAttachmentEntity attachment,
+    DiaryEntryEntity entry,
+  ) {
     if (attachment.fileType == 'image') {
       showDialog(
         context: context,
         builder: (_) => ImagePreviewDialog(imageUrl: attachment.url),
       );
     } else if (attachment.fileType == 'audio') {
-      final audios = entry.attachments.where((a) => a.fileType == 'audio').toList();
-      final initialIndex = audios.indexWhere((a) => a.id == attachment.id);
-      
-      showModalBottomSheet(
-        context: context,
-        backgroundColor: Colors.transparent,
-        builder: (_) => SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: AudioPlayerWidget(
-              audioUrls: audios.map((a) => a.url).toList(),
-              fileNames: audios.map((a) => a.fileName).toList(),
-              initialIndex: initialIndex >= 0 ? initialIndex : 0,
-            ),
-          ),
-        ),
-      );
+      setState(() {
+        _playingAttachmentId = attachment.id;
+      });
     }
   }
 
@@ -130,10 +157,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
             SnackBar(
               backgroundColor: Colors.transparent,
               elevation: 0,
-              content: CustomSnackBar(
-                message: state.message,
-                isError: true,
-              ),
+              content: CustomSnackBar(message: state.message, isError: true),
             ),
           );
           // Restore to loaded
@@ -142,6 +166,17 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       },
       child: BlocBuilder<DiaryCubit, DiaryState>(
         builder: (context, state) {
+          final isLoading = state is DiaryInitial || state is DiaryLoading;
+
+          if (isLoading) {
+            return Scaffold(
+              backgroundColor: Colors.black.withValues(alpha: 0.5),
+              body: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          }
+
           final bool hasEntries =
               state is DiaryLoaded && state.entries.isNotEmpty;
 
@@ -149,6 +184,13 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
             children: [
               ModalPageLayout(
                 title: 'Diario',
+                titlePadding: const EdgeInsets.only(top: 96, bottom: 0),
+                trailingIcon: IconButton(
+                  onPressed: () => Navigator.pop(context),
+                  icon: const Icon(Icons.close),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
                 bottomChild: hasEntries
                     ? const SizedBox.shrink()
                     : CustomButton(
@@ -164,13 +206,17 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
               // FAB for list view
               if (hasEntries)
                 Positioned(
-                  bottom: 24,
-                  right: 24,
+                  bottom: AppSpacing.l + MediaQuery.of(context).padding.bottom,
+                  right: AppSpacing.l,
                   child: FloatingActionButton(
                     onPressed: _navigateToCreate,
-                    backgroundColor: AppColors.primaryFrances,
+                    backgroundColor: AppColors.secondaryCoral,
                     elevation: 4,
-                    child: const Icon(Icons.add, color: AppColors.white, size: 28),
+                    child: const Icon(
+                      Icons.add,
+                      color: AppColors.white,
+                      size: 28,
+                    ),
                   ),
                 ),
 
@@ -202,7 +248,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   Widget _buildBody(DiaryState state) {
-    if (state is DiaryLoading || state is DiaryEntrySaving) {
+    if (state is DiaryEntrySaving) {
       return const SizedBox(
         height: 300,
         child: Center(child: CircularProgressIndicator()),
@@ -251,14 +297,26 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                   imageUrl: widget.animal.imageUrl!,
                   fit: BoxFit.cover,
                   placeholder: (context, url) => const Center(
-                    child: Icon(Icons.pets, color: AppColors.greyBordes, size: 50),
+                    child: Icon(
+                      Icons.pets,
+                      color: AppColors.greyBordes,
+                      size: 50,
+                    ),
                   ),
                   errorWidget: (context, url, error) => const Center(
-                    child: Icon(Icons.pets, color: AppColors.greyBordes, size: 50),
+                    child: Icon(
+                      Icons.pets,
+                      color: AppColors.greyBordes,
+                      size: 50,
+                    ),
                   ),
                 )
               : const Center(
-                  child: Icon(Icons.pets, color: AppColors.greyBordes, size: 50),
+                  child: Icon(
+                    Icons.pets,
+                    color: AppColors.greyBordes,
+                    size: 50,
+                  ),
                 ),
         ),
         const SizedBox(height: 32),
@@ -280,7 +338,8 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
             ),
             children: [
               const TextSpan(
-                text: 'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
+                text:
+                    'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
               ),
               TextSpan(
                 text: 'Max X notas.',
@@ -302,28 +361,27 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
 
   Widget _buildEntriesList(List<DiaryEntryEntity> entries) {
     final List<Widget> children = [
+      const SizedBox(height: 16),
       RichText(
-        textAlign: TextAlign.center,
+        textAlign: TextAlign.left,
         text: TextSpan(
-          style: AppTypography.body4.copyWith(
+          style: AppTypography.body6.copyWith(
             color: AppColors.greyMedio,
             height: 1.5,
           ),
           children: [
             const TextSpan(
-              text: 'Guarda notas, fotos y comentarios sobre la evolución, salud y momentos importantes de tu animal. ',
+              text:
+                  'Guarda notas, fotos y comentarios sobre la evolución, salud y momentos importantes de tu animal. ',
             ),
             TextSpan(
               text: 'Max X notas.',
-              style: AppTypography.body4.copyWith(
-                fontWeight: FontWeight.w700,
-                color: AppColors.greyNegro,
-              ),
+              style: AppTypography.body5.copyWith(color: AppColors.greyNegro),
             ),
           ],
         ),
       ),
-      const SizedBox(height: AppSpacing.l),
+      const SizedBox(height: 16),
     ];
 
     final grouped = _groupByMonth(entries);
@@ -331,13 +389,10 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     for (final group in grouped.entries) {
       children.add(
         Padding(
-          padding: const EdgeInsets.only(bottom: AppSpacing.m),
+          padding: const EdgeInsets.only(bottom: 8),
           child: Text(
             group.key,
-            style: AppTypography.body3.copyWith(
-              fontWeight: FontWeight.w700,
-              color: AppColors.primaryFrances,
-            ),
+            style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
           ),
         ),
       );
@@ -360,8 +415,18 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     List<DiaryEntryEntity> entries,
   ) {
     final months = [
-      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre',
     ];
 
     final Map<String, List<DiaryEntryEntity>> grouped = {};
@@ -388,46 +453,66 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     try {
       final date = DateTime.parse(entry.date);
       final months = [
-        'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
       ];
-      dateDisplay = '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
+      dateDisplay =
+          '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
     } catch (_) {}
 
     return Container(
       decoration: BoxDecoration(
         color: AppColors.white,
         borderRadius: AppBorders.medium(),
-        border: Border.all(color: AppColors.greyDelineante),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.only(top: 16, right: 24, bottom: 8, left: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Title row
           Row(
             children: [
-              const Icon(Icons.lock_open_outlined, size: 16, color: AppColors.greyBordes),
-              const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   entry.title,
                   style: AppTypography.body3.copyWith(
-                    fontWeight: FontWeight.w700,
                     color: AppColors.greyNegro,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
-              const Icon(Icons.keyboard_arrow_down, size: 20, color: AppColors.greyBordes),
+              GestureDetector(
+                onTap: () => _toggleExpand(entry.id),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    _expandedEntryIds.contains(entry.id)
+                        ? Icons.keyboard_arrow_up
+                        : Icons.keyboard_arrow_down,
+                    size: 20,
+                    color: AppColors.greyMedio,
+                  ),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -436,20 +521,31 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           Text(
             entry.content,
             style: AppTypography.body4.copyWith(
-              color: AppColors.greyMedio,
+              color: AppColors.greyNegro,
               height: 1.5,
             ),
-            maxLines: 3,
-            overflow: TextOverflow.ellipsis,
+            maxLines: _expandedEntryIds.contains(entry.id) ? null : 4,
+            overflow: _expandedEntryIds.contains(entry.id)
+                ? TextOverflow.visible
+                : TextOverflow.ellipsis,
           ),
 
-          // ALL attachments list (clickable to download)
+          // ALL attachments list
           if (entry.attachments.isNotEmpty) ...[
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             ...entry.attachments.map((att) => _buildAttachmentLink(att, entry)),
           ],
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
+
+          // Divider
+          Container(
+            height: 1,
+            width: double.infinity,
+            color: AppColors.greyDelineante,
+          ),
+
+          const SizedBox(height: 8),
 
           // Date + popup menu row
           Row(
@@ -457,7 +553,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
               Text(
                 dateDisplay,
                 style: AppTypography.body5.copyWith(
-                  color: AppColors.secondaryCoral,
+                  color: AppColors.greyBordes,
                 ),
               ),
               const Spacer(),
@@ -471,17 +567,40 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
 
   // ── Attachment link (clickable) ──────────────────────────────
 
-  Widget _buildAttachmentLink(DiaryAttachmentEntity attachment, DiaryEntryEntity entry) {
+  Widget _buildAttachmentLink(
+    DiaryAttachmentEntity attachment,
+    DiaryEntryEntity entry,
+  ) {
     final isImage = attachment.fileType == 'image';
+    final isPlayingThis =
+        attachment.fileType == 'audio' && _playingAttachmentId == attachment.id;
+
+    // ── Inline WhatsApp-style player ──
+    if (isPlayingThis) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: AudioInlinePlayer(
+          key: ValueKey('player_${attachment.id}'),
+          audioUrl: attachment.url,
+          onCompleted: () {
+            if (mounted) {
+              setState(() => _playingAttachmentId = null);
+            }
+          },
+        ),
+      );
+    }
+
+    // ── Default attachment link ──
     return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 8),
       child: GestureDetector(
         onTap: () => _handleAttachmentTap(attachment, entry),
         behavior: HitTestBehavior.opaque,
         child: Row(
           children: [
             Icon(
-              isImage ? Icons.attach_file : Icons.graphic_eq,
+              isImage ? Icons.link : Icons.graphic_eq,
               size: 16,
               color: AppColors.primaryFrances,
             ),
@@ -506,13 +625,21 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   // ── Popup menu (Edit / Delete) ───────────────────────────────
 
   Widget _buildPopupMenu(DiaryEntryEntity entry) {
+    final isOpen = _openMenuEntryId == entry.id;
+
     return PopupMenuButton<String>(
-      icon: const Icon(Icons.more_horiz, size: 20, color: AppColors.greyBordes),
+      onOpened: () => setState(() => _openMenuEntryId = entry.id),
+      onCanceled: () => setState(() => _openMenuEntryId = null),
       padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
+      color: AppColors.white,
+      constraints: const BoxConstraints(minWidth: 210, maxWidth: 210),
       shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
       elevation: 4,
+      menuPadding: EdgeInsets.zero,
+      position: PopupMenuPosition.under,
+      offset: const Offset(0, 4),
       onSelected: (value) {
+        setState(() => _openMenuEntryId = null);
         if (value == 'edit') {
           _navigateToEdit(entry);
         } else if (value == 'delete') {
@@ -522,31 +649,67 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'edit',
+          padding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 7),
           child: Row(
             children: [
-              const Icon(Icons.edit_outlined, size: 18, color: AppColors.primaryIndigo),
-              const SizedBox(width: 10),
-              Text(
-                'Editar',
-                style: AppTypography.body4.copyWith(color: AppColors.greyNegro),
+              const Icon(
+                Icons.edit_outlined,
+                size: 24,
+                color: AppColors.greyMedio,
+              ),
+              const SizedBox(width: 11),
+              Flexible(
+                child: Text(
+                  'Editar',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
+                ),
               ),
             ],
           ),
         ),
         PopupMenuItem(
           value: 'delete',
+          padding: const EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 7,
+            bottom: 24,
+          ),
           child: Row(
             children: [
-              const Icon(Icons.delete_outline, size: 18, color: AppColors.errorRojo),
-              const SizedBox(width: 10),
-              Text(
-                'Eliminar registro',
-                style: AppTypography.body4.copyWith(color: AppColors.errorRojo),
+              const Icon(
+                Icons.delete_outline,
+                size: 24,
+                color: AppColors.errorRojo,
+              ),
+              const SizedBox(width: 11),
+              Flexible(
+                child: Text(
+                  'Eliminar registro',
+                  style: AppTypography.body4.copyWith(color: AppColors.errorRojo),
+                ),
               ),
             ],
           ),
         ),
       ],
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: BoxDecoration(
+          color: isOpen ? AppColors.bgBlancoAntiFlash : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Center(
+          child: Icon(
+            Icons.more_horiz,
+            size: 20,
+            color: isOpen ? AppColors.primaryFrances : const Color(0xFF59667A),
+          ),
+        ),
+      ),
     );
   }
 }

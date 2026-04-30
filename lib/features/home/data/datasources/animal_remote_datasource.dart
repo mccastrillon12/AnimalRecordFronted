@@ -13,6 +13,7 @@ abstract class AnimalRemoteDataSource {
     int fileSize,
   );
   Future<void> confirmProfilePicture(String animalId, String finalUrl);
+  Future<List<AnimalDataModel>> searchAnimals(Map<String, dynamic> queryParams);
 }
 
 class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
@@ -96,5 +97,34 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
       '/animals/$animalId/profile-picture',
       data: {'finalUrl': finalUrl},
     );
+  }
+
+  @override
+  Future<List<AnimalDataModel>> searchAnimals(
+    Map<String, dynamic> queryParams,
+  ) async {
+    final response = await apiClient.get(
+      '/animals/search',
+      queryParameters: queryParams,
+    );
+    
+    dynamic responseData = response.data;
+    List<dynamic> list = [];
+    
+    if (responseData is List) {
+      list = responseData;
+    } else if (responseData is Map<String, dynamic>) {
+      if (responseData.containsKey('data') && responseData['data'] is List) {
+        list = responseData['data'];
+      } else if (responseData.containsKey('items') && responseData['items'] is List) {
+        list = responseData['items'];
+      } else if (responseData.containsKey('animals') && responseData['animals'] is List) {
+        list = responseData['animals'];
+      }
+    }
+    
+    return list
+        .map((json) => AnimalDataModel.fromJson(json as Map<String, dynamic>))
+        .toList();
   }
 }

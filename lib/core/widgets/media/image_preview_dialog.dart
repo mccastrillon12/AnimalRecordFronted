@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -29,16 +30,24 @@ class ImagePreviewDialog extends StatelessWidget {
             panEnabled: true,
             minScale: 1.0,
             maxScale: 4.0,
-            child: CachedNetworkImage(
-              imageUrl: imageUrl,
-              fit: BoxFit.contain,
-              placeholder: (context, url) => const Center(
-                child: CircularProgressIndicator(color: AppColors.white),
-              ),
-              errorWidget: (context, url, error) => const Center(
-                child: Icon(Icons.broken_image, color: Colors.white, size: 48),
-              ),
-            ),
+            child: imageUrl.startsWith('http') || imageUrl.startsWith('https')
+                ? CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.contain,
+                    placeholder: (context, url) => const Center(
+                      child: CircularProgressIndicator(color: AppColors.white),
+                    ),
+                    errorWidget: (context, url, error) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+                    ),
+                  )
+                : Image.file(
+                    File(imageUrl),
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) => const Center(
+                      child: Icon(Icons.broken_image, color: Colors.white, size: 48),
+                    ),
+                  ),
           ),
 
           // Close Button

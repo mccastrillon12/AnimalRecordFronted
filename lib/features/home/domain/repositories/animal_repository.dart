@@ -18,4 +18,7 @@ abstract class AnimalRepository {
     String animalId,
     String finalUrl,
   );
+  Future<Either<Failure, List<AnimalEntity>>> searchAnimals(
+    Map<String, dynamic> queryParams,
+  );
 }

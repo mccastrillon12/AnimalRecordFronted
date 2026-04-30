@@ -152,7 +152,7 @@ class BaseModalCard extends StatelessWidget {
           Text(title, style: AppTypography.body3),
 
           // Subtitle
-          if (subtitle != null) ...[const SizedBox(height: 4), subtitle!],
+          if (subtitle != null) ...[const SizedBox(height: 2), subtitle!],
 
           const SizedBox(height: 24),
         ],

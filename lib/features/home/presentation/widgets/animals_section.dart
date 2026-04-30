@@ -61,10 +61,23 @@ class _AnimalsSectionState extends State<AnimalsSection> {
         }
 
         final hasAnimals = animals.isNotEmpty;
+
+        // Sort animals by createdAt descending (newest first)
+        final sortedAnimals = List<AnimalModel>.from(animals)
+          ..sort((a, b) {
+            final dateA =
+                DateTime.tryParse(a.createdAt ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final dateB =
+                DateTime.tryParse(b.createdAt ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return dateB.compareTo(dateA);
+          });
+
         // Max 3 in home preview
-        final previewAnimals = animals.length > 3
-            ? animals.sublist(0, 3)
-            : animals;
+        final previewAnimals = sortedAnimals.length > 3
+            ? sortedAnimals.sublist(0, 3)
+            : sortedAnimals;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
@@ -75,12 +88,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Mis animales',
-                    style: AppTypography.heading2.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text('Mis animales', style: AppTypography.heading2),
                   if (hasAnimals)
                     _buildViewToggle()
                   else
@@ -248,10 +256,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                 ),
                 child: Text(
                   '+ Animal',
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTypography.body3.copyWith(color: AppColors.white),
                 ),
               ),
             ),

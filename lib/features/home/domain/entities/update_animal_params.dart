@@ -23,7 +23,11 @@ class UpdateAnimalParams extends Equatable {
   final String? birthType;
   final String? birthCondition;
   final String? identificationType;
+  final String? identificationNumber;
   final String? registrationAssociation;
+  final bool? isAdopted;
+  final String? adoptionSource;
+  final String? adoptionPlaceName;
 
   const UpdateAnimalParams({
     required this.id,
@@ -47,7 +51,11 @@ class UpdateAnimalParams extends Equatable {
     this.birthType,
     this.birthCondition,
     this.identificationType,
+    this.identificationNumber,
     this.registrationAssociation,
+    this.isAdopted,
+    this.adoptionSource,
+    this.adoptionPlaceName,
   });
 
   Map<String, dynamic> toJson() {
@@ -78,8 +86,15 @@ class UpdateAnimalParams extends Equatable {
         'birthCondition': birthCondition,
       if (identificationType != null && identificationType!.isNotEmpty)
         'identificationType': identificationType,
+      if (identificationNumber != null && identificationNumber!.isNotEmpty)
+        'identificationNumber': identificationNumber,
       if (registrationAssociation != null && registrationAssociation!.isNotEmpty)
         'registrationAssociation': registrationAssociation,
+      if (isAdopted != null) 'isAdopted': isAdopted,
+      if (adoptionSource != null && adoptionSource!.isNotEmpty)
+        'adoptionSource': adoptionSource,
+      if (adoptionPlaceName != null && adoptionPlaceName!.isNotEmpty)
+        'adoptionPlaceName': adoptionPlaceName,
     };
   }
 
@@ -106,6 +121,10 @@ class UpdateAnimalParams extends Equatable {
         birthType,
         birthCondition,
         identificationType,
+        identificationNumber,
         registrationAssociation,
+        isAdopted,
+        adoptionSource,
+        adoptionPlaceName,
       ];
 }

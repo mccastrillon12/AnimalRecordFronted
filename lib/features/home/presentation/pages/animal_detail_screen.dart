@@ -13,6 +13,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_card.dar
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 
 /// Detail screen for a single animal.
 ///
@@ -295,10 +296,23 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
           onTap: () {
-            Navigator.pushNamed(
+            Navigator.push(
               context,
-              AppRoutes.animalDiary,
-              arguments: currentAnimal,
+              PageRouteBuilder(
+                opaque: false,
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    AnimalDiaryScreen(animal: currentAnimal),
+                transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                  const begin = Offset(0.0, 1.0);
+                  const end = Offset.zero;
+                  const curve = Curves.ease;
+                  final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+                  return SlideTransition(
+                    position: animation.drive(tween),
+                    child: child,
+                  );
+                },
+              ),
             );
           },
         ),

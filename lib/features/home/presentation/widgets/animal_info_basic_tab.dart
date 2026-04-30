@@ -12,6 +12,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
 import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 
 class AnimalInfoBasicTab extends StatelessWidget {
   final AnimalModel animal;
@@ -37,9 +38,15 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final bool isUploadingPicture;
   final String? localPhotoPath;
   final bool photoDeleted;
+  final bool? isAdopted;
+  final ValueChanged<bool?> onIsAdoptedChanged;
+  final String? selectedAdoptionSource;
+  final ValueChanged<String?> onAdoptionSourceChanged;
+  final TextEditingController adoptionPlaceNameController;
   final ValueChanged<String>? onNameSaved;
 
   // Dynamic catalog data from API
+  final List<CatalogItemEntity> adoptionSourceOptions;
   final List<CatalogItemEntity> identificationTypeOptions;
   final List<CatalogItemEntity> associationOptions;
 
@@ -69,6 +76,12 @@ class AnimalInfoBasicTab extends StatelessWidget {
     this.localPhotoPath,
     this.photoDeleted = false,
     this.onNameSaved,
+    required this.isAdopted,
+    required this.onIsAdoptedChanged,
+    required this.selectedAdoptionSource,
+    required this.onAdoptionSourceChanged,
+    required this.adoptionPlaceNameController,
+    this.adoptionSourceOptions = const [],
     this.identificationTypeOptions = const [],
     this.associationOptions = const [],
   });
@@ -366,6 +379,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
             CustomTextField(
               label: 'Número de identificación',
               controller: identificationNumberController,
+              maxLength: 15,
+              inputFormatters: [
+                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
+              ],
             ),
           ],
           const SizedBox(height: AppSpacing.m),
@@ -400,6 +417,45 @@ class AnimalInfoBasicTab extends StatelessWidget {
               items: associationOptions.map((a) => a.name).toList(),
               itemAsString: (name) => name,
               onChanged: onAssociationChanged,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.m),
+
+          // Is Adopted?
+          Text('¿Es adoptado?', style: AppTypography.body6),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              CustomRadioButton<bool>(
+                value: true,
+                groupValue: isAdopted,
+                label: 'Si',
+                onChanged: onIsAdoptedChanged,
+              ),
+              const SizedBox(width: AppSpacing.xxxl),
+              CustomRadioButton<bool>(
+                value: false,
+                groupValue: isAdopted,
+                label: 'No',
+                onChanged: onIsAdoptedChanged,
+              ),
+            ],
+          ),
+          if (isAdopted == true) ...[
+            const SizedBox(height: AppSpacing.m),
+            AppDropdown<String>(
+              label: '¿Dónde fue adoptado?',
+              hint: 'Seleccionar',
+              value: selectedAdoptionSource,
+              isInline: true,
+              items: adoptionSourceOptions.map((a) => a.name).toList(),
+              itemAsString: (name) => name,
+              onChanged: onAdoptionSourceChanged,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            CustomTextField(
+              label: 'Nombre del lugar (Opcional)',
+              controller: adoptionPlaceNameController,
             ),
           ],
           const SizedBox(height: AppSpacing.l),
@@ -446,7 +502,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
         TextField(
           controller: controller,
           maxLines: 4,
-          maxLength: 50,
+          maxLength: 150,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+          ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(
             filled: true,

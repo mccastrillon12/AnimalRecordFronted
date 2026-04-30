@@ -18,6 +18,9 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
   final String Function(T) itemAsString;
   final ValueChanged<List<T>> onChanged;
   final String? errorText;
+  final bool pushContentDown;
+  final bool isInline;
+  final bool searchable;
 
   const AppMultiSearchDropdown({
     super.key,
@@ -28,6 +31,9 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
     required this.itemAsString,
     required this.onChanged,
     this.errorText,
+    this.pushContentDown = true,
+    this.isInline = false,
+    this.searchable = true,
   });
 
   @override
@@ -111,9 +117,23 @@ class _AppMultiSearchDropdownState<T>
 
   void _openDropdown() {
     if (_isOpen) return;
-    _overlayEntry = _createOverlayEntry();
-    Overlay.of(context).insert(_overlayEntry!);
-    setState(() => _isOpen = true);
+    if (widget.isInline) {
+      setState(() => _isOpen = true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && context.findRenderObject() != null) {
+          Scrollable.ensureVisible(
+            context,
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.easeInOut,
+            alignment: 1.0,
+          );
+        }
+      });
+    } else {
+      _overlayEntry = _createOverlayEntry();
+      Overlay.of(context).insert(_overlayEntry!);
+      setState(() => _isOpen = true);
+    }
   }
 
   void _closeDropdown() {
@@ -164,68 +184,74 @@ class _AppMultiSearchDropdownState<T>
                 targetAnchor: Alignment.bottomLeft,
                 followerAnchor: Alignment.topLeft,
                 offset: Offset.zero,
-                child: Material(
-                  elevation: 4,
-                  borderRadius: AppBorders.small(),
-                  color: Colors.white,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      border: Border.all(color: AppColors.greyDelineante),
-                      borderRadius: AppBorders.small(),
-                      color: Colors.white,
-                    ),
-                    constraints: BoxConstraints(maxHeight: maxDropdownHeight),
-                    child: ListView.builder(
-                      padding: EdgeInsets.zero,
-                      shrinkWrap: true,
-                      itemCount: _filtered.length,
-                      itemBuilder: (_, index) {
-                        final item = _filtered[index];
-                        final isSelected = _selected.contains(item);
-                        final text = widget.itemAsString(item);
-
-                        return InkWell(
-                          onTap: () {
-                            _toggleItem(item);
-                            _searchController.clear();
-                            _filter('');
-                            _focusNode.requestFocus();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 12,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  text,
-                                  style: AppTypography.body4.copyWith(
-                                    color: isSelected
-                                        ? AppColors.greyBordes
-                                        : AppColors.greyTextos,
-                                  ),
-                                ),
-                                if (isSelected)
-                                  const Icon(
-                                    Icons.check,
-                                    color: AppColors.primaryFrances,
-                                    size: 20,
-                                  ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ),
+                child: _buildPanel(maxDropdownHeight),
               ),
             ),
           ],
         );
       },
+    );
+  }
+
+  Widget _buildPanel(double maxHeight) {
+    return Material(
+      elevation: 4,
+      borderRadius: AppBorders.small(),
+      color: Colors.white,
+      child: Container(
+        decoration: BoxDecoration(
+          border: Border.all(color: AppColors.greyDelineante),
+          borderRadius: AppBorders.small(),
+          color: Colors.white,
+        ),
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: ListView.builder(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          itemCount: _filtered.length,
+          itemBuilder: (_, index) {
+            final item = _filtered[index];
+            final isSelected = _selected.contains(item);
+            final text = widget.itemAsString(item);
+
+            return InkWell(
+              onTap: () {
+                _toggleItem(item);
+                _searchController.clear();
+                _filter('');
+                if (!widget.isInline) {
+                  _focusNode.requestFocus();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      text,
+                      style: AppTypography.body4.copyWith(
+                        color: isSelected
+                            ? AppColors.greyBordes
+                            : AppColors.greyTextos,
+                      ),
+                    ),
+                    if (isSelected)
+                      const Icon(
+                        Icons.check,
+                        color: AppColors.primaryFrances,
+                        size: 20,
+                      ),
+                  ],
+                ),
+              ),
+            );
+          },
+        ),
+      ),
     );
   }
 
@@ -274,7 +300,15 @@ class _AppMultiSearchDropdownState<T>
         CompositedTransformTarget(
           link: _layerLink,
           child: GestureDetector(
-            onTap: () => _focusNode.requestFocus(),
+            onTap: () {
+              if (_isOpen) {
+                _focusNode.unfocus();
+                _closeDropdown();
+              } else {
+                _focusNode.requestFocus();
+                _openDropdown();
+              }
+            },
             child: Container(
               width: double.infinity,
               constraints:
@@ -312,7 +346,8 @@ class _AppMultiSearchDropdownState<T>
                             child: TextField(
                               controller: _searchController,
                               focusNode: _focusNode,
-                              onChanged: _filter,
+                              readOnly: !widget.searchable,
+                              onChanged: widget.searchable ? _filter : null,
                               style: AppTypography.body4.copyWith(
                                 color: AppColors.greyTextos,
                               ),
@@ -364,9 +399,16 @@ class _AppMultiSearchDropdownState<T>
         // ── Spacer for Overlay ─────────────────────────────────────
         // Injects space so sibling content below is pushed down while
         // the overlay is visible.
-        if (_isOpen)
+        if (_isOpen && !widget.isInline && widget.pushContentDown)
           SizedBox(
             height: (_filtered.length * 44.0).clamp(80.0, 250.0),
+          ),
+
+        // ── Inline List ────────────────────────────────────────────
+        if (_isOpen && widget.isInline)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 24.0),
+            child: _buildPanel(250.0),
           ),
       ],
     );

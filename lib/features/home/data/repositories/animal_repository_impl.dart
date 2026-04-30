@@ -96,4 +96,17 @@ class AnimalRepositoryImpl implements AnimalRepository {
       return Left(ServerFailure(errorMsg));
     }
   }
+
+  @override
+  Future<Either<Failure, List<AnimalEntity>>> searchAnimals(
+    Map<String, dynamic> queryParams,
+  ) async {
+    try {
+      final result = await remoteDataSource.searchAnimals(queryParams);
+      return Right(result);
+    } catch (e) {
+      String errorMsg = e.toString().replaceFirst('Exception: ', '');
+      return Left(ServerFailure(errorMsg));
+    }
+  }
 }

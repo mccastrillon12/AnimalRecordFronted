@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -220,10 +221,14 @@ class CustomDateField extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 20,
-                  color: AppColors.greyMedio,
+                SvgPicture.asset(
+                  'assets/icons/calendar.svg',
+                  width: 20,
+                  height: 20,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.greyMedio,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ],
             ),
