@@ -312,7 +312,7 @@ class _AnimalFilterModalState extends State<AnimalFilterModal> {
         width: 72,
         height: 72,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: isSelected ? AppColors.bgHielo : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? AppColors.primaryFrances : AppColors.greyBordes,

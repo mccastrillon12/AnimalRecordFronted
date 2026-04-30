@@ -11,6 +11,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 
 /// Full "Mis Animales" page with search bar, grid/list toggle, filter, and
@@ -27,6 +28,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
   String _searchQuery = '';
   final Set<String> _collapsedFamilies = {};
   final TextEditingController _searchController = TextEditingController();
+  String? _searchErrorText;
 
   String _currentFilterSex = 'Ambos';
   List<String> _currentFilterFamilies = [];
@@ -127,69 +129,107 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Search field
                       Expanded(
-                        child: SizedBox(
-                          height: AppSpacing.iconSizeMedium,
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (v) => setState(() => _searchQuery = v),
-                            style: AppTypography.body4,
-                            textAlignVertical: TextAlignVertical.center,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: AppColors.white,
-                              isDense: true,
-                              hintText: 'Buscar',
-                              hintStyle: AppTypography.body4.copyWith(
-                                color: AppColors.greyBordes,
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  right: 8,
-                                ),
-                                child: SvgPicture.asset(
-                                  'assets/icons/vuesax-linear-search-2.svg',
-                                  width: AppSpacing.iconSizeSmall,
-                                  height: AppSpacing.iconSizeSmall,
-                                  colorFilter: const ColorFilter.mode(
-                                    Color(0xFF59667A),
-                                    BlendMode.srcIn,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: AppSpacing.iconSizeMedium,
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (v) => setState(() => _searchQuery = v),
+                                style: AppTypography.body4,
+                                textAlignVertical: TextAlignVertical.center,
+                                inputFormatters: [
+                                  ErrorTriggeringTextInputFormatter(
+                                    allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+                                    maxLength: 20,
+                                    onError: (error) {
+                                      if (_searchErrorText != error) {
+                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                          if (mounted) setState(() => _searchErrorText = error);
+                                        });
+                                      }
+                                    },
+                                    onSuccess: () {
+                                      if (_searchErrorText != null) {
+                                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                                          if (mounted) setState(() => _searchErrorText = null);
+                                        });
+                                      }
+                                    },
+                                  ),
+                                ],
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: AppColors.white,
+                                  isDense: true,
+                                  hintText: 'Buscar',
+                                  hintStyle: AppTypography.body4.copyWith(
+                                    color: AppColors.greyBordes,
+                                  ),
+                                  prefixIcon: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 16,
+                                      right: 8,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      'assets/icons/vuesax-linear-search-2.svg',
+                                      width: AppSpacing.iconSizeSmall,
+                                      height: AppSpacing.iconSizeSmall,
+                                      colorFilter: const ColorFilter.mode(
+                                        Color(0xFF59667A),
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                  ),
+                                  prefixIconConstraints: const BoxConstraints(
+                                    minWidth: 0,
+                                    minHeight: 0,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFFA8AFBD),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFFA8AFBD),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFF0072BB),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 11,
                                   ),
                                 ),
                               ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 0,
-                                minHeight: 0,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFA8AFBD),
-                                  width: 1,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFA8AFBD),
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF0072BB),
-                                  width: 1,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 11,
-                              ),
                             ),
-                          ),
+                            if (_searchErrorText != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _searchErrorText!,
+                                style: AppTypography.body5.copyWith(
+                                  color: AppColors.error,
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
 

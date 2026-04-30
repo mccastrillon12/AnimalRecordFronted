@@ -178,7 +178,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
         widget.inputFormatters?.toList() ?? [];
     if (widget.strictValidation) {
       formatters.add(
-        _ErrorTriggeringTextInputFormatter(
+        ErrorTriggeringTextInputFormatter(
           allowPattern: widget.allowPattern,
           patternErrorMessage: widget.patternErrorMessage,
           maxLength: widget.maxLength,
@@ -362,14 +362,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
   }
 }
 
-class _ErrorTriggeringTextInputFormatter extends TextInputFormatter {
+class ErrorTriggeringTextInputFormatter extends TextInputFormatter {
   final RegExp? allowPattern;
   final String? patternErrorMessage;
   final int? maxLength;
   final void Function(String) onError;
   final VoidCallback onSuccess;
 
-  _ErrorTriggeringTextInputFormatter({
+  ErrorTriggeringTextInputFormatter({
     this.allowPattern,
     this.patternErrorMessage,
     this.maxLength,
