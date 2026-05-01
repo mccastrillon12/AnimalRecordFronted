@@ -73,6 +73,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   String? _localPhotoPath;
   bool _photoDeleted = false;
 
+  // — Saving state —
+  bool _isSavingNameOnly = false;
+  bool _isInactivating = false;
+
   // — Original values for change detection —
   late String _originalName;
   late String? _originalReproductiveState;
@@ -282,6 +286,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _saveNameOnly(String newName) {
+    setState(() {
+      _isSavingNameOnly = true;
+    });
+
     final selectedDiagnoses = _diagnoses.entries
         .where((e) => e.value)
         .map((e) => e.key)
@@ -544,6 +552,163 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     );
   }
 
+  void _showInactivateConfirmation() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(dialogContext),
+                    child: const Icon(Icons.close, size: 20, color: AppColors.greyMedio),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  '¿Desea inactivar la historia?',
+                  style: AppTypography.heading2.copyWith(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'El animal será marcado como inactivo y no podrá realizar acciones sobre él.',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyMedio,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogContext),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.primaryFrances,
+                          side: const BorderSide(
+                            color: AppColors.primaryFrances,
+                            width: 1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          'No',
+                          style: AppTypography.body3.copyWith(
+                            color: AppColors.primaryFrances,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.pop(dialogContext);
+                          _inactivateAnimal();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.errorRojo,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                        child: Text(
+                          'Sí',
+                          style: AppTypography.body3.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _inactivateAnimal() {
+    setState(() {
+      _isInactivating = true;
+    });
+
+    final selectedDiagnoses = _diagnoses.entries
+        .where((e) => e.value)
+        .map((e) => e.key)
+        .toList();
+
+    final params = UpdateAnimalParams(
+      id: _currentAnimal.id,
+      name: _currentAnimal.name,
+      species: _currentAnimal.species,
+      breed: _currentAnimal.breed ?? '',
+      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      reproductiveStatus: _reproductiveState ?? '',
+      birthdate: _birthDate != null
+          ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
+          : null,
+      hasChip: _hasIdentification == 'si',
+      isAssociationMember: _belongsToAssociation == 'si',
+      temperament: _selectedTemperaments.isEmpty
+          ? ['Desconocido']
+          : _selectedTemperaments,
+      diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
+      ownerId: _currentAnimal.ownerId,
+      weight: double.tryParse(_weightKgController.text.trim()),
+      colorAndMarkings: _colorDescController.text.trim().isNotEmpty
+          ? _colorDescController.text.trim()
+          : null,
+      allergies: _allergyController.text.trim().isNotEmpty
+          ? _allergyController.text.trim()
+          : null,
+      housingType: _housingType,
+      purpose: _purpose,
+      feedingType: _feedingTypeController.text.trim().isNotEmpty
+          ? _feedingTypeController.text.trim()
+          : null,
+      birthType: _birthTypeController.text.trim().isNotEmpty
+          ? _birthTypeController.text.trim()
+          : null,
+      birthCondition: _birthConditionController.text.trim().isNotEmpty
+          ? _birthConditionController.text.trim()
+          : null,
+      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
+      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
+      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      isAdopted: _isAdopted,
+      adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
+      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+          ? _adoptionPlaceNameController.text.trim()
+          : null,
+      isActive: false,
+    );
+
+    context.read<AnimalCubit>().updateAnimal(params);
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<AnimalCubit, AnimalState>(
@@ -563,10 +728,34 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
               _currentAnimal = AnimalModel.fromEntity(updatedEntity);
             });
           } catch (_) {}
-          ErrorDisplay.showSuccess(
-            context,
-            'Información guardada exitosamente.',
-          );
+          
+          if (_isInactivating) {
+            ErrorDisplay.showSuccess(
+              context,
+              'La historia ha sido inactivada exitosamente.',
+            );
+            setState(() {
+              _isInactivating = false;
+            });
+            // Pop back to detail screen so it refreshes with updated state
+            _updateOriginalsToCurrent();
+            context.read<AnimalCubit>().resetToLoaded();
+            return;
+          } else if (_isSavingNameOnly) {
+            ErrorDisplay.showSuccess(
+              context,
+              'El nombre ha sido actualizado con éxito. No podrás modificar el nombre nuevamente hasta pasados 30 días.',
+            );
+            setState(() {
+              _isSavingNameOnly = false;
+            });
+          } else {
+            ErrorDisplay.showSuccess(
+              context,
+              'Información guardada exitosamente.',
+            );
+          }
+          
           _updateOriginalsToCurrent();
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalPictureUploaded) {
@@ -582,6 +771,16 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalError) {
           ErrorDisplay.showError(context, state.message);
+          if (_isSavingNameOnly) {
+            setState(() {
+              _isSavingNameOnly = false;
+            });
+          }
+          if (_isInactivating) {
+            setState(() {
+              _isInactivating = false;
+            });
+          }
           context.read<AnimalCubit>().resetToLoaded();
         }
       },
@@ -706,10 +905,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         // Tab content
                         Expanded(
                           child: FixedBottomActionLayout(
-                            bottomChild: _tabController.index == 2
+                            bottomChild: _tabController.index == 2 && _currentAnimal.isActive
                                 ? OutlinedButton(
                                     onPressed: () {
-                                      // TODO: Implement inactivate
+                                      _showInactivateConfirmation();
                                     },
                                     style: OutlinedButton.styleFrom(
                                       foregroundColor: AppColors.errorRojo,
@@ -734,7 +933,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                       ),
                                     ),
                                   )
-                                : (_hasChanges
+                                : (_hasChanges && _currentAnimal.isActive
                                       ? BlocBuilder<AnimalCubit, AnimalState>(
                                           builder: (context, state) {
                                             final isUpdating =
@@ -809,6 +1008,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
                                   associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
                                   adoptionSourceOptions: context.watch<CatalogsCubit>().adoptionSources,
+                                  readOnly: !_currentAnimal.isActive,
                                 ),
                                 AnimalInfoAdditionalTab(
                                   selectedTemperaments: _selectedTemperaments,
@@ -834,11 +1034,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                   temperamentOptions: context.watch<CatalogsCubit>().temperaments,
                                   housingTypeOptions: context.watch<CatalogsCubit>().housingTypes,
                                   purposeOptions: context.watch<CatalogsCubit>().animalPurposes,
+                                  readOnly: !_currentAnimal.isActive,
                                 ),
                                 AnimalInfoGeneralTab(
                                   animal: _currentAnimal,
                                   onInactivate: () {
-                                    // TODO: Implement inactivate
+                                    _showInactivateConfirmation();
                                   },
                                 ),
                               ],

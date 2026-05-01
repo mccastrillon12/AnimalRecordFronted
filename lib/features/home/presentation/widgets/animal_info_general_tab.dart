@@ -174,7 +174,7 @@ class AnimalInfoGeneralTab extends StatelessWidget {
             ),
             TextSpan(
               text: date,
-              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
+              style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
             ),
           ],
         ),

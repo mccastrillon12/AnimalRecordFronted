@@ -207,7 +207,10 @@ class CustomDateField extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled ? AppColors.white : const Color(0xFFF5F6FA),
               borderRadius: AppBorders.small(),
-              border: Border.all(color: AppColors.greyBordes, width: 1.0),
+              border: Border.all(
+                color: enabled ? AppColors.greyBordes : AppColors.greyDelineante,
+                width: 1.0,
+              ),
             ),
             child: Row(
               children: [

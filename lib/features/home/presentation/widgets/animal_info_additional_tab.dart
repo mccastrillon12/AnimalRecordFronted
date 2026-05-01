@@ -28,6 +28,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
   final List<CatalogItemEntity> temperamentOptions;
   final List<CatalogItemEntity> housingTypeOptions;
   final List<CatalogItemEntity> purposeOptions;
+  final bool readOnly;
 
   const AnimalInfoAdditionalTab({
     super.key,
@@ -48,6 +49,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
     this.temperamentOptions = const [],
     this.housingTypeOptions = const [],
     this.purposeOptions = const [],
+    this.readOnly = false,
   });
 
   @override
@@ -74,7 +76,8 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             selectedItems: selectedTemperaments,
             items: temperamentOptions.map((t) => t.name).toList(),
             itemAsString: (item) => item,
-            onChanged: onTemperamentsChanged,
+            onChanged: readOnly ? (_) {} : onTemperamentsChanged,
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -82,6 +85,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           CustomTextField(
             label: 'Alergia a (Opcional)',
             controller: allergyController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -97,7 +104,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
               child: CustomCheckbox(
                 value: entry.value,
                 label: entry.key,
-                onChanged: (v) => onDiagnosisChanged(entry.key, v),
+                onChanged: readOnly ? null : (v) => onDiagnosisChanged(entry.key, v),
               ),
             ),
           ),
@@ -107,6 +114,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             CustomTextField(
               label: '¿Cuál?',
               controller: otherDiagnosisController,
+              enabled: !readOnly,
             ),
             const SizedBox(height: AppSpacing.m),
           ],
@@ -120,7 +128,8 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             isInline: true,
             items: housingTypeOptions.map((h) => h.name).toList(),
             itemAsString: (name) => name,
-            onChanged: onHousingTypeChanged,
+            onChanged: readOnly ? null : onHousingTypeChanged,
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -132,7 +141,8 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             isInline: true,
             items: purposeOptions.map((p) => p.name).toList(),
             itemAsString: (name) => name,
-            onChanged: onPurposeChanged,
+            onChanged: readOnly ? null : onPurposeChanged,
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -140,6 +150,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           CustomTextField(
             label: 'Tipo de alimentación',
             controller: feedingTypeController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -147,6 +161,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           CustomTextField(
             label: 'Tipo de parto',
             controller: birthTypeController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -154,6 +172,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           CustomTextField(
             label: 'Condición al nacer',
             controller: birthConditionController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.l),
         ],

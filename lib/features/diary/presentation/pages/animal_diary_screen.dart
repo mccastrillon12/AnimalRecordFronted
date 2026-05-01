@@ -61,7 +61,10 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;
           const curve = Curves.ease;
-          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          final tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           return SlideTransition(
             position: animation.drive(tween),
             child: child,
@@ -87,7 +90,10 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;
           const curve = Curves.ease;
-          final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
+          final tween = Tween(
+            begin: begin,
+            end: end,
+          ).chain(CurveTween(curve: curve));
           return SlideTransition(
             position: animation.drive(tween),
             child: child,
@@ -171,9 +177,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           if (isLoading) {
             return Scaffold(
               backgroundColor: Colors.black.withValues(alpha: 0.5),
-              body: const Center(
-                child: CircularProgressIndicator(),
-              ),
+              body: const Center(child: CircularProgressIndicator()),
             );
           }
 
@@ -283,7 +287,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const SizedBox(height: 40),
+        const SizedBox(height: 100),
         Container(
           width: 200,
           height: 200,
@@ -319,23 +323,17 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                   ),
                 ),
         ),
-        const SizedBox(height: 32),
+        const SizedBox(height: 48),
         Text(
           'Crea la primer nota en tu diario',
-          style: AppTypography.body3.copyWith(
-            fontWeight: FontWeight.w700,
-            color: AppColors.greyNegro,
-          ),
+          style: AppTypography.body3,
           textAlign: TextAlign.center,
         ),
         const SizedBox(height: 16),
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyMedio,
-              height: 1.5,
-            ),
+            style: AppTypography.body4,
             children: [
               const TextSpan(
                 text:
@@ -649,7 +647,12 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       itemBuilder: (context) => [
         PopupMenuItem(
           value: 'edit',
-          padding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 7),
+          padding: const EdgeInsets.only(
+            left: 24,
+            right: 24,
+            top: 24,
+            bottom: 7,
+          ),
           child: Row(
             children: [
               const Icon(
@@ -688,7 +691,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
               Flexible(
                 child: Text(
                   'Eliminar registro',
-                  style: AppTypography.body4.copyWith(color: AppColors.errorRojo),
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.errorRojo,
+                  ),
                 ),
               ),
             ],

@@ -100,8 +100,8 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         return AnnotatedRegion<SystemUiOverlayStyle>(
           value: const SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.light,
-            statusBarBrightness: Brightness.dark,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
           ),
           child: Scaffold(
             body: Container(
@@ -168,6 +168,29 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                               children: [
                                 const SizedBox(height: AppSpacing.xs),
 
+                                // Inactive badge
+                                if (!currentAnimal.isActive)
+                                  Padding(
+                                    padding: const EdgeInsets.only(
+                                      bottom: AppSpacing.l,
+                                    ),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: AppColors.bgRosa,
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        'Inactivo',
+                                        style: AppTypography.body5.copyWith(
+                                          color: AppColors.errorRojo,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 // Combined Hero Card and Info Section (Exact Figma dimensions)
                                 Container(
                                   width: 311,
@@ -291,10 +314,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   Widget _buildActionButtons(AnimalModel currentAnimal) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
+          enabled: currentAnimal.isActive,
           onTap: () {
             Navigator.push(
               context,
@@ -302,16 +327,20 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                 opaque: false,
                 pageBuilder: (context, animation, secondaryAnimation) =>
                     AnimalDiaryScreen(animal: currentAnimal),
-                transitionsBuilder: (context, animation, secondaryAnimation, child) {
-                  const begin = Offset(0.0, 1.0);
-                  const end = Offset.zero;
-                  const curve = Curves.ease;
-                  final tween = Tween(begin: begin, end: end).chain(CurveTween(curve: curve));
-                  return SlideTransition(
-                    position: animation.drive(tween),
-                    child: child,
-                  );
-                },
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                      const begin = Offset(0.0, 1.0);
+                      const end = Offset.zero;
+                      const curve = Curves.ease;
+                      final tween = Tween(
+                        begin: begin,
+                        end: end,
+                      ).chain(CurveTween(curve: curve));
+                      return SlideTransition(
+                        position: animation.drive(tween),
+                        child: child,
+                      );
+                    },
               ),
             );
           },
@@ -320,12 +349,14 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-send-sqaure-2.svg',
           label: 'Transferir',
+          enabled: currentAnimal.isActive,
           onTap: () {},
         ),
         const SizedBox(width: 74),
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-scan-barcode.svg',
           label: 'Compartir',
+          enabled: currentAnimal.isActive,
           onTap: () {},
         ),
       ],
@@ -336,9 +367,22 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     required String iconPath,
     required String label,
     required VoidCallback onTap,
+    bool enabled = true,
   }) {
+    final bgColor = enabled 
+        ? const Color(0xFF1A345C)
+        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), const Color(0xFF1A345C));
+
+    final textColor = enabled 
+        ? AppColors.white.withValues(alpha: 0.85) 
+        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), AppColors.white);
+
+    final iconColor = enabled 
+        ? AppColors.white 
+        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), AppColors.white);
+
     return GestureDetector(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
         height: 66,
@@ -350,15 +394,15 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               height: AppSpacing.iconSizeMedium,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: const Color(0xFF1A345C),
+                color: bgColor,
                 borderRadius: AppBorders.medium(),
               ),
               child: SvgPicture.asset(
                 iconPath,
                 width: AppSpacing.iconSizeSmall,
                 height: AppSpacing.iconSizeSmall,
-                colorFilter: const ColorFilter.mode(
-                  AppColors.white,
+                colorFilter: ColorFilter.mode(
+                  iconColor,
                   BlendMode.srcIn,
                 ),
               ),
@@ -370,7 +414,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               child: Text(
                 label,
                 style: AppTypography.body6.copyWith(
-                  color: AppColors.white.withValues(alpha: 0.85),
+                  color: textColor,
                   height: 1.2,
                 ),
                 textAlign: TextAlign.center,

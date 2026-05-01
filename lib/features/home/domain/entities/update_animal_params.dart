@@ -28,6 +28,7 @@ class UpdateAnimalParams extends Equatable {
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
+  final bool? isActive;
 
   const UpdateAnimalParams({
     required this.id,
@@ -56,6 +57,7 @@ class UpdateAnimalParams extends Equatable {
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
+    this.isActive,
   });
 
   Map<String, dynamic> toJson() {
@@ -95,6 +97,7 @@ class UpdateAnimalParams extends Equatable {
         'adoptionSource': adoptionSource,
       if (adoptionPlaceName != null && adoptionPlaceName!.isNotEmpty)
         'adoptionPlaceName': adoptionPlaceName,
+      if (isActive != null) 'isActive': isActive,
     };
   }
 
@@ -126,5 +129,6 @@ class UpdateAnimalParams extends Equatable {
         isAdopted,
         adoptionSource,
         adoptionPlaceName,
+        isActive,
       ];
 }

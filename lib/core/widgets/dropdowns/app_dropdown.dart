@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -79,6 +80,12 @@ class AppDropdown<T> extends StatefulWidget {
   /// When null the default text / search-field trigger is rendered.
   final Widget Function(T? selectedItem)? triggerBuilder;
 
+  /// Optional max length for the search input.
+  final int? searchMaxLength;
+
+  /// Optional input formatters for the search input.
+  final List<TextInputFormatter>? searchInputFormatters;
+
   const AppDropdown({
     super.key,
     required this.label,
@@ -97,6 +104,8 @@ class AppDropdown<T> extends StatefulWidget {
     this.pushContent = true,
     this.itemBuilder,
     this.triggerBuilder,
+    this.searchMaxLength = 50,
+    this.searchInputFormatters,
   });
 
   @override
@@ -150,15 +159,17 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   }
 
   void _applyFilter(String query) {
-    if (query.isEmpty) {
-      _filtered = _getSortedItems(widget.items);
-    } else {
-      final lowerQuery = query.toLowerCase();
-      final matched = widget.items.where((item) {
-        return widget.itemAsString(item).toLowerCase().contains(lowerQuery);
-      }).toList();
-      _filtered = _getSortedItems(matched);
-    }
+    setState(() {
+      if (query.isEmpty) {
+        _filtered = _getSortedItems(widget.items);
+      } else {
+        final lowerQuery = query.toLowerCase();
+        final matched = widget.items.where((item) {
+          return widget.itemAsString(item).toLowerCase().contains(lowerQuery);
+        }).toList();
+        _filtered = _getSortedItems(matched);
+      }
+    });
     _overlayEntry?.markNeedsBuild();
   }
 
@@ -394,11 +405,13 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
               padding: const EdgeInsets.only(left: 12, right: 8),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: _isOpen
-                      ? AppColors.primaryFrances
-                      : widget.errorText != null
-                          ? AppColors.errorRojo
-                          : AppColors.greyBordes,
+                  color: !widget.enabled
+                      ? AppColors.greyDelineante
+                      : _isOpen
+                          ? AppColors.primaryFrances
+                          : widget.errorText != null
+                              ? AppColors.errorRojo
+                              : AppColors.greyBordes,
                 ),
                 borderRadius: AppBorders.small(),
                 color: widget.enabled
@@ -417,6 +430,11 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                                 controller: _searchController,
                                 focusNode: _focusNode,
                                 onChanged: _applyFilter,
+                                maxLength: widget.searchMaxLength,
+                                buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
+                                inputFormatters: widget.searchInputFormatters ?? [
+                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\u00C0-\u017F]')),
+                                ],
                                 style: AppTypography.body4.copyWith(
                                   color: AppColors.greyTextos,
                                 ),
@@ -454,7 +472,9 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                     _isOpen
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.greyMedio,
+                    color: widget.enabled
+                        ? AppColors.greyMedio
+                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
                     size: AppSpacing.iconSizeSmall,
                   ),
                 ],

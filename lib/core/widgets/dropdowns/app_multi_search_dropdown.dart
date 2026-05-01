@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -21,6 +22,9 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
   final bool pushContentDown;
   final bool isInline;
   final bool searchable;
+  final bool enabled;
+  final int? searchMaxLength;
+  final List<TextInputFormatter>? searchInputFormatters;
 
   const AppMultiSearchDropdown({
     super.key,
@@ -34,6 +38,9 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
     this.pushContentDown = true,
     this.isInline = false,
     this.searchable = true,
+    this.enabled = true,
+    this.searchMaxLength = 50,
+    this.searchInputFormatters,
   });
 
   @override
@@ -41,8 +48,7 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
       _AppMultiSearchDropdownState<T>();
 }
 
-class _AppMultiSearchDropdownState<T>
-    extends State<AppMultiSearchDropdown<T>> {
+class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
   final LayerLink _layerLink = LayerLink();
   final FocusNode _focusNode = FocusNode();
   final TextEditingController _searchController = TextEditingController();
@@ -92,10 +98,12 @@ class _AppMultiSearchDropdownState<T>
         _filtered = widget.items;
       } else {
         _filtered = widget.items
-            .where((i) => widget
-                .itemAsString(i)
-                .toLowerCase()
-                .contains(query.toLowerCase()))
+            .where(
+              (i) => widget
+                  .itemAsString(i)
+                  .toLowerCase()
+                  .contains(query.toLowerCase()),
+            )
             .toList();
       }
     });
@@ -164,8 +172,10 @@ class _AppMultiSearchDropdownState<T>
         final boxHeight = renderBox?.size.height ?? AppSpacing.inputHeight;
         final dropdownTop = position.dy + boxHeight;
         final bottomBoundary = mq.size.height - mq.padding.bottom - 60.0;
-        final maxDropdownHeight =
-            (bottomBoundary - dropdownTop).clamp(80.0, 250.0);
+        final maxDropdownHeight = (bottomBoundary - dropdownTop).clamp(
+          80.0,
+          250.0,
+        );
 
         return Stack(
           children: [
@@ -300,30 +310,37 @@ class _AppMultiSearchDropdownState<T>
         CompositedTransformTarget(
           link: _layerLink,
           child: GestureDetector(
-            onTap: () {
-              if (_isOpen) {
-                _focusNode.unfocus();
-                _closeDropdown();
-              } else {
-                _focusNode.requestFocus();
-                _openDropdown();
-              }
-            },
+            onTap: widget.enabled
+                ? () {
+                    if (_isOpen) {
+                      _focusNode.unfocus();
+                      _closeDropdown();
+                    } else {
+                      _focusNode.requestFocus();
+                      _openDropdown();
+                    }
+                  }
+                : null,
             child: Container(
               width: double.infinity,
-              constraints:
-                  const BoxConstraints(minHeight: AppSpacing.inputHeight),
+              constraints: const BoxConstraints(
+                minHeight: AppSpacing.inputHeight,
+              ),
               padding: const EdgeInsets.only(left: 12, right: 8),
               decoration: BoxDecoration(
                 border: Border.all(
-                  color: _isOpen
-                      ? AppColors.primaryFrances
-                      : widget.errorText != null
-                          ? AppColors.errorRojo
-                          : AppColors.greyBordes,
+                  color: !widget.enabled
+                      ? AppColors.greyDelineante
+                      : _isOpen
+                          ? AppColors.primaryFrances
+                          : widget.errorText != null
+                              ? AppColors.errorRojo
+                              : AppColors.greyBordes,
                 ),
                 borderRadius: AppBorders.small(),
-                color: Colors.white,
+                color: widget.enabled
+                    ? Colors.white
+                    : AppColors.bgBlancoAntiFlash,
               ),
               child: Row(
                 children: [
@@ -337,29 +354,52 @@ class _AppMultiSearchDropdownState<T>
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           // Selected chips
-                          ..._selected.map((item) => _Chip(
-                                label: widget.itemAsString(item),
-                                onRemove: () => _toggleItem(item),
-                              )),
+                          ..._selected.map(
+                            (item) => _Chip(
+                              label: widget.itemAsString(item),
+                              onRemove: () => _toggleItem(item),
+                              enabled: widget.enabled,
+                            ),
+                          ),
                           // Search input — no border
                           IntrinsicWidth(
                             child: TextField(
                               controller: _searchController,
                               focusNode: _focusNode,
+                              enabled: widget.enabled,
                               readOnly: !widget.searchable,
                               onChanged: widget.searchable ? _filter : null,
+                              maxLength: widget.searchMaxLength,
+                              buildCounter:
+                                  (
+                                    context, {
+                                    required currentLength,
+                                    required isFocused,
+                                    maxLength,
+                                  }) => null,
+                              inputFormatters:
+                                  widget.searchInputFormatters ??
+                                  [
+                                    FilteringTextInputFormatter.allow(
+                                      RegExp(r'[a-zA-Z0-9\s\u00C0-\u017F]'),
+                                    ),
+                                  ],
                               style: AppTypography.body4.copyWith(
                                 color: AppColors.greyTextos,
                               ),
                               decoration: InputDecoration(
+                                filled: false,
                                 isDense: true,
-                                contentPadding:
-                                    const EdgeInsets.symmetric(vertical: 4),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  vertical: 4,
+                                ),
                                 border: InputBorder.none,
                                 enabledBorder: InputBorder.none,
                                 focusedBorder: InputBorder.none,
-                                hintText:
-                                    _selected.isEmpty ? widget.hint : null,
+                                disabledBorder: InputBorder.none,
+                                hintText: _selected.isEmpty
+                                    ? widget.hint
+                                    : null,
                                 hintStyle: AppTypography.body4.copyWith(
                                   color: AppColors.greyBordes,
                                 ),
@@ -375,7 +415,9 @@ class _AppMultiSearchDropdownState<T>
                     _isOpen
                         ? Icons.keyboard_arrow_up_rounded
                         : Icons.keyboard_arrow_down_rounded,
-                    color: AppColors.greyMedio,
+                    color: widget.enabled
+                        ? AppColors.greyMedio
+                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
                     size: AppSpacing.iconSizeSmall,
                   ),
                 ],
@@ -400,9 +442,7 @@ class _AppMultiSearchDropdownState<T>
         // Injects space so sibling content below is pushed down while
         // the overlay is visible.
         if (_isOpen && !widget.isInline && widget.pushContentDown)
-          SizedBox(
-            height: (_filtered.length * 44.0).clamp(80.0, 250.0),
-          ),
+          SizedBox(height: (_filtered.length * 44.0).clamp(80.0, 250.0)),
 
         // ── Inline List ────────────────────────────────────────────
         if (_isOpen && widget.isInline)
@@ -419,31 +459,45 @@ class _AppMultiSearchDropdownState<T>
 class _Chip extends StatelessWidget {
   final String label;
   final VoidCallback onRemove;
+  final bool enabled;
 
-  const _Chip({required this.label, required this.onRemove});
+  const _Chip({
+    required this.label,
+    required this.onRemove,
+    this.enabled = true,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final disabledBg =
+        Color.lerp(
+          const Color.fromARGB(255, 187, 216, 235),
+          Colors.white,
+          0.6,
+        ) ??
+        AppColors.bgHielo;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: AppColors.bgHielo,
-        borderRadius: AppBorders.small(),
+        color: enabled ? AppColors.bgHielo : disabledBg,
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
             label,
-            style: AppTypography.body5.copyWith(color: AppColors.greyMedio),
+            style: AppTypography.body6.copyWith(
+              color: AppColors.greyTextos,
+            ),
           ),
           const SizedBox(width: 4),
           GestureDetector(
-            onTap: onRemove,
-            child: const Icon(
+            onTap: enabled ? onRemove : null,
+            child: Icon(
               Icons.close,
               size: 14,
-              color: AppColors.greyMedio,
+              color: enabled ? AppColors.greyMedio : AppColors.greyTextos,
             ),
           ),
         ],

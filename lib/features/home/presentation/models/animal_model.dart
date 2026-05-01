@@ -38,6 +38,7 @@ class AnimalModel {
   final String? updatedAt;
   final String? ownerName;
   final List<NameHistoryItem> nameHistory;
+  final bool isActive;
 
   const AnimalModel({
     required this.id,
@@ -74,6 +75,7 @@ class AnimalModel {
     this.updatedAt,
     this.ownerName,
     this.nameHistory = const [],
+    this.isActive = true,
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -187,6 +189,7 @@ class AnimalModel {
       updatedAt: entity.updatedAt,
       ownerName: entity.ownerName,
       nameHistory: entity.nameHistory,
+      isActive: entity.isActive,
     );
   }
 

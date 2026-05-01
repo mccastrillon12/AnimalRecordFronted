@@ -389,6 +389,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               _pendingAddAnother = false;
               context.read<AnimalCubit>().resetToLoaded();
               _resetForm();
+              ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
             } else {
               context.read<AnimalCubit>().resetToLoaded();
               final animalModel = AnimalModel.fromEntity(state.animal);
@@ -404,6 +405,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
             _pendingAddAnother = false;
             context.read<AnimalCubit>().resetToLoaded();
             _resetForm();
+            ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
           } else {
             context.read<AnimalCubit>().resetToLoaded();
             final animalModel = AnimalModel.fromEntity(state.animal);
@@ -844,6 +846,7 @@ class _AnimalInfoStep extends StatelessWidget {
                               : 'Propósito',
                           hint: 'Seleccionar',
                           value: selectedPurpose,
+                          searchable: true,
                           isInline: true,
                           items: purposeOptions.map((p) => p.name).toList(),
                           itemAsString: (name) => name,
@@ -1047,6 +1050,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             label: 'Tipo de identificación',
                             hint: 'Seleccionar',
                             value: selectedIdentificationType,
+                            searchable: true,
                             isInline: true,
                             items: identificationTypeOptions
                                 .map((t) => t.name)
@@ -1094,6 +1098,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             label: 'Asociaciones',
                             hint: 'Seleccionar asociación',
                             value: selectedAssociation,
+                            searchable: true,
                             isInline: true,
                             items: associationOptions
                                 .map((a) => a.name)
@@ -1133,6 +1138,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             label: '¿Dónde fue adoptado?',
                             hint: 'Seleccionar',
                             value: selectedAdoptionSource,
+                            searchable: true,
                             items: adoptionSourceOptions
                                 .map((a) => a.name)
                                 .toList(),
@@ -1143,6 +1149,9 @@ class _AnimalInfoStep extends StatelessWidget {
                           CustomTextField(
                             label: 'Nombre del lugar (Opcional)',
                             controller: adoptionPlaceNameController,
+                            maxLength: 50,
+                            strictValidation: true,
+                            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),

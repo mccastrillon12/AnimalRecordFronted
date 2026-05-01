@@ -45,6 +45,7 @@ class AnimalEntity extends Equatable {
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
+  final bool isActive;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
@@ -79,6 +80,7 @@ class AnimalEntity extends Equatable {
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
+    this.isActive = true,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
@@ -115,6 +117,7 @@ class AnimalEntity extends Equatable {
         isAdopted,
         adoptionSource,
         adoptionPlaceName,
+        isActive,
         createdAt,
         updatedAt,
         ownerName,

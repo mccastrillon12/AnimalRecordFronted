@@ -49,6 +49,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final List<CatalogItemEntity> adoptionSourceOptions;
   final List<CatalogItemEntity> identificationTypeOptions;
   final List<CatalogItemEntity> associationOptions;
+  final bool readOnly;
 
   const AnimalInfoBasicTab({
     super.key,
@@ -84,6 +85,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
     this.adoptionSourceOptions = const [],
     this.identificationTypeOptions = const [],
     this.associationOptions = const [],
+    this.readOnly = false,
   });
 
   String _iconForFamily(String family) {
@@ -179,6 +181,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       clipBehavior: Clip.antiAlias,
                       child: _buildPhotoContent(),
                     ),
+                    if (!readOnly)
                     Positioned(
                       top: AppSpacing.xs,
                       right: AppSpacing.xs,
@@ -216,15 +219,19 @@ class AnimalInfoBasicTab extends StatelessWidget {
                         );
                       },
                     ),
+                    if (!readOnly) ...[
                     const SizedBox(width: AppSpacing.xxs),
                     GestureDetector(
                       onTap: () {
+                        final daysRemaining = _calculateDaysRemaining();
+                        
                         showDialog(
                           context: context,
                           builder: (context) => EditNameDialog(
                             currentName: nameController.text.isNotEmpty
                                 ? nameController.text
                                 : animal.name,
+                            daysRemaining: daysRemaining,
                             onSave: (newName) {
                               nameController.text = newName;
                               // Trigger the API update for the name change
@@ -239,6 +246,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                         color: AppColors.greyBordes,
                       ),
                     ),
+                    ],
                   ],
                 ),
                 Text(
@@ -259,21 +267,21 @@ class AnimalInfoBasicTab extends StatelessWidget {
             value: 'esterilizado',
             groupValue: reproductiveState,
             label: 'Esterilizado',
-            onChanged: onReproductiveStateChanged,
+            onChanged: readOnly ? null : onReproductiveStateChanged,
           ),
           const SizedBox(height: AppSpacing.m),
           CustomRadioButton<String>(
             value: 'no_esterilizado',
             groupValue: reproductiveState,
             label: 'No esterilizado',
-            onChanged: onReproductiveStateChanged,
+            onChanged: readOnly ? null : onReproductiveStateChanged,
           ),
           const SizedBox(height: AppSpacing.m),
           CustomRadioButton<String>(
             value: 'desconocido',
             groupValue: reproductiveState,
             label: 'Desconocido',
-            onChanged: onReproductiveStateChanged,
+            onChanged: readOnly ? null : onReproductiveStateChanged,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -282,14 +290,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
             label: 'Fecha de nacimiento',
             value: birthDate,
             onChanged: onBirthDateChanged,
-            enabled: !unknownExactDate,
+            enabled: !readOnly && !unknownExactDate,
             showAge: true,
           ),
           const SizedBox(height: AppSpacing.m),
 
           // Toggle fecha exacta
           GestureDetector(
-            onTap: () => onUnknownExactDateChanged(!unknownExactDate),
+            onTap: readOnly ? null : () => onUnknownExactDateChanged(!unknownExactDate),
             child: Row(
               children: [
                 AnimatedContainer(
@@ -337,6 +345,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             label: 'Color y marcas distintivas (Opcional)',
             hint: 'Haz una breve descripción',
             controller: colorDescController,
+            enabled: !readOnly,
           ),
           const SizedBox(height: AppSpacing.m),
 
@@ -352,14 +361,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
                 value: 'si',
                 groupValue: hasIdentification,
                 label: 'Si',
-                onChanged: onHasIdentificationChanged,
+                onChanged: readOnly ? null : onHasIdentificationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
               CustomRadioButton<String>(
                 value: 'no',
                 groupValue: hasIdentification,
                 label: 'No',
-                onChanged: onHasIdentificationChanged,
+                onChanged: readOnly ? null : onHasIdentificationChanged,
               ),
             ],
           ),
@@ -370,19 +379,21 @@ class AnimalInfoBasicTab extends StatelessWidget {
               label: 'Tipo de identificación',
               hint: 'Seleccionar',
               value: selectedIdentificationType,
+              searchable: true,
               isInline: true,
               items: identificationTypeOptions.map((t) => t.name).toList(),
               itemAsString: (name) => name,
-              onChanged: onIdentificationTypeChanged,
+              onChanged: readOnly ? null : onIdentificationTypeChanged,
+              enabled: !readOnly,
             ),
             const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Número de identificación',
               controller: identificationNumberController,
               maxLength: 15,
-              inputFormatters: [
-                FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9]')),
-              ],
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9]+$'),
+              enabled: !readOnly,
             ),
           ],
           const SizedBox(height: AppSpacing.m),
@@ -396,14 +407,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
                 value: 'si',
                 groupValue: belongsToAssociation,
                 label: 'Si',
-                onChanged: onBelongsToAssociationChanged,
+                onChanged: readOnly ? null : onBelongsToAssociationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
               CustomRadioButton<String>(
                 value: 'no',
                 groupValue: belongsToAssociation,
                 label: 'No',
-                onChanged: onBelongsToAssociationChanged,
+                onChanged: readOnly ? null : onBelongsToAssociationChanged,
               ),
             ],
           ),
@@ -413,10 +424,12 @@ class AnimalInfoBasicTab extends StatelessWidget {
               label: 'Asociaciones',
               hint: 'Seleccionar asociación',
               value: selectedAssociation,
+              searchable: true,
               isInline: true,
               items: associationOptions.map((a) => a.name).toList(),
               itemAsString: (name) => name,
-              onChanged: onAssociationChanged,
+              onChanged: readOnly ? null : onAssociationChanged,
+              enabled: !readOnly,
             ),
           ],
           const SizedBox(height: AppSpacing.m),
@@ -430,14 +443,14 @@ class AnimalInfoBasicTab extends StatelessWidget {
                 value: true,
                 groupValue: isAdopted,
                 label: 'Si',
-                onChanged: onIsAdoptedChanged,
+                onChanged: readOnly ? null : onIsAdoptedChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
               CustomRadioButton<bool>(
                 value: false,
                 groupValue: isAdopted,
                 label: 'No',
-                onChanged: onIsAdoptedChanged,
+                onChanged: readOnly ? null : onIsAdoptedChanged,
               ),
             ],
           ),
@@ -447,15 +460,21 @@ class AnimalInfoBasicTab extends StatelessWidget {
               label: '¿Dónde fue adoptado?',
               hint: 'Seleccionar',
               value: selectedAdoptionSource,
+              searchable: true,
               isInline: true,
               items: adoptionSourceOptions.map((a) => a.name).toList(),
               itemAsString: (name) => name,
-              onChanged: onAdoptionSourceChanged,
+              onChanged: readOnly ? null : onAdoptionSourceChanged,
+              enabled: !readOnly,
             ),
             const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Nombre del lugar (Opcional)',
               controller: adoptionPlaceNameController,
+              maxLength: 50,
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+              enabled: !readOnly,
             ),
           ],
           const SizedBox(height: AppSpacing.l),
@@ -464,10 +483,38 @@ class AnimalInfoBasicTab extends StatelessWidget {
     );
   }
 
+  int _calculateDaysRemaining() {
+    if (animal.nameHistory.length <= 1) return 0;
+    
+    DateTime? mostRecentDate;
+    // Skip position 1 (index 0) since it's the creation name and doesn't trigger lockout
+    for (var i = 1; i < animal.nameHistory.length; i++) {
+      try {
+        final itemDate = DateTime.parse(animal.nameHistory[i].date).toLocal();
+        if (mostRecentDate == null || itemDate.isAfter(mostRecentDate)) {
+          mostRecentDate = itemDate;
+        }
+      } catch (_) {}
+    }
+
+    if (mostRecentDate == null) return 0;
+
+    final now = DateTime.now();
+    // Start of day calculation to avoid time-of-day precision issues
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfRecentDate = DateTime(mostRecentDate.year, mostRecentDate.month, mostRecentDate.day);
+    
+    final difference = startOfToday.difference(startOfRecentDate).inDays;
+    final remaining = 30 - difference;
+    
+    return remaining > 0 ? remaining : 0;
+  }
+
   Widget _buildTextArea({
     required String label,
     required String hint,
     required TextEditingController controller,
+    bool enabled = true,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,6 +548,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         const SizedBox(height: AppSpacing.xxs),
         TextField(
           controller: controller,
+          enabled: enabled,
           maxLines: 4,
           maxLength: 150,
           inputFormatters: [

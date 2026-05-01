@@ -20,6 +20,7 @@ class CustomRadioButton<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = value == groupValue;
+    final isDisabled = onChanged == null;
 
     return GestureDetector(
       onTap: () => onChanged?.call(value),
@@ -39,8 +40,12 @@ class CustomRadioButton<T> extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primaryFrances
-                      : AppColors.greyBordes,
+                      ? (isDisabled
+                          ? const Color(0xFF0072BB).withValues(alpha: 0.6)
+                          : AppColors.primaryFrances)
+                      : (isDisabled
+                          ? const Color(0xFFE8E9EC)
+                          : AppColors.greyBordes),
                   width: isSelected ? 7 : 2,
                 ),
               ),
@@ -50,7 +55,11 @@ class CustomRadioButton<T> extends StatelessWidget {
 
             Text(
               label,
-              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
+              style: AppTypography.body4.copyWith(
+                color: isDisabled
+                    ? const Color(0xFF2E3949).withValues(alpha: 0.3)
+                    : AppColors.greyTextos,
+              ),
             ),
           ],
         ),

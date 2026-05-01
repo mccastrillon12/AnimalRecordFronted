@@ -7,11 +7,13 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 class EditNameDialog extends StatefulWidget {
   final String currentName;
   final ValueChanged<String> onSave;
+  final int daysRemaining;
 
   const EditNameDialog({
     super.key,
     required this.currentName,
     required this.onSave,
+    this.daysRemaining = 0,
   });
 
   @override
@@ -48,6 +50,9 @@ class _EditNameDialogState extends State<EditNameDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final bool canEdit = widget.daysRemaining <= 0;
+    final int displayDays = canEdit ? 30 : widget.daysRemaining;
+
     return ConfirmDialog(
       title: 'Cambiar nombre',
       richDescription: TextSpan(
@@ -58,7 +63,7 @@ class _EditNameDialogState extends State<EditNameDialog> {
           ),
           TextSpan(
             text:
-                'no podrás modificar el nombre nuevamente hasta pasados 30 días.',
+                'no podrás modificar el nombre nuevamente hasta pasados $displayDays día${displayDays == 1 ? '' : 's'}.',
             style: AppTypography.body6.copyWith(
               color: AppColors.textPrimary,
               fontWeight: FontWeight.bold,
@@ -70,11 +75,19 @@ class _EditNameDialogState extends State<EditNameDialog> {
         label: 'Nombre',
         controller: _nameController,
         hint: 'Ingresa el nombre',
+        enabled: canEdit,
+        maxLength: 50,
+        strictValidation: true,
+        allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
       ),
       confirmLabel: 'Guardar',
       confirmColor: AppColors.secondaryCoral,
-      isConfirmEnabled: _isModified,
-      onConfirm: () => widget.onSave(_nameController.text.trim()),
+      isConfirmEnabled: canEdit ? _isModified : false,
+      onConfirm: () {
+        if (canEdit) {
+          widget.onSave(_nameController.text.trim());
+        }
+      },
     );
   }
 }

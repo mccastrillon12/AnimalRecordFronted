@@ -345,6 +345,7 @@ class AnimalCubit extends Cubit<AnimalState> {
           feedingType: a.feedingType,
           birthType: a.birthType,
           birthCondition: a.birthCondition,
+          isActive: a.isActive,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
           ownerName: a.ownerName,
