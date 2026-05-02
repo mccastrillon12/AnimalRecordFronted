@@ -25,6 +25,14 @@ class ModalPageLayout extends StatelessWidget {
   final EdgeInsetsGeometry? titlePadding;
   final double? trailingTop;
   final double? trailingRight;
+  final Color? bottomSafeAreaColor;
+  final Color? backgroundColor;
+  /// Si es true, el título se fija en su posición y no hace scroll.
+  final bool fixedTitle;
+  /// Widget adicional fijo debajo del título (solo cuando fixedTitle es true).
+  final Widget? fixedHeaderChild;
+  /// Altura total del área fija del header (título + fixedHeaderChild) para calcular el padding del scroll.
+  final double fixedHeaderHeight;
 
   const ModalPageLayout({
     super.key,
@@ -40,6 +48,11 @@ class ModalPageLayout extends StatelessWidget {
     this.titlePadding,
     this.trailingTop,
     this.trailingRight,
+    this.bottomSafeAreaColor,
+    this.backgroundColor,
+    this.fixedTitle = false,
+    this.fixedHeaderChild,
+    this.fixedHeaderHeight = 0,
   });
 
   Widget _buildTrailingContent(BuildContext context) {
@@ -115,9 +128,9 @@ class ModalPageLayout extends StatelessWidget {
                 Expanded(
                   child: Container(
                     width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
+                    decoration: BoxDecoration(
+                      color: backgroundColor ?? Colors.white,
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(32),
                         topRight: Radius.circular(32),
                       ),
@@ -134,13 +147,30 @@ class ModalPageLayout extends StatelessWidget {
                               width: double.infinity,
                               child: Column(
                                 children: [
-                                  _buildHeaderTitle(),
+                                  if (!fixedTitle) _buildHeaderTitle(),
+                                  if (fixedTitle) SizedBox(height: fixedHeaderHeight),
                                   child,
                                 ],
                               ),
                             ),
                           ),
                         ),
+                        if (fixedTitle)
+                          Positioned(
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            child: Container(
+                              color: backgroundColor ?? Colors.white,
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _buildHeaderTitle(),
+                                  if (fixedHeaderChild != null) fixedHeaderChild!,
+                                ],
+                              ),
+                            ),
+                          ),
                         _buildTrailingContent(context),
                         if (headerChildren != null) ...headerChildren!,
                       ],
@@ -149,7 +179,7 @@ class ModalPageLayout extends StatelessWidget {
                 ),
                 Container(
                   height: MediaQuery.of(context).padding.bottom,
-                  color: AppColors.greyBlanco,
+                  color: bottomSafeAreaColor ?? AppColors.greyBlanco,
                 ),
               ],
             ),
@@ -176,9 +206,9 @@ class ModalPageLayout extends StatelessWidget {
               Expanded(
                 child: Container(
                   width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
+                  decoration: BoxDecoration(
+                    color: backgroundColor ?? Colors.white,
+                    borderRadius: const BorderRadius.only(
                       topLeft: Radius.circular(32),
                       topRight: Radius.circular(32),
                     ),
@@ -196,11 +226,31 @@ class ModalPageLayout extends StatelessWidget {
                           child: IntrinsicHeight(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [_buildHeaderTitle(), child],
+                              children: [
+                                if (!fixedTitle) _buildHeaderTitle(),
+                                if (fixedTitle) SizedBox(height: fixedHeaderHeight),
+                                child,
+                              ],
                             ),
                           ),
                         ),
                       ),
+                      if (fixedTitle)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            color: backgroundColor ?? Colors.white,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _buildHeaderTitle(),
+                                if (fixedHeaderChild != null) fixedHeaderChild!,
+                              ],
+                            ),
+                          ),
+                        ),
                       _buildTrailingContent(context),
                       if (headerChildren != null) ...headerChildren!,
                     ],
@@ -209,7 +259,7 @@ class ModalPageLayout extends StatelessWidget {
               ),
               Container(
                 height: MediaQuery.of(context).padding.bottom,
-                color: AppColors.greyBlanco,
+                color: bottomSafeAreaColor ?? AppColors.greyBlanco,
               ),
             ],
           ),

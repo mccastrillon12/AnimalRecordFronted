@@ -12,6 +12,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
+import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
@@ -21,6 +22,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
 import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:flutter/services.dart';
 
 /// Represents an attachment in the diary entry.
 class DiaryAttachment {
@@ -113,11 +117,29 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   Duration _previewDuration = Duration.zero;
 
   int? _playingAttachmentIndex;
+  String? _titleError;
+  String? _contentError;
 
   static const int _maxAttachments = 5;
   static const int _maxAudioSeconds = 60;
 
   int get _attachmentCount => _attachments.length;
+
+  bool get _hasContent {
+    if (widget.entry != null) {
+      final titleChanged =
+          _titleController.text.trim() != widget.entry!.title.trim();
+      final contentChanged =
+          _contentController.text.trim() != widget.entry!.content.trim();
+      final attachmentsChanged =
+          _attachments.any((a) => a.id == null) ||
+          _deletedAttachmentIds.isNotEmpty;
+      return titleChanged || contentChanged || attachmentsChanged;
+    }
+    return _titleController.text.trim().isNotEmpty ||
+        _contentController.text.trim().isNotEmpty ||
+        _attachments.isNotEmpty;
+  }
 
   String get _formattedDate {
     final now = DateTime.now();
@@ -154,6 +176,8 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   @override
   void initState() {
     super.initState();
+    _titleController.addListener(_onTextChanged);
+    _contentController.addListener(_onTextChanged);
     if (_isEditMode) {
       _titleController.text = widget.entry!.title;
       _contentController.text = widget.entry!.content;
@@ -175,11 +199,68 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           ),
         );
       }
+      // Resolve audio durations for existing remote attachments
+      _resolveAudioDurations();
+    }
+  }
+
+  Future<void> _resolveAudioDurations() async {
+    for (int i = 0; i < _attachments.length; i++) {
+      final att = _attachments[i];
+      if (att.type == DiaryAttachmentType.audio && att.audioDuration == null && att.remoteUrl != null) {
+        try {
+          final player = AudioPlayer();
+          await player.setSourceUrl(att.remoteUrl!);
+          final duration = await player.getDuration();
+          player.dispose();
+          if (duration != null && mounted) {
+            setState(() {
+              _attachments[i] = DiaryAttachment(
+                name: att.name,
+                path: att.path,
+                type: att.type,
+                sizeBytes: att.sizeBytes,
+                createdAt: att.createdAt,
+                audioDuration: duration,
+                remoteUrl: att.remoteUrl,
+                id: att.id,
+              );
+            });
+          }
+        } catch (_) {
+          // If we can't resolve the duration, leave it as is
+        }
+      }
+    }
+  }
+
+  void _onTextChanged() {
+    setState(() {});
+  }
+
+  void _handleClose() {
+    if (_hasContent) {
+      showDialog(
+        context: context,
+        builder: (_) => ConfirmDialog(
+          title: '¿Desea cancelar el proceso?',
+          description: 'Perderá los datos diligenciados al momento.',
+          confirmLabel: 'Sí',
+          cancelLabel: 'No',
+          onConfirm: () {
+            Navigator.of(context).pop();
+          },
+        ),
+      );
+    } else {
+      Navigator.of(context).pop();
     }
   }
 
   @override
   void dispose() {
+    _titleController.removeListener(_onTextChanged);
+    _contentController.removeListener(_onTextChanged);
     _titleController.dispose();
     _contentController.dispose();
     _recordingTimer?.cancel();
@@ -298,7 +379,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
         _recordingSeconds = 0;
         _liveAmplitudes.clear();
-        
+
         _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
           setState(() => _recordingSeconds++);
           if (_recordingSeconds >= _maxAudioSeconds) {
@@ -309,7 +390,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           }
         });
 
-        _amplitudeTimer = Timer.periodic(const Duration(milliseconds: 100), (_) async {
+        _amplitudeTimer = Timer.periodic(const Duration(milliseconds: 100), (
+          _,
+        ) async {
           if (await _audioRecorder.isRecording()) {
             final amp = await _audioRecorder.getAmplitude();
             // Map roughly from -50dB..0dB to 0.0..1.0
@@ -445,16 +528,38 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   Widget _buildContent() {
     return ModalPageLayout(
       title: _formattedDate,
+      bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
+      titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
+      trailingIcon: Row(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: _handleClose,
+            child: Text(
+              'Cancelar',
+              style: AppTypography.body4.copyWith(color: AppColors.greyIconos),
+            ),
+          ),
+          IconButton(
+            onPressed: _handleClose,
+            icon: const Icon(Icons.close, color: AppColors.greyIconos),
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+        ],
+      ),
       headerChildren: [
         // ── Save button (top-left) ─────────────────────────────
         Positioned(
           top: 32,
           left: 24,
           child: GestureDetector(
-            onTap: _isSaving ? null : _saveDiaryEntry,
+            onTap: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
             behavior: HitTestBehavior.opaque,
             child: SizedBox(
-              height: 48, // Matches the default 48px height of the IconButton on the right side
+              height:
+                  48, // Matches the default 48px height of the IconButton on the right side
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -466,19 +571,26 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
                   else
-                    const Icon(
-                      Icons.bookmark_border,
-                      color: AppColors.primaryIndigo,
-                      size: 20,
+                    SvgPicture.asset(
+                      'assets/icons/save-2.svg',
+                      width: 24,
+                      height: 24,
+                      colorFilter: ColorFilter.mode(
+                        _hasContent
+                            ? AppColors.primaryIndigo
+                            : AppColors.greyBordes,
+                        BlendMode.srcIn,
+                      ),
                     ),
-                  const SizedBox(width: 4),
+                  const SizedBox(width: 8),
                   Text(
                     _isSaving ? 'Guardando...' : 'Guardar',
                     style: AppTypography.body4.copyWith(
                       color: _isSaving
-                          ? AppColors.greyMedio
-                          : AppColors.primaryIndigo,
-                      fontWeight: FontWeight.w600,
+                          ? AppColors.greyBordes
+                          : (_hasContent
+                                ? AppColors.primaryIndigo
+                                : AppColors.greyBordes),
                     ),
                   ),
                 ],
@@ -501,59 +613,83 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Lock icon ───────────────────────────────────────
-            Align(
-              alignment: Alignment.centerRight,
-              child: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: AppColors.white,
-                  borderRadius: AppBorders.medium(),
-                  border: Border.all(color: AppColors.greyDelineante),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 4,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.lock_open_outlined,
-                  color: AppColors.primaryIndigo,
-                  size: 20,
-                ),
-              ),
-            ),
-
             const SizedBox(height: AppSpacing.l),
 
             // ── Title field ─────────────────────────────────────
             Text(
               'Título',
-              style: AppTypography.body5.copyWith(color: AppColors.greyNegro),
+              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: _titleController,
+              maxLength: 50,
+              maxLengthEnforcement: MaxLengthEnforcement.none,
+              buildCounter:
+                  (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
+              inputFormatters: [
+                ErrorTriggeringTextInputFormatter(
+                  maxLength: 50,
+                  onError: (err) {
+                    if (_titleError != err) setState(() => _titleError = err);
+                  },
+                  onSuccess: () {
+                    if (_titleError != null) setState(() => _titleError = null);
+                  },
+                ),
+              ],
               style: AppTypography.body4.copyWith(
-                color: AppColors.greyNegro,
+                color: AppColors.greyTextos,
                 height: 1.5,
               ),
               decoration: InputDecoration(
                 filled: true,
                 fillColor: AppColors.white,
+                errorText: _titleError,
+                errorStyle: AppTypography.body5.copyWith(
+                  color: AppColors.errorRojo,
+                  height: 1.2,
+                ),
+                errorMaxLines: 2,
                 border: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.greyDelineante),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.greyDelineante),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.primaryIndigo),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: AppBorders.small(),
+                  borderSide: const BorderSide(
+                    color: AppColors.errorRojo,
+                    width: 1.0,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: AppBorders.small(),
+                  borderSide: const BorderSide(
+                    color: AppColors.errorRojo,
+                    width: 1.0,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,
@@ -562,14 +698,36 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               ),
             ),
 
-            const SizedBox(height: AppSpacing.l),
+            const SizedBox(height: AppSpacing.m),
 
             // ── Content field ───────────────────────────────────
             TextField(
               controller: _contentController,
               maxLines: 8,
+              maxLength: 500,
+              maxLengthEnforcement: MaxLengthEnforcement.none,
+              buildCounter:
+                  (
+                    context, {
+                    required currentLength,
+                    required isFocused,
+                    maxLength,
+                  }) => null,
+              inputFormatters: [
+                ErrorTriggeringTextInputFormatter(
+                  maxLength: 500,
+                  onError: (err) {
+                    if (_contentError != err)
+                      setState(() => _contentError = err);
+                  },
+                  onSuccess: () {
+                    if (_contentError != null)
+                      setState(() => _contentError = null);
+                  },
+                ),
+              ],
               style: AppTypography.body4.copyWith(
-                color: AppColors.greyNegro,
+                color: AppColors.greyTextos,
                 height: 1.5,
               ),
               decoration: InputDecoration(
@@ -577,19 +735,48 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                 fillColor: AppColors.white,
                 hintText: 'Empieza a escribir aquí...',
                 hintStyle: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
+                  color: AppColors.greyBordes,
                 ),
+                errorText: _contentError,
+                errorStyle: AppTypography.body5.copyWith(
+                  color: AppColors.errorRojo,
+                  height: 1.2,
+                ),
+                errorMaxLines: 2,
                 border: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.greyDelineante),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.greyDelineante),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(color: AppColors.primaryIndigo),
+                  borderSide: const BorderSide(
+                    color: AppColors.greyBordes,
+                    width: 1.0,
+                  ),
+                ),
+                errorBorder: OutlineInputBorder(
+                  borderRadius: AppBorders.small(),
+                  borderSide: const BorderSide(
+                    color: AppColors.errorRojo,
+                    width: 1.0,
+                  ),
+                ),
+                focusedErrorBorder: OutlineInputBorder(
+                  borderRadius: AppBorders.small(),
+                  borderSide: const BorderSide(
+                    color: AppColors.errorRojo,
+                    width: 1.0,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.all(12),
               ),
@@ -597,7 +784,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
             // ── Attachments section ─────────────────────────────
             if (_attachments.isNotEmpty) ...[
-              const SizedBox(height: AppSpacing.l),
+              const SizedBox(height: AppSpacing.m),
               Text(
                 'Adjuntos',
                 style: AppTypography.body3.copyWith(
@@ -782,7 +969,8 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                         key: ValueKey('player_create_$index'),
                         audioUrl: attachment.remoteUrl ?? attachment.path,
                         onCompleted: () {
-                          if (mounted) setState(() => _playingAttachmentIndex = null);
+                          if (mounted)
+                            setState(() => _playingAttachmentIndex = null);
                         },
                       )
                     : GestureDetector(
@@ -791,7 +979,8 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                             showDialog(
                               context: context,
                               builder: (_) => ImagePreviewDialog(
-                                imageUrl: attachment.remoteUrl ?? attachment.path,
+                                imageUrl:
+                                    attachment.remoteUrl ?? attachment.path,
                               ),
                             );
                           } else {
@@ -802,58 +991,60 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                    Text(
-                      attachment.name,
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyNegro,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        if (!isImage && attachment.audioDuration != null) ...[
-                          Text(
-                            attachment.durationDisplay,
-                            style: AppTypography.body6.copyWith(
-                              color: AppColors.primaryFrances,
-                              decoration: TextDecoration.underline,
-                              decorationColor: AppColors.primaryFrances,
+                            Text(
+                              attachment.name,
+                              style: AppTypography.body3,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                        ] else ...[
-                          Text(
-                            attachment.sizeDisplay,
-                            style: AppTypography.body6.copyWith(
-                              color: AppColors.greyMedio,
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                if (!isImage &&
+                                    attachment.audioDuration != null) ...[
+                                  Text(
+                                    attachment.durationDisplay,
+                                    style: AppTypography.body6.copyWith(
+                                      color: AppColors.primaryAzulClaro,
+                                      decoration: TextDecoration.underline,
+                                      decorationColor:
+                                          AppColors.primaryAzulClaro,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ] else ...[
+                                  Text(
+                                    attachment.sizeDisplay,
+                                    style: AppTypography.body6.copyWith(
+                                      color: AppColors.greyBordes,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                ],
+                                Text(
+                                  attachment.timeDisplay,
+                                  style: AppTypography.body6,
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: 8),
-                        ],
-                        Text(
-                          attachment.timeDisplay,
-                          style: AppTypography.body6.copyWith(
-                            color: AppColors.greyMedio,
-                          ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ],
-                ),
-              ), // closes Column
+                      ), // closes Column
               ), // closes GestureDetector
               const SizedBox(width: 12),
               GestureDetector(
                 onTap: () => _removeAttachment(index),
                 behavior: HitTestBehavior.opaque,
-                child: const Padding(
-                  padding: EdgeInsets.all(4),
-                  child: Icon(
-                    Icons.delete_outline,
-                    color: AppColors.secondaryCoral,
-                    size: 22,
+                child: Padding(
+                  padding: const EdgeInsets.all(4),
+                  child: SvgPicture.asset(
+                    'assets/icons/icon_trash.svg',
+                    width: 22,
+                    height: 22,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.errorRojo,
+                      BlendMode.srcIn,
+                    ),
                   ),
                 ),
               ),
@@ -875,7 +1066,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
     return Container(
       height: 56,
       decoration: const BoxDecoration(
-        color: AppColors.greyBlanco,
+        color: AppColors.bgBlancoAntiFlash,
         border: Border(
           top: BorderSide(color: AppColors.greyDelineante, width: 1),
         ),
@@ -883,13 +1074,19 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildToolbarTextIcon('Aa'),
-          _buildToolbarIcon(Icons.image_outlined, onTap: _pickImageFromGallery),
-          _buildToolbarIcon(
-            Icons.camera_alt_outlined,
+          _buildToolbarSvgIcon('assets/icons/Text.svg'),
+          _buildToolbarSvgIcon(
+            'assets/icons/vuesax-bold-gallery.svg',
+            onTap: _pickImageFromGallery,
+          ),
+          _buildToolbarSvgIcon(
+            'assets/icons/vuesax-bold-camera.svg',
             onTap: _pickImageFromCamera,
           ),
-          _buildToolbarIcon(Icons.graphic_eq, onTap: _startRecording),
+          _buildToolbarSvgIcon(
+            'assets/icons/voice-square.svg',
+            onTap: _startRecording,
+          ),
         ],
       ),
     );
@@ -897,7 +1094,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
   Widget _buildAudioOverlay() {
     final isPreview = !_isRecording && _recordedPreviewPath != null;
-    
+
     List<double> bars;
     if (_isRecording) {
       bars = List.filled(40, 0.0);
@@ -1020,31 +1217,10 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
     );
   }
 
-  Widget _buildToolbarTextIcon(String data) {
+  Widget _buildToolbarSvgIcon(String assetPath, {VoidCallback? onTap}) {
     return IconButton(
-      onPressed: () {},
-      icon: Text(
-        data,
-        style: AppTypography.body3.copyWith(
-          fontWeight: FontWeight.bold,
-          color: AppColors.primaryIndigo,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildToolbarIcon(
-    IconData icon, {
-    VoidCallback? onTap,
-    bool isActive = false,
-  }) {
-    return IconButton(
-      onPressed: onTap,
-      icon: Icon(
-        icon,
-        color: isActive ? AppColors.errorRojo : AppColors.primaryIndigo,
-        size: 24,
-      ),
+      onPressed: onTap ?? () {},
+      icon: SvgPicture.asset(assetPath, width: 24, height: 24),
     );
   }
 }
@@ -1074,7 +1250,8 @@ class _AudioWaveformPainter extends CustomPainter {
 
     final activePaint = Paint()..color = activeColor;
     final inactivePaint = Paint()..color = inactiveColor;
-    final recordingPaint = Paint()..color = AppColors.greyBordes.withValues(alpha: 0.7);
+    final recordingPaint = Paint()
+      ..color = AppColors.greyBordes.withValues(alpha: 0.7);
 
     for (int i = 0; i < bars.length; i++) {
       final x = i * barWidth * 2 + barWidth / 2;
@@ -1084,14 +1261,14 @@ class _AudioWaveformPainter extends CustomPainter {
         Rect.fromLTWH(x, top, barWidth, barHeight),
         const Radius.circular(2),
       );
-      
+
       Paint paint;
       if (isRecording) {
         paint = recordingPaint;
       } else {
         paint = x <= progressX ? activePaint : inactivePaint;
       }
-      
+
       canvas.drawRRect(rect, paint);
     }
   }

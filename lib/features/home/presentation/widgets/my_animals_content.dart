@@ -140,7 +140,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               height: AppSpacing.iconSizeMedium,
                               child: TextField(
                                 controller: _searchController,
-                                onChanged: (v) => setState(() => _searchQuery = v),
+                                onChanged: (v) =>
+                                    setState(() => _searchQuery = v),
                                 style: AppTypography.body4,
                                 textAlignVertical: TextAlignVertical.center,
                                 inputFormatters: [
@@ -149,16 +150,25 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                     maxLength: 20,
                                     onError: (error) {
                                       if (_searchErrorText != error) {
-                                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                                          if (mounted) setState(() => _searchErrorText = error);
-                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (mounted)
+                                                setState(
+                                                  () =>
+                                                      _searchErrorText = error,
+                                                );
+                                            });
                                       }
                                     },
                                     onSuccess: () {
                                       if (_searchErrorText != null) {
-                                        WidgetsBinding.instance.addPostFrameCallback((_) {
-                                          if (mounted) setState(() => _searchErrorText = null);
-                                        });
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (mounted)
+                                                setState(
+                                                  () => _searchErrorText = null,
+                                                );
+                                            });
                                       }
                                     },
                                   ),
@@ -193,21 +203,27 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                   border: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(4),
                                     borderSide: BorderSide(
-                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFFA8AFBD),
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFFA8AFBD),
                                       width: 1,
                                     ),
                                   ),
                                   enabledBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(4),
                                     borderSide: BorderSide(
-                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFFA8AFBD),
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFFA8AFBD),
                                       width: 1,
                                     ),
                                   ),
                                   focusedBorder: OutlineInputBorder(
                                     borderRadius: BorderRadius.circular(4),
                                     borderSide: BorderSide(
-                                      color: _searchErrorText != null ? AppColors.error : const Color(0xFF0072BB),
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFF0072BB),
                                       width: 1,
                                     ),
                                   ),
@@ -267,29 +283,33 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                           height: AppSpacing.iconSizeSmall,
                         ),
                         onTap: () async {
-                          final result = await showModalBottomSheet<Map<String, dynamic>>(
-                            context: context,
-                            isScrollControlled: true,
-                            backgroundColor: Colors.transparent,
-                            barrierColor: AppColors.overlayBlack,
-                            builder: (context) => AnimalFilterModal(
-                              initialSex: _currentFilterSex,
-                              initialFamilies: _currentFilterFamilies,
-                              initialAges: _currentFilterAges,
-                            ),
-                          );
-                          
+                          final result =
+                              await showModalBottomSheet<Map<String, dynamic>>(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                barrierColor: AppColors.overlayBlack,
+                                builder: (context) => AnimalFilterModal(
+                                  initialSex: _currentFilterSex,
+                                  initialFamilies: _currentFilterFamilies,
+                                  initialAges: _currentFilterAges,
+                                ),
+                              );
+
                           if (!context.mounted) return;
 
                           if (result != null) {
                             setState(() {
-                              _currentFilterSex = result['sex'] as String? ?? 'Ambos';
-                              _currentFilterFamilies = result['families'] as List<String>? ?? [];
-                              _currentFilterAges = result['ages'] as List<String>? ?? [];
+                              _currentFilterSex =
+                                  result['sex'] as String? ?? 'Ambos';
+                              _currentFilterFamilies =
+                                  result['families'] as List<String>? ?? [];
+                              _currentFilterAges =
+                                  result['ages'] as List<String>? ?? [];
                             });
 
                             final Map<String, dynamic> queryParams = {};
-                            
+
                             final sex = result['sex'] as String?;
                             if (sex != null && sex != 'Ambos') {
                               if (sex == 'Macho') {
@@ -301,15 +321,21 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               }
                             }
 
-                            final families = result['families'] as List<String>?;
+                            final families =
+                                result['families'] as List<String>?;
                             if (families != null && families.isNotEmpty) {
                               final mappedFamilies = families.map((family) {
                                 switch (family) {
-                                  case 'Felino': return 'CAT';
-                                  case 'Canino': return 'DOG';
-                                  case 'Bovino': return 'COW';
-                                  case 'Equino': return 'HORSE';
-                                  default: return family;
+                                  case 'Felino':
+                                    return 'CAT';
+                                  case 'Canino':
+                                    return 'DOG';
+                                  case 'Bovino':
+                                    return 'COW';
+                                  case 'Equino':
+                                    return 'HORSE';
+                                  default:
+                                    return family;
                                 }
                               }).toList();
                               // API takes string, we can join with comma or just send the first
@@ -326,17 +352,44 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                 int min = 0;
                                 int? max;
                                 switch (ageStr) {
-                                  case '0-6 meses': min = 0; max = 6; break;
-                                  case '7-11 meses': min = 7; max = 11; break;
-                                  case '1-3 años': min = 12; max = 36; break;
-                                  case '4-6 años': min = 48; max = 72; break;
-                                  case '7-10 años': min = 84; max = 120; break;
-                                  case '11-15 años': min = 132; max = 180; break;
-                                  case '16-20 años': min = 192; max = 240; break;
-                                  case '21-25 años': min = 252; max = 300; break;
-                                  case '+25 años': min = 301; max = null; break;
+                                  case '0-6 meses':
+                                    min = 0;
+                                    max = 6;
+                                    break;
+                                  case '7-11 meses':
+                                    min = 7;
+                                    max = 11;
+                                    break;
+                                  case '1-3 años':
+                                    min = 12;
+                                    max = 36;
+                                    break;
+                                  case '4-6 años':
+                                    min = 48;
+                                    max = 72;
+                                    break;
+                                  case '7-10 años':
+                                    min = 84;
+                                    max = 120;
+                                    break;
+                                  case '11-15 años':
+                                    min = 132;
+                                    max = 180;
+                                    break;
+                                  case '16-20 años':
+                                    min = 192;
+                                    max = 240;
+                                    break;
+                                  case '21-25 años':
+                                    min = 252;
+                                    max = 300;
+                                    break;
+                                  case '+25 años':
+                                    min = 301;
+                                    max = null;
+                                    break;
                                 }
-                                
+
                                 if (globalMin == null || min < globalMin) {
                                   globalMin = min;
                                 }
@@ -348,22 +401,28 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                   }
                                 }
                               }
-                              
-                              if (globalMin != null) queryParams['minAgeMonths'] = globalMin;
+
+                              if (globalMin != null)
+                                queryParams['minAgeMonths'] = globalMin;
                               if (!hasUnboundedMax && globalMax != null) {
                                 queryParams['maxAgeMonths'] = globalMax;
                               }
                             }
-                            
+
                             if (queryParams.isEmpty) {
                               // If no filters were selected or they were cleared, reload without filters
-                              if (context.read<AnimalCubit>().currentOwnerId != null) {
+                              if (context.read<AnimalCubit>().currentOwnerId !=
+                                  null) {
                                 // Since we already loaded, let's just force a reload by setting internal state or fetching again.
                                 // searchAnimals with empty query params will naturally just fetch by ownerId.
-                                context.read<AnimalCubit>().searchAnimals(queryParams);
+                                context.read<AnimalCubit>().searchAnimals(
+                                  queryParams,
+                                );
                               }
                             } else {
-                              context.read<AnimalCubit>().searchAnimals(queryParams);
+                              context.read<AnimalCubit>().searchAnimals(
+                                queryParams,
+                              );
                             }
                           }
                         },
@@ -468,7 +527,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               children: [
                 Text(family, style: AppTypography.heading2.copyWith()),
                 RotatedBox(
-                  quarterTurns: isCollapsed ? 0 : 1, // 0 = right (collapsed), 1 = down (expanded)
+                  quarterTurns: isCollapsed
+                      ? 0
+                      : 1, // 0 = right (collapsed), 1 = down (expanded)
                   child: SvgPicture.asset(
                     'assets/icons/arrow-right.svg',
                     width: AppSpacing.iconSizeSmall,
@@ -609,7 +670,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.secondaryCoral,
-          borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
+          borderRadius: BorderRadius.circular(6),
           boxShadow: [
             BoxShadow(
               color: AppColors.secondaryCoral.withValues(alpha: 0.4),

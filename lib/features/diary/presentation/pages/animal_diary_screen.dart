@@ -8,7 +8,6 @@ import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
-import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
@@ -17,6 +16,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
 import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalDiaryScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -74,7 +74,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     );
 
     if (result == true && mounted) {
-      context.read<DiaryCubit>().getDiaryEntries(widget.animal.id);
+      context.read<DiaryCubit>().refreshDiaryEntries(widget.animal.id);
       _showSnackbar('Nota guardada exitosamente.');
     }
   }
@@ -103,7 +103,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     );
 
     if (result == true && mounted) {
-      context.read<DiaryCubit>().getDiaryEntries(widget.animal.id);
+      context.read<DiaryCubit>().refreshDiaryEntries(widget.animal.id);
       _showSnackbar('Nota actualizada exitosamente.');
     }
   }
@@ -122,10 +122,11 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     showDialog(
       context: context,
       builder: (_) => ConfirmDialog(
-        title: 'Eliminar nota',
+        title: '¿Desea eliminar la nota?',
         description:
-            '¿Estás seguro de que deseas eliminar esta nota? Esta acción no se puede deshacer.',
-        confirmLabel: 'Eliminar',
+            'Al eliminar esta nota, no podrás recuperarla ni volver a verla.',
+        confirmLabel: 'Sí',
+        cancelLabel: 'No',
         onConfirm: () {
           context.read<DiaryCubit>().deleteDiaryEntry(
             animalId: widget.animal.id,
@@ -171,6 +172,14 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         }
       },
       child: BlocBuilder<DiaryCubit, DiaryState>(
+        buildWhen: (previous, current) {
+          // Don't rebuild for save-related states — the create screen handles those
+          if (current is DiaryEntrySaving ||
+              current is DiaryEntrySaved ||
+              current is DiaryEntryUpdated)
+            return false;
+          return true;
+        },
         builder: (context, state) {
           final isLoading = state is DiaryInitial || state is DiaryLoading;
 
@@ -188,7 +197,41 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
             children: [
               ModalPageLayout(
                 title: 'Diario',
+                backgroundColor: AppColors.bgBlancoAntiFlash,
+                bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
                 titlePadding: const EdgeInsets.only(top: 96, bottom: 0),
+                fixedTitle: true,
+                fixedHeaderHeight: hasEntries ? 180 : 120,
+                fixedHeaderChild: hasEntries
+                    ? Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const SizedBox(height: 16),
+                            RichText(
+                              textAlign: TextAlign.left,
+                              text: TextSpan(
+                                style: AppTypography.body6.copyWith(height: 1.5),
+                                children: [
+                                  const TextSpan(
+                                    text:
+                                        'Guarda notas, fotos y comentarios sobre la evolución, salud y momentos importantes de tu animal. ',
+                                  ),
+                                  TextSpan(
+                                    text: 'Max 15 notas.',
+                                    style: AppTypography.body5.copyWith(
+                                      color: AppColors.greyNegro,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                          ],
+                        ),
+                      )
+                    : null,
                 trailingIcon: IconButton(
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close),
@@ -202,7 +245,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                         onPressed: _navigateToCreate,
                       ),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
                   child: _buildBody(state),
                 ),
               ),
@@ -212,14 +255,29 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                 Positioned(
                   bottom: AppSpacing.l + MediaQuery.of(context).padding.bottom,
                   right: AppSpacing.l,
-                  child: FloatingActionButton(
-                    onPressed: _navigateToCreate,
-                    backgroundColor: AppColors.secondaryCoral,
-                    elevation: 4,
-                    child: const Icon(
-                      Icons.add,
-                      color: AppColors.white,
-                      size: 28,
+                  child: GestureDetector(
+                    onTap: _navigateToCreate,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: AppColors.secondaryCoral,
+                        borderRadius: BorderRadius.circular(6),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.secondaryCoral.withValues(
+                              alpha: 0.4,
+                            ),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: AppColors.white,
+                        size: 24,
+                      ),
                     ),
                   ),
                 ),
@@ -236,10 +294,13 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                         horizontal: AppSpacing.l,
                         vertical: AppSpacing.m,
                       ),
-                      child: CustomSnackBar(
-                        message: _snackbarMessage,
-                        onClose: () =>
-                            setState(() => _showSuccessSnackbar = false),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: CustomSnackBar(
+                          message: _snackbarMessage,
+                          onClose: () =>
+                              setState(() => _showSuccessSnackbar = false),
+                        ),
                       ),
                     ),
                   ),
@@ -252,13 +313,6 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   Widget _buildBody(DiaryState state) {
-    if (state is DiaryEntrySaving) {
-      return const SizedBox(
-        height: 300,
-        child: Center(child: CircularProgressIndicator()),
-      );
-    }
-
     if (state is DiaryLoaded) {
       if (state.entries.isEmpty) return _buildEmptyState();
       return _buildEntriesList(state.entries);
@@ -293,58 +347,47 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           height: 200,
           decoration: BoxDecoration(
             color: AppColors.greyDelineante,
-            borderRadius: BorderRadius.circular(8),
+            // borderRadius: BorderRadius.circular(8),
           ),
           clipBehavior: Clip.antiAlias,
-          child: widget.animal.imageUrl != null
+          child:
+              widget.animal.imageUrl != null &&
+                  widget.animal.imageUrl!.isNotEmpty
               ? CachedNetworkImage(
                   imageUrl: widget.animal.imageUrl!,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) => const Center(
-                    child: Icon(
-                      Icons.pets,
-                      color: AppColors.greyBordes,
-                      size: 50,
-                    ),
-                  ),
-                  errorWidget: (context, url, error) => const Center(
-                    child: Icon(
-                      Icons.pets,
-                      color: AppColors.greyBordes,
-                      size: 50,
-                    ),
-                  ),
+                  placeholder: (context, url) => _buildPlaceholderIcon(),
+                  errorWidget: (context, url, error) => _buildPlaceholderIcon(),
                 )
-              : const Center(
-                  child: Icon(
-                    Icons.pets,
-                    color: AppColors.greyBordes,
-                    size: 50,
-                  ),
-                ),
+              : _buildPlaceholderIcon(),
         ),
         const SizedBox(height: 48),
-        Text(
-          'Crea la primer nota en tu diario',
-          style: AppTypography.body3,
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 16),
-        RichText(
-          textAlign: TextAlign.center,
-          text: TextSpan(
-            style: AppTypography.body4,
+        SizedBox(
+          width: 249,
+          child: Column(
             children: [
-              const TextSpan(
-                text:
-                    'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
+              Text(
+                'Crea la primer nota en tu diario',
+                style: AppTypography.body3,
+                textAlign: TextAlign.center,
               ),
-              TextSpan(
-                text: 'Max X notas.',
-                style: AppTypography.body4.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.greyNegro,
-                  height: 1.5,
+              const SizedBox(height: 16),
+              RichText(
+                textAlign: TextAlign.center,
+                text: TextSpan(
+                  style: AppTypography.body4,
+                  children: [
+                    const TextSpan(
+                      text:
+                          'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
+                    ),
+                    TextSpan(
+                      text: 'Max 15 notas.',
+                      style: AppTypography.body4.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -355,32 +398,41 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     );
   }
 
+  Widget _buildPlaceholderIcon() {
+    return Center(
+      child: SvgPicture.asset(
+        _getFamilyIconPath(widget.animal.family),
+        width: 80,
+        height: 80,
+        colorFilter: const ColorFilter.mode(
+          AppColors.greyBordes,
+          BlendMode.srcIn,
+        ),
+      ),
+    );
+  }
+
+  String _getFamilyIconPath(String family) {
+    final lowerFamily = family.toLowerCase();
+    if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
+      return 'assets/illustrations/cat_icon.svg';
+    } else if (lowerFamily.contains('canino') ||
+        lowerFamily.contains('perro')) {
+      return 'assets/illustrations/dog_icon.svg';
+    } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
+      return 'assets/illustrations/bovino_icon.svg';
+    } else if (lowerFamily.contains('equino') ||
+        lowerFamily.contains('caballo')) {
+      return 'assets/illustrations/equino_icon.svg';
+    }
+    // Fallback to dog if unknown
+    return 'assets/illustrations/dog_icon.svg';
+  }
+
   // ── Entries list (grouped by month) ──────────────────────────
 
   Widget _buildEntriesList(List<DiaryEntryEntity> entries) {
-    final List<Widget> children = [
-      const SizedBox(height: 16),
-      RichText(
-        textAlign: TextAlign.left,
-        text: TextSpan(
-          style: AppTypography.body6.copyWith(
-            color: AppColors.greyMedio,
-            height: 1.5,
-          ),
-          children: [
-            const TextSpan(
-              text:
-                  'Guarda notas, fotos y comentarios sobre la evolución, salud y momentos importantes de tu animal. ',
-            ),
-            TextSpan(
-              text: 'Max X notas.',
-              style: AppTypography.body5.copyWith(color: AppColors.greyNegro),
-            ),
-          ],
-        ),
-      ),
-      const SizedBox(height: 16),
-    ];
+    final List<Widget> children = [const SizedBox(height: 16)];
 
     final grouped = _groupByMonth(entries);
 
@@ -388,10 +440,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       children.add(
         Padding(
           padding: const EdgeInsets.only(bottom: 8),
-          child: Text(
-            group.key,
-            style: AppTypography.body3.copyWith(color: AppColors.greyNegro),
-          ),
+          child: Text(group.key, style: AppTypography.body3),
         ),
       );
 
@@ -597,18 +646,27 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         behavior: HitTestBehavior.opaque,
         child: Row(
           children: [
-            Icon(
-              isImage ? Icons.link : Icons.graphic_eq,
-              size: 16,
-              color: AppColors.primaryFrances,
-            ),
+            isImage
+                ? SvgPicture.asset(
+                    'assets/icons/vuesax-linear-paperclip-2.svg',
+                    width: 20,
+                    height: 20,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.primaryFrances,
+                      BlendMode.srcIn,
+                    ),
+                  )
+                : const Icon(
+                    Icons.graphic_eq,
+                    size: 20,
+                    color: AppColors.primaryFrances,
+                  ),
             const SizedBox(width: 4),
             Flexible(
               child: Text(
                 attachment.fileName,
-                style: AppTypography.body5.copyWith(
+                style: AppTypography.body3.copyWith(
                   color: AppColors.primaryFrances,
-                  fontWeight: FontWeight.w600,
                 ),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -655,20 +713,17 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.edit_outlined,
-                size: 24,
-                color: AppColors.greyMedio,
-              ),
-              const SizedBox(width: 11),
-              Flexible(
-                child: Text(
-                  'Editar',
-                  style: AppTypography.body4.copyWith(
-                    color: AppColors.greyTextos,
-                  ),
+              SvgPicture.asset(
+                'assets/icons/icon_edit 1.svg',
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.greyMedio,
+                  BlendMode.srcIn,
                 ),
               ),
+              const SizedBox(width: 11),
+              Flexible(child: Text('Editar', style: AppTypography.body4)),
             ],
           ),
         ),
@@ -682,10 +737,14 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           ),
           child: Row(
             children: [
-              const Icon(
-                Icons.delete_outline,
-                size: 24,
-                color: AppColors.errorRojo,
+              SvgPicture.asset(
+                'assets/icons/icon_trash.svg',
+                width: 24,
+                height: 24,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.errorRojo,
+                  BlendMode.srcIn,
+                ),
               ),
               const SizedBox(width: 11),
               Flexible(
@@ -710,7 +769,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         child: Center(
           child: Icon(
             Icons.more_horiz,
-            size: 20,
+            size: 24,
             color: isOpen ? AppColors.primaryFrances : const Color(0xFF59667A),
           ),
         ),

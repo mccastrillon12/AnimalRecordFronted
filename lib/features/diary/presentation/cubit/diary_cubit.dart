@@ -71,6 +71,20 @@ class DiaryCubit extends Cubit<DiaryState> {
     );
   }
 
+  /// Re-fetch entries without showing a loading spinner.
+  /// Used after create/edit/delete operations to avoid the visual flash.
+  Future<void> refreshDiaryEntries(String animalId) async {
+    final result = await getDiaryEntriesUseCase(animalId);
+
+    result.fold(
+      (failure) => emit(DiaryError(failure.message, existingEntries: _entries)),
+      (entries) {
+        _entries = entries;
+        emit(DiaryLoaded(entries));
+      },
+    );
+  }
+
   // ── Create entry + upload attachments ─────────────────────────
 
   Future<void> createDiaryEntry({

@@ -37,44 +37,36 @@ class ConfirmDialog extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       insetPadding: const EdgeInsets.symmetric(horizontal: 16),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: SizedBox(
-        width: width,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // X close button
-              Align(
-                alignment: Alignment.centerRight,
-                child: IconButton(
-                  icon: const Icon(Icons.close, color: AppColors.greyIconos),
-                  onPressed: () => Navigator.of(context).pop(),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-              ),
-              const SizedBox(height: 4),
-              // Title
-              SizedBox(
-                width: double.infinity,
-                child: Text(
-                  title,
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.primaryIndigo,
-                    fontWeight: FontWeight.bold,
+      child: Stack(
+        children: [
+          SizedBox(
+            width: width,
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 28),
+                  // Title
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      title,
+                      style: AppTypography.body3.copyWith(
+                        color: AppColors.greyTextos,
+                        fontWeight: FontWeight.bold,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
-                  textAlign: TextAlign.center,
-                ),
-              ),
               const SizedBox(height: 16),
               // Description
               if (description != null)
                 Text(
                   description!,
                   style: AppTypography.body6.copyWith(
-                    color: AppColors.greyIconos,
+                    color: AppColors.greyTextos,
                     height: 1.6,
                   ),
                   textAlign: TextAlign.left,
@@ -83,7 +75,7 @@ class ConfirmDialog extends StatelessWidget {
                 RichText(
                   text: TextSpan(
                     style: AppTypography.body6.copyWith(
-                      color: AppColors.greyIconos,
+                      color: AppColors.greyTextos,
                       height: 1.6,
                     ),
                     children: [richDescription!],
@@ -154,9 +146,22 @@ class ConfirmDialog extends StatelessWidget {
                   ),
                 ],
               ),
-            ],
+                ],
+              ),
+            ),
           ),
-        ),
+          // X close button
+          Positioned(
+            top: 16,
+            right: 16,
+            child: IconButton(
+              icon: const Icon(Icons.close, color: AppColors.greyIconos),
+              onPressed: () => Navigator.of(context).pop(),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ),
+        ],
       ),
     );
   }
