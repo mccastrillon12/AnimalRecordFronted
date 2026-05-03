@@ -207,7 +207,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   Future<void> _resolveAudioDurations() async {
     for (int i = 0; i < _attachments.length; i++) {
       final att = _attachments[i];
-      if (att.type == DiaryAttachmentType.audio && att.audioDuration == null && att.remoteUrl != null) {
+      if (att.type == DiaryAttachmentType.audio &&
+          att.audioDuration == null &&
+          att.remoteUrl != null) {
         try {
           final player = AudioPlayer();
           await player.setSourceUrl(att.remoteUrl!);
@@ -528,8 +530,14 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   Widget _buildContent() {
     return ModalPageLayout(
       title: _formattedDate,
+      fixedTitle: true,
+      fixedHeaderHeight: 115,
+      titlePadding: const EdgeInsets.only(top: 90, bottom: 0),
       bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
-      titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
+      titleStyle: AppTypography.body1.copyWith(
+        color: AppColors.greyTextos,
+        fontWeight: FontWeight.w700,
+      ),
       trailingIcon: Row(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -613,7 +621,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: AppSpacing.l),
+            const SizedBox(height: AppSpacing.m),
 
             // ── Title field ─────────────────────────────────────
             Text(
@@ -800,7 +808,14 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               }),
             ],
 
-            const SizedBox(height: 100),
+            SizedBox(
+              height: MediaQuery.of(context).viewInsets.bottom > 0
+                  ? (MediaQuery.of(context).viewInsets.bottom - 180).clamp(
+                      80.0,
+                      double.infinity,
+                    )
+                  : 80,
+            ),
           ],
         ),
       ),

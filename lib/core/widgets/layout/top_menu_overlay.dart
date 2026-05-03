@@ -78,9 +78,7 @@ class TopMenuOverlay extends StatelessWidget {
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: AppColors.bgBlancoAntiFlash,
-                  borderRadius: AppBorders.onlyBottom(
-                    AppBorders.radiusXLarge,
-                  ),
+                  borderRadius: AppBorders.onlyBottom(AppBorders.radiusXLarge),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.15),
@@ -107,41 +105,43 @@ class TopMenuOverlay extends StatelessWidget {
                     padding: EdgeInsets.only(
                       left: 35,
                       right: 35,
-                      top: MediaQuery.of(context).padding.top + 16, // Safe area padding for items when open
+                      top:
+                          MediaQuery.of(context).padding.top +
+                          16, // Safe area padding for items when open
                       bottom: 16,
                     ),
                     child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Close button row
-                          _buildGrid(),
-                        ],
-                      ),
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Close button row
+                        _buildGrid(),
+                      ],
                     ),
                   ),
                 ),
+              ),
 
-                // Trigger chevron (always immediately below the white component)
-                GestureDetector(
-                  onTap: onToggle,
-                  behavior: HitTestBehavior.opaque,
-                  child: Container(
-                    width: 64,
-                    height: 40,
-                    alignment: Alignment.center,
-                    child: SvgPicture.asset(
-                      isOpen ? 'assets/icons/Up.svg' : 'assets/icons/Down.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        isOpen ? AppColors.white : AppColors.white,
-                        BlendMode.srcIn,
-                      ),
+              // Trigger chevron (always immediately below the white component)
+              GestureDetector(
+                onTap: onToggle,
+                behavior: HitTestBehavior.opaque,
+                child: Container(
+                  width: 64,
+                  height: 40,
+                  alignment: Alignment.center,
+                  child: SvgPicture.asset(
+                    isOpen ? 'assets/icons/Up.svg' : 'assets/icons/Down.svg',
+                    width: 24,
+                    height: 24,
+                    colorFilter: ColorFilter.mode(
+                      isOpen ? AppColors.white : AppColors.white,
+                      BlendMode.srcIn,
                     ),
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -189,7 +189,7 @@ class TopMenuOverlay extends StatelessWidget {
       },
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        width: 80,
+        width: 90,
         height: 46,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

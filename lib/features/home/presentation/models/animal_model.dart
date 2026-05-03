@@ -43,6 +43,7 @@ class AnimalModel {
   final String? ownerName;
   final List<NameHistoryItem> nameHistory;
   final bool isActive;
+  final String? deactivationReason;
 
   const AnimalModel({
     required this.id,
@@ -84,6 +85,7 @@ class AnimalModel {
     this.ownerName,
     this.nameHistory = const [],
     this.isActive = true,
+    this.deactivationReason,
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -171,7 +173,6 @@ class AnimalModel {
       default:
         sexDisplay = entity.sex.toLowerCase();
     }
-
     return AnimalModel(
       id: entity.id,
       name: formattedName,
@@ -212,6 +213,7 @@ class AnimalModel {
       ownerName: entity.ownerName,
       nameHistory: entity.nameHistory,
       isActive: entity.isActive,
+      deactivationReason: entity.deactivationReason,
     );
   }
 

@@ -228,8 +228,10 @@ class CustomDateField extends StatelessWidget {
                   'assets/icons/calendar.svg',
                   width: 20,
                   height: 20,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.greyMedio,
+                  colorFilter: ColorFilter.mode(
+                    enabled
+                        ? AppColors.greyMedio
+                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6)!,
                     BlendMode.srcIn,
                   ),
                 ),

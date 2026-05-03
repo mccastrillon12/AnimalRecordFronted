@@ -50,6 +50,7 @@ class AnimalEntity extends Equatable {
   final int? approximateAgeMinMonths;
   final int? approximateAgeMaxMonths;
   final bool isActive;
+  final String? deactivationReason;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
@@ -89,6 +90,7 @@ class AnimalEntity extends Equatable {
     this.approximateAgeMinMonths,
     this.approximateAgeMaxMonths,
     this.isActive = true,
+    this.deactivationReason,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
@@ -130,6 +132,7 @@ class AnimalEntity extends Equatable {
         approximateAgeMinMonths,
         approximateAgeMaxMonths,
         isActive,
+        deactivationReason,
         createdAt,
         updatedAt,
         ownerName,

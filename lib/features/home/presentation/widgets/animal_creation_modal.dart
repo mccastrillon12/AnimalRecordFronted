@@ -891,6 +891,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           label: 'Nombre',
                           controller: nameController,
                           maxLength: 50,
+                          textCapitalization: TextCapitalization.sentences,
                           strictValidation: true,
                           allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                         ),
@@ -1221,6 +1222,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             hint: 'Seleccionar',
                             value: selectedAdoptionSource,
                             searchable: true,
+                            isInline: true,
                             items: adoptionSourceOptions
                                 .map((a) => a.name)
                                 .toList(),
@@ -1232,11 +1234,18 @@ class _AnimalInfoStep extends StatelessWidget {
                             label: 'Nombre del lugar (Opcional)',
                             controller: adoptionPlaceNameController,
                             maxLength: 50,
+                            textCapitalization: TextCapitalization.sentences,
                             strictValidation: true,
                             allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
                           ),
                         ],
-                        const SizedBox(height: AppSpacing.m),
+                        const SizedBox(height: 8),
+                        if (MediaQuery.of(context).viewInsets.bottom > 0)
+                          SizedBox(
+                            height:
+                                (MediaQuery.of(context).viewInsets.bottom - 135)
+                                    .clamp(0, double.infinity),
+                          ),
                       ],
                     ),
                   ),
@@ -1621,6 +1630,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                           label: 'Temperamento',
                           hint: 'Buscar o escribir',
                           selectedItems: selectedTemperaments,
+                          isInline: true,
                           items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,
@@ -1673,6 +1683,14 @@ class _AdditionalInfoStep extends StatelessWidget {
 
                         if (diagnoses['Otro'] != true)
                           const SizedBox(height: AppSpacing.m),
+
+                        const SizedBox(height: 8),
+                        if (MediaQuery.of(context).viewInsets.bottom > 0)
+                          SizedBox(
+                            height:
+                                (MediaQuery.of(context).viewInsets.bottom - 171)
+                                    .clamp(0, double.infinity),
+                          ),
                       ],
                     ),
                   ),

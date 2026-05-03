@@ -311,7 +311,9 @@ class AnimalInfoBasicTab extends StatelessWidget {
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
                     color: unknownExactDate
-                        ? AppColors.primaryFrances
+                        ? (readOnly
+                            ? AppColors.primaryFrances.withValues(alpha: 0.6)
+                            : AppColors.primaryFrances)
                         : AppColors.greyDelineante,
                   ),
                   child: AnimatedAlign(
@@ -502,12 +504,18 @@ class AnimalInfoBasicTab extends StatelessWidget {
               label: 'Nombre del lugar (Opcional)',
               controller: adoptionPlaceNameController,
               maxLength: 50,
+              textCapitalization: TextCapitalization.sentences,
               strictValidation: true,
               allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
               enabled: !readOnly,
             ),
           ],
-          const SizedBox(height: AppSpacing.l),
+          const SizedBox(height: 8),
+          if (MediaQuery.of(context).viewInsets.bottom > 0)
+            SizedBox(
+              height: (MediaQuery.of(context).viewInsets.bottom - 70)
+                  .clamp(0, double.infinity),
+            ),
         ],
       ),
     );

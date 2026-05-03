@@ -74,6 +74,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             label: 'Temperamento',
             hint: 'Buscar o escribir',
             selectedItems: selectedTemperaments,
+            isInline: true,
             items: temperamentOptions.map((t) => t.name).toList(),
             itemAsString: (item) => item,
             onChanged: readOnly ? (_) {} : onTemperamentsChanged,
@@ -180,7 +181,12 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
             enabled: !readOnly,
           ),
-          const SizedBox(height: AppSpacing.l),
+          const SizedBox(height: 8),
+          if (MediaQuery.of(context).viewInsets.bottom > 0)
+            SizedBox(
+              height: (MediaQuery.of(context).viewInsets.bottom - 70)
+                  .clamp(0, double.infinity),
+            ),
         ],
       ),
     );

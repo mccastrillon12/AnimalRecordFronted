@@ -127,6 +127,16 @@ class AnimalInfoGeneralTab extends StatelessWidget {
                   '1. ${animal.name}',
                   _formatShortDate(animal.updatedAt),
                 ),
+
+              if (!animal.isActive) ...[
+                const SizedBox(height: AppSpacing.l),
+                _buildInfoField(
+                  'Motivo de inactivación',
+                  animal.deactivationReason ?? 'No disponible',
+                ),
+                const SizedBox(height: AppSpacing.m),
+                _buildInfoField('Historia inactivada por', formattedOwnerName),
+              ],
             ],
           ),
         );

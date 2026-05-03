@@ -14,6 +14,17 @@ class IdSelector extends StatelessWidget {
   final String? errorText;
   final bool hideErrorText;
 
+  /// Whether the ID-type dropdown is interactive. When false it renders
+  /// with the disabled style (anti-flash background, muted arrow) and
+  /// ignores taps.
+  final bool idTypeEnabled;
+
+  /// Custom label text shown above the row. Defaults to 'Identificación'.
+  final String? customLabel;
+
+  /// Custom hint text for the number input. Defaults to '1234567890'.
+  final String? hintText;
+
   const IdSelector({
     super.key,
     this.initialValue,
@@ -23,6 +34,9 @@ class IdSelector extends StatelessWidget {
     this.onIdTypeChanged,
     this.errorText,
     this.hideErrorText = false,
+    this.idTypeEnabled = true,
+    this.customLabel,
+    this.hintText,
   });
 
   static const List<String> _idTypes = ['C.C.', 'C.E.', 'Pasaporte'];
@@ -38,7 +52,7 @@ class IdSelector extends StatelessWidget {
           height: AppSpacing.labelHeight,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text('Identificación', style: AppTypography.body6),
+            child: Text(customLabel ?? 'Identificación', style: AppTypography.body6),
           ),
         ),
         const SizedBox(height: AppSpacing.inputTopPadding),
@@ -52,6 +66,7 @@ class IdSelector extends StatelessWidget {
               value: selectedType,
               items: _idTypes,
               itemAsString: (type) => type,
+              enabled: idTypeEnabled,
               onChanged: (value) {
                 if (value != null) {
                   onIdTypeChanged?.call(value);
@@ -92,7 +107,7 @@ class IdSelector extends StatelessWidget {
                           null,
                       style: AppTypography.body4,
                       decoration: InputDecoration(
-                        hintText: '1234567890',
+                        hintText: hintText ?? '1234567890',
                         hintStyle: AppTypography.body4.copyWith(
                           color: AppColors.greyBordes,
                         ),

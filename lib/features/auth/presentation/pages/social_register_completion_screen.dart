@@ -12,6 +12,7 @@ import '../../../../core/widgets/buttons/custom_button.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -416,6 +417,56 @@ class _SocialRegisterCompletionViewState
                               hideErrorText: registerState.phoneError,
                             ),
                           ],
+                          const SizedBox(height: AppSpacing.l),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                height: 22,
+                                width: 22,
+                                child: Checkbox(
+                                  value: registerState.acceptTerms,
+                                  activeColor: AppColors.primaryFrances,
+                                  onChanged: (value) => cubit.acceptTermsChanged(value ?? false),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  side: const BorderSide(color: AppColors.greyMedio),
+                                ),
+                              ),
+                              const SizedBox(width: AppSpacing.s),
+                              Expanded(
+                                child: Text.rich(
+                                  TextSpan(
+                                    text: 'Acepto los ',
+                                    style: AppTypography.body4.copyWith(
+                                      color: AppColors.greyNegroV2,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Términos de servicio',
+                                        style: AppTypography.body4.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: AppColors.primaryFrances,
+                                        ),
+                                      ),
+                                      const TextSpan(text: ' y la '),
+                                      TextSpan(
+                                        text: 'Política de privacidad',
+                                        style: AppTypography.body4.copyWith(
+                                          color: AppColors.primaryFrances,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: AppColors.primaryFrances,
+                                        ),
+                                      ),
+                                      const TextSpan(text: ' de Animal Record.'),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                           const KeyboardSpacer(),
                         ],
                       ),

@@ -185,7 +185,7 @@ class _NavItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 80,
+        width: 90,
         height: 46,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,

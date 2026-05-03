@@ -42,6 +42,8 @@ class CustomTextField extends StatefulWidget {
   final bool strictValidation;
   final ValueChanged<String?>? onErrorChanged;
 
+  final TextCapitalization textCapitalization;
+
   const CustomTextField({
     super.key,
     required this.label,
@@ -49,6 +51,7 @@ class CustomTextField extends StatefulWidget {
     this.controller,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
+    this.textCapitalization = TextCapitalization.none,
     this.validator,
     this.suffixIcon,
     this.prefixIcon,
@@ -250,6 +253,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               enabled: widget.enabled,
               obscureText: widget.obscureText ?? widget.isPassword,
               keyboardType: widget.keyboardType,
+              textCapitalization: widget.textCapitalization,
               validator: widget.validator,
               onChanged: _onChanged,
               maxLength: widget.maxLength ?? (widget.isPassword ? 20 : 50),

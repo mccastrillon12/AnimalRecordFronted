@@ -104,7 +104,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
 
     if (result == true && mounted) {
       context.read<DiaryCubit>().refreshDiaryEntries(widget.animal.id);
-      _showSnackbar('Nota actualizada exitosamente.');
+      _showSnackbar('Nota guardada exitosamente.');
     }
   }
 
@@ -212,7 +212,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                             RichText(
                               textAlign: TextAlign.left,
                               text: TextSpan(
-                                style: AppTypography.body6.copyWith(height: 1.5),
+                                style: AppTypography.body6.copyWith(
+                                  height: 1.5,
+                                ),
                                 children: [
                                   const TextSpan(
                                     text:

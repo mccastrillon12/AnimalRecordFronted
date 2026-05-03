@@ -19,8 +19,9 @@ import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
-import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/features/auth/presentation/widgets/id_selector.dart';
+import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
 
 class AnimalInfoScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -483,6 +484,51 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     context.read<AnimalCubit>().updateAnimal(params);
   }
 
+  void _onCloseRequested() {
+    if (_hasChanges) {
+      showDialog(
+        context: context,
+        builder: (_) => ConfirmDialog(
+          title: '¿Desea cancelar el proceso?',
+          description: 'Perderá los datos diligenciados al momento.',
+          confirmLabel: 'Si',
+          cancelLabel: 'No',
+          width: 325,
+          confirmColor: const Color(0xFFFA2844),
+          onConfirm: () => Navigator.pop(context),
+          onCancel: () {},
+        ),
+      );
+    } else {
+      Navigator.pop(context);
+    }
+  }
+
+  Future<bool> _onWillPop() async {
+    if (_hasChanges) {
+      bool result = false;
+      await showDialog(
+        context: context,
+        builder: (_) => ConfirmDialog(
+          title: '¿Desea cancelar el proceso?',
+          description: 'Perderá los datos diligenciados al momento.',
+          confirmLabel: 'Si',
+          cancelLabel: 'No',
+          width: 325,
+          confirmColor: const Color(0xFFFA2844),
+          onConfirm: () {
+            result = true;
+          },
+          onCancel: () {
+            result = false;
+          },
+        ),
+      );
+      return result;
+    }
+    return true;
+  }
+
   @override
   void dispose() {
     _tabController.dispose();
@@ -656,9 +702,19 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     String ownerIdNumber = '';
     final authState = context.read<AuthBloc>().state;
     if (authState is AuthSuccess) {
-      ownerIdType = authState.user.identificationType.isNotEmpty
-          ? authState.user.identificationType
-          : 'C.C.';
+      final rawType = authState.user.identificationType;
+      // Map backend codes to IdSelector display values
+      const idTypeMap = {
+        'CC': 'C.C.',
+        'CE': 'C.E.',
+        'PAS': 'Pasaporte',
+        'C.C.': 'C.C.',
+        'C.E.': 'C.E.',
+        'Pasaporte': 'Pasaporte',
+      };
+      ownerIdType = idTypeMap[rawType.toUpperCase()] ??
+          idTypeMap[rawType] ??
+          (rawType.isNotEmpty ? rawType : 'C.C.');
       ownerIdNumber = authState.user.identificationNumber;
     }
 
@@ -753,76 +809,27 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                               });
                             },
                             errorText: reasonError,
-                            isInline: false,
-                            pushContent: false,
+                            isInline: true,
+                            pushContent: true,
                           ),
                           const SizedBox(height: 16),
 
-                          // CC row using CustomTextField
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // ID type dropdown (non-editable, styled like a disabled CustomTextField)
-                              Container(
-                                margin: const EdgeInsets.only(
-                                  top:
-                                      AppSpacing.labelHeight +
-                                      AppSpacing.inputTopPadding,
-                                ),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                ),
-                                height: AppSpacing.inputHeight,
-                                decoration: BoxDecoration(
-                                  borderRadius: AppBorders.small(),
-                                  border: Border.all(
-                                    color: const Color(0xFFE8E9EC),
-                                    width: 1.0,
-                                  ),
-                                  color: const Color(0xFFF5F6FA),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      ownerIdType,
-                                      style: AppTypography.body4.copyWith(
-                                        color: AppColors.greyTextos,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      size: AppSpacing.iconSizeSmall,
-                                      color: Color.lerp(
-                                        AppColors.greyMedio,
-                                        Colors.white,
-                                        0.6,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-
-                              // ID number input
-                              Expanded(
-                                child: CustomTextField(
-                                  label: 'Identificación del propietario',
-                                  controller: ccController,
-                                  keyboardType: TextInputType.number,
-                                  hint: 'Número de documento',
-                                  errorText: ccError,
-                                  onChanged: (_) {
-                                    if (ccError != null) {
-                                      setDialogState(() {
-                                        ccError = null;
-                                      });
-                                    }
-                                  },
-                                ),
-                              ),
-                            ],
+                          // CC row using IdSelector component
+                          IdSelector(
+                            customLabel: 'Identificación del propietario',
+                            initialIdType: ownerIdType,
+                            idTypeEnabled: false,
+                            controller: ccController,
+                            hintText: 'Número de documento',
+                            errorText: ccError,
+                            hideErrorText: false,
+                            onChanged: (_) {
+                              if (ccError != null) {
+                                setDialogState(() {
+                                  ccError = null;
+                                });
+                              }
+                            },
                           ),
                           const SizedBox(height: 24),
 
@@ -1051,7 +1058,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           if (_isInactivating) {
             ErrorDisplay.showSuccess(
               context,
-              'La historia ha sido inactivada exitosamente.',
+              'La historia clínica con el ID ${_currentAnimal.code} ha sido inactivada.',
             );
             setState(() {
               _isInactivating = false;
@@ -1156,7 +1163,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
             statusBarIconBrightness: Brightness.light,
             statusBarBrightness: Brightness.dark,
           ),
-          child: Scaffold(
+          child: WillPopScope(
+            onWillPop: _onWillPop,
+            child: Scaffold(
             resizeToAvoidBottomInset: false,
             backgroundColor: Colors.transparent,
             body: Container(
@@ -1191,7 +1200,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                 right: AppSpacing.l,
                               ),
                               child: IconButton(
-                                onPressed: () => Navigator.pop(context),
+                                onPressed: _onCloseRequested,
                                 icon: const Icon(Icons.close),
                                 padding: EdgeInsets.zero,
                                 constraints: const BoxConstraints(),
@@ -1445,10 +1454,11 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
               ),
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
+}
 }
 
 class _BottomShadowClipper extends CustomClipper<Rect> {
