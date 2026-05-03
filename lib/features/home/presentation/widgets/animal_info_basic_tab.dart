@@ -23,6 +23,8 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final ValueChanged<DateTime> onBirthDateChanged;
   final bool unknownExactDate;
   final ValueChanged<bool> onUnknownExactDateChanged;
+  final String? selectedApproximateAge;
+  final ValueChanged<String?> onApproximateAgeChanged;
   final TextEditingController weightKgController;
   final TextEditingController colorDescController;
   final String? hasIdentification;
@@ -61,6 +63,8 @@ class AnimalInfoBasicTab extends StatelessWidget {
     required this.onBirthDateChanged,
     required this.unknownExactDate,
     required this.onUnknownExactDateChanged,
+    this.selectedApproximateAge,
+    required this.onApproximateAgeChanged,
     required this.weightKgController,
     required this.colorDescController,
     required this.hasIdentification,
@@ -339,6 +343,32 @@ class AnimalInfoBasicTab extends StatelessWidget {
             ),
           ),
           const SizedBox(height: AppSpacing.m),
+
+          // Approximate age dropdown (visible when unknown date toggle is on)
+          if (unknownExactDate) ...[
+            AppDropdown<String>(
+              label: 'Edad aproximada',
+              hint: 'Seleccionar',
+              value: selectedApproximateAge,
+              isInline: true,
+              items: const [
+                '0-6 meses',
+                '7-11 meses',
+                '1-3 años',
+                '4-6 años',
+                '7-10 años',
+                '11-15 años',
+                '16-20 años',
+                '21-25 años',
+                '+25 años',
+              ],
+              itemAsString: (v) => v,
+              onChanged: readOnly ? null : onApproximateAgeChanged,
+              enabled: !readOnly,
+              preserveOrder: true,
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
 
           // Color y marcas
           _buildTextArea(

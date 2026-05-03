@@ -69,6 +69,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _reproductiveState;
   DateTime? _birthDate;
   bool _unknownExactDate = false;
+  String? _selectedApproximateAge;
   final _weightKgController = TextEditingController();
   final _weightLbController = TextEditingController();
   String? _weightErrorText;
@@ -97,7 +98,19 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   final _otherDiagnosisController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _otherDiagnosisController.addListener(_onOtherDiagnosisChanged);
+  }
+
+  void _onOtherDiagnosisChanged() {
+    // Trigger rebuild so _isStep3Valid re-evaluates when the user types in "¿Cuál?"
+    setState(() {});
+  }
+
+  @override
   void dispose() {
+    _otherDiagnosisController.removeListener(_onOtherDiagnosisChanged);
     _nameController.dispose();
     _weightKgController.dispose();
     _weightLbController.dispose();
@@ -183,6 +196,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         _selectedSex != null &&
         _reproductiveState != null &&
         (_birthDate != null || _unknownExactDate) &&
+        (!_unknownExactDate || _selectedApproximateAge != null) &&
         _hasIdentification != null &&
         _belongsToAssociation != null &&
         (_belongsToAssociation != 'si' || _selectedAssociation != null) &&
@@ -191,7 +205,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   bool get _isStep3Valid {
-    return _selectedTemperaments.isNotEmpty && _diagnoses.values.any((v) => v);
+    return _selectedTemperaments.isNotEmpty && _diagnoses.values.any((v) => v) &&
+        (_diagnoses['Otro'] != true || _otherDiagnosisController.text.trim().isNotEmpty);
   }
 
   /// Returns true if the user has filled in at least one field after step 1.
@@ -261,7 +276,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       name: _nameController.text.trim(),
       species: _mapSpeciesToApi(_selectedSpecies!.name),
       breed: _selectedBreed!,
-      sex: _selectedSex!, // ej: "macho", "hembra"
+      sex: _selectedSex == 'macho' ? 'MALE' : 'FEMALE',
       reproductiveStatus: _reproductiveState!, // ej: "esterilizado"
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -272,6 +287,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ? ['Desconocido']
           : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
+      otherDiagnosisDetail: _diagnoses['Otro'] == true
+          ? _otherDiagnosisController.text.trim()
+          : null,
       ownerId: ownerId,
       weight: double.tryParse(_weightKgController.text.trim()),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
@@ -295,8 +313,26 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
           ? _adoptionPlaceNameController.text.trim()
           : null,
+      unknownBirthDate: _unknownExactDate,
+      approximateAgeMinMonths: _unknownExactDate ? _getApproxMin() : null,
+      approximateAgeMaxMonths: _unknownExactDate ? _getApproxMax() : null,
     );
   }
+
+  static const _approxAgeRanges = <String, (int, int)>{
+    '0-6 meses': (0, 6),
+    '7-11 meses': (7, 11),
+    '1-3 años': (12, 36),
+    '4-6 años': (48, 72),
+    '7-10 años': (84, 120),
+    '11-15 años': (132, 180),
+    '16-20 años': (192, 240),
+    '21-25 años': (252, 300),
+    '+25 años': (300, 1200),
+  };
+
+  int? _getApproxMin() => _approxAgeRanges[_selectedApproximateAge]?.$1;
+  int? _getApproxMax() => _approxAgeRanges[_selectedApproximateAge]?.$2;
 
   Future<void> _saveAnimal({bool addAnother = false}) async {
     final params = await _buildParams();
@@ -318,6 +354,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _reproductiveState = null;
       _birthDate = null;
       _unknownExactDate = false;
+      _selectedApproximateAge = null;
       _weightKgController.clear();
       _weightLbController.clear();
       _colorDescController.clear();
@@ -475,8 +512,14 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               unknownExactDate: _unknownExactDate,
               onUnknownExactDateChanged: (v) => setState(() {
                 _unknownExactDate = v;
-                if (v) _birthDate = null;
+                if (v) {
+                  _birthDate = null;
+                } else {
+                  _selectedApproximateAge = null;
+                }
               }),
+              selectedApproximateAge: _selectedApproximateAge,
+              onApproximateAgeChanged: (v) => setState(() => _selectedApproximateAge = v),
               weightKgController: _weightKgController,
               weightLbController: _weightLbController,
               weightErrorText: _weightErrorText,
@@ -539,9 +582,19 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
                   setState(() => _selectedTemperaments = v),
               allergyController: _allergyController,
               diagnoses: _diagnoses,
-              onDiagnosisChanged: (key, value) =>
-                  setState(() => _diagnoses[key] = value),
               otherDiagnosisController: _otherDiagnosisController,
+              onDiagnosisChanged: (key, value) {
+                setState(() {
+                  // Single-select: deselect all others
+                  for (final k in _diagnoses.keys) {
+                    _diagnoses[k] = false;
+                  }
+                  _diagnoses[key] = value;
+                  if (key != 'Otro' || !value) {
+                    _otherDiagnosisController.clear();
+                  }
+                });
+              },
               isValid: _isStep3Valid,
               isLoading: isLoading,
               onSave: _isStep3Valid && !isLoading ? () => _saveAnimal() : null,
@@ -696,6 +749,8 @@ class _AnimalInfoStep extends StatelessWidget {
   final ValueChanged<DateTime> onBirthDateChanged;
   final bool unknownExactDate;
   final ValueChanged<bool> onUnknownExactDateChanged;
+  final String? selectedApproximateAge;
+  final ValueChanged<String?> onApproximateAgeChanged;
   final TextEditingController weightKgController;
   final TextEditingController weightLbController;
   final String? weightErrorText;
@@ -744,6 +799,8 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.onBirthDateChanged,
     required this.unknownExactDate,
     required this.onUnknownExactDateChanged,
+    this.selectedApproximateAge,
+    required this.onApproximateAgeChanged,
     required this.weightKgController,
     required this.weightLbController,
     this.weightErrorText,
@@ -934,6 +991,31 @@ class _AnimalInfoStep extends StatelessWidget {
                           onChanged: onUnknownExactDateChanged,
                         ),
                         const SizedBox(height: AppSpacing.m),
+
+                        // Approximate age dropdown (only when unknown date is checked)
+                        if (unknownExactDate) ...[
+                          AppDropdown<String>(
+                            label: 'Edad aproximada',
+                            hint: 'Seleccionar',
+                            value: selectedApproximateAge,
+                            isInline: true,
+                            items: const [
+                              '0-6 meses',
+                              '7-11 meses',
+                              '1-3 años',
+                              '4-6 años',
+                              '7-10 años',
+                              '11-15 años',
+                              '16-20 años',
+                              '21-25 años',
+                              '+25 años',
+                            ],
+                            itemAsString: (v) => v,
+                            onChanged: onApproximateAgeChanged,
+                            preserveOrder: true,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                        ],
 
                         // Weight
                         RichText(

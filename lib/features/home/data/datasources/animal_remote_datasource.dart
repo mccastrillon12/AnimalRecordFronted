@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/home/data/models/animal_data_model.dart';
 
@@ -103,24 +104,38 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
   Future<List<AnimalDataModel>> searchAnimals(
     Map<String, dynamic> queryParams,
   ) async {
+    debugPrint('🔍 [SearchAnimals] REQUEST → GET /animals/search');
+    debugPrint('🔍 [SearchAnimals] Query Params: $queryParams');
+
     final response = await apiClient.get(
       '/animals/search',
       queryParameters: queryParams,
     );
+
+    debugPrint('🔍 [SearchAnimals] RESPONSE Status: ${response.statusCode}');
+    debugPrint('🔍 [SearchAnimals] RESPONSE Data: ${response.data}');
     
     dynamic responseData = response.data;
     List<dynamic> list = [];
     
     if (responseData is List) {
       list = responseData;
+      debugPrint('🔍 [SearchAnimals] Parsed as List, count: ${list.length}');
     } else if (responseData is Map<String, dynamic>) {
       if (responseData.containsKey('data') && responseData['data'] is List) {
         list = responseData['data'];
+        debugPrint('🔍 [SearchAnimals] Parsed from "data" key, count: ${list.length}');
       } else if (responseData.containsKey('items') && responseData['items'] is List) {
         list = responseData['items'];
+        debugPrint('🔍 [SearchAnimals] Parsed from "items" key, count: ${list.length}');
       } else if (responseData.containsKey('animals') && responseData['animals'] is List) {
         list = responseData['animals'];
+        debugPrint('🔍 [SearchAnimals] Parsed from "animals" key, count: ${list.length}');
+      } else {
+        debugPrint('🔍 [SearchAnimals] ⚠️ Response is Map but no recognized list key found. Keys: ${responseData.keys.toList()}');
       }
+    } else {
+      debugPrint('🔍 [SearchAnimals] ⚠️ Unexpected response type: ${responseData.runtimeType}');
     }
     
     return list

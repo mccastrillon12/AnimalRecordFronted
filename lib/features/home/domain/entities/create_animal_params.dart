@@ -28,6 +28,10 @@ class CreateAnimalParams extends Equatable {
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
+  final String? otherDiagnosisDetail;
+  final bool unknownBirthDate;
+  final int? approximateAgeMinMonths;
+  final int? approximateAgeMaxMonths;
 
   const CreateAnimalParams({
     required this.id,
@@ -56,6 +60,10 @@ class CreateAnimalParams extends Equatable {
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
+    this.otherDiagnosisDetail,
+    this.unknownBirthDate = false,
+    this.approximateAgeMinMonths,
+    this.approximateAgeMaxMonths,
   });
 
   Map<String, dynamic> toJson() {
@@ -95,6 +103,13 @@ class CreateAnimalParams extends Equatable {
         'adoptionSource': adoptionSource,
       if (adoptionPlaceName != null && adoptionPlaceName!.isNotEmpty)
         'adoptionPlaceName': adoptionPlaceName,
+      if (otherDiagnosisDetail != null && otherDiagnosisDetail!.isNotEmpty)
+        'otherDiagnosisDetail': otherDiagnosisDetail,
+      'unknownBirthDate': unknownBirthDate,
+      if (approximateAgeMinMonths != null)
+        'approximateAgeMinMonths': approximateAgeMinMonths,
+      if (approximateAgeMaxMonths != null)
+        'approximateAgeMaxMonths': approximateAgeMaxMonths,
     };
   }
 
@@ -126,5 +141,9 @@ class CreateAnimalParams extends Equatable {
         isAdopted,
         adoptionSource,
         adoptionPlaceName,
+        otherDiagnosisDetail,
+        unknownBirthDate,
+        approximateAgeMinMonths,
+        approximateAgeMaxMonths,
       ];
 }

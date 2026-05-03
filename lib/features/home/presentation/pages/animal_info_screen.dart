@@ -17,6 +17,10 @@ import 'package:animal_record/features/home/presentation/widgets/animal_info_gen
 import 'package:animal_record/core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 
 class AnimalInfoScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -39,6 +43,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   String? _reproductiveState;
   DateTime? _birthDate;
   bool _unknownExactDate = false;
+  String? _selectedApproximateAge;
   late TextEditingController _weightKgController;
   late TextEditingController _colorDescController;
   String? _hasIdentification;
@@ -46,7 +51,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   String? _selectedAssociation;
   String? _selectedIdentificationType;
   final _identificationNumberController = TextEditingController();
-  
+
   // — Adoption state —
   bool? _isAdopted;
   String? _selectedAdoptionSource;
@@ -98,6 +103,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late String? _originalFeedingType;
   late String? _originalBirthType;
   late String? _originalBirthCondition;
+  late String? _originalApproximateAge;
 
   @override
   void initState() {
@@ -108,18 +114,18 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       setState(() {});
     });
     _initializeFromAnimal();
-    
+
     // Fetch detailed info (createdAt, updatedAt, ownerName) which are not returned by the owner list endpoint
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
         context.read<AnimalCubit>().loadAnimalDetails(widget.animal.id);
-        
+
         // Ensure species are loaded to resolve speciesId
         final catalogsCubit = context.read<CatalogsCubit>();
         if (catalogsCubit.species.isEmpty) {
           await catalogsCubit.loadSpecies();
         }
-        
+
         if (mounted) {
           final speciesId = _getSpeciesId(context, widget.animal.species);
           catalogsCubit.loadAnimalCatalogs(speciesId: speciesId);
@@ -137,6 +143,11 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _birthDate = a.birthdate != null && a.birthdate!.isNotEmpty
         ? DateTime.tryParse(a.birthdate!)
         : null;
+    _unknownExactDate = a.unknownBirthDate;
+    _selectedApproximateAge = _approxAgeLabelFromMonths(
+      a.approximateAgeMinMonths,
+      a.approximateAgeMaxMonths,
+    );
     _weightKgController = TextEditingController(
       text: a.weight != null ? a.weight.toString() : '',
     )..addListener(_onFieldChanged);
@@ -148,11 +159,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _identificationNumberController.addListener(_onFieldChanged);
     _belongsToAssociation = a.isAssociationMember ? 'si' : 'no';
     _selectedAssociation = a.registrationAssociation;
-    
+
     _isAdopted = a.isAdopted;
     _selectedAdoptionSource = a.adoptionSource;
-    _adoptionPlaceNameController = TextEditingController(text: a.adoptionPlaceName ?? '')
-      ..addListener(_onFieldChanged);
+    _adoptionPlaceNameController = TextEditingController(
+      text: a.adoptionPlaceName ?? '',
+    )..addListener(_onFieldChanged);
 
     _selectedTemperaments = List<String>.from(a.temperament);
     _allergyController = TextEditingController(text: a.allergies ?? '')
@@ -164,12 +176,12 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
         _diagnoses[d] = true;
       } else if (d != 'Ninguno') {
         _diagnoses['Otro'] = true;
-        _otherDiagnosisController = TextEditingController(text: d);
       }
     }
-    if (!a.diagnosis.any((d) => !_diagnoses.containsKey(d) && d != 'Ninguno')) {
-      _otherDiagnosisController = TextEditingController();
-    }
+    // Initialize otherDiagnosisController from otherDiagnosisDetail field
+    _otherDiagnosisController = TextEditingController(
+      text: a.otherDiagnosisDetail ?? '',
+    );
     _otherDiagnosisController.addListener(_onFieldChanged);
 
     _housingType = a.housingType;
@@ -203,7 +215,34 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _originalFeedingType = a.feedingType ?? '';
     _originalBirthType = a.birthType ?? '';
     _originalBirthCondition = a.birthCondition ?? '';
+    _originalApproximateAge = _selectedApproximateAge;
   }
+
+  // -- Approximate age helpers --
+  static const _approxAgeRanges = <String, (int, int)>{
+    '0-6 meses': (0, 6),
+    '7-11 meses': (7, 11),
+    '1-3 años': (12, 36),
+    '4-6 años': (48, 72),
+    '7-10 años': (84, 120),
+    '11-15 años': (132, 180),
+    '16-20 años': (192, 240),
+    '21-25 años': (252, 300),
+    '+25 años': (300, 1200),
+  };
+
+  String? _approxAgeLabelFromMonths(int? min, int? max) {
+    if (min == null || max == null) return null;
+    for (final entry in _approxAgeRanges.entries) {
+      if (entry.value.$1 == min && entry.value.$2 == max) {
+        return entry.key;
+      }
+    }
+    return null;
+  }
+
+  int? get _approxMin => _approxAgeRanges[_selectedApproximateAge]?.$1;
+  int? get _approxMax => _approxAgeRanges[_selectedApproximateAge]?.$2;
 
   String? _mapReproductiveStatus(String status) {
     switch (status.toUpperCase()) {
@@ -248,6 +287,19 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     }
   }
 
+  String _mapSexToApi(String sex) {
+    switch (sex.toLowerCase()) {
+      case 'macho':
+      case 'male':
+        return 'MALE';
+      case 'hembra':
+      case 'female':
+        return 'FEMALE';
+      default:
+        return sex.toUpperCase();
+    }
+  }
+
   void _onFieldChanged() {
     setState(() {});
   }
@@ -258,13 +310,17 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     if (_birthDate != _originalBirthDate) return true;
     if (_colorDescController.text.trim() != _originalColorDesc) return true;
     if (_hasIdentification != _originalHasIdentification) return true;
-    if (_selectedIdentificationType != _originalSelectedIdentificationType) return true;
-    if (_identificationNumberController.text.trim() != _originalIdentificationNumber) return true;
+    if (_selectedIdentificationType != _originalSelectedIdentificationType)
+      return true;
+    if (_identificationNumberController.text.trim() !=
+        _originalIdentificationNumber)
+      return true;
     if (_belongsToAssociation != _originalBelongsToAssociation) return true;
     if (_selectedAssociation != _originalSelectedAssociation) return true;
     if (_isAdopted != _originalIsAdopted) return true;
     if (_selectedAdoptionSource != _originalSelectedAdoptionSource) return true;
-    if (_adoptionPlaceNameController.text.trim() != _originalAdoptionPlaceName) return true;
+    if (_adoptionPlaceNameController.text.trim() != _originalAdoptionPlaceName)
+      return true;
     if (_selectedTemperaments.length != _originalTemperaments.length) {
       return true;
     }
@@ -282,6 +338,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     if (_birthConditionController.text.trim() != _originalBirthCondition) {
       return true;
     }
+    if (_selectedApproximateAge != _originalApproximateAge) return true;
+    if (_unknownExactDate != _currentAnimal.unknownBirthDate) return true;
     return false;
   }
 
@@ -300,7 +358,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       name: newName,
       species: _currentAnimal.species,
       breed: _currentAnimal.breed ?? '',
-      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      sex: _mapSexToApi(_currentAnimal.sex ?? ''),
       reproductiveStatus: _reproductiveState ?? '',
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -330,14 +388,28 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       birthCondition: _birthConditionController.text.trim().isNotEmpty
           ? _birthConditionController.text.trim()
           : null,
-      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
-      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
-      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      identificationType: _hasIdentification == 'si'
+          ? _selectedIdentificationType
+          : null,
+      identificationNumber: _hasIdentification == 'si'
+          ? _identificationNumberController.text.trim()
+          : null,
+      registrationAssociation: _belongsToAssociation == 'si'
+          ? _selectedAssociation
+          : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
-      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+      adoptionPlaceName:
+          _isAdopted == true &&
+              _adoptionPlaceNameController.text.trim().isNotEmpty
           ? _adoptionPlaceNameController.text.trim()
           : null,
+      otherDiagnosisDetail: _diagnoses['Otro'] == true
+          ? _otherDiagnosisController.text.trim()
+          : null,
+      unknownBirthDate: _unknownExactDate,
+      approximateAgeMinMonths: _unknownExactDate ? _approxMin : null,
+      approximateAgeMaxMonths: _unknownExactDate ? _approxMax : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -354,7 +426,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       name: _nameController.text.trim(),
       species: _currentAnimal.species,
       breed: _currentAnimal.breed ?? '',
-      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      sex: _mapSexToApi(_currentAnimal.sex ?? ''),
       reproductiveStatus: _reproductiveState ?? '',
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -384,14 +456,28 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       birthCondition: _birthConditionController.text.trim().isNotEmpty
           ? _birthConditionController.text.trim()
           : null,
-      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
-      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
-      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      identificationType: _hasIdentification == 'si'
+          ? _selectedIdentificationType
+          : null,
+      identificationNumber: _hasIdentification == 'si'
+          ? _identificationNumberController.text.trim()
+          : null,
+      registrationAssociation: _belongsToAssociation == 'si'
+          ? _selectedAssociation
+          : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
-      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+      adoptionPlaceName:
+          _isAdopted == true &&
+              _adoptionPlaceNameController.text.trim().isNotEmpty
           ? _adoptionPlaceNameController.text.trim()
           : null,
+      otherDiagnosisDetail: _diagnoses['Otro'] == true
+          ? _otherDiagnosisController.text.trim()
+          : null,
+      unknownBirthDate: _unknownExactDate,
+      approximateAgeMinMonths: _unknownExactDate ? _approxMin : null,
+      approximateAgeMaxMonths: _unknownExactDate ? _approxMax : null,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -421,7 +507,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       _originalColorDesc = _colorDescController.text.trim();
       _originalHasIdentification = _hasIdentification;
       _originalSelectedIdentificationType = _selectedIdentificationType;
-      _originalIdentificationNumber = _identificationNumberController.text.trim();
+      _originalIdentificationNumber = _identificationNumberController.text
+          .trim();
       _originalBelongsToAssociation = _belongsToAssociation;
       _originalSelectedAssociation = _selectedAssociation;
       _originalIsAdopted = _isAdopted;
@@ -435,12 +522,14 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       _originalFeedingType = _feedingTypeController.text.trim();
       _originalBirthType = _birthTypeController.text.trim();
       _originalBirthCondition = _birthConditionController.text.trim();
+      _originalApproximateAge = _selectedApproximateAge;
     });
   }
 
   void _showImageSourceSheet() {
     final picker = ImagePicker();
-    final hasExistingPicture = _currentAnimal.imageUrl != null || _localPhotoPath != null;
+    final hasExistingPicture =
+        _currentAnimal.imageUrl != null || _localPhotoPath != null;
 
     showModalBottomSheet(
       context: context,
@@ -485,7 +574,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         _localPhotoPath = picked.path;
                         _photoDeleted = false;
                       });
-                      ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
+                      ErrorDisplay.showSuccess(
+                        context,
+                        'Foto actualizada exitosamente.',
+                      );
                       // Then upload in background
                       context.read<AnimalCubit>().updateProfilePicture(
                         _currentAnimal.id,
@@ -511,7 +603,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         _localPhotoPath = picked.path;
                         _photoDeleted = false;
                       });
-                      ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
+                      ErrorDisplay.showSuccess(
+                        context,
+                        'Foto actualizada exitosamente.',
+                      );
                       // Then upload in background
                       context.read<AnimalCubit>().updateProfilePicture(
                         _currentAnimal.id,
@@ -537,7 +632,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                         _localPhotoPath = null;
                         _photoDeleted = true;
                       });
-                      ErrorDisplay.showSuccess(context, 'Foto eliminada exitosamente.');
+                      ErrorDisplay.showSuccess(
+                        context,
+                        'Foto eliminada exitosamente.',
+                      );
                       // Then delete in background
                       context.read<AnimalCubit>().deleteProfilePicture(
                         _currentAnimal.id,
@@ -553,104 +651,285 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _showInactivateConfirmation() {
+    // Get owner's identification from AuthBloc
+    String ownerIdType = 'C.C.';
+    String ownerIdNumber = '';
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthSuccess) {
+      ownerIdType = authState.user.identificationType.isNotEmpty
+          ? authState.user.identificationType
+          : 'C.C.';
+      ownerIdNumber = authState.user.identificationNumber;
+    }
+
+    String? selectedReason;
+    final ccController = TextEditingController();
+    String? ccError;
+    String? reasonError;
+
+    final deactivationReasons = [
+      'Fallecimiento del paciente',
+      'Error en la creación',
+      'Historia duplicada',
+      'Cambio a otros sistema de gestión',
+    ];
+
     showDialog(
       context: context,
       barrierDismissible: true,
       builder: (dialogContext) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Align(
-                  alignment: Alignment.topRight,
-                  child: GestureDetector(
-                    onTap: () => Navigator.pop(dialogContext),
-                    child: const Icon(Icons.close, size: 20, color: AppColors.greyMedio),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  '¿Desea inactivar la historia?',
-                  style: AppTypography.heading2.copyWith(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'El animal será marcado como inactivo y no podrá realizar acciones sobre él.',
-                  style: AppTypography.body4.copyWith(
-                    color: AppColors.greyMedio,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(dialogContext),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.primaryFrances,
-                          side: const BorderSide(
-                            color: AppColors.primaryFrances,
-                            width: 1,
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.white,
+              surfaceTintColor: Colors.transparent,
+              insetPadding: const EdgeInsets.symmetric(horizontal: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Stack(
+                children: [
+                  SizedBox(
+                    width: 347,
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 28),
+                          // Title
+                          SizedBox(
+                            width: double.infinity,
+                            child: Text(
+                              '¿Inactivar historia clínica?',
+                              style: AppTypography.body3.copyWith(
+                                color: AppColors.greyTextos,
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                          const SizedBox(height: 16),
+
+                          // Description with bold section
+                          RichText(
+                            textAlign: TextAlign.left,
+                            text: TextSpan(
+                              style: AppTypography.body6.copyWith(
+                                color: AppColors.greyTextos,
+                                height: 1.6,
+                              ),
+                              children: [
+                                const TextSpan(
+                                  text:
+                                      'Al inactivar la historia, no podrás agregar más datos ni realizar más consultas. Esta acción no se puede deshacer, por ende, ',
+                                ),
+                                TextSpan(
+                                  text:
+                                      'necesitas solicitarle al propietario su número de identificación para validar la acción.',
+                                  style: AppTypography.body6.copyWith(
+                                    color: AppColors.greyTextos,
+                                    height: 1.6,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: Text(
-                          'No',
-                          style: AppTypography.body3.copyWith(
-                            color: AppColors.primaryFrances,
-                            fontWeight: FontWeight.w600,
+                          const SizedBox(height: 16),
+
+                          // Reason Dropdown (using AppDropdown)
+                          AppDropdown<String>(
+                            label: 'Seleccionar el motivo para continuar:',
+                            hint: 'Seleccionar',
+                            value: selectedReason,
+                            items: deactivationReasons,
+                            itemAsString: (r) => r,
+                            onChanged: (value) {
+                              setDialogState(() {
+                                selectedReason = value;
+                                reasonError = null;
+                              });
+                            },
+                            errorText: reasonError,
+                            isInline: false,
+                            pushContent: false,
                           ),
-                        ),
+                          const SizedBox(height: 16),
+
+                          // CC row using CustomTextField
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // ID type dropdown (non-editable, styled like a disabled CustomTextField)
+                              Container(
+                                margin: const EdgeInsets.only(
+                                  top:
+                                      AppSpacing.labelHeight +
+                                      AppSpacing.inputTopPadding,
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                ),
+                                height: AppSpacing.inputHeight,
+                                decoration: BoxDecoration(
+                                  borderRadius: AppBorders.small(),
+                                  border: Border.all(
+                                    color: const Color(0xFFE8E9EC),
+                                    width: 1.0,
+                                  ),
+                                  color: const Color(0xFFF5F6FA),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      ownerIdType,
+                                      style: AppTypography.body4.copyWith(
+                                        color: AppColors.greyTextos,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      size: AppSpacing.iconSizeSmall,
+                                      color: Color.lerp(
+                                        AppColors.greyMedio,
+                                        Colors.white,
+                                        0.6,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+
+                              // ID number input
+                              Expanded(
+                                child: CustomTextField(
+                                  label: 'Identificación del propietario',
+                                  controller: ccController,
+                                  keyboardType: TextInputType.number,
+                                  hint: 'Número de documento',
+                                  errorText: ccError,
+                                  onChanged: (_) {
+                                    if (ccError != null) {
+                                      setDialogState(() {
+                                        ccError = null;
+                                      });
+                                    }
+                                  },
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 24),
+
+                          // Buttons
+                          Row(
+                            children: [
+                              Expanded(
+                                child: TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  style: TextButton.styleFrom(
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      40,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Cancelar',
+                                    style: AppTypography.body3.copyWith(
+                                      color: const Color(0xFF0072BB),
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: ElevatedButton(
+                                  onPressed: () {
+                                    bool hasError = false;
+                                    setDialogState(() {
+                                      if (selectedReason == null) {
+                                        reasonError = 'Seleccione un motivo';
+                                        hasError = true;
+                                      }
+                                      if (ccController.text.trim() !=
+                                          ownerIdNumber) {
+                                        ccError =
+                                            'El número no coincide con el propietario';
+                                        hasError = true;
+                                      }
+                                    });
+
+                                    if (!hasError) {
+                                      Navigator.pop(dialogContext);
+                                      _inactivateAnimal(selectedReason!);
+                                    }
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFFFA2844),
+                                    foregroundColor: Colors.white,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    minimumSize: const Size(
+                                      double.infinity,
+                                      40,
+                                    ),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Inactivar',
+                                    style: AppTypography.body3.copyWith(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                    textAlign: TextAlign.center,
+                                    softWrap: true,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.pop(dialogContext);
-                          _inactivateAnimal();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.errorRojo,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                        ),
-                        child: Text(
-                          'Sí',
-                          style: AppTypography.body3.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                  ),
+                  // X close button
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.close,
+                        color: AppColors.greyIconos,
                       ),
+                      onPressed: () => Navigator.of(context).pop(),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
                     ),
-                  ],
-                ),
-              ],
-            ),
-          ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
   }
 
-  void _inactivateAnimal() {
+  void _inactivateAnimal(String deactivationReason) {
     setState(() {
       _isInactivating = true;
     });
@@ -665,7 +944,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       name: _currentAnimal.name,
       species: _currentAnimal.species,
       breed: _currentAnimal.breed ?? '',
-      sex: _currentAnimal.sex == 'macho' ? 'MALE' : 'FEMALE',
+      sex: _mapSexToApi(_currentAnimal.sex ?? ''),
       reproductiveStatus: _reproductiveState ?? '',
       birthdate: _birthDate != null
           ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
@@ -695,15 +974,30 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       birthCondition: _birthConditionController.text.trim().isNotEmpty
           ? _birthConditionController.text.trim()
           : null,
-      identificationType: _hasIdentification == 'si' ? _selectedIdentificationType : null,
-      identificationNumber: _hasIdentification == 'si' ? _identificationNumberController.text.trim() : null,
-      registrationAssociation: _belongsToAssociation == 'si' ? _selectedAssociation : null,
+      identificationType: _hasIdentification == 'si'
+          ? _selectedIdentificationType
+          : null,
+      identificationNumber: _hasIdentification == 'si'
+          ? _identificationNumberController.text.trim()
+          : null,
+      registrationAssociation: _belongsToAssociation == 'si'
+          ? _selectedAssociation
+          : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
-      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+      adoptionPlaceName:
+          _isAdopted == true &&
+              _adoptionPlaceNameController.text.trim().isNotEmpty
           ? _adoptionPlaceNameController.text.trim()
           : null,
+      otherDiagnosisDetail: _diagnoses['Otro'] == true
+          ? _otherDiagnosisController.text.trim()
+          : null,
+      unknownBirthDate: _unknownExactDate,
+      approximateAgeMinMonths: _unknownExactDate ? _approxMin : null,
+      approximateAgeMaxMonths: _unknownExactDate ? _approxMax : null,
       isActive: false,
+      deactivationReason: deactivationReason,
     );
 
     context.read<AnimalCubit>().updateAnimal(params);
@@ -715,9 +1009,34 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       listenWhen: (previous, current) {
         return current is AnimalUpdated ||
             current is AnimalPictureUploaded ||
+            current is AnimalsLoaded ||
             current is AnimalError;
       },
       listener: (context, state) {
+        // Sync approximate age when detail data arrives (AnimalsLoaded from loadAnimalDetails)
+        if (state is AnimalsLoaded) {
+          try {
+            final freshEntity = state.animals.firstWhere(
+              (a) => a.id == _currentAnimal.id,
+            );
+            final freshModel = AnimalModel.fromEntity(freshEntity);
+            if (freshModel.unknownBirthDate &&
+                freshModel.approximateAgeMinMonths != null &&
+                freshModel.approximateAgeMaxMonths != null &&
+                _selectedApproximateAge == null) {
+              setState(() {
+                _currentAnimal = freshModel;
+                _unknownExactDate = true;
+                _selectedApproximateAge = _approxAgeLabelFromMonths(
+                  freshModel.approximateAgeMinMonths,
+                  freshModel.approximateAgeMaxMonths,
+                );
+                _originalApproximateAge = _selectedApproximateAge;
+              });
+            }
+          } catch (_) {}
+          return;
+        }
         if (state is AnimalUpdated) {
           // Refresh _currentAnimal with fresh data from the backend
           try {
@@ -728,7 +1047,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
               _currentAnimal = AnimalModel.fromEntity(updatedEntity);
             });
           } catch (_) {}
-          
+
           if (_isInactivating) {
             ErrorDisplay.showSuccess(
               context,
@@ -755,7 +1074,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
               'Información guardada exitosamente.',
             );
           }
-          
+
           _updateOriginalsToCurrent();
           context.read<AnimalCubit>().resetToLoaded();
         } else if (state is AnimalPictureUploaded) {
@@ -801,11 +1120,29 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                 freshModel.updatedAt != _currentAnimal.updatedAt ||
                 freshModel.ownerName != _currentAnimal.ownerName ||
                 freshModel.name != _currentAnimal.name ||
-                freshModel.imageUrl != _currentAnimal.imageUrl) {
+                freshModel.imageUrl != _currentAnimal.imageUrl ||
+                freshModel.unknownBirthDate !=
+                    _currentAnimal.unknownBirthDate ||
+                freshModel.approximateAgeMinMonths !=
+                    _currentAnimal.approximateAgeMinMonths ||
+                freshModel.approximateAgeMaxMonths !=
+                    _currentAnimal.approximateAgeMaxMonths) {
               WidgetsBinding.instance.addPostFrameCallback((_) {
                 if (mounted) {
                   setState(() {
                     _currentAnimal = freshModel;
+                    // Re-sync approximate age state when detail data arrives
+                    if (freshModel.unknownBirthDate &&
+                        freshModel.approximateAgeMinMonths != null &&
+                        freshModel.approximateAgeMaxMonths != null &&
+                        _selectedApproximateAge == null) {
+                      _unknownExactDate = true;
+                      _selectedApproximateAge = _approxAgeLabelFromMonths(
+                        freshModel.approximateAgeMinMonths,
+                        freshModel.approximateAgeMaxMonths,
+                      );
+                      _originalApproximateAge = _selectedApproximateAge;
+                    }
                   });
                 }
               });
@@ -814,251 +1151,301 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
         }
 
         return AnnotatedRegion<SystemUiOverlayStyle>(
-        value: const SystemUiOverlayStyle(
-          statusBarColor: Colors.transparent,
-          statusBarIconBrightness: Brightness.light,
-          statusBarBrightness: Brightness.dark,
-        ),
-        child: Scaffold(
-          resizeToAvoidBottomInset: false,
-          backgroundColor: Colors.transparent,
-          body: Container(
-            decoration: const BoxDecoration(
-              gradient: AppColors.backgroundDegrade,
-            ),
-            child: Column(
-              children: [
-                SafeArea(
-                  bottom: false,
-                  child: const SizedBox(height: AppSpacing.l),
-                ),
-                Expanded(
-                  child: Container(
-                    width: double.infinity,
-                    decoration: const BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(32),
-                        topRight: Radius.circular(32),
+          value: const SystemUiOverlayStyle(
+            statusBarColor: Colors.transparent,
+            statusBarIconBrightness: Brightness.light,
+            statusBarBrightness: Brightness.dark,
+          ),
+          child: Scaffold(
+            resizeToAvoidBottomInset: false,
+            backgroundColor: Colors.transparent,
+            body: Container(
+              decoration: const BoxDecoration(
+                gradient: AppColors.backgroundDegrade,
+              ),
+              child: Column(
+                children: [
+                  SafeArea(
+                    bottom: false,
+                    child: const SizedBox(height: AppSpacing.l),
+                  ),
+                  Expanded(
+                    child: Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(32),
+                          topRight: Radius.circular(32),
+                        ),
                       ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Column(
-                      children: [
-                        // Close button
-                        Align(
-                          alignment: Alignment.topRight,
-                          child: Padding(
-                            padding: const EdgeInsets.only(
-                              top: AppSpacing.m,
-                              right: AppSpacing.l,
-                            ),
-                            child: IconButton(
-                              onPressed: () => Navigator.pop(context),
-                              icon: const Icon(Icons.close),
-                              padding: EdgeInsets.zero,
-                              constraints: const BoxConstraints(),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.xs),
-
-                        // Tab bar with bottom shadow (clipped at the top)
-                        ClipRect(
-                          clipper: _BottomShadowClipper(),
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(
-                                    0xFF0F1925,
-                                  ).withValues(alpha: 0.08),
-                                  offset: const Offset(0, 4),
-                                  blurRadius: 8,
-                                ),
-                              ],
-                            ),
-                            child: TabBar(
-                              controller: _tabController,
-                              dividerColor:
-                                  Colors.transparent, // Disable default line
-                              labelColor: AppColors.textPrimary,
-                              unselectedLabelColor: AppColors.greyMedio,
-                              labelStyle: AppTypography.body3.copyWith(
-                                fontWeight: FontWeight.w600,
+                      clipBehavior: Clip.antiAlias,
+                      child: Column(
+                        children: [
+                          // Close button
+                          Align(
+                            alignment: Alignment.topRight,
+                            child: Padding(
+                              padding: const EdgeInsets.only(
+                                top: AppSpacing.m,
+                                right: AppSpacing.l,
                               ),
-                              unselectedLabelStyle: AppTypography.body4,
-                              indicatorColor: AppColors.primaryFrances,
-                              indicatorWeight: 2,
-                              indicatorSize: TabBarIndicatorSize
-                                  .label, // Indicator matches text width
-                              tabs: const [
-                                Tab(text: 'Datos básicos'),
-                                Tab(text: 'Info. Adicional'),
-                                Tab(text: 'General'),
-                              ],
+                              child: IconButton(
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.close),
+                                padding: EdgeInsets.zero,
+                                constraints: const BoxConstraints(),
+                              ),
                             ),
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.xs),
 
-                        // Tab content
-                        Expanded(
-                          child: FixedBottomActionLayout(
-                            bottomChild: _tabController.index == 2 && _currentAnimal.isActive
-                                ? OutlinedButton(
-                                    onPressed: () {
+                          // Tab bar with bottom shadow (clipped at the top)
+                          ClipRect(
+                            clipper: _BottomShadowClipper(),
+                            child: Container(
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(
+                                      0xFF0F1925,
+                                    ).withValues(alpha: 0.08),
+                                    offset: const Offset(0, 4),
+                                    blurRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: TabBar(
+                                controller: _tabController,
+                                dividerColor:
+                                    Colors.transparent, // Disable default line
+                                labelColor: AppColors.textPrimary,
+                                unselectedLabelColor: AppColors.greyMedio,
+                                labelStyle: AppTypography.body3.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                unselectedLabelStyle: AppTypography.body4,
+                                indicatorColor: AppColors.primaryFrances,
+                                indicatorWeight: 2,
+                                indicatorSize: TabBarIndicatorSize
+                                    .label, // Indicator matches text width
+                                tabs: const [
+                                  Tab(text: 'Datos básicos'),
+                                  Tab(text: 'Info. Adicional'),
+                                  Tab(text: 'General'),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Tab content
+                          Expanded(
+                            child: FixedBottomActionLayout(
+                              bottomChild:
+                                  _tabController.index == 2 &&
+                                      _currentAnimal.isActive
+                                  ? OutlinedButton(
+                                      onPressed: () {
+                                        _showInactivateConfirmation();
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: AppColors.errorRojo,
+                                        minimumSize: const Size(
+                                          double.infinity,
+                                          36,
+                                        ),
+                                        tapTargetSize:
+                                            MaterialTapTargetSize.shrinkWrap,
+                                        side: const BorderSide(
+                                          color: AppColors.errorRojo,
+                                          width: 1,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: AppBorders.medium(),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Inactivar historia',
+                                        style: AppTypography.body3.copyWith(
+                                          color: AppColors.errorRojo,
+                                        ),
+                                      ),
+                                    )
+                                  : (_hasChanges && _currentAnimal.isActive
+                                        ? BlocBuilder<AnimalCubit, AnimalState>(
+                                            builder: (context, state) {
+                                              final isUpdating =
+                                                  state is AnimalUpdating;
+                                              return CustomButton(
+                                                text: 'Guardar cambios',
+                                                isLoading: isUpdating,
+                                                onPressed: isUpdating
+                                                    ? null
+                                                    : _saveChanges,
+                                              );
+                                            },
+                                          )
+                                        : const SizedBox.shrink()),
+                              child: TabBarView(
+                                controller: _tabController,
+                                children: [
+                                  AnimalInfoBasicTab(
+                                    animal: _currentAnimal,
+                                    nameController: _nameController,
+                                    reproductiveState: _reproductiveState,
+                                    onReproductiveStateChanged: (v) =>
+                                        setState(() => _reproductiveState = v),
+                                    birthDate: _birthDate,
+                                    onBirthDateChanged: (v) =>
+                                        setState(() => _birthDate = v),
+                                    unknownExactDate: _unknownExactDate,
+                                    onUnknownExactDateChanged: (v) =>
+                                        setState(() {
+                                          _unknownExactDate = v;
+                                          if (v) {
+                                            _birthDate = null;
+                                          } else {
+                                            _selectedApproximateAge = null;
+                                          }
+                                        }),
+                                    selectedApproximateAge:
+                                        _selectedApproximateAge,
+                                    onApproximateAgeChanged: (v) => setState(
+                                      () => _selectedApproximateAge = v,
+                                    ),
+                                    weightKgController: _weightKgController,
+                                    colorDescController: _colorDescController,
+                                    hasIdentification: _hasIdentification,
+                                    onHasIdentificationChanged: (v) =>
+                                        setState(() {
+                                          _hasIdentification = v;
+                                          if (v != 'si') {
+                                            _selectedIdentificationType = null;
+                                          }
+                                        }),
+                                    selectedIdentificationType:
+                                        _selectedIdentificationType,
+                                    onIdentificationTypeChanged: (v) =>
+                                        setState(
+                                          () => _selectedIdentificationType = v,
+                                        ),
+                                    identificationNumberController:
+                                        _identificationNumberController,
+                                    belongsToAssociation: _belongsToAssociation,
+                                    onBelongsToAssociationChanged: (v) =>
+                                        setState(() {
+                                          _belongsToAssociation = v;
+                                          if (v != 'si') {
+                                            _selectedAssociation = null;
+                                          }
+                                        }),
+                                    selectedAssociation: _selectedAssociation,
+                                    onAssociationChanged: (v) => setState(
+                                      () => _selectedAssociation = v,
+                                    ),
+                                    onEditPhoto: () => _showImageSourceSheet(),
+                                    isUploadingPicture:
+                                        context.watch<AnimalCubit>().state
+                                            is AnimalPictureUploading,
+                                    localPhotoPath: _localPhotoPath,
+                                    photoDeleted: _photoDeleted,
+                                    onNameSaved: _saveNameOnly,
+                                    isAdopted: _isAdopted,
+                                    onIsAdoptedChanged: (v) => setState(() {
+                                      _isAdopted = v;
+                                      if (v == false) {
+                                        _selectedAdoptionSource = null;
+                                        _adoptionPlaceNameController.clear();
+                                      }
+                                    }),
+                                    selectedAdoptionSource:
+                                        _selectedAdoptionSource,
+                                    onAdoptionSourceChanged: (v) => setState(
+                                      () => _selectedAdoptionSource = v,
+                                    ),
+                                    adoptionPlaceNameController:
+                                        _adoptionPlaceNameController,
+                                    identificationTypeOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .identificationTypes,
+                                    associationOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .registrationAssociations,
+                                    adoptionSourceOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .adoptionSources,
+                                    readOnly: !_currentAnimal.isActive,
+                                  ),
+                                  AnimalInfoAdditionalTab(
+                                    selectedTemperaments: _selectedTemperaments,
+                                    onTemperamentsChanged: (v) => setState(
+                                      () => _selectedTemperaments = v,
+                                    ),
+                                    allergyController: _allergyController,
+                                    diagnoses: _diagnoses,
+                                    onDiagnosisChanged: (key, value) {
+                                      setState(() {
+                                        // Single-select: deselect all others
+                                        for (final k in _diagnoses.keys) {
+                                          _diagnoses[k] = false;
+                                        }
+                                        _diagnoses[key] = value;
+                                        if (key != 'Otro' || !value) {
+                                          _otherDiagnosisController.clear();
+                                        }
+                                      });
+                                    },
+                                    otherDiagnosisController:
+                                        _otherDiagnosisController,
+                                    housingType: _housingType,
+                                    onHousingTypeChanged: (v) =>
+                                        setState(() => _housingType = v),
+                                    purpose: _purpose,
+                                    onPurposeChanged: (v) =>
+                                        setState(() => _purpose = v),
+                                    feedingTypeController:
+                                        _feedingTypeController,
+                                    birthTypeController: _birthTypeController,
+                                    birthConditionController:
+                                        _birthConditionController,
+                                    isBovine:
+                                        _currentAnimal.family.toLowerCase() ==
+                                        'bovino',
+                                    temperamentOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .temperaments,
+                                    housingTypeOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .housingTypes,
+                                    purposeOptions: context
+                                        .watch<CatalogsCubit>()
+                                        .animalPurposes,
+                                    readOnly: !_currentAnimal.isActive,
+                                  ),
+                                  AnimalInfoGeneralTab(
+                                    animal: _currentAnimal,
+                                    onInactivate: () {
                                       _showInactivateConfirmation();
                                     },
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: AppColors.errorRojo,
-                                      minimumSize: const Size(
-                                        double.infinity,
-                                        36,
-                                      ),
-                                      tapTargetSize:
-                                          MaterialTapTargetSize.shrinkWrap,
-                                      side: const BorderSide(
-                                        color: AppColors.errorRojo,
-                                        width: 1,
-                                      ),
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: AppBorders.medium(),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      'Inactivar historia',
-                                      style: AppTypography.body3.copyWith(
-                                        color: AppColors.errorRojo,
-                                      ),
-                                    ),
-                                  )
-                                : (_hasChanges && _currentAnimal.isActive
-                                      ? BlocBuilder<AnimalCubit, AnimalState>(
-                                          builder: (context, state) {
-                                            final isUpdating =
-                                                state is AnimalUpdating;
-                                            return CustomButton(
-                                              text: 'Guardar cambios',
-                                              isLoading: isUpdating,
-                                              onPressed: isUpdating
-                                                  ? null
-                                                  : _saveChanges,
-                                            );
-                                          },
-                                        )
-                                      : const SizedBox.shrink()),
-                            child: TabBarView(
-                              controller: _tabController,
-                              children: [
-                                AnimalInfoBasicTab(
-                                  animal: _currentAnimal,
-                                  nameController: _nameController,
-                                  reproductiveState: _reproductiveState,
-                                  onReproductiveStateChanged: (v) =>
-                                      setState(() => _reproductiveState = v),
-                                  birthDate: _birthDate,
-                                  onBirthDateChanged: (v) =>
-                                      setState(() => _birthDate = v),
-                                  unknownExactDate: _unknownExactDate,
-                                  onUnknownExactDateChanged: (v) => setState(() {
-                                    _unknownExactDate = v;
-                                    if (v) _birthDate = null;
-                                  }),
-                                  weightKgController: _weightKgController,
-                                  colorDescController: _colorDescController,
-                                  hasIdentification: _hasIdentification,
-                                  onHasIdentificationChanged: (v) => setState(() {
-                                    _hasIdentification = v;
-                                    if (v != 'si') {
-                                      _selectedIdentificationType = null;
-                                    }
-                                  }),
-                                  selectedIdentificationType: _selectedIdentificationType,
-                                  onIdentificationTypeChanged: (v) =>
-                                      setState(() => _selectedIdentificationType = v),
-                                  identificationNumberController: _identificationNumberController,
-                                  belongsToAssociation: _belongsToAssociation,
-                                  onBelongsToAssociationChanged: (v) => setState(() {
-                                    _belongsToAssociation = v;
-                                    if (v != 'si') {
-                                      _selectedAssociation = null;
-                                    }
-                                  }),
-                                  selectedAssociation: _selectedAssociation,
-                                  onAssociationChanged: (v) =>
-                                      setState(() => _selectedAssociation = v),
-                                  onEditPhoto: () => _showImageSourceSheet(),
-                                  isUploadingPicture: context.watch<AnimalCubit>().state is AnimalPictureUploading,
-                                  localPhotoPath: _localPhotoPath,
-                                  photoDeleted: _photoDeleted,
-                                  onNameSaved: _saveNameOnly,
-                                  isAdopted: _isAdopted,
-                                  onIsAdoptedChanged: (v) => setState(() {
-                                    _isAdopted = v;
-                                    if (v == false) {
-                                      _selectedAdoptionSource = null;
-                                      _adoptionPlaceNameController.clear();
-                                    }
-                                  }),
-                                  selectedAdoptionSource: _selectedAdoptionSource,
-                                  onAdoptionSourceChanged: (v) =>
-                                      setState(() => _selectedAdoptionSource = v),
-                                  adoptionPlaceNameController: _adoptionPlaceNameController,
-                                  identificationTypeOptions: context.watch<CatalogsCubit>().identificationTypes,
-                                  associationOptions: context.watch<CatalogsCubit>().registrationAssociations,
-                                  adoptionSourceOptions: context.watch<CatalogsCubit>().adoptionSources,
-                                  readOnly: !_currentAnimal.isActive,
-                                ),
-                                AnimalInfoAdditionalTab(
-                                  selectedTemperaments: _selectedTemperaments,
-                                  onTemperamentsChanged: (v) =>
-                                      setState(() => _selectedTemperaments = v),
-                                  allergyController: _allergyController,
-                                  diagnoses: _diagnoses,
-                                  onDiagnosisChanged: (key, value) =>
-                                      setState(() => _diagnoses[key] = value),
-                                  otherDiagnosisController:
-                                      _otherDiagnosisController,
-                                  housingType: _housingType,
-                                  onHousingTypeChanged: (v) =>
-                                      setState(() => _housingType = v),
-                                  purpose: _purpose,
-                                  onPurposeChanged: (v) =>
-                                      setState(() => _purpose = v),
-                                  feedingTypeController: _feedingTypeController,
-                                  birthTypeController: _birthTypeController,
-                                  birthConditionController:
-                                      _birthConditionController,
-                                  isBovine: _currentAnimal.family.toLowerCase() == 'bovino',
-                                  temperamentOptions: context.watch<CatalogsCubit>().temperaments,
-                                  housingTypeOptions: context.watch<CatalogsCubit>().housingTypes,
-                                  purposeOptions: context.watch<CatalogsCubit>().animalPurposes,
-                                  readOnly: !_currentAnimal.isActive,
-                                ),
-                                AnimalInfoGeneralTab(
-                                  animal: _currentAnimal,
-                                  onInactivate: () {
-                                    _showInactivateConfirmation();
-                                  },
-                                ),
-                              ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  height: MediaQuery.of(context).padding.bottom,
-                  color: Colors.white,
-                ),
-              ],
+                  Container(
+                    height: MediaQuery.of(context).padding.bottom,
+                    color: Colors.white,
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      );
+        );
       },
     );
   }

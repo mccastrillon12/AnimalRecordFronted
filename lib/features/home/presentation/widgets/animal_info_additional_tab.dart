@@ -114,6 +114,9 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             CustomTextField(
               label: '¿Cuál?',
               controller: otherDiagnosisController,
+              maxLength: 80,
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
               enabled: !readOnly,
             ),
             const SizedBox(height: AppSpacing.m),

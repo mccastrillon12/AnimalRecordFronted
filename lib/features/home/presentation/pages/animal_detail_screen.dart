@@ -289,6 +289,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
             _buildInfoRow('Alergias a:', allergiesText),
             const SizedBox(height: 6),
             _buildInfoRow('Diagnosticado con:', diagnosisText),
+            if (animal.diagnosis.contains('Otro') &&
+                animal.otherDiagnosisDetail != null &&
+                animal.otherDiagnosisDetail!.isNotEmpty) ...[
+              const SizedBox(height: 6),
+              _buildInfoRow('¿Cuál?:', animal.otherDiagnosisDetail!),
+            ],
           ],
         ),
       ),

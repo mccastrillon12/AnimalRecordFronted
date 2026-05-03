@@ -69,6 +69,10 @@ class AppDropdown<T> extends StatefulWidget {
   /// (e.g. Edit Profile) where the overlay should float over content.
   final bool pushContent;
 
+  /// When true, items keep their original list order instead of being sorted
+  /// alphabetically.
+  final bool preserveOrder;
+
   /// Optional custom builder for each option row.
   /// Receives the item and whether it is currently selected.
   /// When null a plain [Text] with [itemAsString] is used.
@@ -102,6 +106,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.isInline = false,
     this.showClearOption = true,
     this.pushContent = true,
+    this.preserveOrder = false,
     this.itemBuilder,
     this.triggerBuilder,
     this.searchMaxLength = 50,
@@ -125,6 +130,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   List<T> _getSortedItems(List<T> items) {
     final list = List<T>.from(items);
+    if (widget.preserveOrder) return list;
     list.sort((a, b) => widget.itemAsString(a).toLowerCase().compareTo(widget.itemAsString(b).toLowerCase()));
     return list;
   }

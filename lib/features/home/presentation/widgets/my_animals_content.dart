@@ -311,101 +311,76 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                             final Map<String, dynamic> queryParams = {};
 
                             final sex = result['sex'] as String?;
-                            if (sex != null && sex != 'Ambos') {
-                              if (sex == 'Macho') {
-                                queryParams['sex'] = 'MALE';
-                              } else if (sex == 'Hembra') {
-                                queryParams['sex'] = 'FEMALE';
+                            if (sex != null) {
+                              if (sex == 'Ambos') {
+                                queryParams['sex'] = 'MALE,FEMALE';
                               } else {
-                                queryParams['sex'] = sex;
+                                queryParams['sex'] =
+                                    sex == 'Macho' ? 'MALE' : 'FEMALE';
                               }
                             }
 
+                            // Species: map to API codes and send comma-separated
                             final families =
                                 result['families'] as List<String>?;
                             if (families != null && families.isNotEmpty) {
-                              final mappedFamilies = families.map((family) {
+                              final mappedSpecies = families.map((family) {
                                 switch (family) {
                                   case 'Felino':
                                     return 'CAT';
                                   case 'Canino':
                                     return 'DOG';
                                   case 'Bovino':
-                                    return 'COW';
+                                    return 'BOVINE';
                                   case 'Equino':
-                                    return 'HORSE';
+                                    return 'EQUINE';
                                   default:
-                                    return family;
+                                    return family.toUpperCase();
                                 }
                               }).toList();
-                              // API takes string, we can join with comma or just send the first
-                              queryParams['species'] = mappedFamilies.join(',');
+                              queryParams['species'] = mappedSpecies.join(',');
                             }
 
+                            // Age ranges: send each range individually as min-max in months
                             final ages = result['ages'] as List<String>?;
                             if (ages != null && ages.isNotEmpty) {
-                              int? globalMin;
-                              int? globalMax;
-                              bool hasUnboundedMax = false;
+                              final List<String> ageRangeParts = [];
 
                               for (final ageStr in ages) {
-                                int min = 0;
-                                int? max;
                                 switch (ageStr) {
                                   case '0-6 meses':
-                                    min = 0;
-                                    max = 6;
+                                    ageRangeParts.add('0-6');
                                     break;
                                   case '7-11 meses':
-                                    min = 7;
-                                    max = 11;
+                                    ageRangeParts.add('7-11');
                                     break;
                                   case '1-3 años':
-                                    min = 12;
-                                    max = 36;
+                                    ageRangeParts.add('12-36');
                                     break;
                                   case '4-6 años':
-                                    min = 48;
-                                    max = 72;
+                                    ageRangeParts.add('48-72');
                                     break;
                                   case '7-10 años':
-                                    min = 84;
-                                    max = 120;
+                                    ageRangeParts.add('84-120');
                                     break;
                                   case '11-15 años':
-                                    min = 132;
-                                    max = 180;
+                                    ageRangeParts.add('132-180');
                                     break;
                                   case '16-20 años':
-                                    min = 192;
-                                    max = 240;
+                                    ageRangeParts.add('192-240');
                                     break;
                                   case '21-25 años':
-                                    min = 252;
-                                    max = 300;
+                                    ageRangeParts.add('252-300');
                                     break;
                                   case '+25 años':
-                                    min = 301;
-                                    max = null;
+                                    ageRangeParts.add('301-600');
                                     break;
-                                }
-
-                                if (globalMin == null || min < globalMin) {
-                                  globalMin = min;
-                                }
-                                if (max == null) {
-                                  hasUnboundedMax = true;
-                                } else if (!hasUnboundedMax) {
-                                  if (globalMax == null || max > globalMax) {
-                                    globalMax = max;
-                                  }
                                 }
                               }
 
-                              if (globalMin != null)
-                                queryParams['minAgeMonths'] = globalMin;
-                              if (!hasUnboundedMax && globalMax != null) {
-                                queryParams['maxAgeMonths'] = globalMax;
+                              if (ageRangeParts.isNotEmpty) {
+                                queryParams['ageRanges'] =
+                                    ageRangeParts.join(',');
                               }
                             }
 
@@ -413,8 +388,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               // If no filters were selected or they were cleared, reload without filters
                               if (context.read<AnimalCubit>().currentOwnerId !=
                                   null) {
-                                // Since we already loaded, let's just force a reload by setting internal state or fetching again.
-                                // searchAnimals with empty query params will naturally just fetch by ownerId.
                                 context.read<AnimalCubit>().searchAnimals(
                                   queryParams,
                                 );

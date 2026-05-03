@@ -45,6 +45,10 @@ class AnimalEntity extends Equatable {
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
+  final String? otherDiagnosisDetail;
+  final bool unknownBirthDate;
+  final int? approximateAgeMinMonths;
+  final int? approximateAgeMaxMonths;
   final bool isActive;
   final String? createdAt;
   final String? updatedAt;
@@ -80,6 +84,10 @@ class AnimalEntity extends Equatable {
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
+    this.otherDiagnosisDetail,
+    this.unknownBirthDate = false,
+    this.approximateAgeMinMonths,
+    this.approximateAgeMaxMonths,
     this.isActive = true,
     this.createdAt,
     this.updatedAt,
@@ -117,6 +125,10 @@ class AnimalEntity extends Equatable {
         isAdopted,
         adoptionSource,
         adoptionPlaceName,
+        otherDiagnosisDetail,
+        unknownBirthDate,
+        approximateAgeMinMonths,
+        approximateAgeMaxMonths,
         isActive,
         createdAt,
         updatedAt,

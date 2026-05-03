@@ -34,6 +34,10 @@ class AnimalModel {
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
+  final String? otherDiagnosisDetail;
+  final bool unknownBirthDate;
+  final int? approximateAgeMinMonths;
+  final int? approximateAgeMaxMonths;
   final String? createdAt;
   final String? updatedAt;
   final String? ownerName;
@@ -71,6 +75,10 @@ class AnimalModel {
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
+    this.otherDiagnosisDetail,
+    this.unknownBirthDate = false,
+    this.approximateAgeMinMonths,
+    this.approximateAgeMaxMonths,
     this.createdAt,
     this.updatedAt,
     this.ownerName,
@@ -141,6 +149,16 @@ class AnimalModel {
       } catch (_) {}
     }
 
+    // If unknownBirthDate is true and we have approximate months, use that instead
+    if (entity.unknownBirthDate &&
+        entity.approximateAgeMinMonths != null &&
+        entity.approximateAgeMaxMonths != null) {
+      calculatedAgeDisplay = _approximateAgeLabel(
+        entity.approximateAgeMinMonths!,
+        entity.approximateAgeMaxMonths!,
+      );
+    }
+
     // Sex display
     String? sexDisplay;
     switch (entity.sex.toUpperCase()) {
@@ -185,6 +203,10 @@ class AnimalModel {
       isAdopted: entity.isAdopted,
       adoptionSource: entity.adoptionSource,
       adoptionPlaceName: entity.adoptionPlaceName,
+      otherDiagnosisDetail: entity.otherDiagnosisDetail,
+      unknownBirthDate: entity.unknownBirthDate,
+      approximateAgeMinMonths: entity.approximateAgeMinMonths,
+      approximateAgeMaxMonths: entity.approximateAgeMaxMonths,
       createdAt: entity.createdAt,
       updatedAt: entity.updatedAt,
       ownerName: entity.ownerName,
@@ -196,5 +218,27 @@ class AnimalModel {
   String get sexDisplay {
     if (sex == null) return '';
     return sex == 'macho' ? 'Macho' : 'Hembra';
+  }
+
+  /// Reverse-maps (min, max) months to a human-readable approximate age label.
+  static String _approximateAgeLabel(int min, int max) {
+    const ranges = {
+      '0-6 meses': (0, 6),
+      '7-11 meses': (7, 11),
+      '1-3 años': (12, 36),
+      '4-6 años': (48, 72),
+      '7-10 años': (84, 120),
+      '11-15 años': (132, 180),
+      '16-20 años': (192, 240),
+      '21-25 años': (252, 300),
+      '+25 años': (300, 1200),
+    };
+    for (final entry in ranges.entries) {
+      if (entry.value.$1 == min && entry.value.$2 == max) {
+        return entry.key;
+      }
+    }
+    // Fallback: show month range
+    return '$min-$max meses';
   }
 }

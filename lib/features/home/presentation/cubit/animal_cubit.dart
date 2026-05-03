@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:animal_record/core/services/s3_upload_service.dart';
@@ -66,6 +67,8 @@ class AnimalCubit extends Cubit<AnimalState> {
     if (_currentOwnerId != null && !queryParams.containsKey('ownerId')) {
       queryParams['ownerId'] = _currentOwnerId;
     }
+
+    debugPrint('🔍 searchAnimals queryParams: $queryParams');
 
     final result = await searchAnimalsUseCase(queryParams);
 
@@ -345,6 +348,7 @@ class AnimalCubit extends Cubit<AnimalState> {
           feedingType: a.feedingType,
           birthType: a.birthType,
           birthCondition: a.birthCondition,
+          otherDiagnosisDetail: a.otherDiagnosisDetail,
           isActive: a.isActive,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
