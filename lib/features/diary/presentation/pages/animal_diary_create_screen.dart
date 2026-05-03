@@ -810,11 +810,11 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
             SizedBox(
               height: MediaQuery.of(context).viewInsets.bottom > 0
-                  ? (MediaQuery.of(context).viewInsets.bottom - 180).clamp(
-                      80.0,
+                  ? (MediaQuery.of(context).viewInsets.bottom - 164).clamp(
+                      40.0,
                       double.infinity,
                     )
-                  : 80,
+                  : 40,
             ),
           ],
         ),
