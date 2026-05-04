@@ -280,6 +280,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
       return;
     }
     try {
+      FocusScope.of(context).unfocus();
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         maxWidth: 1920,
@@ -313,6 +314,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
       return;
     }
     try {
+      FocusScope.of(context).unfocus();
       final XFile? image = await _imagePicker.pickImage(
         source: ImageSource.camera,
         maxWidth: 1920,
@@ -365,6 +367,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
       return;
     }
     try {
+      FocusScope.of(context).unfocus();
       if (await _audioRecorder.hasPermission()) {
         final dir = await getTemporaryDirectory();
         final timestamp = DateTime.now().millisecondsSinceEpoch;
@@ -808,14 +811,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               }),
             ],
 
-            SizedBox(
-              height: MediaQuery.of(context).viewInsets.bottom > 0
-                  ? (MediaQuery.of(context).viewInsets.bottom - 164).clamp(
-                      40.0,
-                      double.infinity,
-                    )
-                  : 40,
-            ),
+            const SizedBox(height: 80),
           ],
         ),
       ),
