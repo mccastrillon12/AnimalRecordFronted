@@ -55,6 +55,9 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+  /// When true the search [TextField] is editable and the keyboard is shown.
+  /// Starts as false so the first tap only opens the options list.
+  bool _keyboardAllowed = false;
   late List<T> _selected;
   late List<T> _filtered;
 
@@ -65,9 +68,7 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
     _filtered = widget.items;
 
     _focusNode.addListener(() {
-      if (_focusNode.hasFocus) {
-        _openDropdown();
-      } else {
+      if (!_focusNode.hasFocus && _isOpen) {
         _closeDropdown();
       }
     });
@@ -123,12 +124,16 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
     widget.onChanged(List<T>.from(_selected));
   }
 
-  void _openDropdown() {
+  void _openDropdown({bool withKeyboard = false}) {
     if (_isOpen) return;
+    _keyboardAllowed = withKeyboard;
     if (widget.isInline) {
       setState(() => _isOpen = true);
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && context.findRenderObject() != null) {
+          if (withKeyboard && widget.searchable) {
+            _focusNode.requestFocus();
+          }
           Scrollable.ensureVisible(
             context,
             duration: const Duration(milliseconds: 300),
@@ -141,7 +146,23 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
       _overlayEntry = _createOverlayEntry();
       Overlay.of(context).insert(_overlayEntry!);
       setState(() => _isOpen = true);
+      if (withKeyboard && widget.searchable) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _focusNode.requestFocus();
+        });
+      }
     }
+  }
+
+  /// Enables the keyboard for searching when the dropdown is already open.
+  void _enableKeyboard() {
+    if (!widget.searchable || _keyboardAllowed) return;
+    setState(() => _keyboardAllowed = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+    });
   }
 
   void _closeDropdown() {
@@ -309,43 +330,42 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
         // ── Input box ────────────────────────────────────────────
         CompositedTransformTarget(
           link: _layerLink,
-          child: GestureDetector(
-            onTap: widget.enabled
-                ? () {
-                    if (_isOpen) {
-                      _focusNode.unfocus();
-                      _closeDropdown();
-                    } else {
-                      _focusNode.requestFocus();
-                      _openDropdown();
-                    }
-                  }
-                : null,
-            child: Container(
-              width: double.infinity,
-              constraints: const BoxConstraints(
-                minHeight: AppSpacing.inputHeight,
+          child: Container(
+            width: double.infinity,
+            constraints: const BoxConstraints(
+              minHeight: AppSpacing.inputHeight,
+            ),
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: !widget.enabled
+                    ? AppColors.greyDelineante
+                    : _isOpen
+                        ? AppColors.primaryFrances
+                        : widget.errorText != null
+                            ? AppColors.errorRojo
+                            : AppColors.greyBordes,
               ),
-              padding: const EdgeInsets.only(left: 12, right: 8),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: !widget.enabled
-                      ? AppColors.greyDelineante
-                      : _isOpen
-                          ? AppColors.primaryFrances
-                          : widget.errorText != null
-                              ? AppColors.errorRojo
-                              : AppColors.greyBordes,
-                ),
-                borderRadius: AppBorders.small(),
-                color: widget.enabled
-                    ? Colors.white
-                    : AppColors.bgBlancoAntiFlash,
-              ),
-              child: Row(
-                children: [
-                  // Chips + search field
-                  Expanded(
+              borderRadius: AppBorders.small(),
+              color: widget.enabled
+                  ? Colors.white
+                  : AppColors.bgBlancoAntiFlash,
+            ),
+            child: Row(
+              children: [
+                // ── Input area: tap opens dropdown; shows keyboard if already open ──
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.enabled
+                        ? () {
+                            if (_isOpen) {
+                              _enableKeyboard();
+                            } else {
+                              _openDropdown();
+                            }
+                          }
+                        : null,
                     child: Padding(
                       padding: const EdgeInsets.symmetric(vertical: 6),
                       child: Wrap(
@@ -367,7 +387,15 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                               controller: _searchController,
                               focusNode: _focusNode,
                               enabled: widget.enabled,
-                              readOnly: !widget.searchable,
+                              readOnly: !_keyboardAllowed,
+                              showCursor: _keyboardAllowed,
+                              onTap: () {
+                                if (!_isOpen) {
+                                  _openDropdown();
+                                } else if (!_keyboardAllowed) {
+                                  _enableKeyboard();
+                                }
+                              },
                               onChanged: widget.searchable ? _filter : null,
                               maxLength: widget.searchMaxLength,
                               buildCounter:
@@ -410,18 +438,27 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                       ),
                     ),
                   ),
-                  // Arrow icon
-                  Icon(
-                    _isOpen
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: widget.enabled
-                        ? AppColors.greyMedio
-                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
-                    size: AppSpacing.iconSizeSmall,
+                ),
+                // ── Arrow: tap only toggles open/close (no keyboard) ──
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.enabled
+                      ? () => _isOpen ? _closeDropdown() : _openDropdown()
+                      : null,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Icon(
+                      _isOpen
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: widget.enabled
+                          ? AppColors.greyMedio
+                          : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
+                      size: AppSpacing.iconSizeSmall,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),

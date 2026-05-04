@@ -140,8 +140,9 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           // Propósito del animal
           AppDropdown<String>(
             label: isBovine ? 'Propósito productivo' : 'Propósito',
-            hint: 'Seleccionar',
+            hint: 'Buscar o escribir',
             value: purpose,
+            searchable: true,
             isInline: true,
             items: purposeOptions.map((p) => p.name).toList(),
             itemAsString: (name) => name,

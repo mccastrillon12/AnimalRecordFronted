@@ -409,7 +409,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             const SizedBox(height: AppSpacing.m),
             AppDropdown<String>(
               label: 'Tipo de identificación',
-              hint: 'Seleccionar',
+              hint: 'Buscar o escribir',
               value: selectedIdentificationType,
               searchable: true,
               isInline: true,
@@ -454,7 +454,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             const SizedBox(height: AppSpacing.m),
             AppDropdown<String>(
               label: 'Asociaciones',
-              hint: 'Seleccionar asociación',
+              hint: 'Buscar o escribir',
               value: selectedAssociation,
               searchable: true,
               isInline: true,
@@ -490,7 +490,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
             const SizedBox(height: AppSpacing.m),
             AppDropdown<String>(
               label: '¿Dónde fue adoptado?',
-              hint: 'Seleccionar',
+              hint: 'Buscar o escribir',
               value: selectedAdoptionSource,
               searchable: true,
               isInline: true,

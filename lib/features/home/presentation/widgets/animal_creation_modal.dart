@@ -859,6 +859,7 @@ class _AnimalInfoStep extends StatelessWidget {
                   radius: const Radius.circular(AppBorders.radiusSmall),
                   thickness: 2,
                   thumbVisibility: true,
+                  interactive: false,
                   crossAxisMargin: 16,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
@@ -902,7 +903,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           label: selectedSpecies.name.toLowerCase() == 'bovino'
                               ? 'Propósito productivo'
                               : 'Propósito',
-                          hint: 'Seleccionar',
+                          hint: 'Buscar o escribir',
                           value: selectedPurpose,
                           searchable: true,
                           isInline: true,
@@ -917,7 +918,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           label: 'Raza',
                           hint: breedsLoading
                               ? 'Cargando razas...'
-                              : 'Seleccionar raza',
+                              : 'Buscar o escribir',
                           value: selectedBreed,
                           searchable: true,
                           isInline: true,
@@ -1131,7 +1132,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           const SizedBox(height: AppSpacing.m),
                           AppDropdown<String>(
                             label: 'Tipo de identificación',
-                            hint: 'Seleccionar',
+                            hint: 'Buscar o escribir',
                             value: selectedIdentificationType,
                             searchable: true,
                             isInline: true,
@@ -1179,7 +1180,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           const SizedBox(height: AppSpacing.m),
                           AppDropdown<String>(
                             label: 'Asociaciones',
-                            hint: 'Seleccionar asociación',
+                            hint: 'Buscar o escribir',
                             value: selectedAssociation,
                             searchable: true,
                             isInline: true,
@@ -1219,7 +1220,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           const SizedBox(height: AppSpacing.m),
                           AppDropdown<String>(
                             label: '¿Dónde fue adoptado?',
-                            hint: 'Seleccionar',
+                            hint: 'Buscar o escribir',
                             value: selectedAdoptionSource,
                             searchable: true,
                             isInline: true,
@@ -1243,7 +1244,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         if (MediaQuery.of(context).viewInsets.bottom > 0)
                           SizedBox(
                             height:
-                                (MediaQuery.of(context).viewInsets.bottom - 135)
+                                (MediaQuery.of(context).viewInsets.bottom - 143)
                                     .clamp(0, double.infinity),
                           ),
                       ],
@@ -1619,6 +1620,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                   thickness: 2,
                   trackVisibility: false,
                   thumbVisibility: true,
+                  interactive: false,
                   crossAxisMargin: 16,
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),

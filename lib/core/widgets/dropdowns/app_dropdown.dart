@@ -124,6 +124,9 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+  /// When true the search [TextField] is editable and the keyboard is shown.
+  /// Starts as false so the first tap only opens the options list.
+  bool _keyboardAllowed = false;
   late List<T> _filtered;
 
   // ── Lifecycle ───────────────────────────────────────────────────────────────
@@ -181,14 +184,10 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   // ── Open / close ────────────────────────────────────────────────────────────
 
-  void _toggleDropdown() {
-    if (!widget.enabled) return;
-    _isOpen ? _closeDropdown() : _openDropdown();
-  }
-
-  void _openDropdown() {
+  void _openDropdown({bool withKeyboard = false}) {
     if (_isOpen) return;
     _filtered = _getSortedItems(widget.items);
+    _keyboardAllowed = withKeyboard;
 
     if (widget.searchable) {
       _searchController.text = _labelOf(widget.value);
@@ -204,7 +203,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      if (widget.searchable) {
+      if (withKeyboard && widget.searchable) {
         _focusNode.requestFocus();
         _searchController.selection = TextSelection.collapsed(
           offset: _searchController.text.length,
@@ -214,6 +213,19 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
         context,
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
+      );
+    });
+  }
+
+  /// Enables the keyboard for searching when the dropdown is already open.
+  void _enableKeyboard() {
+    if (!widget.searchable || _keyboardAllowed) return;
+    setState(() => _keyboardAllowed = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _focusNode.requestFocus();
+      _searchController.selection = TextSelection.collapsed(
+        offset: _searchController.text.length,
       );
     });
   }
@@ -403,30 +415,40 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
         // ── Trigger ────────────────────────────────────────────────
         CompositedTransformTarget(
           link: _layerLink,
-          child: GestureDetector(
-            onTap: _toggleDropdown,
-            child: Container(
-              height: AppSpacing.inputHeight,
-              width: widget.width ?? double.infinity,
-              padding: const EdgeInsets.only(left: 12, right: 8),
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: !widget.enabled
-                      ? AppColors.greyDelineante
-                      : _isOpen
-                          ? AppColors.primaryFrances
-                          : widget.errorText != null
-                              ? AppColors.errorRojo
-                              : AppColors.greyBordes,
-                ),
-                borderRadius: AppBorders.small(),
-                color: widget.enabled
-                    ? Colors.white
-                    : AppColors.bgBlancoAntiFlash,
+          child: Container(
+            height: AppSpacing.inputHeight,
+            width: widget.width ?? double.infinity,
+            padding: const EdgeInsets.only(left: 12, right: 8),
+            decoration: BoxDecoration(
+              border: Border.all(
+                color: !widget.enabled
+                    ? AppColors.greyDelineante
+                    : _isOpen
+                        ? AppColors.primaryFrances
+                        : widget.errorText != null
+                            ? AppColors.errorRojo
+                            : AppColors.greyBordes,
               ),
-              child: Row(
-                children: [
-                  Expanded(
+              borderRadius: AppBorders.small(),
+              color: widget.enabled
+                  ? Colors.white
+                  : AppColors.bgBlancoAntiFlash,
+            ),
+            child: Row(
+              children: [
+                // ── Input area: tap opens dropdown; shows keyboard if already open ──
+                Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: !widget.enabled
+                        ? null
+                        : () {
+                            if (_isOpen) {
+                              _enableKeyboard();
+                            } else {
+                              _openDropdown();
+                            }
+                          },
                     child: widget.triggerBuilder != null
                         // ── Custom trigger ──────────────────────────
                         ? widget.triggerBuilder!(selectedItem)
@@ -435,6 +457,9 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                             ? TextField(
                                 controller: _searchController,
                                 focusNode: _focusNode,
+                                readOnly: !_keyboardAllowed,
+                                showCursor: _keyboardAllowed,
+                                onTap: !_keyboardAllowed ? _enableKeyboard : null,
                                 onChanged: _applyFilter,
                                 maxLength: widget.searchMaxLength,
                                 buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
@@ -474,17 +499,27 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                                     ),
                                   ),
                   ),
-                  Icon(
-                    _isOpen
-                        ? Icons.keyboard_arrow_up_rounded
-                        : Icons.keyboard_arrow_down_rounded,
-                    color: widget.enabled
-                        ? AppColors.greyMedio
-                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
-                    size: AppSpacing.iconSizeSmall,
+                ),
+                // ── Arrow: tap only toggles open/close (no keyboard) ──
+                GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: !widget.enabled
+                      ? null
+                      : () => _isOpen ? _closeDropdown() : _openDropdown(),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    child: Icon(
+                      _isOpen
+                          ? Icons.keyboard_arrow_up_rounded
+                          : Icons.keyboard_arrow_down_rounded,
+                      color: widget.enabled
+                          ? AppColors.greyMedio
+                          : Color.lerp(AppColors.greyMedio, Colors.white, 0.6),
+                      size: AppSpacing.iconSizeSmall,
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ),
