@@ -251,6 +251,17 @@ class _CustomTextFieldState extends State<CustomTextField> {
               initialValue: widget.initialValue,
               focusNode: _focusNode,
               enabled: widget.enabled,
+              onTap: () {
+                // If another field currently has focus, dismiss keyboard first
+                // then re-request focus on this field after a microtask.
+                final currentFocus = FocusManager.instance.primaryFocus;
+                if (currentFocus != null && currentFocus != _focusNode && currentFocus.hasPrimaryFocus) {
+                  currentFocus.unfocus();
+                  Future.microtask(() {
+                    if (mounted) _focusNode.requestFocus();
+                  });
+                }
+              },
               obscureText: widget.obscureText ?? widget.isPassword,
               keyboardType: widget.keyboardType,
               textCapitalization: widget.textCapitalization,

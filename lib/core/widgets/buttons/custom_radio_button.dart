@@ -23,7 +23,10 @@ class CustomRadioButton<T> extends StatelessWidget {
     final isDisabled = onChanged == null;
 
     return GestureDetector(
-      onTap: () => onChanged?.call(value),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onChanged?.call(value);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(),
         decoration: BoxDecoration(

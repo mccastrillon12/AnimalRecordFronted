@@ -20,7 +20,10 @@ class CustomCheckbox extends StatelessWidget {
     final isDisabled = onChanged == null;
 
     return GestureDetector(
-      onTap: () => onChanged?.call(!value),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onChanged?.call(!value);
+      },
       child: Row(
         children: [
           Container(

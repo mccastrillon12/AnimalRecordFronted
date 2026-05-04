@@ -301,7 +301,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
 
           // Toggle fecha exacta
           GestureDetector(
-            onTap: readOnly ? null : () => onUnknownExactDateChanged(!unknownExactDate),
+            onTap: readOnly ? null : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onUnknownExactDateChanged(!unknownExactDate);
+            },
             child: Row(
               children: [
                 AnimatedContainer(

@@ -112,6 +112,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _currentAnimal = widget.animal;
     _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(() {
+      FocusManager.instance.primaryFocus?.unfocus();
       setState(() {});
     });
     _initializeFromAnimal();

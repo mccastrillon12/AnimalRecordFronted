@@ -125,6 +125,7 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
   }
 
   void _openDropdown({bool withKeyboard = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isOpen) return;
     _keyboardAllowed = withKeyboard;
     if (widget.isInline) {

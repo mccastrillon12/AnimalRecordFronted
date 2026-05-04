@@ -185,6 +185,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   // ── Open / close ────────────────────────────────────────────────────────────
 
   void _openDropdown({bool withKeyboard = false}) {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_isOpen) return;
     _filtered = _getSortedItems(widget.items);
     _keyboardAllowed = withKeyboard;

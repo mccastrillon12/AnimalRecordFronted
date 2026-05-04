@@ -68,6 +68,7 @@ class CustomDateField extends StatelessWidget {
 
   Future<void> _pickDate(BuildContext context) async {
     if (!enabled) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     final now = DateTime.now();
     DateTime tempDate = value ?? now;

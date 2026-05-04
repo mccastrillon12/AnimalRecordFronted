@@ -123,6 +123,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   void _goBack() {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_currentStep == 2) {
       _resetForm();
     } else if (_currentStep > 1) {
@@ -131,6 +132,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   void _goNext() {
+    FocusManager.instance.primaryFocus?.unfocus();
     if (_currentStep < _totalSteps) {
       setState(() => _currentStep++);
     }
@@ -1437,7 +1439,10 @@ class _AnimalInfoStep extends StatelessWidget {
     required ValueChanged<bool> onChanged,
   }) {
     return GestureDetector(
-      onTap: () => onChanged(!value),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onChanged(!value);
+      },
       child: Row(
         children: [
           // Custom toggle switch
