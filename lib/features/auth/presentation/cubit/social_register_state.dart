@@ -17,6 +17,7 @@ class SocialRegisterState extends Equatable {
 
   final bool phoneError;
   final bool idError;
+  final bool acceptTerms;
 
   const SocialRegisterState({
     this.name = const TextInput.pure(),
@@ -30,10 +31,11 @@ class SocialRegisterState extends Equatable {
     this.isPhoneAttempted = false,
     this.phoneError = false,
     this.idError = false,
+    this.acceptTerms = false,
   });
 
   bool get isValid {
-    return name.isValid && identificationNumber.isValid && phone.isValid;
+    return name.isValid && identificationNumber.isValid && phone.isValid && acceptTerms;
   }
 
   SocialRegisterState copyWith({
@@ -48,6 +50,7 @@ class SocialRegisterState extends Equatable {
     bool? isPhoneAttempted,
     bool? phoneError,
     bool? idError,
+    bool? acceptTerms,
   }) {
     return SocialRegisterState(
       name: name ?? this.name,
@@ -61,6 +64,7 @@ class SocialRegisterState extends Equatable {
       isPhoneAttempted: isPhoneAttempted ?? this.isPhoneAttempted,
       phoneError: phoneError ?? this.phoneError,
       idError: idError ?? this.idError,
+      acceptTerms: acceptTerms ?? this.acceptTerms,
     );
   }
 
@@ -77,5 +81,6 @@ class SocialRegisterState extends Equatable {
         isPhoneAttempted,
         phoneError,
         idError,
+        acceptTerms,
       ];
 }

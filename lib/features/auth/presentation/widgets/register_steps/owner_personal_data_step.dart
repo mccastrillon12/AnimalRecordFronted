@@ -59,6 +59,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                   hint: 'Jhon Doe',
                   initialValue: registerState.name.value,
                   onChanged: cubit.nameChanged,
+                  textCapitalization: TextCapitalization.words,
                   errorText: registerState.isNameAttempted && registerState.name.isNotValid ? 'Requerido' : null,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(

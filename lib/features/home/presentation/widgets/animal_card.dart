@@ -4,6 +4,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 
 /// Display mode for the animal card.
@@ -54,6 +55,13 @@ class AnimalCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: AppBorders.large(),
         border: Border.all(color: AppColors.greyDelineante, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -61,7 +69,7 @@ class AnimalCard extends StatelessWidget {
           // Photo
           _buildPhoto(size: 52, borderRadius: 8),
 
-          const SizedBox(width: 16),
+          const SizedBox(width: AppSpacing.m),
 
           // Info column
           Expanded(
@@ -83,7 +91,7 @@ class AnimalCard extends StatelessWidget {
                       ),
                     ),
                     if (animal.ageDisplay.isNotEmpty) ...[
-                      const SizedBox(width: 4),
+                      const SizedBox(width: AppSpacing.xxs),
                       Text(
                         animal.ageDisplay,
                         style: AppTypography.body5.copyWith(
@@ -103,7 +111,7 @@ class AnimalCard extends StatelessWidget {
                 ),
 
                 if (animal.sexDisplay.isNotEmpty) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: AppSpacing.xs),
                   // Sex tag
                   _buildSexTag(),
                 ],
@@ -121,6 +129,13 @@ class AnimalCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.greyDelineante,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.12),
+            offset: const Offset(0, 3),
+            blurRadius: 6,
+          ),
+        ],
       ),
       child: Text(
         animal.sexDisplay,
@@ -144,6 +159,13 @@ class AnimalCard extends StatelessWidget {
         color: AppColors.white,
         borderRadius: AppBorders.medium(),
         border: Border.all(color: AppColors.greyDelineante, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+            offset: const Offset(0, 4),
+            blurRadius: 8,
+          ),
+        ],
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -151,7 +173,7 @@ class AnimalCard extends StatelessWidget {
           // Photo
           _buildPhoto(size: 52, borderRadius: 8),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: AppSpacing.xs),
 
           // Name
           Text(
@@ -190,9 +212,9 @@ class AnimalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Photo
-          _buildPhoto(size: 32, borderRadius: 5),
+          _buildPhoto(size: AppSpacing.xl, borderRadius: 5),
 
-          const SizedBox(width: 12),
+          const SizedBox(width: AppSpacing.s),
 
           // Name + Code
           Expanded(
@@ -223,8 +245,8 @@ class AnimalCard extends StatelessWidget {
             onTap: onMenuTap,
             child: SvgPicture.asset(
               'assets/icons/icon_ContextMenu.svg',
-              width: 24,
-              height: 24,
+              width: AppSpacing.iconSizeSmall,
+              height: AppSpacing.iconSizeSmall,
               colorFilter: const ColorFilter.mode(
                 AppColors.greyMedio,
                 BlendMode.srcIn,
@@ -245,7 +267,7 @@ class AnimalCard extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: AppColors.greyDelineante,
+        color: AppColors.bgHielo,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: animal.imageUrl != null
@@ -256,6 +278,8 @@ class AnimalCard extends StatelessWidget {
                 fit: BoxFit.cover,
                 width: size,
                 height: size,
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
                 placeholder: (context, url) => _buildPlaceholderIcon(size),
                 errorWidget: (context, url, error) =>
                     _buildPlaceholderIcon(size),
@@ -267,7 +291,15 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildPlaceholderIcon(double size) {
     return Center(
-      child: Icon(Icons.pets, color: AppColors.greyBordes, size: size * 0.5),
+      child: SvgPicture.asset(
+        _getFamilyIconPath(animal.family),
+        width: size * 0.5,
+        height: size * 0.5,
+        colorFilter: const ColorFilter.mode(
+          AppColors.primaryFrances,
+          BlendMode.srcIn,
+        ),
+      ),
     );
   }
 
@@ -291,6 +323,8 @@ class AnimalCard extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: animal.imageUrl!,
               fit: BoxFit.cover,
+              fadeInDuration: Duration.zero,
+              fadeOutDuration: Duration.zero,
               placeholder: (context, url) => _buildDetailPlaceholder(),
               errorWidget: (context, url, error) => _buildDetailPlaceholder(),
             )
@@ -361,10 +395,33 @@ class AnimalCard extends StatelessWidget {
 
   Widget _buildDetailPlaceholder() {
     return Container(
-      color: AppColors.primaryIndigo.withValues(alpha: 0.3),
-      child: const Center(
-        child: Icon(Icons.pets, color: AppColors.greyBordes, size: 64),
+      color: AppColors.bgHielo,
+      child: Center(
+        child: SvgPicture.asset(
+          _getFamilyIconPath(animal.family),
+          width: 64,
+          height: 64,
+          colorFilter: const ColorFilter.mode(
+            AppColors.primaryFrances,
+            BlendMode.srcIn,
+          ),
+        ),
       ),
     );
+  }
+
+  String _getFamilyIconPath(String family) {
+    final lowerFamily = family.toLowerCase();
+    if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
+      return 'assets/illustrations/cat_icon.svg';
+    } else if (lowerFamily.contains('canino') || lowerFamily.contains('perro')) {
+      return 'assets/illustrations/dog_icon.svg';
+    } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
+      return 'assets/illustrations/bovino_icon.svg';
+    } else if (lowerFamily.contains('equino') || lowerFamily.contains('caballo')) {
+      return 'assets/illustrations/equino_icon.svg';
+    }
+    // Fallback to dog if unknown
+    return 'assets/illustrations/dog_icon.svg';
   }
 }

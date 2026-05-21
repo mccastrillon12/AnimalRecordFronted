@@ -17,18 +17,33 @@ class CustomCheckbox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = onChanged == null;
+
     return GestureDetector(
-      onTap: () => onChanged?.call(!value),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onChanged?.call(!value);
+      },
       child: Row(
         children: [
           Container(
             width: 22,
             height: 22,
             decoration: BoxDecoration(
-              color: value ? AppColors.primaryFrances : Colors.transparent,
+              color: value
+                  ? (isDisabled
+                      ? const Color(0xFF0072BB).withValues(alpha: 0.6)
+                      : AppColors.primaryFrances)
+                  : Colors.transparent,
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: value ? AppColors.primaryFrances : AppColors.greyBordes,
+                color: value
+                    ? (isDisabled
+                        ? const Color(0xFF0072BB).withValues(alpha: 0.6)
+                        : AppColors.primaryFrances)
+                    : (isDisabled
+                        ? const Color(0xFFE8E9EC)
+                        : AppColors.greyBordes),
                 width: 1,
               ),
             ),
@@ -40,7 +55,11 @@ class CustomCheckbox extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
+              style: AppTypography.body4.copyWith(
+                color: isDisabled
+                    ? const Color(0xFF2E3949).withValues(alpha: 0.3)
+                    : AppColors.greyTextos,
+              ),
             ),
           ),
         ],

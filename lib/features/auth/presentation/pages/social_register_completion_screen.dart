@@ -12,6 +12,7 @@ import '../../../../core/widgets/buttons/custom_button.dart';
 
 import '../../../../core/theme/app_typography.dart';
 import '../../../../core/theme/app_spacing.dart';
+import '../../../../core/theme/app_colors.dart';
 import '../bloc/auth_bloc.dart';
 import '../bloc/auth_event.dart';
 import '../bloc/auth_state.dart';
@@ -96,7 +97,9 @@ class _SocialRegisterCompletionViewState
     String prefix = '';
 
     if (locState is LocationsLoaded) {
-      final pId = state.phoneCountryId.isNotEmpty ? state.phoneCountryId : _colombiaId;
+      final pId = state.phoneCountryId.isNotEmpty
+          ? state.phoneCountryId
+          : _colombiaId;
       if (pId != null && pId.isNotEmpty) {
         try {
           final phoneCountry = locState.countries
@@ -147,287 +150,371 @@ class _SocialRegisterCompletionViewState
         onCancel: _onCancelFlow,
         addInternalPadding: false,
         child: MultiBlocListener(
-        listeners: [
-          BlocListener<AuthBloc, AuthState>(
-            listener: (context, state) {
-              if (state is AuthSuccess && !_isNavigating) {
-                _isNavigating = true;
-                ErrorDisplay.showSuccess(
-                  context,
-                  'Registro vía ${widget.providerName} exitoso.',
-                );
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        WelcomeSocialPage(userName: widget.name),
-                  ),
-                );
-              } else if (state is AuthError) {
-                ErrorDisplay.showError(context, state.message);
-              } else if (state is AvailabilityCheckResult) {
-                final status = state.availabilityStatus;
-                String? errorMessage;
-                
-                final cubit = context.read<SocialRegisterCubit>();
-                
-                if (status.containsKey('identificationNumber') && status['identificationNumber'] == false) {
-                  cubit.idErrorChanged(true);
-                  errorMessage = 'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.';
-                } 
-                
-                if (status.containsKey('cellPhone') && status['cellPhone'] == false) {
-                   cubit.phoneErrorChanged(true);
-                   errorMessage = 'Parece que ya tienes una cuenta con este número celular. Intenta iniciar sesión.';
-                }
-
-                if (errorMessage != null) {
-                  ErrorDisplay.showError(context, errorMessage);
-                } else {
-                  // Todo válido, enviar registro final
-                  final locState = context.read<LocationsCubit>().state;
-                  final regState = cubit.state;
-
-                  String prefix = '';
-                  String countryToSend = _colombiaId ?? '';
-
-                  if (locState is LocationsLoaded) {
-                    final pId = regState.phoneCountryId;
-                    if (pId.isNotEmpty) {
-                      try {
-                        final phoneCountry = locState.countries
-                            .cast<CountryEntity>()
-                            .firstWhere((c) => c.id == pId);
-                        prefix = phoneCountry.dialCode;
-                        countryToSend = pId;
-                      } catch (_) {}
-                    }
-                  }
-
-                  final payload = cubit.buildPayload(
-                    preAuthToken: widget.preAuthToken,
-                    countryToSend: countryToSend,
-                    countryPrefix: prefix,
+          listeners: [
+            BlocListener<AuthBloc, AuthState>(
+              listener: (context, state) {
+                if (state is AuthSuccess && !_isNavigating) {
+                  _isNavigating = true;
+                  ErrorDisplay.showSuccess(
+                    context,
+                    'Registro vía ${widget.providerName} exitoso.',
                   );
-
-                  context.read<AuthBloc>().add(
-                    SocialRegisterSubmitted(
-                      payload,
-                      nameToUpdate: regState.name.value,
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) =>
+                          WelcomeSocialPage(userName: widget.name),
                     ),
                   );
-                }
-              }
-            },
-          ),
-          BlocListener<LocationsCubit, LocationsState>(
-            listener: (context, state) {
-              if (state is LocationsLoaded && state.countries.isNotEmpty) {
-                try {
-                  final colombia = state.countries
-                      .cast<CountryEntity>()
-                      .firstWhere(
-                        (c) =>
-                            c.dialCode == '+57' ||
-                            c.name.toLowerCase().contains('colombia'),
-                      );
-                  if (mounted) {
-                    setState(() => _colombiaId = colombia.id);
-                    final cubit = context.read<SocialRegisterCubit>();
-                    if (cubit.state.phoneCountryId.isEmpty) {
-                      cubit.phoneCountryIdChanged(colombia.id);
-                    }
-                  }
-                } catch (_) {
-                  if (mounted) {
-                    setState(() => _colombiaId = state.countries.first.id);
-                    final cubit = context.read<SocialRegisterCubit>();
-                    if (cubit.state.phoneCountryId.isEmpty) {
-                      cubit.phoneCountryIdChanged(state.countries.first.id);
-                    }
-                  }
-                }
-              }
-            },
-          ),
-        ],
-        child: BlocBuilder<LocationsCubit, LocationsState>(
-          builder: (context, locState) {
-            return BlocBuilder<SocialRegisterCubit, SocialRegisterState>(
-              builder: (context, registerState) {
-                final cubit = context.read<SocialRegisterCubit>();
+                } else if (state is AuthError) {
+                  ErrorDisplay.showError(context, state.message);
+                } else if (state is AvailabilityCheckResult) {
+                  final status = state.availabilityStatus;
+                  String? errorMessage;
 
-                return FixedBottomActionLayout(
-                  bottomChild: BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, authState) {
-                      return CustomButton(
-                        text: 'Finalizar',
-                        isLoading: authState is AuthLoading,
-                        onPressed: (!registerState.isValid ||
-                                authState is AuthLoading)
-                            ? null
-                            : () => _onSubmit(cubit),
-                      );
-                    },
-                  ),
-                  child: KeyboardActions(
-                    config: KeyboardActionsConfig(
-                      keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
-                      keyboardBarColor: const Color(0xFFD1D5DF),
-                      nextFocus: false,
-                      actions: [
-                        KeyboardActionsItem(
-                          focusNode: _phoneFocusNode,
-                          displayArrows: false,
-                          displayDoneButton: false,
-                          toolbarButtons: [
-                            (node) {
-                              return GestureDetector(
-                                onTap: () => node.unfocus(),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: 16.0, vertical: 8.0),
-                                  child: Text(
-                                    "Aceptar",
-                                    style: TextStyle(
-                                      color: Colors.blue,
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
+                  final cubit = context.read<SocialRegisterCubit>();
+
+                  if (status.containsKey('identificationNumber') &&
+                      status['identificationNumber'] == false) {
+                    cubit.idErrorChanged(true);
+                    errorMessage =
+                        'Parece que ya tienes una cuenta con esta identificación. Intenta iniciar sesión.';
+                  }
+
+                  if (status.containsKey('cellPhone') &&
+                      status['cellPhone'] == false) {
+                    cubit.phoneErrorChanged(true);
+                    errorMessage =
+                        'Parece que ya tienes una cuenta con este número celular. Intenta iniciar sesión.';
+                  }
+
+                  if (errorMessage != null) {
+                    ErrorDisplay.showError(context, errorMessage);
+                  } else {
+                    // Todo válido, enviar registro final
+                    final locState = context.read<LocationsCubit>().state;
+                    final regState = cubit.state;
+
+                    String prefix = '';
+                    String countryToSend = _colombiaId ?? '';
+
+                    if (locState is LocationsLoaded) {
+                      final pId = regState.phoneCountryId;
+                      if (pId.isNotEmpty) {
+                        try {
+                          final phoneCountry = locState.countries
+                              .cast<CountryEntity>()
+                              .firstWhere((c) => c.id == pId);
+                          prefix = phoneCountry.dialCode;
+                          countryToSend = pId;
+                        } catch (_) {}
+                      }
+                    }
+
+                    final payload = cubit.buildPayload(
+                      preAuthToken: widget.preAuthToken,
+                      countryToSend: countryToSend,
+                      countryPrefix: prefix,
+                    );
+
+                    context.read<AuthBloc>().add(
+                      SocialRegisterSubmitted(
+                        payload,
+                        nameToUpdate: regState.name.value,
+                      ),
+                    );
+                  }
+                }
+              },
+            ),
+            BlocListener<LocationsCubit, LocationsState>(
+              listener: (context, state) {
+                if (state is LocationsLoaded && state.countries.isNotEmpty) {
+                  try {
+                    final colombia = state.countries
+                        .cast<CountryEntity>()
+                        .firstWhere(
+                          (c) =>
+                              c.dialCode == '+57' ||
+                              c.name.toLowerCase().contains('colombia'),
+                        );
+                    if (mounted) {
+                      setState(() => _colombiaId = colombia.id);
+                      final cubit = context.read<SocialRegisterCubit>();
+                      if (cubit.state.phoneCountryId.isEmpty) {
+                        cubit.phoneCountryIdChanged(colombia.id);
+                      }
+                    }
+                  } catch (_) {
+                    if (mounted) {
+                      setState(() => _colombiaId = state.countries.first.id);
+                      final cubit = context.read<SocialRegisterCubit>();
+                      if (cubit.state.phoneCountryId.isEmpty) {
+                        cubit.phoneCountryIdChanged(state.countries.first.id);
+                      }
+                    }
+                  }
+                }
+              },
+            ),
+          ],
+          child: BlocBuilder<LocationsCubit, LocationsState>(
+            builder: (context, locState) {
+              return BlocBuilder<SocialRegisterCubit, SocialRegisterState>(
+                builder: (context, registerState) {
+                  final cubit = context.read<SocialRegisterCubit>();
+
+                  return FixedBottomActionLayout(
+                    bottomChild: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, authState) {
+                        return CustomButton(
+                          text: 'Finalizar',
+                          isLoading: authState is AuthLoading,
+                          onPressed:
+                              (!registerState.isValid ||
+                                  authState is AuthLoading)
+                              ? null
+                              : () => _onSubmit(cubit),
+                        );
+                      },
+                    ),
+                    child: KeyboardActions(
+                      config: KeyboardActionsConfig(
+                        keyboardActionsPlatform: KeyboardActionsPlatform.IOS,
+                        keyboardBarColor: const Color(0xFFD1D5DF),
+                        nextFocus: false,
+                        actions: [
+                          KeyboardActionsItem(
+                            focusNode: _phoneFocusNode,
+                            displayArrows: false,
+                            displayDoneButton: false,
+                            toolbarButtons: [
+                              (node) {
+                                return GestureDetector(
+                                  onTap: () => node.unfocus(),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16.0,
+                                      vertical: 8.0,
+                                    ),
+                                    child: Text(
+                                      "Aceptar",
+                                      style: TextStyle(
+                                        color: Colors.blue,
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                      ),
                                     ),
                                   ),
-                                ),
-                              );
-                            }
-                          ],
-                        ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.only(
-                        top: AppSpacing.xxl,
-                        left: AppSpacing.l,
-                        right: AppSpacing.l,
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Finaliza tu registro - Propietario',
-                            style: AppTypography.heading1,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.xl),
-                          Text(
-                            'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
-                            style: AppTypography.body4,
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: AppSpacing.l),
-
-                          CustomTextField(
-                            label: 'Nombre completo',
-                            initialValue: registerState.name.value,
-                            onChanged: cubit.nameChanged,
-                            enabled: true,
-                            errorText: registerState.isNameAttempted &&
-                                    registerState.name.isNotValid
-                                ? AppStrings.requiredField
-                                : null,
-                            inputFormatters: [
-                              FilteringTextInputFormatter.allow(
-                                RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
-                              ),
+                                );
+                              },
                             ],
-                            labelStyle: AppTypography.body6.copyWith(
-                              color: const Color(0xFF2E3949).withAlpha(77),
-                            ),
                           ),
-                          const SizedBox(height: AppSpacing.m),
-
-                          CustomTextField(
-                            label: 'Correo electrónico',
-                            initialValue: registerState.email,
-                            enabled: false,
-                            labelStyle: AppTypography.body6.copyWith(
-                              color: const Color(0xFF2E3949).withAlpha(77),
+                        ],
+                      ),
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(
+                          top: AppSpacing.xxl,
+                          left: AppSpacing.l,
+                          right: AppSpacing.l,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Finaliza tu registro - Propietario',
+                              style: AppTypography.heading1,
+                              textAlign: TextAlign.center,
                             ),
-                          ),
-                          const SizedBox(height: AppSpacing.m),
+                            const SizedBox(height: AppSpacing.xl),
+                            Text(
+                              'Estos han sido los datos recopilados de tu cuenta de ${widget.providerName}, completa los datos faltantes para continuar:',
+                              style: AppTypography.body4,
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: AppSpacing.l),
 
-                          if (locState is LocationsLoading) ...[
-                            const Center(child: CircularProgressIndicator()),
-                          ] else if (locState is LocationsLoaded) ...[
-                            CountryDropdown(
-                              label: 'País de residencia',
-                              value: _colombiaId ??
-                                  (locState.countries.isNotEmpty
-                                      ? locState.countries.first.id
-                                      : null),
-                              countries: locState.countries,
+                            CustomTextField(
+                              label: 'Nombre completo',
+                              initialValue: registerState.name.value,
+                              onChanged: cubit.nameChanged,
+                              enabled: true,
+                              errorText:
+                                  registerState.isNameAttempted &&
+                                      registerState.name.isNotValid
+                                  ? AppStrings.requiredField
+                                  : null,
+                              inputFormatters: [
+                                FilteringTextInputFormatter.allow(
+                                  RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
+                                ),
+                              ],
+                              labelStyle: AppTypography.body6.copyWith(
+                                color: const Color(0xFF2E3949).withAlpha(77),
+                              ),
+                            ),
+                            const SizedBox(height: AppSpacing.m),
+
+                            CustomTextField(
+                              label: 'Correo electrónico',
+                              initialValue: registerState.email,
                               enabled: false,
-                              width: double.infinity,
-                              onChanged: null,
+                              labelStyle: AppTypography.body6.copyWith(
+                                color: const Color(0xFF2E3949).withAlpha(77),
+                              ),
                             ),
                             const SizedBox(height: AppSpacing.m),
 
-                            IdSelector(
-                              initialValue: registerState.identificationNumber.value,
-                              onChanged: cubit.identificationNumberChanged,
-                              initialIdType: registerState.identificationType,
-                              onIdTypeChanged: cubit.identificationTypeChanged,
-                              errorText: registerState.idError
-                                  ? 'ID ya registrado'
-                                  : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid
-                                      ? AppStrings.requiredField
-                                      : null),
-                              hideErrorText: registerState.idError,
-                            ),
-                            const SizedBox(height: AppSpacing.m),
+                            if (locState is LocationsLoading) ...[
+                              const Center(child: CircularProgressIndicator()),
+                            ] else if (locState is LocationsLoaded) ...[
+                              CountryDropdown(
+                                label: 'País de residencia',
+                                value:
+                                    _colombiaId ??
+                                    (locState.countries.isNotEmpty
+                                        ? locState.countries.first.id
+                                        : null),
+                                countries: locState.countries,
+                                enabled: false,
+                                width: double.infinity,
+                                onChanged: null,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
 
-                            PhoneInputField(
-                              label: 'Número de celular (Opcional)',
-                              initialValue: registerState.phone.value,
-                              onChanged: cubit.phoneChanged,
-                              countries: locState.countries,
-                              focusNode: _phoneFocusNode,
-                              selectedCountryId:
-                                  registerState.phoneCountryId.isNotEmpty
-                                      ? registerState.phoneCountryId
-                                      : (_colombiaId ??
+                              IdSelector(
+                                initialValue:
+                                    registerState.identificationNumber.value,
+                                onChanged: cubit.identificationNumberChanged,
+                                initialIdType: registerState.identificationType,
+                                onIdTypeChanged:
+                                    cubit.identificationTypeChanged,
+                                errorText: registerState.idError
+                                    ? 'ID ya registrado'
+                                    : (registerState.isIdAttempted &&
+                                              registerState
+                                                  .identificationNumber
+                                                  .isNotValid
+                                          ? AppStrings.requiredField
+                                          : null),
+                                hideErrorText: registerState.idError,
+                              ),
+                              const SizedBox(height: AppSpacing.m),
+
+                              PhoneInputField(
+                                label: 'Número de celular (Opcional)',
+                                initialValue: registerState.phone.value,
+                                onChanged: cubit.phoneChanged,
+                                countries: locState.countries,
+                                focusNode: _phoneFocusNode,
+                                selectedCountryId:
+                                    registerState.phoneCountryId.isNotEmpty
+                                    ? registerState.phoneCountryId
+                                    : (_colombiaId ??
                                           (locState.countries.isNotEmpty
                                               ? locState.countries.first.id
                                               : null)),
-                              onCountryChanged: (val) {
-                                if (val != null) {
-                                  cubit.phoneCountryIdChanged(val);
-                                }
-                              },
-                              maxLength: 15,
-                              inputFormatters: [
-                                FilteringTextInputFormatter.digitsOnly,
+                                onCountryChanged: (val) {
+                                  if (val != null) {
+                                    cubit.phoneCountryIdChanged(val);
+                                  }
+                                },
+                                maxLength: 15,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                errorText: registerState.phoneError
+                                    ? 'Celular ya registrado'
+                                    : (registerState.isPhoneAttempted &&
+                                              registerState.phone.isNotValid &&
+                                              registerState
+                                                  .phone
+                                                  .value
+                                                  .isNotEmpty
+                                          ? AppStrings.phoneError
+                                          : null),
+                                hideErrorText: registerState.phoneError,
+                              ),
+                            ],
+                            const SizedBox(height: AppSpacing.l),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  height: 22,
+                                  width: 22,
+                                  child: Checkbox(
+                                    value: registerState.acceptTerms,
+                                    activeColor: AppColors.primaryFrances,
+                                    onChanged: (value) => cubit
+                                        .acceptTermsChanged(value ?? false),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    side: const BorderSide(
+                                      color: AppColors.greyMedio,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.s),
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      text: 'Acepto los ',
+                                      style: AppTypography.body4.copyWith(
+                                        color: AppColors.greyNegroV2,
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                          text: 'Términos de servicio',
+                                          style: AppTypography.body4.copyWith(
+                                            color: AppColors.primaryFrances,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor:
+                                                AppColors.primaryFrances,
+                                          ),
+                                        ),
+                                        const TextSpan(text: ' y la '),
+                                        TextSpan(
+                                          text: 'Política de privacidad',
+                                          style: AppTypography.body4.copyWith(
+                                            color: AppColors.primaryFrances,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor:
+                                                AppColors.primaryFrances,
+                                          ),
+                                        ),
+                                        const TextSpan(
+                                          text: ' de Animal Record.',
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ],
-                              errorText: registerState.phoneError
-                                  ? 'Celular ya registrado'
-                                  : (registerState.isPhoneAttempted &&
-                                          registerState.phone.isNotValid &&
-                                          registerState.phone.value.isNotEmpty
-                                      ? AppStrings.phoneError
-                                      : null),
-                              hideErrorText: registerState.phoneError,
+                            ),
+                            const SizedBox(height: AppSpacing.l),
+                            SizedBox(
+                              height:
+                                  MediaQuery.of(context).viewInsets.bottom > 0
+                                  ? (MediaQuery.of(context).viewInsets.bottom -
+                                            84)
+                                        .clamp(40.0, double.infinity)
+                                  : 40,
                             ),
                           ],
-                          const KeyboardSpacer(),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                );
-              },
-            );
-          },
+                  );
+                },
+              );
+            },
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 }

@@ -55,9 +55,8 @@ class CustomSnackBar extends StatelessWidget {
           Expanded(
             child: Text(
               message,
-              style: AppTypography.body5.copyWith(
+              style: AppTypography.body3.copyWith(
                 color: AppColors.greyNegro,
-                fontWeight: FontWeight.w600,
                 height: 1.5,
               ),
             ),

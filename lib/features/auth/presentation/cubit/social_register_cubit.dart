@@ -46,6 +46,10 @@ class SocialRegisterCubit extends Cubit<SocialRegisterState> {
     emit(state.copyWith(idError: value));
   }
 
+  void acceptTermsChanged(bool value) {
+    emit(state.copyWith(acceptTerms: value));
+  }
+
   Map<String, dynamic> buildPayload({
     required String preAuthToken,
     required String countryToSend,

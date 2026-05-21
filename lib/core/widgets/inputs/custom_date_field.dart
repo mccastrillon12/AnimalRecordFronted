@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -12,6 +13,7 @@ class CustomDateField extends StatelessWidget {
   final DateTime? value;
   final ValueChanged<DateTime>? onChanged;
   final bool enabled;
+  final bool showAge;
 
   const CustomDateField({
     super.key,
@@ -20,28 +22,53 @@ class CustomDateField extends StatelessWidget {
     this.value,
     this.onChanged,
     this.enabled = true,
+    this.showAge = false,
   });
 
   String _formatDate(DateTime date) {
     const months = [
-      'enero',
-      'febrero',
-      'marzo',
-      'abril',
-      'mayo',
-      'junio',
-      'julio',
-      'agosto',
-      'septiembre',
-      'octubre',
-      'noviembre',
-      'diciembre',
+      'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
+      'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
     ];
-    return '${date.day} de ${months[date.month - 1]} de ${date.year}';
+    final monthName = months[date.month - 1];
+    final dayStr = date.day.toString().padLeft(2, '0');
+    final formattedDate = '$monthName $dayStr, ${date.year}';
+
+    if (!showAge) return formattedDate;
+
+    final now = DateTime.now();
+    int ageYears = now.year - date.year;
+    int ageMonths = now.month - date.month;
+
+    if (now.day < date.day) {
+      ageMonths--;
+    }
+
+    if (ageMonths < 0) {
+      ageYears--;
+      ageMonths += 12;
+    }
+
+    String ageDisplay = '';
+    if (ageYears > 0) {
+      ageDisplay = '$ageYears ${ageYears == 1 ? 'año' : 'años'}';
+    } else if (ageMonths > 0) {
+      ageDisplay = '$ageMonths ${ageMonths == 1 ? 'mes' : 'meses'}';
+    } else {
+      final days = now.difference(date).inDays;
+      if (days > 0) {
+        ageDisplay = '$days ${days == 1 ? 'día' : 'días'}';
+      } else {
+        ageDisplay = 'Recién nacido';
+      }
+    }
+
+    return '$formattedDate ($ageDisplay)';
   }
 
   Future<void> _pickDate(BuildContext context) async {
     if (!enabled) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     final now = DateTime.now();
     DateTime tempDate = value ?? now;
@@ -181,7 +208,10 @@ class CustomDateField extends StatelessWidget {
             decoration: BoxDecoration(
               color: enabled ? AppColors.white : const Color(0xFFF5F6FA),
               borderRadius: AppBorders.small(),
-              border: Border.all(color: AppColors.greyBordes, width: 1.0),
+              border: Border.all(
+                color: enabled ? AppColors.greyBordes : AppColors.greyDelineante,
+                width: 1.0,
+              ),
             ),
             child: Row(
               children: [
@@ -195,10 +225,16 @@ class CustomDateField extends StatelessWidget {
                     ),
                   ),
                 ),
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 20,
-                  color: AppColors.greyMedio,
+                SvgPicture.asset(
+                  'assets/icons/calendar.svg',
+                  width: 20,
+                  height: 20,
+                  colorFilter: ColorFilter.mode(
+                    enabled
+                        ? AppColors.greyMedio
+                        : Color.lerp(AppColors.greyMedio, Colors.white, 0.6)!,
+                    BlendMode.srcIn,
+                  ),
                 ),
               ],
             ),

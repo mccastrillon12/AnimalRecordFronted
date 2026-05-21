@@ -1,0 +1,636 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
+import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
+
+class AnimalInfoBasicTab extends StatelessWidget {
+  final AnimalModel animal;
+  final TextEditingController nameController;
+  final String? reproductiveState;
+  final ValueChanged<String?> onReproductiveStateChanged;
+  final DateTime? birthDate;
+  final ValueChanged<DateTime> onBirthDateChanged;
+  final bool unknownExactDate;
+  final ValueChanged<bool> onUnknownExactDateChanged;
+  final String? selectedApproximateAge;
+  final ValueChanged<String?> onApproximateAgeChanged;
+  final TextEditingController weightKgController;
+  final TextEditingController colorDescController;
+  final String? hasIdentification;
+  final ValueChanged<String?> onHasIdentificationChanged;
+  final String? selectedIdentificationType;
+  final ValueChanged<String?> onIdentificationTypeChanged;
+  final TextEditingController identificationNumberController;
+  final String? belongsToAssociation;
+  final ValueChanged<String?> onBelongsToAssociationChanged;
+  final String? selectedAssociation;
+  final ValueChanged<String?> onAssociationChanged;
+  final VoidCallback? onEditPhoto;
+  final bool isUploadingPicture;
+  final String? localPhotoPath;
+  final bool photoDeleted;
+  final bool? isAdopted;
+  final ValueChanged<bool?> onIsAdoptedChanged;
+  final String? selectedAdoptionSource;
+  final ValueChanged<String?> onAdoptionSourceChanged;
+  final TextEditingController adoptionPlaceNameController;
+  final ValueChanged<String>? onNameSaved;
+
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> adoptionSourceOptions;
+  final List<CatalogItemEntity> identificationTypeOptions;
+  final List<CatalogItemEntity> associationOptions;
+  final bool readOnly;
+
+  const AnimalInfoBasicTab({
+    super.key,
+    required this.animal,
+    required this.nameController,
+    required this.reproductiveState,
+    required this.onReproductiveStateChanged,
+    required this.birthDate,
+    required this.onBirthDateChanged,
+    required this.unknownExactDate,
+    required this.onUnknownExactDateChanged,
+    this.selectedApproximateAge,
+    required this.onApproximateAgeChanged,
+    required this.weightKgController,
+    required this.colorDescController,
+    required this.hasIdentification,
+    required this.onHasIdentificationChanged,
+    this.selectedIdentificationType,
+    required this.onIdentificationTypeChanged,
+    required this.identificationNumberController,
+    required this.belongsToAssociation,
+    required this.onBelongsToAssociationChanged,
+    required this.selectedAssociation,
+    required this.onAssociationChanged,
+    this.onEditPhoto,
+    this.isUploadingPicture = false,
+    this.localPhotoPath,
+    this.photoDeleted = false,
+    this.onNameSaved,
+    required this.isAdopted,
+    required this.onIsAdoptedChanged,
+    required this.selectedAdoptionSource,
+    required this.onAdoptionSourceChanged,
+    required this.adoptionPlaceNameController,
+    this.adoptionSourceOptions = const [],
+    this.identificationTypeOptions = const [],
+    this.associationOptions = const [],
+    this.readOnly = false,
+  });
+
+  String _iconForFamily(String family) {
+    switch (family.toLowerCase()) {
+      case 'felino':
+        return 'assets/illustrations/cat_icon.svg';
+      case 'canino':
+        return 'assets/illustrations/dog_icon.svg';
+      case 'bovino':
+        return 'assets/illustrations/bovino_icon.svg';
+      case 'equino':
+        return 'assets/illustrations/equino_icon.svg';
+      default:
+        return 'assets/illustrations/bovino_icon.svg';
+    }
+  }
+
+  /// Builds the photo content with priority:
+  /// 1. Local file (just picked, not yet uploaded)
+  /// 2. Deleted state (show placeholder)
+  /// 3. Network image (from backend)
+  /// 4. Fallback placeholder
+  Widget _buildPhotoContent() {
+    // Priority 1: Local file selected (instant preview)
+    if (localPhotoPath != null) {
+      return Image.file(
+        File(localPhotoPath!),
+        width: 96,
+        height: 96,
+        fit: BoxFit.cover,
+      );
+    }
+
+    // Priority 2: Photo was deleted (show placeholder immediately)
+    if (photoDeleted) {
+      return Center(
+        child: SvgPicture.asset(
+          _iconForFamily(animal.family),
+          width: AppSpacing.iconSizeMedium,
+          height: 35,
+        ),
+      );
+    }
+
+    // Priority 3: Network image from backend
+    if (animal.imageUrl != null) {
+      return Image.network(
+        animal.imageUrl!,
+        width: 96,
+        height: 96,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => Center(
+          child: SvgPicture.asset(
+            _iconForFamily(animal.family),
+            width: AppSpacing.iconSizeMedium,
+            height: 35,
+          ),
+        ),
+      );
+    }
+
+    // Priority 4: Fallback placeholder
+    return Center(
+      child: SvgPicture.asset(
+        _iconForFamily(animal.family),
+        width: AppSpacing.iconSizeMedium,
+        height: 35,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Photo + Name header
+          Center(
+            child: Column(
+              children: [
+                Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: AppColors.bgHielo,
+                        borderRadius: AppBorders.medium(),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: _buildPhotoContent(),
+                    ),
+                    if (!readOnly)
+                    Positioned(
+                      top: AppSpacing.xs,
+                      right: AppSpacing.xs,
+                      child: GestureDetector(
+                        onTap: onEditPhoto,
+                        child: Container(
+                          width: AppSpacing.xl,
+                          height: AppSpacing.xl,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            borderRadius: AppBorders.small(),
+                          ),
+                          child: const Icon(
+                            Icons.edit,
+                            color: Colors.white,
+                            size: AppSpacing.m,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: AppSpacing.m),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    ValueListenableBuilder<TextEditingValue>(
+                      valueListenable: nameController,
+                      builder: (context, value, child) {
+                        return Text(
+                          value.text.isNotEmpty ? value.text : animal.name,
+                          style: AppTypography.heading2.copyWith(
+                            color: AppColors.textPrimary,
+                          ),
+                        );
+                      },
+                    ),
+                    if (!readOnly) ...[
+                    const SizedBox(width: AppSpacing.xxs),
+                    GestureDetector(
+                      onTap: () {
+                        final daysRemaining = _calculateDaysRemaining();
+                        
+                        showDialog(
+                          context: context,
+                          builder: (context) => EditNameDialog(
+                            currentName: nameController.text.isNotEmpty
+                                ? nameController.text
+                                : animal.name,
+                            daysRemaining: daysRemaining,
+                            onSave: (newName) {
+                              nameController.text = newName;
+                              // Trigger the API update for the name change
+                              onNameSaved?.call(newName);
+                            },
+                          ),
+                        );
+                      },
+                      child: const Icon(
+                        Icons.edit,
+                        size: AppSpacing.m,
+                        color: AppColors.greyBordes,
+                      ),
+                    ),
+                    ],
+                  ],
+                ),
+                Text(
+                  '${animal.breed ?? animal.family}, ${animal.sexDisplay}.',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyMedio,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Estado reproductivo
+          Text('Estado reproductivo', style: AppTypography.body6),
+          const SizedBox(height: AppSpacing.xs),
+          CustomRadioButton<String>(
+            value: 'esterilizado',
+            groupValue: reproductiveState,
+            label: 'Esterilizado',
+            onChanged: readOnly ? null : onReproductiveStateChanged,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          CustomRadioButton<String>(
+            value: 'no_esterilizado',
+            groupValue: reproductiveState,
+            label: 'No esterilizado',
+            onChanged: readOnly ? null : onReproductiveStateChanged,
+          ),
+          const SizedBox(height: AppSpacing.m),
+          CustomRadioButton<String>(
+            value: 'desconocido',
+            groupValue: reproductiveState,
+            label: 'Desconocido',
+            onChanged: readOnly ? null : onReproductiveStateChanged,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Fecha de nacimiento
+          CustomDateField(
+            label: 'Fecha de nacimiento',
+            value: birthDate,
+            onChanged: onBirthDateChanged,
+            enabled: !readOnly && !unknownExactDate,
+            showAge: true,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Toggle fecha exacta
+          GestureDetector(
+            onTap: readOnly ? null : () {
+              FocusManager.instance.primaryFocus?.unfocus();
+              onUnknownExactDateChanged(!unknownExactDate);
+            },
+            child: Row(
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  width: 44,
+                  height: AppSpacing.iconSizeSmall,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(12),
+                    color: unknownExactDate
+                        ? (readOnly
+                            ? AppColors.primaryFrances.withValues(alpha: 0.6)
+                            : AppColors.primaryFrances)
+                        : AppColors.greyDelineante,
+                  ),
+                  child: AnimatedAlign(
+                    duration: const Duration(milliseconds: 200),
+                    alignment: unknownExactDate
+                        ? Alignment.centerRight
+                        : Alignment.centerLeft,
+                    child: Container(
+                      width: 20,
+                      height: 20,
+                      margin: const EdgeInsets.symmetric(horizontal: 2),
+                      decoration: const BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.xs),
+                Expanded(
+                  child: Text(
+                    'No sé la fecha exacta',
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyTextos,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Approximate age dropdown (visible when unknown date toggle is on)
+          if (unknownExactDate) ...[
+            AppDropdown<String>(
+              label: 'Edad aproximada',
+              hint: 'Seleccionar',
+              value: selectedApproximateAge,
+              isInline: true,
+              items: const [
+                '0-6 meses',
+                '7-11 meses',
+                '1-3 años',
+                '4-6 años',
+                '7-10 años',
+                '11-15 años',
+                '16-20 años',
+                '21-25 años',
+                '+25 años',
+              ],
+              itemAsString: (v) => v,
+              onChanged: readOnly ? null : onApproximateAgeChanged,
+              enabled: !readOnly,
+              preserveOrder: true,
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
+
+          // Color y marcas
+          _buildTextArea(
+            label: 'Color y marcas distintivas (Opcional)',
+            hint: 'Haz una breve descripción',
+            controller: colorDescController,
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Identificación
+          Text(
+            '¿Tiene identificación? (Chip, arete, otros)',
+            style: AppTypography.body6,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              CustomRadioButton<String>(
+                value: 'si',
+                groupValue: hasIdentification,
+                label: 'Si',
+                onChanged: readOnly ? null : onHasIdentificationChanged,
+              ),
+              const SizedBox(width: AppSpacing.xxxl),
+              CustomRadioButton<String>(
+                value: 'no',
+                groupValue: hasIdentification,
+                label: 'No',
+                onChanged: readOnly ? null : onHasIdentificationChanged,
+              ),
+            ],
+          ),
+
+          if (hasIdentification == 'si') ...[
+            const SizedBox(height: AppSpacing.m),
+            AppDropdown<String>(
+              label: 'Tipo de identificación',
+              hint: 'Buscar o escribir',
+              value: selectedIdentificationType,
+              searchable: true,
+              isInline: true,
+              items: identificationTypeOptions.map((t) => t.name).toList(),
+              itemAsString: (name) => name,
+              onChanged: readOnly ? null : onIdentificationTypeChanged,
+              enabled: !readOnly,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            CustomTextField(
+              label: 'Número de identificación',
+              controller: identificationNumberController,
+              maxLength: 15,
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9]+$'),
+              enabled: !readOnly,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.m),
+
+          // Asociación
+          Text('¿Pertenece a alguna asociación?', style: AppTypography.body6),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              CustomRadioButton<String>(
+                value: 'si',
+                groupValue: belongsToAssociation,
+                label: 'Si',
+                onChanged: readOnly ? null : onBelongsToAssociationChanged,
+              ),
+              const SizedBox(width: AppSpacing.xxxl),
+              CustomRadioButton<String>(
+                value: 'no',
+                groupValue: belongsToAssociation,
+                label: 'No',
+                onChanged: readOnly ? null : onBelongsToAssociationChanged,
+              ),
+            ],
+          ),
+          if (belongsToAssociation == 'si') ...[
+            const SizedBox(height: AppSpacing.m),
+            AppDropdown<String>(
+              label: 'Asociaciones',
+              hint: 'Buscar o escribir',
+              value: selectedAssociation,
+              searchable: true,
+              isInline: true,
+              items: associationOptions.map((a) => a.name).toList(),
+              itemAsString: (name) => name,
+              onChanged: readOnly ? null : onAssociationChanged,
+              enabled: !readOnly,
+            ),
+          ],
+          const SizedBox(height: AppSpacing.m),
+
+          // Is Adopted?
+          Text('¿Es adoptado?', style: AppTypography.body6),
+          const SizedBox(height: AppSpacing.xs),
+          Row(
+            children: [
+              CustomRadioButton<bool>(
+                value: true,
+                groupValue: isAdopted,
+                label: 'Si',
+                onChanged: readOnly ? null : onIsAdoptedChanged,
+              ),
+              const SizedBox(width: AppSpacing.xxxl),
+              CustomRadioButton<bool>(
+                value: false,
+                groupValue: isAdopted,
+                label: 'No',
+                onChanged: readOnly ? null : onIsAdoptedChanged,
+              ),
+            ],
+          ),
+          if (isAdopted == true) ...[
+            const SizedBox(height: AppSpacing.m),
+            AppDropdown<String>(
+              label: '¿Dónde fue adoptado?',
+              hint: 'Buscar o escribir',
+              value: selectedAdoptionSource,
+              searchable: true,
+              isInline: true,
+              items: adoptionSourceOptions.map((a) => a.name).toList(),
+              itemAsString: (name) => name,
+              onChanged: readOnly ? null : onAdoptionSourceChanged,
+              enabled: !readOnly,
+            ),
+            const SizedBox(height: AppSpacing.m),
+            CustomTextField(
+              label: 'Nombre del lugar (Opcional)',
+              controller: adoptionPlaceNameController,
+              maxLength: 50,
+              textCapitalization: TextCapitalization.sentences,
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+              enabled: !readOnly,
+            ),
+          ],
+          const SizedBox(height: 8),
+          if (MediaQuery.of(context).viewInsets.bottom > 0)
+            SizedBox(
+              height: (MediaQuery.of(context).viewInsets.bottom - 70)
+                  .clamp(0, double.infinity),
+            ),
+        ],
+      ),
+    );
+  }
+
+  int _calculateDaysRemaining() {
+    if (animal.nameHistory.length <= 1) return 0;
+    
+    DateTime? mostRecentDate;
+    // Skip position 1 (index 0) since it's the creation name and doesn't trigger lockout
+    for (var i = 1; i < animal.nameHistory.length; i++) {
+      try {
+        final itemDate = DateTime.parse(animal.nameHistory[i].date).toLocal();
+        if (mostRecentDate == null || itemDate.isAfter(mostRecentDate)) {
+          mostRecentDate = itemDate;
+        }
+      } catch (_) {}
+    }
+
+    if (mostRecentDate == null) return 0;
+
+    final now = DateTime.now();
+    // Start of day calculation to avoid time-of-day precision issues
+    final startOfToday = DateTime(now.year, now.month, now.day);
+    final startOfRecentDate = DateTime(mostRecentDate.year, mostRecentDate.month, mostRecentDate.day);
+    
+    final difference = startOfToday.difference(startOfRecentDate).inDays;
+    final remaining = 30 - difference;
+    
+    return remaining > 0 ? remaining : 0;
+  }
+
+  Widget _buildTextArea({
+    required String label,
+    required String hint,
+    required TextEditingController controller,
+    bool enabled = true,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          height: 18,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: label
+                        .replaceAll(' (Opcional)', '')
+                        .replaceAll('(Opcional)', '')
+                        .trim(),
+                    style: AppTypography.body6,
+                  ),
+                  if (label.contains('(Opcional)'))
+                    TextSpan(
+                      text: ' (Opcional)',
+                      style: AppTypography.body6.copyWith(
+                        color: AppColors.greyBordes,
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xxs),
+        TextField(
+          controller: controller,
+          enabled: enabled,
+          maxLines: 4,
+          maxLength: 150,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+          ],
+          style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
+          decoration: InputDecoration(
+            filled: true,
+            fillColor: AppColors.white,
+            hintText: hint,
+            hintStyle: AppTypography.body4.copyWith(
+              color: AppColors.greyBordes,
+            ),
+            contentPadding: const EdgeInsets.all(12),
+            border: OutlineInputBorder(
+              borderRadius: AppBorders.small(),
+              borderSide: const BorderSide(
+                color: AppColors.greyBordes,
+                width: 1.0,
+              ),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: AppBorders.small(),
+              borderSide: const BorderSide(
+                color: AppColors.greyBordes,
+                width: 1.0,
+              ),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: AppBorders.small(),
+              borderSide: const BorderSide(
+                color: AppColors.greyBordes,
+                width: 1.0,
+              ),
+            ),
+            counterStyle: AppTypography.body6.copyWith(
+              color: AppColors.greyBordes,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

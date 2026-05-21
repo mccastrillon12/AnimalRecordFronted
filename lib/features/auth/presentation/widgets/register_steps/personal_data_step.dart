@@ -61,6 +61,7 @@ class _PersonalDataStepState extends State<PersonalDataStep> {
                   hint: 'Valentina Rios',
                   initialValue: registerState.name.value,
                   onChanged: cubit.nameChanged,
+                  textCapitalization: TextCapitalization.words,
                   errorText: registerState.isNameAttempted && registerState.name.isNotValid ? 'Requerido' : null,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(

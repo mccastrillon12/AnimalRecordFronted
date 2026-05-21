@@ -20,6 +20,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
 import 'package:animal_record/core/services/deep_link_service.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_password_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/link_expired_screen.dart';
@@ -27,7 +28,12 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_password_s
 import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
+import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
+import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
+import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -61,6 +67,8 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<AuthBloc>()),
         BlocProvider(create: (context) => di.sl<LocationsCubit>()),
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
+        BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
+        BlocProvider(create: (context) => di.sl<DiaryCubit>()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
@@ -84,7 +92,8 @@ class MyApp extends StatelessWidget {
             return LinkExpiredScreen(isPinFlow: args?['isPinFlow'] == true);
           },
           AppRoutes.forgotPassword: (context) => const ForgotPasswordScreen(),
-          AppRoutes.forgotPin: (context) => const ForgotPinScreen(identifier: ''),
+          AppRoutes.forgotPin: (context) =>
+              const ForgotPinScreen(identifier: ''),
           AppRoutes.resetPin: (context) {
             final args =
                 ModalRoute.of(context)?.settings.arguments
@@ -98,6 +107,32 @@ class MyApp extends StatelessWidget {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalDetailScreen(animal: animal);
+          },
+          AppRoutes.animalInfo: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalInfoScreen(animal: animal);
+          },
+          AppRoutes.animalDiary: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalDiaryScreen(animal: animal);
+          },
+          AppRoutes.animalDiaryCreate: (context) {
+            final args = ModalRoute.of(context)!.settings.arguments;
+            AnimalModel animal;
+            DiaryEntryEntity? entry;
+            
+            if (args is AnimalModel) {
+              animal = args;
+            } else if (args is Map<String, dynamic>) {
+              animal = args['animal'] as AnimalModel;
+              entry = args['entry'] as DiaryEntryEntity?;
+            } else {
+              throw Exception('Invalid arguments for animalDiaryCreate route');
+            }
+            
+            return AnimalDiaryCreateScreen(animal: animal, entry: entry);
           },
         },
       ),

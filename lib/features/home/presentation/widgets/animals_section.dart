@@ -61,10 +61,23 @@ class _AnimalsSectionState extends State<AnimalsSection> {
         }
 
         final hasAnimals = animals.isNotEmpty;
+
+        // Sort animals by createdAt descending (newest first)
+        final sortedAnimals = List<AnimalModel>.from(animals)
+          ..sort((a, b) {
+            final dateA =
+                DateTime.tryParse(a.createdAt ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            final dateB =
+                DateTime.tryParse(b.createdAt ?? '') ??
+                DateTime.fromMillisecondsSinceEpoch(0);
+            return dateB.compareTo(dateA);
+          });
+
         // Max 3 in home preview
-        final previewAnimals = animals.length > 3
-            ? animals.sublist(0, 3)
-            : animals;
+        final previewAnimals = sortedAnimals.length > 3
+            ? sortedAnimals.sublist(0, 3)
+            : sortedAnimals;
 
         return SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
@@ -75,12 +88,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Mis animales',
-                    style: AppTypography.heading2.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  Text('Mis animales', style: AppTypography.heading2),
                   if (hasAnimals)
                     _buildViewToggle()
                   else
@@ -99,11 +107,11 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               ),
 
               if (hasAnimals) ...[
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.m),
                 _viewMode == AnimalCardMode.grid
                     ? _buildGridView(previewAnimals)
                     : _buildListView(previewAnimals),
-                const SizedBox(height: 8),
+                const SizedBox(height: AppSpacing.xs),
                 // "Ver todos" link
                 Align(
                   alignment: _viewMode == AnimalCardMode.list
@@ -134,8 +142,8 @@ class _AnimalsSectionState extends State<AnimalsSection> {
     return GestureDetector(
       onTap: _toggleViewMode,
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4),
@@ -153,8 +161,8 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                 ? 'assets/icons/vuesax-bold-element-3.svg'
                 : 'assets/icons/vuesax-bold-fatrows.svg',
             colorFilter: ColorFilter.mode(AppColors.greyMedio, BlendMode.srcIn),
-            width: 24,
-            height: 24,
+            width: AppSpacing.iconSizeSmall,
+            height: AppSpacing.iconSizeSmall,
           ),
         ),
       ),
@@ -169,7 +177,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,
@@ -226,7 +234,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
               textAlign: TextAlign.center,
               style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: AppSpacing.xxs),
             Text(
               'Empieza agregando uno desde',
               textAlign: TextAlign.center,
@@ -248,10 +256,7 @@ class _AnimalsSectionState extends State<AnimalsSection> {
                 ),
                 child: Text(
                   '+ Animal',
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: AppTypography.body3.copyWith(color: AppColors.white),
                 ),
               ),
             ),

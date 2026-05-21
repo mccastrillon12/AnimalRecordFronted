@@ -46,6 +46,11 @@ import 'package:animal_record/features/home/data/repositories/animal_repository_
 import 'package:animal_record/features/home/domain/repositories/animal_repository.dart';
 import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/search_animals_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
 import 'package:animal_record/features/catalogs/data/datasources/catalogs_remote_datasource.dart';
@@ -53,7 +58,26 @@ import 'package:animal_record/features/catalogs/data/repositories/catalogs_repos
 import 'package:animal_record/features/catalogs/domain/repositories/catalogs_repository.dart';
 import 'package:animal_record/features/catalogs/domain/usecases/get_species_usecase.dart';
 import 'package:animal_record/features/catalogs/domain/usecases/get_breeds_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_housing_types_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_animal_purposes_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_temperaments_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_adoption_sources_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_identification_types_usecase.dart';
+import 'package:animal_record/features/catalogs/domain/usecases/get_registration_associations_usecase.dart';
 import 'package:animal_record/features/catalogs/presentation/cubit/catalogs_cubit.dart';
+
+// — Diary feature —
+import 'package:animal_record/features/diary/data/datasources/diary_remote_datasource.dart';
+import 'package:animal_record/features/diary/data/repositories/diary_repository_impl.dart';
+import 'package:animal_record/features/diary/domain/repositories/diary_repository.dart';
+import 'package:animal_record/features/diary/domain/usecases/get_diary_entries_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/create_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/update_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/delete_diary_entry_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/get_attachment_upload_url_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/confirm_attachment_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/delete_attachment_usecase.dart';
+import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
@@ -174,11 +198,22 @@ Future<void> init() async {
     () => AnimalCubit(
       createAnimalUseCase: sl(),
       getAnimalsByOwnerUseCase: sl(),
+      getAnimalByIdUseCase: sl(),
+      updateAnimalUseCase: sl(),
+      getAnimalPictureUploadUrlUseCase: sl(),
+      confirmAnimalPictureUseCase: sl(),
+      searchAnimalsUseCase: sl(),
+      s3UploadService: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => CreateAnimalUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalsByOwnerUseCase(sl()));
+  sl.registerLazySingleton(() => GetAnimalByIdUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateAnimalUseCase(sl()));
+  sl.registerLazySingleton(() => GetAnimalPictureUploadUrlUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmAnimalPictureUseCase(sl()));
+  sl.registerLazySingleton(() => SearchAnimalsUseCase(sl()));
 
   sl.registerLazySingleton<AnimalRepository>(
     () => AnimalRepositoryImpl(remoteDataSource: sl()),
@@ -193,11 +228,23 @@ Future<void> init() async {
     () => CatalogsCubit(
       getSpeciesUseCase: sl(),
       getBreedsBySpeciesUseCase: sl(),
+      getHousingTypesUseCase: sl(),
+      getAnimalPurposesUseCase: sl(),
+      getTemperamentsUseCase: sl(),
+      getAdoptionSourcesUseCase: sl(),
+      getIdentificationTypesUseCase: sl(),
+      getRegistrationAssociationsUseCase: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => GetSpeciesUseCase(repository: sl()));
   sl.registerLazySingleton(() => GetBreedsBySpeciesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetHousingTypesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetAnimalPurposesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetTemperamentsUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetAdoptionSourcesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetIdentificationTypesUseCase(repository: sl()));
+  sl.registerLazySingleton(() => GetRegistrationAssociationsUseCase(repository: sl()));
 
   sl.registerLazySingleton<CatalogsRepository>(
     () => CatalogsRepositoryImpl(remoteDataSource: sl()),
@@ -205,6 +252,33 @@ Future<void> init() async {
 
   sl.registerLazySingleton<CatalogsRemoteDataSource>(
     () => CatalogsRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // — Diary feature —
+  sl.registerFactory(
+    () => DiaryCubit(
+      getDiaryEntriesUseCase: sl(),
+      createDiaryEntryUseCase: sl(),
+      updateDiaryEntryUseCase: sl(),
+      deleteDiaryEntryUseCase: sl(),
+      getAttachmentUploadUrlUseCase: sl(),
+      confirmAttachmentUseCase: sl(),
+      deleteAttachmentUseCase: sl(),
+      s3UploadService: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetDiaryEntriesUseCase(sl()));
+  sl.registerLazySingleton(() => CreateDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => UpdateDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteDiaryEntryUseCase(sl()));
+  sl.registerLazySingleton(() => GetAttachmentUploadUrlUseCase(sl()));
+  sl.registerLazySingleton(() => ConfirmAttachmentUseCase(sl()));
+  sl.registerLazySingleton(() => DeleteAttachmentUseCase(sl()));
+  sl.registerLazySingleton<DiaryRepository>(
+    () => DiaryRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<DiaryRemoteDataSource>(
+    () => DiaryRemoteDataSourceImpl(apiClient: sl()),
   );
 
   sl.registerLazySingleton<TokenStorage>(

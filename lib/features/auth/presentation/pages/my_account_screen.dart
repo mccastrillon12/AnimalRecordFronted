@@ -352,6 +352,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                           CustomTextField(
                             controller: _nameController,
                             label: 'Nombre completo',
+                            textCapitalization: TextCapitalization.words,
                           ),
                           const SizedBox(height: AppSpacing.m),
 

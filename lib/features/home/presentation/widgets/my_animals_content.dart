@@ -10,6 +10,8 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 
 /// Full "Mis Animales" page with search bar, grid/list toggle, filter, and
@@ -24,7 +26,18 @@ class MyAnimalsContent extends StatefulWidget {
 class _MyAnimalsContentState extends State<MyAnimalsContent> {
   AnimalCardMode _viewMode = AnimalCardMode.grid;
   String _searchQuery = '';
+  final Set<String> _collapsedFamilies = {};
   final TextEditingController _searchController = TextEditingController();
+  String? _searchErrorText;
+
+  String _currentFilterSex = 'Ambos';
+  List<String> _currentFilterFamilies = [];
+  List<String> _currentFilterAges = [];
+
+  bool get _hasActiveFilters =>
+      _currentFilterSex != 'Ambos' ||
+      _currentFilterFamilies.isNotEmpty ||
+      _currentFilterAges.isNotEmpty;
 
   @override
   void dispose() {
@@ -110,79 +123,133 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                   ),
                 ),
 
-                const SizedBox(height: 24),
+                const SizedBox(height: AppSpacing.l),
 
                 // Search bar + view toggle + filter
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
                   child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Search field
                       Expanded(
-                        child: SizedBox(
-                          height: 40,
-                          child: TextField(
-                            controller: _searchController,
-                            onChanged: (v) => setState(() => _searchQuery = v),
-                            style: AppTypography.body4,
-                            textAlignVertical: TextAlignVertical.center,
-                            decoration: InputDecoration(
-                              filled: true,
-                              fillColor: AppColors.white,
-                              isDense: true,
-                              hintText: 'Buscar',
-                              hintStyle: AppTypography.body4.copyWith(
-                                color: AppColors.greyBordes,
-                              ),
-                              prefixIcon: Padding(
-                                padding: const EdgeInsets.only(
-                                  left: 16,
-                                  right: 8,
-                                ),
-                                child: SvgPicture.asset(
-                                  'assets/icons/vuesax-linear-search-2.svg',
-                                  width: 24,
-                                  height: 24,
-                                  colorFilter: const ColorFilter.mode(
-                                    Color(0xFF59667A),
-                                    BlendMode.srcIn,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(
+                              height: AppSpacing.iconSizeMedium,
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (v) =>
+                                    setState(() => _searchQuery = v),
+                                style: AppTypography.body4,
+                                textAlignVertical: TextAlignVertical.center,
+                                inputFormatters: [
+                                  ErrorTriggeringTextInputFormatter(
+                                    allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+                                    maxLength: 20,
+                                    onError: (error) {
+                                      if (_searchErrorText != error) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (mounted)
+                                                setState(
+                                                  () =>
+                                                      _searchErrorText = error,
+                                                );
+                                            });
+                                      }
+                                    },
+                                    onSuccess: () {
+                                      if (_searchErrorText != null) {
+                                        WidgetsBinding.instance
+                                            .addPostFrameCallback((_) {
+                                              if (mounted)
+                                                setState(
+                                                  () => _searchErrorText = null,
+                                                );
+                                            });
+                                      }
+                                    },
+                                  ),
+                                ],
+                                decoration: InputDecoration(
+                                  filled: true,
+                                  fillColor: AppColors.white,
+                                  isDense: true,
+                                  hintText: 'Buscar',
+                                  hintStyle: AppTypography.body4.copyWith(
+                                    color: AppColors.greyBordes,
+                                  ),
+                                  prefixIcon: Padding(
+                                    padding: const EdgeInsets.only(
+                                      left: 16,
+                                      right: 8,
+                                    ),
+                                    child: SvgPicture.asset(
+                                      'assets/icons/vuesax-linear-search-2.svg',
+                                      width: AppSpacing.iconSizeSmall,
+                                      height: AppSpacing.iconSizeSmall,
+                                      colorFilter: const ColorFilter.mode(
+                                        Color(0xFF59667A),
+                                        BlendMode.srcIn,
+                                      ),
+                                    ),
+                                  ),
+                                  prefixIconConstraints: const BoxConstraints(
+                                    minWidth: 0,
+                                    minHeight: 0,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFFA8AFBD),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFFA8AFBD),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(4),
+                                    borderSide: BorderSide(
+                                      color: _searchErrorText != null
+                                          ? AppColors.error
+                                          : const Color(0xFF0072BB),
+                                      width: 1,
+                                    ),
+                                  ),
+                                  contentPadding: const EdgeInsets.symmetric(
+                                    vertical: 11,
                                   ),
                                 ),
                               ),
-                              prefixIconConstraints: const BoxConstraints(
-                                minWidth: 0,
-                                minHeight: 0,
-                              ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFA8AFBD),
-                                  width: 1,
-                                ),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFFA8AFBD),
-                                  width: 1,
-                                ),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(4),
-                                borderSide: const BorderSide(
-                                  color: Color(0xFF0072BB),
-                                  width: 1,
-                                ),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                vertical: 11,
-                              ),
                             ),
-                          ),
+                            if (_searchErrorText != null) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                _searchErrorText!,
+                                style: AppTypography.body5.copyWith(
+                                  color: AppColors.error,
+                                  height: 1.2,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
 
-                      const SizedBox(width: 24),
+                      const SizedBox(width: AppSpacing.l),
 
                       // View toggle
                       _buildIconButton(
@@ -194,34 +261,150 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                             AppColors.greyMedio,
                             BlendMode.srcIn,
                           ),
-                          width: 24,
-                          height: 24,
+                          width: AppSpacing.iconSizeSmall,
+                          height: AppSpacing.iconSizeSmall,
                         ),
                         onTap: _toggleViewMode,
                       ),
 
-                      const SizedBox(width: 16),
+                      const SizedBox(width: AppSpacing.m),
 
                       // Filter button
                       _buildIconButton(
                         child: SvgPicture.asset(
                           'assets/icons/vuesax-bold-setting-4.svg',
-                          colorFilter: const ColorFilter.mode(
-                            AppColors.greyMedio,
+                          colorFilter: ColorFilter.mode(
+                            _hasActiveFilters
+                                ? AppColors.primaryFrances
+                                : AppColors.greyMedio,
                             BlendMode.srcIn,
                           ),
-                          width: 24,
-                          height: 24,
+                          width: AppSpacing.iconSizeSmall,
+                          height: AppSpacing.iconSizeSmall,
                         ),
-                        onTap: () {
-                          // TODO: Implement filter
+                        onTap: () async {
+                          final result =
+                              await showModalBottomSheet<Map<String, dynamic>>(
+                                context: context,
+                                isScrollControlled: true,
+                                backgroundColor: Colors.transparent,
+                                barrierColor: AppColors.overlayBlack,
+                                builder: (context) => AnimalFilterModal(
+                                  initialSex: _currentFilterSex,
+                                  initialFamilies: _currentFilterFamilies,
+                                  initialAges: _currentFilterAges,
+                                ),
+                              );
+
+                          if (!context.mounted) return;
+
+                          if (result != null) {
+                            setState(() {
+                              _currentFilterSex =
+                                  result['sex'] as String? ?? 'Ambos';
+                              _currentFilterFamilies =
+                                  result['families'] as List<String>? ?? [];
+                              _currentFilterAges =
+                                  result['ages'] as List<String>? ?? [];
+                            });
+
+                            final Map<String, dynamic> queryParams = {};
+
+                            final sex = result['sex'] as String?;
+                            if (sex != null) {
+                              if (sex == 'Ambos') {
+                                queryParams['sex'] = 'MALE,FEMALE';
+                              } else {
+                                queryParams['sex'] =
+                                    sex == 'Macho' ? 'MALE' : 'FEMALE';
+                              }
+                            }
+
+                            // Species: map to API codes and send comma-separated
+                            final families =
+                                result['families'] as List<String>?;
+                            if (families != null && families.isNotEmpty) {
+                              final mappedSpecies = families.map((family) {
+                                switch (family) {
+                                  case 'Felino':
+                                    return 'CAT';
+                                  case 'Canino':
+                                    return 'DOG';
+                                  case 'Bovino':
+                                    return 'BOVINE';
+                                  case 'Equino':
+                                    return 'EQUINE';
+                                  default:
+                                    return family.toUpperCase();
+                                }
+                              }).toList();
+                              queryParams['species'] = mappedSpecies.join(',');
+                            }
+
+                            // Age ranges: send each range individually as min-max in months
+                            final ages = result['ages'] as List<String>?;
+                            if (ages != null && ages.isNotEmpty) {
+                              final List<String> ageRangeParts = [];
+
+                              for (final ageStr in ages) {
+                                switch (ageStr) {
+                                  case '0-6 meses':
+                                    ageRangeParts.add('0-6');
+                                    break;
+                                  case '7-11 meses':
+                                    ageRangeParts.add('7-11');
+                                    break;
+                                  case '1-3 años':
+                                    ageRangeParts.add('12-36');
+                                    break;
+                                  case '4-6 años':
+                                    ageRangeParts.add('48-72');
+                                    break;
+                                  case '7-10 años':
+                                    ageRangeParts.add('84-120');
+                                    break;
+                                  case '11-15 años':
+                                    ageRangeParts.add('132-180');
+                                    break;
+                                  case '16-20 años':
+                                    ageRangeParts.add('192-240');
+                                    break;
+                                  case '21-25 años':
+                                    ageRangeParts.add('252-300');
+                                    break;
+                                  case '+25 años':
+                                    ageRangeParts.add('301-600');
+                                    break;
+                                }
+                              }
+
+                              if (ageRangeParts.isNotEmpty) {
+                                queryParams['ageRanges'] =
+                                    ageRangeParts.join(',');
+                              }
+                            }
+
+                            if (queryParams.isEmpty) {
+                              // If no filters were selected or they were cleared, reload without filters
+                              if (context.read<AnimalCubit>().currentOwnerId !=
+                                  null) {
+                                context.read<AnimalCubit>().searchAnimals(
+                                  queryParams,
+                                );
+                              }
+                            } else {
+                              context.read<AnimalCubit>().searchAnimals(
+                                queryParams,
+                              );
+                            }
+                          }
                         },
                       ),
                     ],
                   ),
                 ),
 
-                const SizedBox(height: 16),
+                const SizedBox(height: AppSpacing.m),
 
                 // Grouped animals
                 Expanded(
@@ -267,8 +450,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: BorderRadius.circular(4),
@@ -287,37 +470,59 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
   }
 
   Widget _buildGroup(String family, List<AnimalModel> animals) {
+    final bool isCollapsed = _collapsedFamilies.contains(family);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Group header
-        Container(
-          decoration: const BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: AppColors.greyDelineante, width: 2),
-            ),
-          ),
-          height: 56,
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(family, style: AppTypography.heading2.copyWith()),
-              SvgPicture.asset(
-                'assets/icons/arrow-right.svg',
-                width: 24,
-                height: 24,
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              if (isCollapsed) {
+                _collapsedFamilies.remove(family);
+              } else {
+                _collapsedFamilies.add(family);
+              }
+            });
+          },
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: AppColors.greyDelineante, width: 2),
               ),
-            ],
+            ),
+            height: AppSpacing.xxxl,
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(family, style: AppTypography.heading2.copyWith()),
+                RotatedBox(
+                  quarterTurns: isCollapsed
+                      ? 0
+                      : 1, // 0 = right (collapsed), 1 = down (expanded)
+                  child: SvgPicture.asset(
+                    'assets/icons/arrow-right.svg',
+                    width: AppSpacing.iconSizeSmall,
+                    height: AppSpacing.iconSizeSmall,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
 
-        if (_viewMode == AnimalCardMode.grid) const SizedBox(height: 16),
-        _viewMode == AnimalCardMode.grid
-            ? _buildGroupGrid(animals)
-            : _buildGroupList(animals),
+        if (!isCollapsed) ...[
+          if (_viewMode == AnimalCardMode.grid)
+            const SizedBox(height: AppSpacing.m),
+          _viewMode == AnimalCardMode.grid
+              ? _buildGroupGrid(animals)
+              : _buildGroupList(animals),
+        ],
 
-        const SizedBox(height: 24),
+        const SizedBox(height: AppSpacing.l),
       ],
     );
   }
@@ -330,7 +535,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           shrinkWrap: true,
           scrollDirection: Axis.horizontal,
           itemCount: animals.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 8),
+          separatorBuilder: (_, _) => const SizedBox(width: AppSpacing.xs),
           itemBuilder: (context, index) {
             return SizedBox(
               width: 103,
@@ -386,10 +591,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
       ),
-      constraints: const BoxConstraints(
-        minWidth: 203,
-        maxWidth: 203,
-      ),
+      constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
       color: AppColors.white,
       elevation: 4,
       itemBuilder: (context) => [
@@ -401,8 +603,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             children: [
               SvgPicture.asset(
                 'assets/icons/add-circle.svg',
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
               Text(
@@ -422,8 +624,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             children: [
               SvgPicture.asset(
                 'assets/icons/vuesax-bold-send-sqaure-2.svg',
-                width: 24,
-                height: 24,
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
               Text(
@@ -437,11 +639,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         ),
       ],
       child: Container(
-        width: 40,
-        height: 40,
+        width: AppSpacing.iconSizeMedium,
+        height: AppSpacing.iconSizeMedium,
         decoration: BoxDecoration(
           color: AppColors.secondaryCoral,
-          borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
+          borderRadius: BorderRadius.circular(6),
           boxShadow: [
             BoxShadow(
               color: AppColors.secondaryCoral.withValues(alpha: 0.4),
@@ -453,7 +655,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         child: const Icon(
           Icons.more_vert_rounded,
           color: AppColors.white,
-          size: 24,
+          size: AppSpacing.iconSizeSmall,
         ),
       ),
     );

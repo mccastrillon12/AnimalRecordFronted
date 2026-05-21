@@ -45,6 +45,52 @@ class AnimalCreated extends AnimalState {
   List<Object?> get props => [animal, allAnimals];
 }
 
+/// A single animal is being updated (PUT in progress).
+class AnimalUpdating extends AnimalState {
+  final List<AnimalEntity> existingAnimals;
+
+  const AnimalUpdating({this.existingAnimals = const []});
+
+  @override
+  List<Object?> get props => [existingAnimals];
+}
+
+/// A single animal was updated successfully.
+class AnimalUpdated extends AnimalState {
+  final AnimalEntity animal;
+  final List<AnimalEntity> allAnimals;
+
+  const AnimalUpdated(this.animal, {this.allAnimals = const []});
+
+  @override
+  List<Object?> get props => [animal, allAnimals];
+}
+
+/// Profile picture is being uploaded for an animal.
+class AnimalPictureUploading extends AnimalState {
+  final List<AnimalEntity> existingAnimals;
+  final String animalId;
+
+  const AnimalPictureUploading({
+    this.existingAnimals = const [],
+    required this.animalId,
+  });
+
+  @override
+  List<Object?> get props => [existingAnimals, animalId];
+}
+
+/// Profile picture was uploaded/deleted successfully.
+class AnimalPictureUploaded extends AnimalState {
+  final AnimalEntity animal;
+  final List<AnimalEntity> allAnimals;
+
+  const AnimalPictureUploaded(this.animal, {this.allAnimals = const []});
+
+  @override
+  List<Object?> get props => [animal, allAnimals];
+}
+
 /// Error state.
 class AnimalError extends AnimalState {
   final String message;
