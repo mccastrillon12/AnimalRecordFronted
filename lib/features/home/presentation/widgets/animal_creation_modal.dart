@@ -162,13 +162,19 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       final match = cubit.animalPurposes.where((p) => p.name == purposeName);
       if (match.isNotEmpty) purposeId = match.first.id;
     }
+    
+    final isBovino = _selectedSpecies != null &&
+        _selectedSpecies!.name.toLowerCase() == 'bovino';
+
     setState(() {
       _selectedPurpose = purposeName;
-      _selectedBreed = null; // Reset breed when purpose changes
+      if (isBovino) {
+        _selectedBreed = null; // Reset breed when purpose changes
+      }
     });
+    
     // Reload breeds filtered by purpose only for bovinos
-    if (_selectedSpecies != null &&
-        _selectedSpecies!.name.toLowerCase() == 'bovino') {
+    if (isBovino) {
       cubit.loadBreeds(_selectedSpecies!.id, purposeId: purposeId);
     }
   }
@@ -924,7 +930,8 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: selectedBreed,
                           searchable: true,
                           isInline: true,
-                          enabled: !breedsLoading && breeds.isNotEmpty,
+                          enabled: (!breedsLoading && breeds.isNotEmpty) &&
+                              (selectedSpecies.name.toLowerCase() != 'bovino' || selectedPurpose != null),
                           items: breeds.map((b) => b.name).toList(),
                           itemAsString: (name) => name,
                           onChanged: onBreedChanged,
