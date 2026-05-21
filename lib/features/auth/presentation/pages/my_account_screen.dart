@@ -195,7 +195,32 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
       listener: (context, state) {
         if (state is AuthSuccess && state is! PasswordChangeSuccess) {
           if (state.updateError != null) {
-            ErrorDisplay.showError(context, 'Error: ${state.updateError}');
+            String errorMsg = state.updateError!;
+            bool showPrefix = true;
+            
+            final currentPhone = _phoneController.text.trim();
+            final originalCleanPhone = state.user.cellPhone.isNotEmpty
+                ? CountryConstants.stripDialCode(state.user.cellPhone)
+                : '';
+            final phoneChanged = currentPhone != originalCleanPhone && currentPhone.isNotEmpty;
+
+            final currentEmail = _emailController.text.trim();
+            final emailChanged = currentEmail != state.user.email && currentEmail.isNotEmpty;
+
+            if (errorMsg.contains('Error del servidor')) {
+              if (emailChanged && phoneChanged) {
+                errorMsg = 'Parece que este correo electrónico o número celular ya están asociados a otra cuenta';
+                showPrefix = false;
+              } else if (emailChanged) {
+                errorMsg = 'Parece que este correo electrónico ya está asociado a otra cuenta';
+                showPrefix = false;
+              } else if (phoneChanged) {
+                errorMsg = 'Parece que este número celular ya está asociado a otra cuenta';
+                showPrefix = false;
+              }
+            }
+
+            ErrorDisplay.showError(context, showPrefix ? 'Error: $errorMsg' : errorMsg);
           } else if (state.isUpdating == false && state.updateError == null) {
             ErrorDisplay.showSuccess(context, 'Cambios guardados');
             Navigator.pop(context);
