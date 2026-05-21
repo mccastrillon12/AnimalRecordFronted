@@ -969,9 +969,38 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: selectedBreed,
                           searchable: true,
                           isInline: true,
+                          preserveOrder: true,
                           enabled: (!breedsLoading && breeds.isNotEmpty) &&
                               (selectedSpecies.name.toLowerCase() != 'bovino' || selectedPurpose != null),
-                          items: breeds.map((b) => b.name).toList(),
+                          items: () {
+                            final names = breeds.map((b) => b.name).toList();
+                            names.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+                            
+                            int topIndex = -1;
+                            
+                            // Primero buscamos coincidencias exactas para asegurar que agarre el correcto (ej. 'Mestizo Comercial')
+                            final exactMatches = ['mestizo / criollo', 'mestizo comercial', 'mestizo', 'criollo'];
+                            for (final target in exactMatches) {
+                              topIndex = names.indexWhere((name) => name.toLowerCase() == target);
+                              if (topIndex != -1) break;
+                            }
+                            
+                            // Si no hay coincidencia exacta, buscamos por subcadena
+                            if (topIndex == -1) {
+                              topIndex = names.indexWhere((name) {
+                                final lower = name.toLowerCase();
+                                return lower.contains('mestizo comercial') || 
+                                       lower.contains('criollo') || 
+                                       lower.contains('mestizo');
+                              });
+                            }
+                            
+                            if (topIndex > 0) {
+                              final topBreed = names.removeAt(topIndex);
+                              names.insert(0, topBreed);
+                            }
+                            return names;
+                          }(),
                           itemAsString: (name) => name,
                           onChanged: onBreedChanged,
                         ),
