@@ -532,84 +532,98 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         ],
       ),
       padding: const EdgeInsets.only(top: 16, right: 24, bottom: 8, left: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Title row
-          Row(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final style = AppTypography.body4.copyWith(
+            color: AppColors.greyNegro,
+            height: 1.5,
+          );
+          final textPainter = TextPainter(
+            text: TextSpan(text: entry.content, style: style),
+            maxLines: 4,
+            textDirection: TextDirection.ltr,
+          );
+          textPainter.layout(maxWidth: constraints.maxWidth);
+          final isTextExceeding = textPainter.didExceedMaxLines;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  entry.title,
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.greyNegro,
+              // Title row
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      entry.title,
+                      style: AppTypography.body3.copyWith(
+                        color: AppColors.greyNegro,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
+                  if (isTextExceeding)
+                    GestureDetector(
+                      onTap: () => _toggleExpand(entry.id),
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.only(left: 8),
+                        child: Icon(
+                          _expandedEntryIds.contains(entry.id)
+                              ? Icons.keyboard_arrow_up
+                              : Icons.keyboard_arrow_down,
+                          size: 20,
+                          color: AppColors.greyMedio,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              GestureDetector(
-                onTap: () => _toggleExpand(entry.id),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 8),
-                  child: Icon(
-                    _expandedEntryIds.contains(entry.id)
-                        ? Icons.keyboard_arrow_up
-                        : Icons.keyboard_arrow_down,
-                    size: 20,
-                    color: AppColors.greyMedio,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-          // Content preview
-          Text(
-            entry.content,
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyNegro,
-              height: 1.5,
-            ),
-            maxLines: _expandedEntryIds.contains(entry.id) ? null : 4,
-            overflow: _expandedEntryIds.contains(entry.id)
-                ? TextOverflow.visible
-                : TextOverflow.ellipsis,
-          ),
-
-          // ALL attachments list
-          if (entry.attachments.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            ...entry.attachments.map((att) => _buildAttachmentLink(att, entry)),
-          ],
-
-          const SizedBox(height: 8),
-
-          // Divider
-          Container(
-            height: 1,
-            width: double.infinity,
-            color: AppColors.greyDelineante,
-          ),
-
-          const SizedBox(height: 8),
-
-          // Date + popup menu row
-          Row(
-            children: [
+              // Content preview
               Text(
-                dateDisplay,
-                style: AppTypography.body5.copyWith(
-                  color: AppColors.greyBordes,
-                ),
+                entry.content,
+                style: style,
+                maxLines: _expandedEntryIds.contains(entry.id) ? null : 4,
+                overflow: _expandedEntryIds.contains(entry.id)
+                    ? TextOverflow.visible
+                    : TextOverflow.ellipsis,
               ),
-              const Spacer(),
-              _buildPopupMenu(entry),
+
+              // ALL attachments list
+              if (entry.attachments.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                ...entry.attachments.map((att) => _buildAttachmentLink(att, entry)),
+              ],
+
+              const SizedBox(height: 8),
+
+              // Divider
+              Container(
+                height: 1,
+                width: double.infinity,
+                color: AppColors.greyDelineante,
+              ),
+
+              const SizedBox(height: 8),
+
+              // Date + popup menu row
+              Row(
+                children: [
+                  Text(
+                    dateDisplay,
+                    style: AppTypography.body5.copyWith(
+                      color: AppColors.greyBordes,
+                    ),
+                  ),
+                  const Spacer(),
+                  _buildPopupMenu(entry),
+                ],
+              ),
             ],
-          ),
-        ],
+          );
+        },
       ),
     );
   }
