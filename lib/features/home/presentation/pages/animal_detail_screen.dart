@@ -195,10 +195,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                // Combined Hero Card and Info Section (Exact Figma dimensions)
+                                // Combined Hero Card and Info Section (Dynamic height)
                                 Container(
                                   width: 311,
-                                  height: 339,
                                   padding: const EdgeInsets.all(
                                     AppSpacing.m,
                                   ), // 16px padding on all sides per Figma
@@ -209,6 +208,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       // The hero image
                                       AnimalCard(
@@ -219,9 +219,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                         height: 14,
                                       ), // Spacing between image and text
                                       // Info section
-                                      Expanded(
-                                        child: _buildInfoSection(currentAnimal),
-                                      ),
+                                      _buildInfoSection(currentAnimal),
                                     ],
                                   ),
                                 ),
