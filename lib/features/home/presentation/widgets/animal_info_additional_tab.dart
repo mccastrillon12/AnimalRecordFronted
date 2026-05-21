@@ -72,9 +72,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           // Temperamento
           AppMultiSearchDropdown<String>(
             label: 'Temperamento',
-            hint: 'Buscar o escribir',
+            hint: 'Seleccionar',
             selectedItems: selectedTemperaments,
             isInline: true,
+            searchable: false,
             items: temperamentOptions.map((t) => t.name).toList(),
             itemAsString: (item) => item,
             onChanged: readOnly ? (_) {} : onTemperamentsChanged,

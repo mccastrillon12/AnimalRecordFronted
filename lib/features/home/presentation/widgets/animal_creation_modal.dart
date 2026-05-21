@@ -1642,9 +1642,10 @@ class _AdditionalInfoStep extends StatelessWidget {
                         // Temperament
                         AppMultiSearchDropdown<String>(
                           label: 'Temperamento',
-                          hint: 'Buscar o escribir',
+                          hint: 'Seleccionar',
                           selectedItems: selectedTemperaments,
                           isInline: true,
+                          searchable: false,
                           items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,
