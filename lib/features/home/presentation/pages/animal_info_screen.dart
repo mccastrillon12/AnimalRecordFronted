@@ -1228,6 +1228,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                               ),
                               child: TabBar(
                                 controller: _tabController,
+                                labelPadding: EdgeInsets.zero,
                                 dividerColor:
                                     Colors.transparent, // Disable default line
                                 labelColor: AppColors.textPrimary,
