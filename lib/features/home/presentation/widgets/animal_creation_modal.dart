@@ -902,7 +902,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           maxLength: 50,
                           textCapitalization: TextCapitalization.sentences,
                           strictValidation: true,
-                          allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+                          allowPattern: RegExp(r'^[a-zA-ZÀ-ÿ0-9\s.,´]+$'),
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -1530,7 +1530,7 @@ class _AnimalInfoStep extends StatelessWidget {
           maxLines: 4,
           maxLength: 150,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZÀ-ÿ0-9\s.,´]')),
           ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(

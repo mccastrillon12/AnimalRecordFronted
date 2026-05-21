@@ -595,7 +595,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
           maxLines: 4,
           maxLength: 150,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZÀ-ÿ0-9\s.,´]')),
           ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(
