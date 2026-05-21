@@ -120,6 +120,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
       );
     }
 
@@ -141,6 +142,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
         errorBuilder: (_, _, _) => Center(
           child: SvgPicture.asset(
             _iconForFamily(animal.family),

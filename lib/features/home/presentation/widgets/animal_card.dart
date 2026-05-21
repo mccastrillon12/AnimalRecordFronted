@@ -276,6 +276,7 @@ class AnimalCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: animal.imageUrl!,
                 fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
                 width: size,
                 height: size,
                 fadeInDuration: Duration.zero,
@@ -323,6 +324,7 @@ class AnimalCard extends StatelessWidget {
             CachedNetworkImage(
               imageUrl: animal.imageUrl!,
               fit: BoxFit.cover,
+              alignment: Alignment.topCenter,
               fadeInDuration: Duration.zero,
               fadeOutDuration: Duration.zero,
               placeholder: (context, url) => _buildDetailPlaceholder(),

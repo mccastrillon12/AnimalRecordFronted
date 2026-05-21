@@ -1320,6 +1320,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         width: 96,
                         height: 96,
                         fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
                       )
                     : Center(
                         child: SvgPicture.asset(
