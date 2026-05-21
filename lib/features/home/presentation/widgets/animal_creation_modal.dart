@@ -632,12 +632,24 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               otherDiagnosisController: _otherDiagnosisController,
               onDiagnosisChanged: (key, value) {
                 setState(() {
-                  // Single-select: deselect all others
-                  for (final k in _diagnoses.keys) {
-                    _diagnoses[k] = false;
-                  }
                   _diagnoses[key] = value;
-                  if (key != 'Otro' || !value) {
+                  
+                  if (value) {
+                    if (key == 'Ninguno/Desconocido') {
+                      // Deselect all others
+                      for (final k in _diagnoses.keys) {
+                        if (k != 'Ninguno/Desconocido') {
+                          _diagnoses[k] = false;
+                        }
+                      }
+                      _otherDiagnosisController.clear();
+                    } else {
+                      // Deselect Ninguno/Desconocido
+                      _diagnoses['Ninguno/Desconocido'] = false;
+                    }
+                  }
+
+                  if (key == 'Otro' && !value) {
                     _otherDiagnosisController.clear();
                   }
                 });
