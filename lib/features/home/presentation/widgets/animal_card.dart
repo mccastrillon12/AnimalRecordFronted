@@ -240,19 +240,44 @@ class AnimalCard extends StatelessWidget {
             ),
           ),
 
-          // Context menu
-          GestureDetector(
-            onTap: onMenuTap,
-            child: SvgPicture.asset(
-              'assets/icons/icon_ContextMenu.svg',
-              width: AppSpacing.iconSizeSmall,
-              height: AppSpacing.iconSizeSmall,
-              colorFilter: const ColorFilter.mode(
-                AppColors.greyMedio,
-                BlendMode.srcIn,
+          // Context menu or tag
+          if (!animal.isActive)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 1,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.bgRosa,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    offset: const Offset(0, 3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                'Inactivo',
+                style: AppTypography.body5.copyWith(
+                  color: AppColors.errorRojo,
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: onMenuTap,
+              child: SvgPicture.asset(
+                'assets/icons/icon_ContextMenu.svg',
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.greyMedio,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
