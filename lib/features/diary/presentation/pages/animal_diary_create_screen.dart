@@ -25,6 +25,7 @@ import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:flutter/services.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 
 /// Represents an attachment in the diary entry.
 class DiaryAttachment {
@@ -561,52 +562,15 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
         ],
       ),
       headerChildren: [
-        // ── Save button (top-left) ─────────────────────────────
+        // ── Save button (bottom) ─────────────────────────────
         Positioned(
-          top: 32,
+          bottom: 56 + 24, // 56px for toolbar + 24px padding above toolbar
           left: 24,
-          child: GestureDetector(
-            onTap: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              height:
-                  48, // Matches the default 48px height of the IconButton on the right side
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (_isSaving)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    SvgPicture.asset(
-                      'assets/icons/save-2.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        _hasContent
-                            ? AppColors.primaryIndigo
-                            : AppColors.greyBordes,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isSaving ? 'Guardando...' : 'Guardar',
-                    style: AppTypography.body4.copyWith(
-                      color: _isSaving
-                          ? AppColors.greyBordes
-                          : (_hasContent
-                                ? AppColors.primaryIndigo
-                                : AppColors.greyBordes),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+          right: 24,
+          child: CustomButton(
+            text: _isSaving ? 'Guardando...' : 'Guardar',
+            isLoading: _isSaving,
+            onPressed: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
           ),
         ),
         // ── Bottom toolbar + recording overlay ──────────────────
