@@ -10,6 +10,7 @@ import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -48,7 +49,10 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     TopMenuItem(
       svgPath: 'assets/icons/+animal.svg',
       label: '+ Animal',
-      onTap: () {},
+      onTap: () {
+        _closeMenu();
+        showAnimalCreationModal(context);
+      },
     ),
     TopMenuItem(
       svgPath: 'assets/icons/agenda.svg',
