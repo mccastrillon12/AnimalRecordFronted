@@ -372,7 +372,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
       ownerId: _currentAnimal.ownerId,
-      weight: double.tryParse(_weightKgController.text.trim()),
+      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,
@@ -440,7 +440,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
       ownerId: _currentAnimal.ownerId,
-      weight: double.tryParse(_weightKgController.text.trim()),
+      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,
@@ -964,7 +964,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
           : _selectedTemperaments,
       diagnosis: selectedDiagnoses.isEmpty ? ['Ninguno'] : selectedDiagnoses,
       ownerId: _currentAnimal.ownerId,
-      weight: double.tryParse(_weightKgController.text.trim()),
+      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,

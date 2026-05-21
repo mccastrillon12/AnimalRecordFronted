@@ -96,11 +96,14 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     'Otro': false,
   };
   final _otherDiagnosisController = TextEditingController();
+  bool _isConverting = false;
 
   @override
   void initState() {
     super.initState();
     _otherDiagnosisController.addListener(_onOtherDiagnosisChanged);
+    _weightKgController.addListener(_onWeightKgChanged);
+    _weightLbController.addListener(_onWeightLbChanged);
   }
 
   void _onOtherDiagnosisChanged() {
@@ -108,9 +111,45 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     setState(() {});
   }
 
+  void _onWeightKgChanged() {
+    if (_isConverting) return;
+    _isConverting = true;
+    final text = _weightKgController.text.trim();
+    if (text.isEmpty) {
+      _weightLbController.clear();
+    } else {
+      final kg = double.tryParse(text.replaceAll(',', '.'));
+      if (kg != null) {
+        final lb = (kg * 2.20462);
+        final lbStr = lb.toStringAsFixed(2).replaceAll('.', ',');
+        _weightLbController.text = lbStr;
+      }
+    }
+    _isConverting = false;
+  }
+
+  void _onWeightLbChanged() {
+    if (_isConverting) return;
+    _isConverting = true;
+    final text = _weightLbController.text.trim();
+    if (text.isEmpty) {
+      _weightKgController.clear();
+    } else {
+      final lb = double.tryParse(text.replaceAll(',', '.'));
+      if (lb != null) {
+        final kg = (lb / 2.20462);
+        final kgStr = kg.toStringAsFixed(2).replaceAll('.', ',');
+        _weightKgController.text = kgStr;
+      }
+    }
+    _isConverting = false;
+  }
+
   @override
   void dispose() {
     _otherDiagnosisController.removeListener(_onOtherDiagnosisChanged);
+    _weightKgController.removeListener(_onWeightKgChanged);
+    _weightLbController.removeListener(_onWeightLbChanged);
     _nameController.dispose();
     _weightKgController.dispose();
     _weightLbController.dispose();
@@ -299,7 +338,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ? _otherDiagnosisController.text.trim()
           : null,
       ownerId: ownerId,
-      weight: double.tryParse(_weightKgController.text.trim()),
+      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,
@@ -1057,10 +1096,17 @@ class _AnimalInfoStep extends StatelessWidget {
                                     hint: '- kg',
                                     controller: weightKgController,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    maxLength: 5,
+                                    maxLength: 7,
+                                    inputFormatters: [
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        return newValue.copyWith(
+                                          text: newValue.text.replaceAll('.', ','),
+                                        );
+                                      }),
+                                    ],
                                     strictValidation: true,
-                                    allowPattern: RegExp(r'^[0-9.]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    allowPattern: RegExp(r'^[0-9,]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1076,10 +1122,17 @@ class _AnimalInfoStep extends StatelessWidget {
                                     hint: '- lb',
                                     controller: weightLbController,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    maxLength: 5,
+                                    maxLength: 7,
+                                    inputFormatters: [
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        return newValue.copyWith(
+                                          text: newValue.text.replaceAll('.', ','),
+                                        );
+                                      }),
+                                    ],
                                     strictValidation: true,
-                                    allowPattern: RegExp(r'^[0-9.]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    allowPattern: RegExp(r'^[0-9,]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
