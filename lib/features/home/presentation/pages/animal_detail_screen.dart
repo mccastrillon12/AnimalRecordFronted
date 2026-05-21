@@ -197,7 +197,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                   ),
                                 // Combined Hero Card and Info Section (Dynamic height)
                                 Container(
-                                  width: 311,
+                                  width: double.infinity,
                                   padding: const EdgeInsets.all(
                                     AppSpacing.m,
                                   ), // 16px padding on all sides per Figma
@@ -450,9 +450,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       'Genealogía',
     ];
 
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: AppBorders.large(),
           boxShadow: [
@@ -480,7 +480,6 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               showArrow: true,
             );
           }).toList(),
-        ),
       ),
     );
   }
