@@ -26,6 +26,14 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
   final int? searchMaxLength;
   final List<TextInputFormatter>? searchInputFormatters;
 
+  /// Called when the user taps the "Add" button shown when there are no
+  /// matching results. Receives the current search text.
+  /// When null the "Add" row is never shown.
+  final ValueChanged<String>? onAddItem;
+
+  /// Label for the add button. Defaults to `'Agregar'`.
+  final String addItemLabel;
+
   const AppMultiSearchDropdown({
     super.key,
     required this.label,
@@ -41,6 +49,8 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
     this.enabled = true,
     this.searchMaxLength = 50,
     this.searchInputFormatters,
+    this.onAddItem,
+    this.addItemLabel = 'Agregar',
   });
 
   @override
@@ -226,6 +236,11 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
   }
 
   Widget _buildPanel(double maxHeight) {
+    final query = _searchController.text.trim();
+    final showAddRow = widget.onAddItem != null &&
+        _filtered.isEmpty &&
+        query.isNotEmpty;
+
     return Material(
       elevation: 4,
       borderRadius: AppBorders.small(),
@@ -237,52 +252,100 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
           color: Colors.white,
         ),
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: ListView.builder(
-          padding: EdgeInsets.zero,
-          shrinkWrap: true,
-          itemCount: _filtered.length,
-          itemBuilder: (_, index) {
-            final item = _filtered[index];
-            final isSelected = _selected.contains(item);
-            final text = widget.itemAsString(item);
-
-            return InkWell(
-              onTap: () {
-                _toggleItem(item);
-                _searchController.clear();
-                _filter('');
-                if (!widget.isInline) {
-                  _focusNode.requestFocus();
-                }
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+        child: showAddRow
+            ? Container(
+                decoration: BoxDecoration(
+                  color: AppColors.bgBlancoAntiFlash,
+                  borderRadius: AppBorders.small(),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      text,
-                      style: AppTypography.body4.copyWith(
-                        color: isSelected
-                            ? AppColors.greyBordes
-                            : AppColors.greyTextos,
+                child: InkWell(
+                  borderRadius: AppBorders.small(),
+                  onTap: () {
+                    final text = _searchController.text.trim();
+                    widget.onAddItem?.call(text);
+                    _searchController.clear();
+                    _filter('');
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            query,
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          widget.addItemLabel,
+                          style: AppTypography.body3.copyWith(
+                            color: AppColors.primaryFrances,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              )
+            : ListView.builder(
+                padding: EdgeInsets.zero,
+                shrinkWrap: true,
+                itemCount: _filtered.length,
+                itemBuilder: (_, index) {
+                  final item = _filtered[index];
+                  final isSelected = _selected.contains(item);
+                  final text = widget.itemAsString(item);
+
+                  return InkWell(
+                    onTap: () {
+                      _toggleItem(item);
+                      _searchController.clear();
+                      _filter('');
+                      if (!widget.isInline) {
+                        _focusNode.requestFocus();
+                      }
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 12,
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              text,
+                              style: AppTypography.body4.copyWith(
+                                color: isSelected
+                                    ? AppColors.greyBordes
+                                    : AppColors.greyTextos,
+                              ),
+                            ),
+                          ),
+                          if (isSelected) ...[
+                            const SizedBox(width: 8),
+                            const Icon(
+                              Icons.check,
+                              color: AppColors.primaryFrances,
+                              size: 20,
+                            ),
+                          ],
+                        ],
                       ),
                     ),
-                    if (isSelected)
-                      const Icon(
-                        Icons.check,
-                        color: AppColors.primaryFrances,
-                        size: 20,
-                      ),
-                  ],
-                ),
+                  );
+                },
               ),
-            );
-          },
-        ),
       ),
     );
   }
@@ -523,10 +586,12 @@ class _Chip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            label,
-            style: AppTypography.body6.copyWith(
-              color: AppColors.greyTextos,
+          Flexible(
+            child: Text(
+              label,
+              style: AppTypography.body6.copyWith(
+                color: AppColors.greyTextos,
+              ),
             ),
           ),
           const SizedBox(width: 4),

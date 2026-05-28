@@ -78,7 +78,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _selectedIdentificationType;
   final _identificationNumberController = TextEditingController();
   String? _belongsToAssociation;
-  String? _selectedAssociation;
+  List<String> _selectedAssociations = [];
   String? _selectedPhotoPath;
   String? _selectedPurpose;
   bool? _isAdopted;
@@ -246,7 +246,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         (!_unknownExactDate || _selectedApproximateAge != null) &&
         _hasIdentification != null &&
         _belongsToAssociation != null &&
-        (_belongsToAssociation != 'si' || _selectedAssociation != null) &&
+        (_belongsToAssociation != 'si' || _selectedAssociations.isNotEmpty) &&
         _isAdopted != null &&
         (_isAdopted == false || _selectedAdoptionSource != null);
   }
@@ -271,7 +271,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         _selectedIdentificationType != null ||
         _identificationNumberController.text.trim().isNotEmpty ||
         _belongsToAssociation != null ||
-        _selectedAssociation != null ||
+        _selectedAssociations.isNotEmpty ||
         _selectedPhotoPath != null ||
         _selectedPurpose != null ||
         _isAdopted != null ||
@@ -352,8 +352,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociation: _belongsToAssociation == 'si'
-          ? _selectedAssociation
+      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+          ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
@@ -409,7 +409,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _selectedIdentificationType = null;
       _identificationNumberController.clear();
       _belongsToAssociation = null;
-      _selectedAssociation = null;
+      _selectedAssociations = [];
       _selectedPhotoPath = null;
       _selectedPurpose = null;
       _isAdopted = null;
@@ -547,6 +547,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               nameController: _nameController,
               selectedBreed: _selectedBreed,
               onBreedChanged: (v) => setState(() => _selectedBreed = v),
+              onAddBreed: (name) => setState(() => _selectedBreed = name),
               breeds: breeds,
               breedsLoading: breedsLoading,
               selectedSex: _selectedSex,
@@ -587,11 +588,18 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               belongsToAssociation: _belongsToAssociation,
               onBelongsToAssociationChanged: (v) => setState(() {
                 _belongsToAssociation = v;
-                if (v != 'si') _selectedAssociation = null;
+                if (v != 'si') _selectedAssociations = [];
               }),
-              selectedAssociation: _selectedAssociation,
-              onAssociationChanged: (val) =>
-                  setState(() => _selectedAssociation = val),
+              selectedAssociations: _selectedAssociations,
+              onAssociationsChanged: (val) =>
+                  setState(() => _selectedAssociations = val),
+              onAddAssociation: (name) {
+                setState(() {
+                  if (!_selectedAssociations.contains(name)) {
+                    _selectedAssociations = [..._selectedAssociations, name];
+                  }
+                });
+              },
               isAdopted: _isAdopted,
               onIsAdoptedChanged: (val) => setState(() {
                 _isAdopted = val;
@@ -798,6 +806,7 @@ class _AnimalInfoStep extends StatelessWidget {
   final TextEditingController nameController;
   final String? selectedBreed;
   final ValueChanged<String?> onBreedChanged;
+  final ValueChanged<String> onAddBreed;
   final List<BreedEntity> breeds;
   final bool breedsLoading;
   final String? selectedSex;
@@ -822,8 +831,9 @@ class _AnimalInfoStep extends StatelessWidget {
   final TextEditingController identificationNumberController;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
-  final String? selectedAssociation;
-  final ValueChanged<String?> onAssociationChanged;
+  final List<String> selectedAssociations;
+  final ValueChanged<List<String>> onAssociationsChanged;
+  final ValueChanged<String>? onAddAssociation;
   final bool? isAdopted;
   final ValueChanged<bool?> onIsAdoptedChanged;
   final String? selectedAdoptionSource;
@@ -848,6 +858,7 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.nameController,
     required this.selectedBreed,
     required this.onBreedChanged,
+    required this.onAddBreed,
     required this.breeds,
     required this.breedsLoading,
     required this.selectedSex,
@@ -872,8 +883,9 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.identificationNumberController,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
-    required this.selectedAssociation,
-    required this.onAssociationChanged,
+    required this.selectedAssociations,
+    required this.onAssociationsChanged,
+    this.onAddAssociation,
     required this.isAdopted,
     required this.onIsAdoptedChanged,
     required this.selectedAdoptionSource,
@@ -1015,6 +1027,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           }(),
                           itemAsString: (name) => name,
                           onChanged: onBreedChanged,
+                          onAddItem: onAddBreed,
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -1281,17 +1294,18 @@ class _AnimalInfoStep extends StatelessWidget {
                         ),
                         if (belongsToAssociation == 'si') ...[
                           const SizedBox(height: AppSpacing.m),
-                          AppDropdown<String>(
+                          AppMultiSearchDropdown<String>(
                             label: 'Asociaciones',
                             hint: 'Buscar o escribir',
-                            value: selectedAssociation,
+                            selectedItems: selectedAssociations,
                             searchable: true,
                             isInline: true,
                             items: associationOptions
                                 .map((a) => a.name)
                                 .toList(),
                             itemAsString: (name) => name,
-                            onChanged: onAssociationChanged,
+                            onChanged: onAssociationsChanged,
+                            onAddItem: onAddAssociation,
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),

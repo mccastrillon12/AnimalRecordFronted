@@ -30,7 +30,7 @@ class AnimalModel {
   final String? birthCondition;
   final String? identificationType;
   final String? identificationNumber;
-  final String? registrationAssociation;
+  final List<String>? registrationAssociations;
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
@@ -72,7 +72,7 @@ class AnimalModel {
     this.birthCondition,
     this.identificationType,
     this.identificationNumber,
-    this.registrationAssociation,
+    this.registrationAssociations,
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
@@ -200,7 +200,7 @@ class AnimalModel {
       birthCondition: entity.birthCondition,
       identificationType: entity.identificationType,
       identificationNumber: entity.identificationNumber,
-      registrationAssociation: entity.registrationAssociation,
+      registrationAssociations: entity.registrationAssociations,
       isAdopted: entity.isAdopted,
       adoptionSource: entity.adoptionSource,
       adoptionPlaceName: entity.adoptionPlaceName,

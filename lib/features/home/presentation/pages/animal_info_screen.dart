@@ -49,7 +49,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late TextEditingController _colorDescController;
   String? _hasIdentification;
   String? _belongsToAssociation;
-  String? _selectedAssociation;
+  List<String> _selectedAssociations = [];
   String? _selectedIdentificationType;
   final _identificationNumberController = TextEditingController();
 
@@ -90,7 +90,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   late String? _originalColorDesc;
   late String? _originalHasIdentification;
   late String? _originalBelongsToAssociation;
-  late String? _originalSelectedAssociation;
+  late List<String> _originalSelectedAssociations;
   late String? _originalSelectedIdentificationType;
   late String _originalIdentificationNumber;
   late bool? _originalIsAdopted;
@@ -160,7 +160,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _identificationNumberController.text = a.identificationNumber ?? '';
     _identificationNumberController.addListener(_onFieldChanged);
     _belongsToAssociation = a.isAssociationMember ? 'si' : 'no';
-    _selectedAssociation = a.registrationAssociation;
+    _selectedAssociations = List<String>.from(a.registrationAssociations ?? []);
 
     _isAdopted = a.isAdopted;
     _selectedAdoptionSource = a.adoptionSource;
@@ -205,7 +205,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     _originalSelectedIdentificationType = _selectedIdentificationType;
     _originalIdentificationNumber = a.identificationNumber ?? '';
     _originalBelongsToAssociation = _belongsToAssociation;
-    _originalSelectedAssociation = _selectedAssociation;
+    _originalSelectedAssociations = List<String>.from(_selectedAssociations);
     _originalIsAdopted = _isAdopted;
     _originalSelectedAdoptionSource = _selectedAdoptionSource;
     _originalAdoptionPlaceName = a.adoptionPlaceName ?? '';
@@ -318,7 +318,10 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
         _originalIdentificationNumber)
       return true;
     if (_belongsToAssociation != _originalBelongsToAssociation) return true;
-    if (_selectedAssociation != _originalSelectedAssociation) return true;
+    if (_selectedAssociations.length != _originalSelectedAssociations.length) return true;
+    for (int i = 0; i < _selectedAssociations.length; i++) {
+      if (_selectedAssociations[i] != _originalSelectedAssociations[i]) return true;
+    }
     if (_isAdopted != _originalIsAdopted) return true;
     if (_selectedAdoptionSource != _originalSelectedAdoptionSource) return true;
     if (_adoptionPlaceNameController.text.trim() != _originalAdoptionPlaceName)
@@ -396,8 +399,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociation: _belongsToAssociation == 'si'
-          ? _selectedAssociation
+      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+          ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
@@ -464,8 +467,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociation: _belongsToAssociation == 'si'
-          ? _selectedAssociation
+      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+          ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
@@ -557,7 +560,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       _originalIdentificationNumber = _identificationNumberController.text
           .trim();
       _originalBelongsToAssociation = _belongsToAssociation;
-      _originalSelectedAssociation = _selectedAssociation;
+      _originalSelectedAssociations = List<String>.from(_selectedAssociations);
       _originalIsAdopted = _isAdopted;
       _originalSelectedAdoptionSource = _selectedAdoptionSource;
       _originalAdoptionPlaceName = _adoptionPlaceNameController.text.trim();
@@ -988,8 +991,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociation: _belongsToAssociation == 'si'
-          ? _selectedAssociation
+      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+          ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
@@ -1348,13 +1351,20 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                         setState(() {
                                           _belongsToAssociation = v;
                                           if (v != 'si') {
-                                            _selectedAssociation = null;
+                                            _selectedAssociations = [];
                                           }
                                         }),
-                                    selectedAssociation: _selectedAssociation,
-                                    onAssociationChanged: (v) => setState(
-                                      () => _selectedAssociation = v,
+                                    selectedAssociations: _selectedAssociations,
+                                    onAssociationsChanged: (v) => setState(
+                                      () => _selectedAssociations = v,
                                     ),
+                                    onAddAssociation: (name) {
+                                      setState(() {
+                                        if (!_selectedAssociations.contains(name)) {
+                                          _selectedAssociations = [..._selectedAssociations, name];
+                                        }
+                                      });
+                                    },
                                     onEditPhoto: () => _showImageSourceSheet(),
                                     isUploadingPicture:
                                         context.watch<AnimalCubit>().state
