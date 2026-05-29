@@ -326,35 +326,37 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   Widget _buildOptionsList() {
     final clearOffset = widget.showClearOption ? 1 : 0;
     final query = _searchController.text.trim();
-    final showAddRow = widget.onAddItem != null &&
-        _filtered.isEmpty &&
-        query.isNotEmpty;
+    final showAddRow = widget.onAddItem != null && query.isNotEmpty;
+    final addRowOffset = showAddRow ? 1 : 0;
 
-    if (showAddRow) {
-      return Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (widget.showClearOption)
-            InkWell(
-              onTap: () => _selectItem(null),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
+    return ListView.builder(
+      padding: EdgeInsets.zero,
+      shrinkWrap: true,
+      itemCount: _filtered.length + clearOffset + addRowOffset,
+      itemBuilder: (_, index) {
+        // "-- Seleccionar --" option
+        if (widget.showClearOption && index == 0) {
+          return InkWell(
+            onTap: () => _selectItem(null),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 12,
+                vertical: 12,
+              ),
+              child: Text(
+                '-- Seleccionar --',
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyMedio,
                 ),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    '-- Seleccionar --',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyMedio,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          Container(
+          );
+        }
+
+        // "Add custom" row — always last
+        if (showAddRow && index == _filtered.length + clearOffset) {
+          return Container(
             decoration: BoxDecoration(
               color: AppColors.bgBlancoAntiFlash,
               borderRadius: AppBorders.small(),
@@ -392,33 +394,6 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                     ),
                   ],
                 ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return ListView.builder(
-      padding: EdgeInsets.zero,
-      shrinkWrap: true,
-      itemCount: _filtered.length + clearOffset,
-      itemBuilder: (_, index) {
-        // "-- Seleccionar --" option
-        if (widget.showClearOption && index == 0) {
-          return InkWell(
-            onTap: () => _selectItem(null),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
-              child: Text(
-                '-- Seleccionar --',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyMedio,
-                ),
-                overflow: TextOverflow.ellipsis,
               ),
             ),
           );

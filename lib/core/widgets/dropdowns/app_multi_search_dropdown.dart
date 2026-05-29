@@ -237,9 +237,8 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
 
   Widget _buildPanel(double maxHeight) {
     final query = _searchController.text.trim();
-    final showAddRow = widget.onAddItem != null &&
-        _filtered.isEmpty &&
-        query.isNotEmpty;
+    final showAddRow = widget.onAddItem != null && query.isNotEmpty;
+    final addRowOffset = showAddRow ? 1 : 0;
 
     return Material(
       elevation: 4,
@@ -252,8 +251,14 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
           color: Colors.white,
         ),
         constraints: BoxConstraints(maxHeight: maxHeight),
-        child: showAddRow
-            ? Container(
+        child: ListView.builder(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          itemCount: _filtered.length + addRowOffset,
+          itemBuilder: (_, index) {
+            // "Add custom" row — always last
+            if (showAddRow && index == _filtered.length) {
+              return Container(
                 decoration: BoxDecoration(
                   color: AppColors.bgBlancoAntiFlash,
                   borderRadius: AppBorders.small(),
@@ -294,58 +299,55 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                     ),
                   ),
                 ),
-              )
-            : ListView.builder(
-                padding: EdgeInsets.zero,
-                shrinkWrap: true,
-                itemCount: _filtered.length,
-                itemBuilder: (_, index) {
-                  final item = _filtered[index];
-                  final isSelected = _selected.contains(item);
-                  final text = widget.itemAsString(item);
+              );
+            }
 
-                  return InkWell(
-                    onTap: () {
-                      _toggleItem(item);
-                      _searchController.clear();
-                      _filter('');
-                      if (!widget.isInline) {
-                        _focusNode.requestFocus();
-                      }
-                    },
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 12,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              text,
-                              style: AppTypography.body4.copyWith(
-                                color: isSelected
-                                    ? AppColors.greyBordes
-                                    : AppColors.greyTextos,
-                              ),
-                            ),
-                          ),
-                          if (isSelected) ...[
-                            const SizedBox(width: 8),
-                            const Icon(
-                              Icons.check,
-                              color: AppColors.primaryFrances,
-                              size: 20,
-                            ),
-                          ],
-                        ],
+            final item = _filtered[index];
+            final isSelected = _selected.contains(item);
+            final text = widget.itemAsString(item);
+
+            return InkWell(
+              onTap: () {
+                _toggleItem(item);
+                _searchController.clear();
+                _filter('');
+                if (!widget.isInline) {
+                  _focusNode.requestFocus();
+                }
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        text,
+                        style: AppTypography.body4.copyWith(
+                          color: isSelected
+                              ? AppColors.greyBordes
+                              : AppColors.greyTextos,
+                        ),
                       ),
                     ),
-                  );
-                },
+                    if (isSelected) ...[
+                      const SizedBox(width: 8),
+                      const Icon(
+                        Icons.check,
+                        color: AppColors.primaryFrances,
+                        size: 20,
+                      ),
+                    ],
+                  ],
+                ),
               ),
+            );
+          },
+        ),
       ),
     );
   }
