@@ -20,7 +20,6 @@ import '../../../../core/widgets/display/data_value_box.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import '../../../../core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/validation_utils.dart';
-import '../../../../core/widgets/utils/keyboard_spacer.dart';
 import '../../../../core/constants/country_constants.dart';
 import 'package:keyboard_actions/keyboard_actions.dart';
 import 'package:animal_record/core/constants/app_strings.dart';
@@ -32,7 +31,8 @@ class MyAccountScreen extends StatefulWidget {
   State<MyAccountScreen> createState() => _MyAccountScreenState();
 }
 
-class _MyAccountScreenState extends State<MyAccountScreen> {
+class _MyAccountScreenState extends State<MyAccountScreen>
+    with WidgetsBindingObserver {
   final _formKey = GlobalKey<FormState>();
 
   late TextEditingController _nameController;
@@ -40,16 +40,22 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
   late TextEditingController _phoneController;
 
   late FocusNode _phoneFocusNode;
+  late FocusNode _emailFocusNode;
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _emailFieldKey = GlobalKey();
+  final GlobalKey _phoneFieldKey = GlobalKey();
 
   String? _selectedPhoneCountryId;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _nameController = TextEditingController()..addListener(_onFieldChanged);
     _emailController = TextEditingController()..addListener(_onFieldChanged);
     _phoneController = TextEditingController()..addListener(_onFieldChanged);
     _phoneFocusNode = FocusNode();
+    _emailFocusNode = FocusNode();
 
     context.read<LocationsCubit>().fetchCountries();
 
@@ -107,6 +113,48 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     setState(() {});
   }
 
+  @override
+  void didChangeMetrics() {
+    super.didChangeMetrics();
+    // Called by the system when keyboard appears/disappears
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+      if (keyboardHeight > 0) {
+        if (_emailFocusNode.hasFocus) {
+          _scrollToField(_emailFieldKey, keyboardHeight);
+        } else if (_phoneFocusNode.hasFocus) {
+          _scrollToField(_phoneFieldKey, keyboardHeight);
+        }
+      }
+    });
+  }
+
+  void _scrollToField(GlobalKey key, double keyboardHeight) {
+    final fieldContext = key.currentContext;
+    if (fieldContext == null) return;
+    if (!_scrollController.hasClients) return;
+
+    final RenderBox renderBox = fieldContext.findRenderObject() as RenderBox;
+    final fieldPosition = renderBox.localToGlobal(Offset.zero);
+    final fieldBottom = fieldPosition.dy + renderBox.size.height;
+
+    final screenHeight = MediaQuery.of(context).size.height;
+    final visibleBottom = screenHeight - keyboardHeight;
+
+    if (fieldBottom > visibleBottom - 5) {
+      final scrollNeeded = fieldBottom - visibleBottom + 5;
+      final targetScroll = _scrollController.offset + scrollNeeded;
+      final maxScroll = _scrollController.position.maxScrollExtent;
+
+      _scrollController.animateTo(
+        targetScroll.clamp(0.0, maxScroll),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeInOut,
+      );
+    }
+  }
+
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
@@ -157,6 +205,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _nameController.removeListener(_onFieldChanged);
     _emailController.removeListener(_onFieldChanged);
     _phoneController.removeListener(_onFieldChanged);
@@ -164,6 +213,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
     _emailController.dispose();
     _phoneController.dispose();
     _phoneFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
@@ -279,6 +330,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
               ],
             ),
             child: ModalPageLayout(
+              scrollController: _scrollController,
               title: 'Mi cuenta',
               scrollOnlyWithKeyboard: true,
               trailingIcon: IconButton(
@@ -419,6 +471,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             ),
                             const SizedBox(height: AppSpacing.l),
                             CustomTextField(
+                              key: _emailFieldKey,
+                              focusNode: _emailFocusNode,
                               controller: _emailController,
                               label: 'Correo electrónico (Opcional)',
                               maxLength: 50,
@@ -484,6 +538,7 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                             BlocBuilder<LocationsCubit, LocationsState>(
                               builder: (context, locationState) {
                                 return PhoneInputField(
+                                  key: _phoneFieldKey,
                                   label: 'Número celular (Opcional)',
                                   controller: _phoneController,
                                   focusNode: _phoneFocusNode,
@@ -666,8 +721,8 @@ class _MyAccountScreenState extends State<MyAccountScreen> {
                         ],
                       ),
                     SizedBox(
-                      height: MediaQuery.of(context).viewInsets.bottom > 40
-                          ? MediaQuery.of(context).viewInsets.bottom - 40
+                      height: MediaQuery.of(context).viewInsets.bottom > 0
+                          ? MediaQuery.of(context).viewInsets.bottom + 5
                           : 0,
                     ),
                   ],

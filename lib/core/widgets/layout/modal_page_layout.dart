@@ -33,6 +33,7 @@ class ModalPageLayout extends StatelessWidget {
   final Widget? fixedHeaderChild;
   /// Altura total del área fija del header (título + fixedHeaderChild) para calcular el padding del scroll.
   final double fixedHeaderHeight;
+  final ScrollController? scrollController;
 
   const ModalPageLayout({
     super.key,
@@ -53,6 +54,7 @@ class ModalPageLayout extends StatelessWidget {
     this.fixedTitle = false,
     this.fixedHeaderChild,
     this.fixedHeaderHeight = 0,
+    this.scrollController,
   });
 
   Widget _buildTrailingContent(BuildContext context) {
@@ -142,6 +144,7 @@ class ModalPageLayout extends StatelessWidget {
                           padding: bottomPadding,
                           bottomChild: bottomChild!,
                           child: SingleChildScrollView(
+                            controller: scrollController,
                             physics: physics,
                             child: SizedBox(
                               width: double.infinity,
@@ -217,6 +220,7 @@ class ModalPageLayout extends StatelessWidget {
                   child: Stack(
                     children: [
                       SingleChildScrollView(
+                        controller: scrollController,
                         physics: physics,
                         child: Container(
                           width: double.infinity,

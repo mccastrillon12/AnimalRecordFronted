@@ -8,11 +8,14 @@ class FixedBottomActionLayout extends StatelessWidget {
 
   final EdgeInsetsGeometry? padding;
 
+  final double bottomSpacing;
+
   const FixedBottomActionLayout({
     super.key,
     required this.child,
     required this.bottomChild,
     this.padding,
+    this.bottomSpacing = 40.0,
   });
 
   @override
@@ -28,7 +31,7 @@ class FixedBottomActionLayout extends StatelessWidget {
           child: bottomChild,
         ),
 
-        const SizedBox(height: 40),
+        SizedBox(height: bottomSpacing),
       ],
     );
   }
