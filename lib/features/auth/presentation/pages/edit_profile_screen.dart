@@ -423,11 +423,6 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                               onChanged: cubit.addressChanged,
                               label: 'Dirección de residencia (Opcional)',
                             ),
-                            SizedBox(
-                              height: MediaQuery.of(context).viewInsets.bottom > 40
-                                  ? MediaQuery.of(context).viewInsets.bottom - 40
-                                  : 0,
-                            ),
                           ],
                         ),
                       ),

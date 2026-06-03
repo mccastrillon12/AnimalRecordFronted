@@ -1374,7 +1374,7 @@ class _AnimalInfoStep extends StatelessWidget {
         ),
         // Fixed bottom button
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          padding: const EdgeInsets.all(24),
           child: Center(
             child: SizedBox(
               width: 128,
@@ -1825,7 +1825,7 @@ class _AdditionalInfoStep extends StatelessWidget {
         ),
         // Fixed bottom: Save buttons
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
           child: Column(
             children: [
               SizedBox(
