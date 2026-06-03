@@ -121,10 +121,11 @@ class _MyAccountScreenState extends State<MyAccountScreen>
       if (!mounted) return;
       final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
       if (keyboardHeight > 0) {
+        final double toolbarHeight = Theme.of(context).platform == TargetPlatform.iOS ? 45.0 : 0.0;
         if (_emailFocusNode.hasFocus) {
           _scrollToField(_emailFieldKey, keyboardHeight);
         } else if (_phoneFocusNode.hasFocus) {
-          _scrollToField(_phoneFieldKey, keyboardHeight);
+          _scrollToField(_phoneFieldKey, keyboardHeight + toolbarHeight);
         }
       }
     });
@@ -721,8 +722,8 @@ class _MyAccountScreenState extends State<MyAccountScreen>
                         ],
                       ),
                     SizedBox(
-                      height: MediaQuery.of(context).viewInsets.bottom > 0
-                          ? MediaQuery.of(context).viewInsets.bottom + 5
+                      height: MediaQuery.of(context).viewInsets.bottom > 0 && Theme.of(context).platform == TargetPlatform.iOS
+                          ? 45
                           : 0,
                     ),
                   ],
