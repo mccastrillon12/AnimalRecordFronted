@@ -330,6 +330,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 ),
                 child: ModalPageLayout(
                   title: 'Perfil',
+                  bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
                   scrollOnlyWithKeyboard: false,
                   trailingIcon: IconButton(
                     onPressed: () => Navigator.pop(context),

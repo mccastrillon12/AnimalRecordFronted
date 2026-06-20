@@ -15,7 +15,7 @@ class FixedBottomActionLayout extends StatelessWidget {
     required this.child,
     required this.bottomChild,
     this.padding,
-    this.bottomSpacing = 40.0,
+    this.bottomSpacing = 20.0,
   });
 
   @override

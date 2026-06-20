@@ -1256,6 +1256,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                           // Tab content
                           Expanded(
                             child: FixedBottomActionLayout(
+                              padding: const EdgeInsets.only(left: 24, right: 24, top: 24),
                               bottomChild:
                                   _tabController.index == 2 &&
                                       _currentAnimal.isActive

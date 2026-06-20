@@ -561,18 +561,13 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           ),
         ],
       ),
+      bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 55),
+      bottomChild: CustomButton(
+        text: _isSaving ? 'Guardando...' : 'Guardar',
+        isLoading: _isSaving,
+        onPressed: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
+      ),
       headerChildren: [
-        // ── Save button (bottom) ─────────────────────────────
-        Positioned(
-          bottom: 56 + 24, // 56px for toolbar + 24px padding above toolbar
-          left: 24,
-          right: 24,
-          child: CustomButton(
-            text: _isSaving ? 'Guardando...' : 'Guardar',
-            isLoading: _isSaving,
-            onPressed: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
-          ),
-        ),
         // ── Bottom toolbar + recording overlay ──────────────────
         Positioned(
           bottom: 0,
@@ -583,11 +578,17 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               : _buildToolbar(),
         ),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          textSelectionTheme: const TextSelectionThemeData(
+            selectionHandleColor: Colors.transparent,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             const SizedBox(height: AppSpacing.m),
 
             // ── Title field ─────────────────────────────────────
@@ -775,9 +776,10 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               }),
             ],
 
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
           ],
         ),
+      ),
       ),
     );
   }
