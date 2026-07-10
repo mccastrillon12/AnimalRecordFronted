@@ -79,7 +79,7 @@ class _EditNameDialogState extends State<EditNameDialog> {
         maxLength: 50,
         textCapitalization: TextCapitalization.sentences,
         strictValidation: true,
-        allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+        allowPattern: RegExp(r'^[a-zA-ZÀ-ÿ0-9\s.,´]+$'),
       ),
       confirmLabel: 'Guardar',
       confirmColor: AppColors.secondaryCoral,

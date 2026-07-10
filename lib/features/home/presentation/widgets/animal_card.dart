@@ -240,19 +240,44 @@ class AnimalCard extends StatelessWidget {
             ),
           ),
 
-          // Context menu
-          GestureDetector(
-            onTap: onMenuTap,
-            child: SvgPicture.asset(
-              'assets/icons/icon_ContextMenu.svg',
-              width: AppSpacing.iconSizeSmall,
-              height: AppSpacing.iconSizeSmall,
-              colorFilter: const ColorFilter.mode(
-                AppColors.greyMedio,
-                BlendMode.srcIn,
+          // Context menu or tag
+          if (!animal.isActive)
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: 8,
+                vertical: 1,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.bgRosa,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.12),
+                    offset: const Offset(0, 3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+              child: Text(
+                'Inactivo',
+                style: AppTypography.body5.copyWith(
+                  color: AppColors.errorRojo,
+                ),
+              ),
+            )
+          else
+            GestureDetector(
+              onTap: onMenuTap,
+              child: SvgPicture.asset(
+                'assets/icons/icon_ContextMenu.svg',
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
+                colorFilter: const ColorFilter.mode(
+                  AppColors.greyMedio,
+                  BlendMode.srcIn,
+                ),
               ),
             ),
-          ),
         ],
       ),
     );
@@ -276,6 +301,7 @@ class AnimalCard extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: animal.imageUrl!,
                 fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
                 width: size,
                 height: size,
                 fadeInDuration: Duration.zero,
@@ -325,6 +351,13 @@ class AnimalCard extends StatelessWidget {
               fit: BoxFit.cover,
               fadeInDuration: Duration.zero,
               fadeOutDuration: Duration.zero,
+              imageBuilder: (context, imageProvider) => Image(
+                image: imageProvider,
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                width: double.infinity,
+                height: double.infinity,
+              ),
               placeholder: (context, url) => _buildDetailPlaceholder(),
               errorWidget: (context, url, error) => _buildDetailPlaceholder(),
             )

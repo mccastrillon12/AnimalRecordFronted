@@ -62,8 +62,9 @@ class _AnimalsSectionState extends State<AnimalsSection> {
 
         final hasAnimals = animals.isNotEmpty;
 
-        // Sort animals by createdAt descending (newest first)
-        final sortedAnimals = List<AnimalModel>.from(animals)
+        // Sort active animals by createdAt descending (newest first)
+        final activeAnimals = animals.where((a) => a.isActive).toList();
+        final sortedAnimals = List<AnimalModel>.from(activeAnimals)
           ..sort((a, b) {
             final dateA =
                 DateTime.tryParse(a.createdAt ?? '') ??

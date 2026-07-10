@@ -33,6 +33,7 @@ class ModalPageLayout extends StatelessWidget {
   final Widget? fixedHeaderChild;
   /// Altura total del área fija del header (título + fixedHeaderChild) para calcular el padding del scroll.
   final double fixedHeaderHeight;
+  final ScrollController? scrollController;
 
   const ModalPageLayout({
     super.key,
@@ -53,11 +54,31 @@ class ModalPageLayout extends StatelessWidget {
     this.fixedTitle = false,
     this.fixedHeaderChild,
     this.fixedHeaderHeight = 0,
+    this.scrollController,
   });
+
+  Widget _buildTrailingBackground(BuildContext context) {
+    final double top = trailingTop ?? 24;
+    return Positioned(
+      top: 0,
+      left: 0,
+      right: 0,
+      child: Container(
+        height: top + 24 + top,
+        decoration: BoxDecoration(
+          color: backgroundColor ?? Colors.white,
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(32),
+            topRight: Radius.circular(32),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _buildTrailingContent(BuildContext context) {
     return Positioned(
-      top: trailingTop ?? 32,
+      top: trailingTop ?? 24,
       right: trailingRight ?? 24,
       child:
           trailingIcon ??
@@ -142,6 +163,7 @@ class ModalPageLayout extends StatelessWidget {
                           padding: bottomPadding,
                           bottomChild: bottomChild!,
                           child: SingleChildScrollView(
+                            controller: scrollController,
                             physics: physics,
                             child: SizedBox(
                               width: double.infinity,
@@ -171,6 +193,7 @@ class ModalPageLayout extends StatelessWidget {
                               ),
                             ),
                           ),
+                        _buildTrailingBackground(context),
                         _buildTrailingContent(context),
                         if (headerChildren != null) ...headerChildren!,
                       ],
@@ -217,6 +240,7 @@ class ModalPageLayout extends StatelessWidget {
                   child: Stack(
                     children: [
                       SingleChildScrollView(
+                        controller: scrollController,
                         physics: physics,
                         child: Container(
                           width: double.infinity,
@@ -251,6 +275,7 @@ class ModalPageLayout extends StatelessWidget {
                             ),
                           ),
                         ),
+                      _buildTrailingBackground(context),
                       _buildTrailingContent(context),
                       if (headerChildren != null) ...headerChildren!,
                     ],

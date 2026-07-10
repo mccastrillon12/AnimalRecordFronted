@@ -8,6 +8,7 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
 import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
@@ -34,8 +35,9 @@ class AnimalInfoBasicTab extends StatelessWidget {
   final TextEditingController identificationNumberController;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
-  final String? selectedAssociation;
-  final ValueChanged<String?> onAssociationChanged;
+  final List<String> selectedAssociations;
+  final ValueChanged<List<String>> onAssociationsChanged;
+  final ValueChanged<String>? onAddAssociation;
   final VoidCallback? onEditPhoto;
   final bool isUploadingPicture;
   final String? localPhotoPath;
@@ -74,8 +76,9 @@ class AnimalInfoBasicTab extends StatelessWidget {
     required this.identificationNumberController,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
-    required this.selectedAssociation,
-    required this.onAssociationChanged,
+    required this.selectedAssociations,
+    required this.onAssociationsChanged,
+    this.onAddAssociation,
     this.onEditPhoto,
     this.isUploadingPicture = false,
     this.localPhotoPath,
@@ -120,6 +123,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
       );
     }
 
@@ -141,6 +145,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
+        alignment: Alignment.topCenter,
         errorBuilder: (_, _, _) => Center(
           child: SvgPicture.asset(
             _iconForFamily(animal.family),
@@ -455,15 +460,16 @@ class AnimalInfoBasicTab extends StatelessWidget {
           ),
           if (belongsToAssociation == 'si') ...[
             const SizedBox(height: AppSpacing.m),
-            AppDropdown<String>(
+            AppMultiSearchDropdown<String>(
               label: 'Asociaciones',
               hint: 'Buscar o escribir',
-              value: selectedAssociation,
+              selectedItems: selectedAssociations,
               searchable: true,
               isInline: true,
               items: associationOptions.map((a) => a.name).toList(),
               itemAsString: (name) => name,
-              onChanged: readOnly ? null : onAssociationChanged,
+              onChanged: readOnly ? (_) {} : onAssociationsChanged,
+              onAddItem: readOnly ? null : onAddAssociation,
               enabled: !readOnly,
             ),
           ],
@@ -593,7 +599,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
           maxLines: 4,
           maxLength: 150,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZÀ-ÿ0-9\s.,´]')),
           ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(

@@ -90,6 +90,14 @@ class AppDropdown<T> extends StatefulWidget {
   /// Optional input formatters for the search input.
   final List<TextInputFormatter>? searchInputFormatters;
 
+  /// Called when the user taps the "Add" button shown when there are no
+  /// matching results. Receives the current search text.
+  /// When null the "Add" row is never shown.
+  final ValueChanged<String>? onAddItem;
+
+  /// Label for the add button. Defaults to `'Agregar'`.
+  final String addItemLabel;
+
   const AppDropdown({
     super.key,
     required this.label,
@@ -111,6 +119,8 @@ class AppDropdown<T> extends StatefulWidget {
     this.triggerBuilder,
     this.searchMaxLength = 50,
     this.searchInputFormatters,
+    this.onAddItem,
+    this.addItemLabel = 'Agregar',
   });
 
   @override
@@ -315,11 +325,14 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   Widget _buildOptionsList() {
     final clearOffset = widget.showClearOption ? 1 : 0;
+    final query = _searchController.text.trim();
+    final showAddRow = widget.onAddItem != null && query.isNotEmpty;
+    final addRowOffset = showAddRow ? 1 : 0;
 
     return ListView.builder(
       padding: EdgeInsets.zero,
       shrinkWrap: true,
-      itemCount: _filtered.length + clearOffset,
+      itemCount: _filtered.length + clearOffset + addRowOffset,
       itemBuilder: (_, index) {
         // "-- Seleccionar --" option
         if (widget.showClearOption && index == 0) {
@@ -336,6 +349,51 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                   color: AppColors.greyMedio,
                 ),
                 overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          );
+        }
+
+        // "Add custom" row — always last
+        if (showAddRow && index == _filtered.length + clearOffset) {
+          return Container(
+            decoration: BoxDecoration(
+              color: AppColors.bgBlancoAntiFlash,
+              borderRadius: AppBorders.small(),
+            ),
+            child: InkWell(
+              borderRadius: AppBorders.small(),
+              onTap: () {
+                final text = _searchController.text.trim();
+                widget.onAddItem?.call(text);
+                _closeDropdown();
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 12,
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        query,
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyTextos,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      widget.addItemLabel,
+                      style: AppTypography.body3.copyWith(
+                        color: AppColors.primaryFrances,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           );
@@ -483,7 +541,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                                 ),
                               )
                             // ── Closed or non-searchable ───────────
-                            : selectedItem == null
+                            : selectedItem == null && widget.value == null
                                 ? Text(
                                     widget.hint,
                                     style: AppTypography.body4.copyWith(
@@ -496,7 +554,9 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                                       color: AppColors.greyTextos,
                                     ),
                                     child: Text(
-                                      widget.itemAsString(selectedItem),
+                                      selectedItem != null
+                                          ? widget.itemAsString(selectedItem)
+                                          : _labelOf(widget.value),
                                     ),
                                   ),
                   ),

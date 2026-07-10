@@ -28,7 +28,7 @@ class MenuItemRow extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        width: 327,
+        width: double.infinity,
         height: 56,
         padding: const EdgeInsets.symmetric(
           horizontal: AppSpacing.m,

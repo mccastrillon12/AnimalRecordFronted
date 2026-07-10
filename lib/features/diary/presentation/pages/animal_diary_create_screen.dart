@@ -25,6 +25,7 @@ import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:flutter/services.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 
 /// Represents an attachment in the diary entry.
 class DiaryAttachment {
@@ -560,55 +561,13 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           ),
         ],
       ),
+      bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 55),
+      bottomChild: CustomButton(
+        text: _isSaving ? 'Guardando...' : 'Guardar',
+        isLoading: _isSaving,
+        onPressed: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
+      ),
       headerChildren: [
-        // ── Save button (top-left) ─────────────────────────────
-        Positioned(
-          top: 32,
-          left: 24,
-          child: GestureDetector(
-            onTap: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
-            behavior: HitTestBehavior.opaque,
-            child: SizedBox(
-              height:
-                  48, // Matches the default 48px height of the IconButton on the right side
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  if (_isSaving)
-                    const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  else
-                    SvgPicture.asset(
-                      'assets/icons/save-2.svg',
-                      width: 24,
-                      height: 24,
-                      colorFilter: ColorFilter.mode(
-                        _hasContent
-                            ? AppColors.primaryIndigo
-                            : AppColors.greyBordes,
-                        BlendMode.srcIn,
-                      ),
-                    ),
-                  const SizedBox(width: 8),
-                  Text(
-                    _isSaving ? 'Guardando...' : 'Guardar',
-                    style: AppTypography.body4.copyWith(
-                      color: _isSaving
-                          ? AppColors.greyBordes
-                          : (_hasContent
-                                ? AppColors.primaryIndigo
-                                : AppColors.greyBordes),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
         // ── Bottom toolbar + recording overlay ──────────────────
         Positioned(
           bottom: 0,
@@ -619,11 +578,17 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               : _buildToolbar(),
         ),
       ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      child: Theme(
+        data: Theme.of(context).copyWith(
+          textSelectionTheme: const TextSelectionThemeData(
+            selectionHandleColor: Colors.transparent,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
             const SizedBox(height: AppSpacing.m),
 
             // ── Title field ─────────────────────────────────────
@@ -811,9 +776,10 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
               }),
             ],
 
-            const SizedBox(height: 80),
+            const SizedBox(height: 40),
           ],
         ),
+      ),
       ),
     );
   }

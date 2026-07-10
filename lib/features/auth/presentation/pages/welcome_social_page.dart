@@ -27,7 +27,8 @@ class WelcomeSocialPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal:24),
+      
             bottomChild: CustomButton(
               text: 'Comenzar',
               onPressed: () {

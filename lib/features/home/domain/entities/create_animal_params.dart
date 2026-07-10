@@ -24,7 +24,7 @@ class CreateAnimalParams extends Equatable {
   final String? birthCondition;
   final String? identificationType;
   final String? identificationNumber;
-  final String? registrationAssociation;
+  final List<String>? registrationAssociations;
   final bool? isAdopted;
   final String? adoptionSource;
   final String? adoptionPlaceName;
@@ -56,7 +56,7 @@ class CreateAnimalParams extends Equatable {
     this.birthCondition,
     this.identificationType,
     this.identificationNumber,
-    this.registrationAssociation,
+    this.registrationAssociations,
     this.isAdopted,
     this.adoptionSource,
     this.adoptionPlaceName,
@@ -96,8 +96,8 @@ class CreateAnimalParams extends Equatable {
         'identificationType': identificationType,
       if (identificationNumber != null && identificationNumber!.isNotEmpty)
         'identificationNumber': identificationNumber,
-      if (registrationAssociation != null && registrationAssociation!.isNotEmpty)
-        'registrationAssociation': registrationAssociation,
+      if (registrationAssociations != null && registrationAssociations!.isNotEmpty)
+        'registrationAssociations': registrationAssociations,
       if (isAdopted != null) 'isAdopted': isAdopted,
       if (adoptionSource != null && adoptionSource!.isNotEmpty)
         'adoptionSource': adoptionSource,
@@ -137,7 +137,7 @@ class CreateAnimalParams extends Equatable {
         birthCondition,
         identificationType,
         identificationNumber,
-        registrationAssociation,
+        registrationAssociations,
         isAdopted,
         adoptionSource,
         adoptionPlaceName,

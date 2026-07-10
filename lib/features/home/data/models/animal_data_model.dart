@@ -27,7 +27,7 @@ class AnimalDataModel extends AnimalEntity {
     super.birthCondition,
     super.identificationType,
     super.identificationNumber,
-    super.registrationAssociation,
+    super.registrationAssociations,
     super.isAdopted,
     super.adoptionSource,
     super.adoptionPlaceName,
@@ -76,7 +76,9 @@ class AnimalDataModel extends AnimalEntity {
       birthCondition: json['birthCondition'] as String?,
       identificationType: json['identificationType'] as String?,
       identificationNumber: json['identificationNumber'] as String?,
-      registrationAssociation: json['registrationAssociation'] as String?,
+      registrationAssociations: (json['registrationAssociations'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(),
       isAdopted: json['isAdopted'] as bool?,
       adoptionSource: json['adoptionSource'] as String?,
       adoptionPlaceName: json['adoptionPlaceName'] as String?,
@@ -126,7 +128,7 @@ class AnimalDataModel extends AnimalEntity {
       if (birthCondition != null) 'birthCondition': birthCondition,
       if (identificationType != null) 'identificationType': identificationType,
       if (identificationNumber != null) 'identificationNumber': identificationNumber,
-      if (registrationAssociation != null) 'registrationAssociation': registrationAssociation,
+      if (registrationAssociations != null) 'registrationAssociations': registrationAssociations,
       if (isAdopted != null) 'isAdopted': isAdopted,
       if (adoptionSource != null) 'adoptionSource': adoptionSource,
       if (adoptionPlaceName != null) 'adoptionPlaceName': adoptionPlaceName,

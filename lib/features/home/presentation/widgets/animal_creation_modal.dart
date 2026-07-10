@@ -78,7 +78,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   String? _selectedIdentificationType;
   final _identificationNumberController = TextEditingController();
   String? _belongsToAssociation;
-  String? _selectedAssociation;
+  List<String> _selectedAssociations = [];
   String? _selectedPhotoPath;
   String? _selectedPurpose;
   bool? _isAdopted;
@@ -96,11 +96,14 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     'Otro': false,
   };
   final _otherDiagnosisController = TextEditingController();
+  bool _isConverting = false;
 
   @override
   void initState() {
     super.initState();
     _otherDiagnosisController.addListener(_onOtherDiagnosisChanged);
+    _weightKgController.addListener(_onWeightKgChanged);
+    _weightLbController.addListener(_onWeightLbChanged);
   }
 
   void _onOtherDiagnosisChanged() {
@@ -108,9 +111,45 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
     setState(() {});
   }
 
+  void _onWeightKgChanged() {
+    if (_isConverting) return;
+    _isConverting = true;
+    final text = _weightKgController.text.trim();
+    if (text.isEmpty) {
+      _weightLbController.clear();
+    } else {
+      final kg = double.tryParse(text.replaceAll(',', '.'));
+      if (kg != null) {
+        final lb = (kg * 2.20462);
+        final lbStr = lb.toStringAsFixed(2).replaceAll('.', ',');
+        _weightLbController.text = lbStr;
+      }
+    }
+    _isConverting = false;
+  }
+
+  void _onWeightLbChanged() {
+    if (_isConverting) return;
+    _isConverting = true;
+    final text = _weightLbController.text.trim();
+    if (text.isEmpty) {
+      _weightKgController.clear();
+    } else {
+      final lb = double.tryParse(text.replaceAll(',', '.'));
+      if (lb != null) {
+        final kg = (lb / 2.20462);
+        final kgStr = kg.toStringAsFixed(2).replaceAll('.', ',');
+        _weightKgController.text = kgStr;
+      }
+    }
+    _isConverting = false;
+  }
+
   @override
   void dispose() {
     _otherDiagnosisController.removeListener(_onOtherDiagnosisChanged);
+    _weightKgController.removeListener(_onWeightKgChanged);
+    _weightLbController.removeListener(_onWeightLbChanged);
     _nameController.dispose();
     _weightKgController.dispose();
     _weightLbController.dispose();
@@ -162,13 +201,19 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       final match = cubit.animalPurposes.where((p) => p.name == purposeName);
       if (match.isNotEmpty) purposeId = match.first.id;
     }
+    
+    final isBovino = _selectedSpecies != null &&
+        _selectedSpecies!.name.toLowerCase() == 'bovino';
+
     setState(() {
       _selectedPurpose = purposeName;
-      _selectedBreed = null; // Reset breed when purpose changes
+      if (isBovino) {
+        _selectedBreed = null; // Reset breed when purpose changes
+      }
     });
+    
     // Reload breeds filtered by purpose only for bovinos
-    if (_selectedSpecies != null &&
-        _selectedSpecies!.name.toLowerCase() == 'bovino') {
+    if (isBovino) {
       cubit.loadBreeds(_selectedSpecies!.id, purposeId: purposeId);
     }
   }
@@ -201,7 +246,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         (!_unknownExactDate || _selectedApproximateAge != null) &&
         _hasIdentification != null &&
         _belongsToAssociation != null &&
-        (_belongsToAssociation != 'si' || _selectedAssociation != null) &&
+        (_belongsToAssociation != 'si' || _selectedAssociations.isNotEmpty) &&
         _isAdopted != null &&
         (_isAdopted == false || _selectedAdoptionSource != null);
   }
@@ -226,7 +271,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         _selectedIdentificationType != null ||
         _identificationNumberController.text.trim().isNotEmpty ||
         _belongsToAssociation != null ||
-        _selectedAssociation != null ||
+        _selectedAssociations.isNotEmpty ||
         _selectedPhotoPath != null ||
         _selectedPurpose != null ||
         _isAdopted != null ||
@@ -293,7 +338,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ? _otherDiagnosisController.text.trim()
           : null,
       ownerId: ownerId,
-      weight: double.tryParse(_weightKgController.text.trim()),
+      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,
@@ -307,8 +352,8 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociation: _belongsToAssociation == 'si'
-          ? _selectedAssociation
+      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+          ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
@@ -364,7 +409,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       _selectedIdentificationType = null;
       _identificationNumberController.clear();
       _belongsToAssociation = null;
-      _selectedAssociation = null;
+      _selectedAssociations = [];
       _selectedPhotoPath = null;
       _selectedPurpose = null;
       _isAdopted = null;
@@ -502,6 +547,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               nameController: _nameController,
               selectedBreed: _selectedBreed,
               onBreedChanged: (v) => setState(() => _selectedBreed = v),
+              onAddBreed: (name) => setState(() => _selectedBreed = name),
               breeds: breeds,
               breedsLoading: breedsLoading,
               selectedSex: _selectedSex,
@@ -542,11 +588,18 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               belongsToAssociation: _belongsToAssociation,
               onBelongsToAssociationChanged: (v) => setState(() {
                 _belongsToAssociation = v;
-                if (v != 'si') _selectedAssociation = null;
+                if (v != 'si') _selectedAssociations = [];
               }),
-              selectedAssociation: _selectedAssociation,
-              onAssociationChanged: (val) =>
-                  setState(() => _selectedAssociation = val),
+              selectedAssociations: _selectedAssociations,
+              onAssociationsChanged: (val) =>
+                  setState(() => _selectedAssociations = val),
+              onAddAssociation: (name) {
+                setState(() {
+                  if (!_selectedAssociations.contains(name)) {
+                    _selectedAssociations = [..._selectedAssociations, name];
+                  }
+                });
+              },
               isAdopted: _isAdopted,
               onIsAdoptedChanged: (val) => setState(() {
                 _isAdopted = val;
@@ -587,12 +640,24 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               otherDiagnosisController: _otherDiagnosisController,
               onDiagnosisChanged: (key, value) {
                 setState(() {
-                  // Single-select: deselect all others
-                  for (final k in _diagnoses.keys) {
-                    _diagnoses[k] = false;
-                  }
                   _diagnoses[key] = value;
-                  if (key != 'Otro' || !value) {
+                  
+                  if (value) {
+                    if (key == 'Ninguno/Desconocido') {
+                      // Deselect all others
+                      for (final k in _diagnoses.keys) {
+                        if (k != 'Ninguno/Desconocido') {
+                          _diagnoses[k] = false;
+                        }
+                      }
+                      _otherDiagnosisController.clear();
+                    } else {
+                      // Deselect Ninguno/Desconocido
+                      _diagnoses['Ninguno/Desconocido'] = false;
+                    }
+                  }
+
+                  if (key == 'Otro' && !value) {
                     _otherDiagnosisController.clear();
                   }
                 });
@@ -741,6 +806,7 @@ class _AnimalInfoStep extends StatelessWidget {
   final TextEditingController nameController;
   final String? selectedBreed;
   final ValueChanged<String?> onBreedChanged;
+  final ValueChanged<String> onAddBreed;
   final List<BreedEntity> breeds;
   final bool breedsLoading;
   final String? selectedSex;
@@ -765,8 +831,9 @@ class _AnimalInfoStep extends StatelessWidget {
   final TextEditingController identificationNumberController;
   final String? belongsToAssociation;
   final ValueChanged<String?> onBelongsToAssociationChanged;
-  final String? selectedAssociation;
-  final ValueChanged<String?> onAssociationChanged;
+  final List<String> selectedAssociations;
+  final ValueChanged<List<String>> onAssociationsChanged;
+  final ValueChanged<String>? onAddAssociation;
   final bool? isAdopted;
   final ValueChanged<bool?> onIsAdoptedChanged;
   final String? selectedAdoptionSource;
@@ -791,6 +858,7 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.nameController,
     required this.selectedBreed,
     required this.onBreedChanged,
+    required this.onAddBreed,
     required this.breeds,
     required this.breedsLoading,
     required this.selectedSex,
@@ -815,8 +883,9 @@ class _AnimalInfoStep extends StatelessWidget {
     required this.identificationNumberController,
     required this.belongsToAssociation,
     required this.onBelongsToAssociationChanged,
-    required this.selectedAssociation,
-    required this.onAssociationChanged,
+    required this.selectedAssociations,
+    required this.onAssociationsChanged,
+    this.onAddAssociation,
     required this.isAdopted,
     required this.onIsAdoptedChanged,
     required this.selectedAdoptionSource,
@@ -896,7 +965,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           maxLength: 50,
                           textCapitalization: TextCapitalization.sentences,
                           strictValidation: true,
-                          allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+                          allowPattern: RegExp(r'^[a-zA-ZÀ-ÿ0-9\s.,´]+$'),
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -924,10 +993,41 @@ class _AnimalInfoStep extends StatelessWidget {
                           value: selectedBreed,
                           searchable: true,
                           isInline: true,
-                          enabled: !breedsLoading && breeds.isNotEmpty,
-                          items: breeds.map((b) => b.name).toList(),
+                          preserveOrder: true,
+                          enabled: (!breedsLoading && breeds.isNotEmpty) &&
+                              (selectedSpecies.name.toLowerCase() != 'bovino' || selectedPurpose != null),
+                          items: () {
+                            final names = breeds.map((b) => b.name).toList();
+                            names.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+                            
+                            int topIndex = -1;
+                            
+                            // Primero buscamos coincidencias exactas para asegurar que agarre el correcto (ej. 'Mestizo Comercial')
+                            final exactMatches = ['mestizo / criollo', 'mestizo comercial', 'mestizo', 'criollo'];
+                            for (final target in exactMatches) {
+                              topIndex = names.indexWhere((name) => name.toLowerCase() == target);
+                              if (topIndex != -1) break;
+                            }
+                            
+                            // Si no hay coincidencia exacta, buscamos por subcadena
+                            if (topIndex == -1) {
+                              topIndex = names.indexWhere((name) {
+                                final lower = name.toLowerCase();
+                                return lower.contains('mestizo comercial') || 
+                                       lower.contains('criollo') || 
+                                       lower.contains('mestizo');
+                              });
+                            }
+                            
+                            if (topIndex > 0) {
+                              final topBreed = names.removeAt(topIndex);
+                              names.insert(0, topBreed);
+                            }
+                            return names;
+                          }(),
                           itemAsString: (name) => name,
                           onChanged: onBreedChanged,
+                          onAddItem: onAddBreed,
                         ),
                         const SizedBox(height: AppSpacing.m),
 
@@ -1050,10 +1150,17 @@ class _AnimalInfoStep extends StatelessWidget {
                                     hint: '- kg',
                                     controller: weightKgController,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    maxLength: 5,
+                                    maxLength: 7,
+                                    inputFormatters: [
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        return newValue.copyWith(
+                                          text: newValue.text.replaceAll('.', ','),
+                                        );
+                                      }),
+                                    ],
                                     strictValidation: true,
-                                    allowPattern: RegExp(r'^[0-9.]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    allowPattern: RegExp(r'^[0-9,]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1069,10 +1176,17 @@ class _AnimalInfoStep extends StatelessWidget {
                                     hint: '- lb',
                                     controller: weightLbController,
                                     keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                                    maxLength: 5,
+                                    maxLength: 7,
+                                    inputFormatters: [
+                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                        return newValue.copyWith(
+                                          text: newValue.text.replaceAll('.', ','),
+                                        );
+                                      }),
+                                    ],
                                     strictValidation: true,
-                                    allowPattern: RegExp(r'^[0-9.]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y puntos',
+                                    allowPattern: RegExp(r'^[0-9,]+$'),
+                                    patternErrorMessage: 'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1180,17 +1294,18 @@ class _AnimalInfoStep extends StatelessWidget {
                         ),
                         if (belongsToAssociation == 'si') ...[
                           const SizedBox(height: AppSpacing.m),
-                          AppDropdown<String>(
+                          AppMultiSearchDropdown<String>(
                             label: 'Asociaciones',
                             hint: 'Buscar o escribir',
-                            value: selectedAssociation,
+                            selectedItems: selectedAssociations,
                             searchable: true,
                             isInline: true,
                             items: associationOptions
                                 .map((a) => a.name)
                                 .toList(),
                             itemAsString: (name) => name,
-                            onChanged: onAssociationChanged,
+                            onChanged: onAssociationsChanged,
+                            onAddItem: onAddAssociation,
                           ),
                         ],
                         const SizedBox(height: AppSpacing.m),
@@ -1259,7 +1374,7 @@ class _AnimalInfoStep extends StatelessWidget {
         ),
         // Fixed bottom button
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          padding: const EdgeInsets.all(24),
           child: Center(
             child: SizedBox(
               width: 128,
@@ -1313,6 +1428,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         width: 96,
                         height: 96,
                         fit: BoxFit.cover,
+                        alignment: Alignment.topCenter,
                       )
                     : Center(
                         child: SvgPicture.asset(
@@ -1522,7 +1638,7 @@ class _AnimalInfoStep extends StatelessWidget {
           maxLines: 4,
           maxLength: 150,
           inputFormatters: [
-            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s]')),
+            FilteringTextInputFormatter.allow(RegExp(r'[a-zA-ZÀ-ÿ0-9\s.,´]')),
           ],
           style: AppTypography.body4.copyWith(color: AppColors.greyNegroV2),
           decoration: InputDecoration(
@@ -1635,9 +1751,10 @@ class _AdditionalInfoStep extends StatelessWidget {
                         // Temperament
                         AppMultiSearchDropdown<String>(
                           label: 'Temperamento',
-                          hint: 'Buscar o escribir',
+                          hint: 'Seleccionar',
                           selectedItems: selectedTemperaments,
                           isInline: true,
+                          searchable: false,
                           items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,
@@ -1708,7 +1825,7 @@ class _AdditionalInfoStep extends StatelessWidget {
         ),
         // Fixed bottom: Save buttons
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
           child: Column(
             children: [
               SizedBox(

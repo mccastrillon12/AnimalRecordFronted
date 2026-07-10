@@ -10,6 +10,7 @@ import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -48,7 +49,10 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     TopMenuItem(
       svgPath: 'assets/icons/+animal.svg',
       label: '+ Animal',
-      onTap: () {},
+      onTap: () {
+        _closeMenu();
+        showAnimalCreationModal(context);
+      },
     ),
     TopMenuItem(
       svgPath: 'assets/icons/agenda.svg',
@@ -191,10 +195,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                // Combined Hero Card and Info Section (Exact Figma dimensions)
+                                // Combined Hero Card and Info Section (Dynamic height)
                                 Container(
-                                  width: 311,
-                                  height: 339,
+                                  width: double.infinity,
                                   padding: const EdgeInsets.all(
                                     AppSpacing.m,
                                   ), // 16px padding on all sides per Figma
@@ -205,6 +208,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                   child: Column(
                                     crossAxisAlignment:
                                         CrossAxisAlignment.stretch,
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
                                       // The hero image
                                       AnimalCard(
@@ -215,9 +219,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                         height: 14,
                                       ), // Spacing between image and text
                                       // Info section
-                                      Expanded(
-                                        child: _buildInfoSection(currentAnimal),
-                                      ),
+                                      _buildInfoSection(currentAnimal),
                                     ],
                                   ),
                                 ),
@@ -448,9 +450,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       'Genealogía',
     ];
 
-    return Center(
-      child: Container(
-        decoration: BoxDecoration(
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
           color: AppColors.white,
           borderRadius: AppBorders.large(),
           boxShadow: [
@@ -478,7 +480,6 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
               showArrow: true,
             );
           }).toList(),
-        ),
       ),
     );
   }

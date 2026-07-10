@@ -103,10 +103,20 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
         // Group by family
         final Map<String, List<AnimalModel>> grouped = {};
+        final List<AnimalModel> inactiveAnimals = [];
+        
         for (final animal in filtered) {
-          final pluralFamily = _pluralizeFamily(animal.family);
-          grouped.putIfAbsent(pluralFamily, () => []);
-          grouped[pluralFamily]!.add(animal);
+          if (!animal.isActive) {
+            inactiveAnimals.add(animal);
+          } else {
+            final pluralFamily = _pluralizeFamily(animal.family);
+            grouped.putIfAbsent(pluralFamily, () => []);
+            grouped[pluralFamily]!.add(animal);
+          }
+        }
+        
+        if (inactiveAnimals.isNotEmpty) {
+          grouped['Transferidos e inactivos'] = inactiveAnimals;
         }
 
         return Stack(
@@ -418,8 +428,10 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                           ),
                         )
                       : ListView(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: AppSpacing.l,
+                          padding: const EdgeInsets.only(
+                            left: AppSpacing.l,
+                            right: AppSpacing.l,
+                            bottom: 60, // Space for the FAB
                           ),
                           children: grouped.entries
                               .map(
