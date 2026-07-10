@@ -2,6 +2,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/auth/presentation/widgets/auth_form_container.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter/material.dart';
 
 class LinkExpiredScreen extends StatelessWidget {
@@ -15,7 +16,7 @@ class LinkExpiredScreen extends StatelessWidget {
       showLogo: false,
       showCancelButton: false,
       onBack: () =>
-          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+          Navigator.pushNamedAndRemoveUntil(context, AppRoutes.splash, (route) => false),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
@@ -44,7 +45,7 @@ class LinkExpiredScreen extends StatelessWidget {
             onTap: () {
               Navigator.pushNamedAndRemoveUntil(
                 context,
-                isPinFlow ? '/forgot-pin' : '/forgot-password',
+                isPinFlow ? AppRoutes.forgotPin : AppRoutes.forgotPassword,
                 (route) => false,
               );
             },

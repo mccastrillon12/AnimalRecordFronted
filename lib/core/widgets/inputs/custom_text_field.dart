@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -37,6 +36,13 @@ class CustomTextField extends StatefulWidget {
   final ValueChanged<String>? onChanged;
   final Duration? validationDelay;
   final bool hideErrorText;
+  final bool enforceMaxLength;
+  final RegExp? allowPattern;
+  final String? patternErrorMessage;
+  final bool strictValidation;
+  final ValueChanged<String?>? onErrorChanged;
+
+  final TextCapitalization textCapitalization;
 
   const CustomTextField({
     super.key,
@@ -45,6 +51,7 @@ class CustomTextField extends StatefulWidget {
     this.controller,
     this.isPassword = false,
     this.keyboardType = TextInputType.text,
+    this.textCapitalization = TextCapitalization.none,
     this.validator,
     this.suffixIcon,
     this.prefixIcon,
@@ -69,6 +76,11 @@ class CustomTextField extends StatefulWidget {
     this.onChanged,
     this.validationDelay,
     this.hideErrorText = false,
+    this.enforceMaxLength = true,
+    this.allowPattern,
+    this.patternErrorMessage,
+    this.strictValidation = false,
+    this.onErrorChanged,
   });
 
   @override
@@ -109,6 +121,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
     if (_internalErrorText != error) {
       setState(() => _internalErrorText = error);
+      widget.onErrorChanged?.call(error);
     }
   }
 
@@ -128,12 +141,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
         _validationTimer?.cancel();
         if (_internalErrorText != null) {
           setState(() => _internalErrorText = null);
+          widget.onErrorChanged?.call(null);
         }
       } else {
         if (_internalErrorText != null) {
           // If already showing an error, update it immediately to stay responsive
           _validationTimer?.cancel();
           setState(() => _internalErrorText = newError);
+          widget.onErrorChanged?.call(newError);
         } else {
           // If no error is showing, use the delay
           _validationTimer?.cancel();
@@ -162,6 +177,38 @@ class _CustomTextFieldState extends State<CustomTextField> {
 
     final currentErrorText = widget.errorText ?? _internalErrorText;
 
+    List<TextInputFormatter> formatters =
+        widget.inputFormatters?.toList() ?? [];
+    if (widget.strictValidation) {
+      formatters.add(
+        ErrorTriggeringTextInputFormatter(
+          allowPattern: widget.allowPattern,
+          patternErrorMessage: widget.patternErrorMessage,
+          maxLength: widget.maxLength,
+          onError: (error) {
+            if (_internalErrorText != error) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _internalErrorText = error);
+                  widget.onErrorChanged?.call(error);
+                }
+              });
+            }
+          },
+          onSuccess: () {
+            if (_internalErrorText != null && widget.errorText == null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() => _internalErrorText = null);
+                  widget.onErrorChanged?.call(null);
+                }
+              });
+            }
+          },
+        ),
+      );
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -178,12 +225,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                           .replaceAll(' (Opcional)', '')
                           .replaceAll('(Opcional)', '')
                           .trim(),
-                      style: (widget.labelStyle ?? AppTypography.body6)
-                          .copyWith(
-                            color:
-                                widget.labelStyle?.color ??
-                                AppColors.greyNegroV2,
-                          ),
+                      style: (widget.labelStyle ?? AppTypography.body6),
                     ),
                     if (widget.label.contains('(Opcional)'))
                       TextSpan(
@@ -209,8 +251,20 @@ class _CustomTextFieldState extends State<CustomTextField> {
               initialValue: widget.initialValue,
               focusNode: _focusNode,
               enabled: widget.enabled,
+              onTap: () {
+                // If another field currently has focus, dismiss keyboard first
+                // then re-request focus on this field after a microtask.
+                final currentFocus = FocusManager.instance.primaryFocus;
+                if (currentFocus != null && currentFocus != _focusNode && currentFocus.hasPrimaryFocus) {
+                  currentFocus.unfocus();
+                  Future.microtask(() {
+                    if (mounted) _focusNode.requestFocus();
+                  });
+                }
+              },
               obscureText: widget.obscureText ?? widget.isPassword,
               keyboardType: widget.keyboardType,
+              textCapitalization: widget.textCapitalization,
               validator: widget.validator,
               onChanged: _onChanged,
               maxLength: widget.maxLength ?? (widget.isPassword ? 20 : 50),
@@ -222,7 +276,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     required isFocused,
                     maxLength,
                   }) => null,
-              inputFormatters: widget.inputFormatters,
+              inputFormatters: formatters,
               onFieldSubmitted: widget.onSubmitted,
               onEditingComplete: widget.onEditingComplete,
               textInputAction: widget.textInputAction,
@@ -251,9 +305,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 errorText: null,
                 hintStyle:
                     widget.hintStyle ??
-                    AppTypography.body4.copyWith(
-                      color: AppColors.greyDelineante,
-                    ),
+                    AppTypography.body4.copyWith(color: AppColors.greyBordes),
                 prefixIcon: widget.prefixIcon,
 
                 prefix: widget.prefixText != null
@@ -322,5 +374,45 @@ class _CustomTextFieldState extends State<CustomTextField> {
         ],
       ],
     );
+  }
+}
+
+class ErrorTriggeringTextInputFormatter extends TextInputFormatter {
+  final RegExp? allowPattern;
+  final String? patternErrorMessage;
+  final int? maxLength;
+  final void Function(String) onError;
+  final VoidCallback onSuccess;
+
+  ErrorTriggeringTextInputFormatter({
+    this.allowPattern,
+    this.patternErrorMessage,
+    this.maxLength,
+    required this.onError,
+    required this.onSuccess,
+  });
+
+  @override
+  TextEditingValue formatEditUpdate(
+    TextEditingValue oldValue,
+    TextEditingValue newValue,
+  ) {
+    if (newValue.text.isEmpty) {
+      onSuccess();
+      return newValue;
+    }
+
+    if (maxLength != null && newValue.text.length > maxLength!) {
+      onError('Este campo recibe un máximo de $maxLength caracteres');
+      return oldValue;
+    }
+
+    if (allowPattern != null && !allowPattern!.hasMatch(newValue.text)) {
+      onError(patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9');
+      return oldValue;
+    }
+
+    onSuccess();
+    return newValue;
   }
 }

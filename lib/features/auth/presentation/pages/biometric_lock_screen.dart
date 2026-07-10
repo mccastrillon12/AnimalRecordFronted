@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter/services.dart';
 
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -89,7 +90,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       );
 
       if (didAuthenticate && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } on PlatformException catch (e) {
       if (e.code == auth_error.notAvailable ||
@@ -282,7 +283,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
                           if (mounted) {
                             Navigator.pushNamedAndRemoveUntil(
                               context,
-                              '/login',
+                              AppRoutes.login,
                               (route) => false,
                             );
                           }

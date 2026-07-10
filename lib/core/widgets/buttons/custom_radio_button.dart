@@ -20,9 +20,13 @@ class CustomRadioButton<T> extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSelected = value == groupValue;
+    final isDisabled = onChanged == null;
 
     return GestureDetector(
-      onTap: () => onChanged?.call(value),
+      onTap: () {
+        FocusManager.instance.primaryFocus?.unfocus();
+        onChanged?.call(value);
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(),
         decoration: BoxDecoration(
@@ -30,16 +34,21 @@ class CustomRadioButton<T> extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         child: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 24,
-              height: 24,
+              width: 22,
+              height: 22,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.primaryFrances
-                      : AppColors.greyBordes,
+                      ? (isDisabled
+                          ? const Color(0xFF0072BB).withValues(alpha: 0.6)
+                          : AppColors.primaryFrances)
+                      : (isDisabled
+                          ? const Color(0xFFE8E9EC)
+                          : AppColors.greyBordes),
                   width: isSelected ? 7 : 2,
                 ),
               ),
@@ -47,12 +56,12 @@ class CustomRadioButton<T> extends StatelessWidget {
 
             const SizedBox(width: AppSpacing.xs),
 
-            Expanded(
-              child: Text(
-                label,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.textPrimary,
-                ),
+            Text(
+              label,
+              style: AppTypography.body4.copyWith(
+                color: isDisabled
+                    ? const Color(0xFF2E3949).withValues(alpha: 0.3)
+                    : AppColors.greyTextos,
               ),
             ),
           ],

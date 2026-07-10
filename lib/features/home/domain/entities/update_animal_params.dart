@@ -1,0 +1,158 @@
+import 'package:equatable/equatable.dart';
+
+/// Parameters for the PUT /animals/{id} endpoint.
+class UpdateAnimalParams extends Equatable {
+  final String id;
+  final String name;
+  final String species;
+  final String breed;
+  final String sex;
+  final String reproductiveStatus;
+  final String? birthdate;
+  final bool hasChip;
+  final bool isAssociationMember;
+  final List<String> temperament;
+  final List<String> diagnosis;
+  final String ownerId;
+  final double? weight;
+  final String? colorAndMarkings;
+  final String? allergies;
+  final String? housingType;
+  final String? purpose;
+  final String? feedingType;
+  final String? birthType;
+  final String? birthCondition;
+  final String? identificationType;
+  final String? identificationNumber;
+  final List<String>? registrationAssociations;
+  final bool? isAdopted;
+  final String? adoptionSource;
+  final String? adoptionPlaceName;
+  final String? otherDiagnosisDetail;
+  final bool unknownBirthDate;
+  final int? approximateAgeMinMonths;
+  final int? approximateAgeMaxMonths;
+  final bool? isActive;
+  final String? deactivationReason;
+
+  const UpdateAnimalParams({
+    required this.id,
+    required this.name,
+    required this.species,
+    required this.breed,
+    required this.sex,
+    required this.reproductiveStatus,
+    this.birthdate,
+    required this.hasChip,
+    required this.isAssociationMember,
+    required this.temperament,
+    required this.diagnosis,
+    required this.ownerId,
+    this.weight,
+    this.colorAndMarkings,
+    this.allergies,
+    this.housingType,
+    this.purpose,
+    this.feedingType,
+    this.birthType,
+    this.birthCondition,
+    this.identificationType,
+    this.identificationNumber,
+    this.registrationAssociations,
+    this.isAdopted,
+    this.adoptionSource,
+    this.adoptionPlaceName,
+    this.otherDiagnosisDetail,
+    this.unknownBirthDate = false,
+    this.approximateAgeMinMonths,
+    this.approximateAgeMaxMonths,
+    this.isActive,
+    this.deactivationReason,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'species': species,
+      'breed': breed,
+      'sex': sex,
+      'reproductiveStatus': reproductiveStatus,
+      if (birthdate != null) 'birthDate': birthdate,
+      'hasChip': hasChip,
+      'isAssociationMember': isAssociationMember,
+      'temperament': temperament,
+      'diagnosis': diagnosis,
+      'ownerId': ownerId,
+      if (weight != null) 'weight': weight,
+      if (colorAndMarkings != null && colorAndMarkings!.isNotEmpty)
+        'colorAndMarkings': colorAndMarkings,
+      if (allergies != null && allergies!.isNotEmpty) 'allergies': allergies,
+      if (housingType != null && housingType!.isNotEmpty)
+        'housingType': housingType,
+      if (purpose != null && purpose!.isNotEmpty) 'purpose': purpose,
+      if (feedingType != null && feedingType!.isNotEmpty)
+        'feedingType': feedingType,
+      if (birthType != null && birthType!.isNotEmpty) 'birthType': birthType,
+      if (birthCondition != null && birthCondition!.isNotEmpty)
+        'birthCondition': birthCondition,
+      if (identificationType != null && identificationType!.isNotEmpty)
+        'identificationType': identificationType,
+      if (identificationNumber != null && identificationNumber!.isNotEmpty)
+        'identificationNumber': identificationNumber,
+      if (registrationAssociations != null && registrationAssociations!.isNotEmpty)
+        'registrationAssociations': registrationAssociations,
+      if (isAdopted != null) 'isAdopted': isAdopted,
+      if (adoptionSource != null && adoptionSource!.isNotEmpty)
+        'adoptionSource': adoptionSource,
+      if (adoptionPlaceName != null && adoptionPlaceName!.isNotEmpty)
+        'adoptionPlaceName': adoptionPlaceName,
+      if (otherDiagnosisDetail != null && otherDiagnosisDetail!.isNotEmpty)
+        'otherDiagnosisDetail': otherDiagnosisDetail,
+      'unknownBirthDate': unknownBirthDate,
+      if (approximateAgeMinMonths != null)
+        'approximateAgeMinMonths': approximateAgeMinMonths,
+      if (approximateAgeMaxMonths != null)
+        'approximateAgeMaxMonths': approximateAgeMaxMonths,
+      if (isActive != null) 'isActive': isActive,
+      if (deactivationReason != null && deactivationReason!.isNotEmpty)
+        'deactivationReason': deactivationReason,
+    };
+  }
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        species,
+        breed,
+        sex,
+        reproductiveStatus,
+        birthdate,
+        hasChip,
+        isAssociationMember,
+        temperament,
+        diagnosis,
+        ownerId,
+        weight,
+        colorAndMarkings,
+        allergies,
+        housingType,
+        purpose,
+        feedingType,
+        birthType,
+        birthCondition,
+        identificationType,
+        identificationNumber,
+        registrationAssociations,
+        isAdopted,
+        adoptionSource,
+        adoptionPlaceName,
+        otherDiagnosisDetail,
+        unknownBirthDate,
+        approximateAgeMinMonths,
+        approximateAgeMaxMonths,
+        isActive,
+        deactivationReason,
+      ];
+}

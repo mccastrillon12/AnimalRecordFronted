@@ -95,7 +95,6 @@ class UpdateProfileRequested extends AuthEvent {
   UpdateProfileRequested({required this.userId, required this.data});
 
   @override
-  @override
   List<Object?> get props => [userId, data];
 }
 

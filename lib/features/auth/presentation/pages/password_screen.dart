@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../widgets/auth_form_container.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
@@ -98,7 +99,7 @@ class _PasswordScreenState extends State<PasswordScreen> {
                 if (mounted) {
                   Navigator.pushNamedAndRemoveUntil(
                     context,
-                    '/home',
+                    AppRoutes.home,
                     (route) => false,
                   );
                 }

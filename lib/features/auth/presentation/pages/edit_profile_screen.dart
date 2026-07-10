@@ -330,7 +330,8 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 ),
                 child: ModalPageLayout(
                   title: 'Perfil',
-                  scrollOnlyWithKeyboard: true,
+                  bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+                  scrollOnlyWithKeyboard: false,
                   trailingIcon: IconButton(
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close),
@@ -422,11 +423,6 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                               initialValue: editState.address.value,
                               onChanged: cubit.addressChanged,
                               label: 'Dirección de residencia (Opcional)',
-                            ),
-                            SizedBox(
-                              height: MediaQuery.of(context).viewInsets.bottom > 40
-                                  ? MediaQuery.of(context).viewInsets.bottom - 40
-                                  : 0,
                             ),
                           ],
                         ),

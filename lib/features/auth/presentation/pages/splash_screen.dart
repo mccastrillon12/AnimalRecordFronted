@@ -2,6 +2,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/presentation/pages/biometric_lock_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
@@ -68,7 +69,7 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                     );
                   } else {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    Navigator.pushReplacementNamed(context, AppRoutes.home);
                   }
                 }
               } else {
@@ -85,7 +86,7 @@ class _SplashScreenState extends State<SplashScreen> {
               if (!handled) {
                 if (mounted) {
                   setState(() => _hasNavigated = true);
-                  Navigator.pushReplacementNamed(context, '/login');
+                  Navigator.pushReplacementNamed(context, AppRoutes.login);
                 }
               } else {
                 if (mounted) {

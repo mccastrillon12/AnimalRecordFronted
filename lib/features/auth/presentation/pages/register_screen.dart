@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import '../widgets/auth_form_container.dart';
 import '../../../../core/widgets/layout/fixed_bottom_action_layout.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -276,7 +277,7 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
                   context,
                   'Registro exitoso. Por favor inicia sesión.',
                 );
-                Navigator.pushReplacementNamed(context, '/');
+                Navigator.pushReplacementNamed(context, AppRoutes.splash);
               } else if (authState is AuthError) {
                 ErrorDisplay.showError(context, authState.message);
               } else if (authState is IdentificationCheckResult) {

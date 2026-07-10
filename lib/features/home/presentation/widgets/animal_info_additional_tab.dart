@@ -1,0 +1,196 @@
+import 'package:flutter/material.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
+import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
+
+class AnimalInfoAdditionalTab extends StatelessWidget {
+  final List<String> selectedTemperaments;
+  final ValueChanged<List<String>> onTemperamentsChanged;
+  final TextEditingController allergyController;
+  final Map<String, bool> diagnoses;
+  final void Function(String key, bool value) onDiagnosisChanged;
+  final TextEditingController otherDiagnosisController;
+  final String? housingType;
+  final ValueChanged<String?> onHousingTypeChanged;
+  final String? purpose;
+  final ValueChanged<String?> onPurposeChanged;
+  final TextEditingController feedingTypeController;
+  final TextEditingController birthTypeController;
+  final TextEditingController birthConditionController;
+  final bool isBovine;
+
+  // Dynamic catalog data from API
+  final List<CatalogItemEntity> temperamentOptions;
+  final List<CatalogItemEntity> housingTypeOptions;
+  final List<CatalogItemEntity> purposeOptions;
+  final bool readOnly;
+
+  const AnimalInfoAdditionalTab({
+    super.key,
+    required this.selectedTemperaments,
+    required this.onTemperamentsChanged,
+    required this.allergyController,
+    required this.diagnoses,
+    required this.onDiagnosisChanged,
+    required this.otherDiagnosisController,
+    required this.housingType,
+    required this.onHousingTypeChanged,
+    required this.purpose,
+    required this.onPurposeChanged,
+    required this.feedingTypeController,
+    required this.birthTypeController,
+    required this.birthConditionController,
+    required this.isBovine,
+    this.temperamentOptions = const [],
+    this.housingTypeOptions = const [],
+    this.purposeOptions = const [],
+    this.readOnly = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(AppSpacing.l),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Center(
+            child: Text(
+              'Info. Adicional',
+              style: AppTypography.heading2.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.l),
+
+          // Temperamento
+          AppMultiSearchDropdown<String>(
+            label: 'Temperamento',
+            hint: 'Seleccionar',
+            selectedItems: selectedTemperaments,
+            isInline: true,
+            searchable: false,
+            items: temperamentOptions.map((t) => t.name).toList(),
+            itemAsString: (item) => item,
+            onChanged: readOnly ? (_) {} : onTemperamentsChanged,
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Alergia
+          CustomTextField(
+            label: 'Alergia a (Opcional)',
+            controller: allergyController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Diagnósticos
+          Text(
+            'Diagnosticado con',
+            style: AppTypography.body6.copyWith(color: AppColors.greyNegroV2),
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          ...diagnoses.entries.map(
+            (entry) => Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: CustomCheckbox(
+                value: entry.value,
+                label: entry.key,
+                onChanged: readOnly ? null : (v) => onDiagnosisChanged(entry.key, v),
+              ),
+            ),
+          ),
+
+          if (diagnoses['Otro'] == true) ...[
+            const SizedBox(height: AppSpacing.xxs),
+            CustomTextField(
+              label: '¿Cuál?',
+              controller: otherDiagnosisController,
+              maxLength: 80,
+              strictValidation: true,
+              allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+              enabled: !readOnly,
+            ),
+            const SizedBox(height: AppSpacing.m),
+          ],
+          if (diagnoses['Otro'] != true) const SizedBox(height: AppSpacing.m),
+
+          // Tipo de vivienda
+          AppDropdown<String>(
+            label: 'Tipo de vivienda',
+            hint: 'Seleccionar',
+            value: housingType,
+            isInline: true,
+            items: housingTypeOptions.map((h) => h.name).toList(),
+            itemAsString: (name) => name,
+            onChanged: readOnly ? null : onHousingTypeChanged,
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Propósito del animal
+          AppDropdown<String>(
+            label: isBovine ? 'Propósito productivo' : 'Propósito',
+            hint: 'Buscar o escribir',
+            value: purpose,
+            searchable: true,
+            isInline: true,
+            items: purposeOptions.map((p) => p.name).toList(),
+            itemAsString: (name) => name,
+            onChanged: readOnly ? null : onPurposeChanged,
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Tipo de alimentación
+          CustomTextField(
+            label: 'Tipo de alimentación',
+            controller: feedingTypeController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Tipo de parto
+          CustomTextField(
+            label: 'Tipo de parto',
+            controller: birthTypeController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: AppSpacing.m),
+
+          // Condición al nacer
+          CustomTextField(
+            label: 'Condición al nacer',
+            controller: birthConditionController,
+            maxLength: 80,
+            strictValidation: true,
+            allowPattern: RegExp(r'^[a-zA-Z0-9\s]+$'),
+            enabled: !readOnly,
+          ),
+          const SizedBox(height: 8),
+          if (MediaQuery.of(context).viewInsets.bottom > 0)
+            SizedBox(
+              height: (MediaQuery.of(context).viewInsets.bottom - 70)
+                  .clamp(0, double.infinity),
+            ),
+        ],
+      ),
+    );
+  }
+}

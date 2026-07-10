@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -26,13 +27,14 @@ class WelcomeSocialPage extends StatelessWidget {
         ),
         child: SafeArea(
           child: FixedBottomActionLayout(
-            padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 24),
+            padding: const EdgeInsets.symmetric(horizontal:24),
+      
             bottomChild: CustomButton(
               text: 'Comenzar',
               onPressed: () {
                 Navigator.pushNamedAndRemoveUntil(
                   context,
-                  '/home',
+                  AppRoutes.home,
                   (route) => false,
                 );
               },

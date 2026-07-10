@@ -8,27 +8,37 @@ class FixedBottomActionLayout extends StatelessWidget {
 
   final EdgeInsetsGeometry? padding;
 
+  final double bottomSpacing;
+
   const FixedBottomActionLayout({
     super.key,
     required this.child,
     required this.bottomChild,
     this.padding,
+    this.bottomSpacing = 20.0,
   });
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewInsets.bottom;
+
     return Column(
       children: [
-        Expanded(child: child),
-
-        Padding(
-          padding:
-              padding ??
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-          child: bottomChild,
+        Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(bottom: bottomInset > 0 ? bottomInset : 0),
+            child: child,
+          ),
         ),
-
-        const SizedBox(height: 40),
+        if (bottomInset == 0) ...[
+          Padding(
+            padding:
+                padding ??
+                const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+            child: bottomChild,
+          ),
+          SizedBox(height: bottomSpacing),
+        ],
       ],
     );
   }

@@ -63,6 +63,12 @@ dependencies:
   sms_autofill: ^2.4.1
   keyboard_actions: ^4.2.1
   formz: ^0.8.0
+  flutter_localizations:
+    sdk: flutter
+  record: ^6.2.0
+  path_provider: ^2.1.5
+  open_filex: ^4.7.0
+  audioplayers: ^6.6.0
 
 dev_dependencies:
   flutter_test:

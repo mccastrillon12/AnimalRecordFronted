@@ -61,6 +61,7 @@ class PhoneInputField extends StatelessWidget {
             onChanged: onCountryChanged,
             showIsoCodeAsValue: true,
             enabled: true,
+            pushContent: false,
           ),
 
         const SizedBox(width: AppSpacing.xs),

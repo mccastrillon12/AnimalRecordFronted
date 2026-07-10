@@ -1,0 +1,151 @@
+import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+
+/// Data model for Animal with JSON serialization.
+class AnimalDataModel extends AnimalEntity {
+  const AnimalDataModel({
+    required super.id,
+    required super.name,
+    super.code,
+    required super.species,
+    required super.breed,
+    required super.sex,
+    required super.reproductiveStatus,
+    super.birthdate,
+    required super.hasChip,
+    required super.isAssociationMember,
+    required super.temperament,
+    required super.diagnosis,
+    required super.ownerId,
+    super.profilePictureUrl,
+    super.weight,
+    super.colorAndMarkings,
+    super.allergies,
+    super.housingType,
+    super.purpose,
+    super.feedingType,
+    super.birthType,
+    super.birthCondition,
+    super.identificationType,
+    super.identificationNumber,
+    super.registrationAssociations,
+    super.isAdopted,
+    super.adoptionSource,
+    super.adoptionPlaceName,
+    super.otherDiagnosisDetail,
+    super.unknownBirthDate,
+    super.approximateAgeMinMonths,
+    super.approximateAgeMaxMonths,
+    super.isActive,
+    super.deactivationReason,
+    super.createdAt,
+    super.updatedAt,
+    super.ownerName,
+    super.nameHistory,
+  });
+
+  factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
+    return AnimalDataModel(
+      id: json['id'] as String,
+      name: json['name'] as String,
+      code: json['code'] as String?,
+      species: json['species'] as String,
+      breed: json['breed'] as String? ?? '',
+      sex: json['sex'] as String,
+      reproductiveStatus: json['reproductiveStatus'] as String? ?? '',
+      birthdate: (json['birthdate'] ?? json['birthDate']) as String?,
+      hasChip: json['hasChip'] as bool? ?? false,
+      isAssociationMember: json['isAssociationMember'] as bool? ?? false,
+      temperament: (json['temperament'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      diagnosis: (json['diagnosis'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
+      ownerId: json['ownerId'] as String? ?? '',
+      profilePictureUrl:
+          json['profilePictureUrl'] as String?,
+      weight: (json['weight'] as num?)?.toDouble(),
+      colorAndMarkings: json['colorAndMarkings'] as String?,
+      allergies: json['allergies'] as String?,
+      housingType: json['housingType'] as String?,
+      purpose: json['purpose'] as String?,
+      feedingType: json['feedingType'] as String?,
+      birthType: json['birthType'] as String?,
+      birthCondition: json['birthCondition'] as String?,
+      identificationType: json['identificationType'] as String?,
+      identificationNumber: json['identificationNumber'] as String?,
+      registrationAssociations: (json['registrationAssociations'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList(),
+      isAdopted: json['isAdopted'] as bool?,
+      adoptionSource: json['adoptionSource'] as String?,
+      adoptionPlaceName: json['adoptionPlaceName'] as String?,
+      otherDiagnosisDetail: json['otherDiagnosisDetail'] as String?,
+      unknownBirthDate: json['unknownBirthDate'] as bool? ?? false,
+      approximateAgeMinMonths: (json['approximateAgeMinMonths'] as num?)?.toInt(),
+      approximateAgeMaxMonths: (json['approximateAgeMaxMonths'] as num?)?.toInt(),
+      isActive: json['isActive'] as bool? ?? true,
+      deactivationReason: json['deactivationReason'] as String?,
+      createdAt: json['createdAt'] as String?,
+      updatedAt: json['updatedAt'] as String?,
+      ownerName: json['ownerName'] as String?,
+      nameHistory: (json['nameHistory'] as List<dynamic>?)?.map((e) {
+        final item = e as Map<String, dynamic>;
+        return NameHistoryItem(
+          id: item['_id']?.toString() ?? '',
+          name: item['name']?.toString() ?? '',
+          date: item['date']?.toString() ?? '',
+        );
+      }).toList() ?? [],
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      if (code != null) 'code': code,
+      'species': species,
+      'breed': breed,
+      'sex': sex,
+      'reproductiveStatus': reproductiveStatus,
+      if (birthdate != null) 'birthdate': birthdate,
+      'hasChip': hasChip,
+      'isAssociationMember': isAssociationMember,
+      'temperament': temperament,
+      'diagnosis': diagnosis,
+      'ownerId': ownerId,
+      if (profilePictureUrl != null) 'profilePictureUrl': profilePictureUrl,
+      if (weight != null) 'weight': weight,
+      if (colorAndMarkings != null) 'colorAndMarkings': colorAndMarkings,
+      if (allergies != null) 'allergies': allergies,
+      if (housingType != null) 'housingType': housingType,
+      if (purpose != null) 'purpose': purpose,
+      if (feedingType != null) 'feedingType': feedingType,
+      if (birthType != null) 'birthType': birthType,
+      if (birthCondition != null) 'birthCondition': birthCondition,
+      if (identificationType != null) 'identificationType': identificationType,
+      if (identificationNumber != null) 'identificationNumber': identificationNumber,
+      if (registrationAssociations != null) 'registrationAssociations': registrationAssociations,
+      if (isAdopted != null) 'isAdopted': isAdopted,
+      if (adoptionSource != null) 'adoptionSource': adoptionSource,
+      if (adoptionPlaceName != null) 'adoptionPlaceName': adoptionPlaceName,
+      if (otherDiagnosisDetail != null) 'otherDiagnosisDetail': otherDiagnosisDetail,
+      'unknownBirthDate': unknownBirthDate,
+      if (approximateAgeMinMonths != null) 'approximateAgeMinMonths': approximateAgeMinMonths,
+      if (approximateAgeMaxMonths != null) 'approximateAgeMaxMonths': approximateAgeMaxMonths,
+      'isActive': isActive,
+      if (deactivationReason != null) 'deactivationReason': deactivationReason,
+      if (createdAt != null) 'createdAt': createdAt,
+      if (updatedAt != null) 'updatedAt': updatedAt,
+      if (ownerName != null) 'ownerName': ownerName,
+      'nameHistory': nameHistory.map((e) => {
+        '_id': e.id,
+        'name': e.name,
+        'date': e.date,
+      }).toList(),
+    };
+  }
+}
