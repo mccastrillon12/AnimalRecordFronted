@@ -273,7 +273,7 @@ Future<void> _onChangePasswordRequested(
         );
       } else {
         bloc.add(FetchUserRequested());
-        emit(PasswordChangeSuccess(UserModel.empty()));
+        emit(PasswordChangeSuccess(UserEntity.empty()));
       }
     },
   );

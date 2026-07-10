@@ -1,17 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:animal_record/core/services/s3_upload_service.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
 import 'package:animal_record/features/home/domain/entities/update_animal_params.dart';
 import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
-import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/search_animals_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/upload_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 
 class AnimalCubit extends Cubit<AnimalState> {
@@ -19,20 +17,18 @@ class AnimalCubit extends Cubit<AnimalState> {
   final GetAnimalsByOwnerUseCase getAnimalsByOwnerUseCase;
   final GetAnimalByIdUseCase getAnimalByIdUseCase;
   final UpdateAnimalUseCase updateAnimalUseCase;
-  final GetAnimalPictureUploadUrlUseCase getAnimalPictureUploadUrlUseCase;
   final ConfirmAnimalPictureUseCase confirmAnimalPictureUseCase;
   final SearchAnimalsUseCase searchAnimalsUseCase;
-  final S3UploadService s3UploadService;
+  final UploadAnimalPictureUseCase uploadAnimalPictureUseCase;
 
   AnimalCubit({
     required this.createAnimalUseCase,
     required this.getAnimalsByOwnerUseCase,
     required this.getAnimalByIdUseCase,
     required this.updateAnimalUseCase,
-    required this.getAnimalPictureUploadUrlUseCase,
     required this.confirmAnimalPictureUseCase,
     required this.searchAnimalsUseCase,
-    required this.s3UploadService,
+    required this.uploadAnimalPictureUseCase,
   }) : super(AnimalInitial());
 
   /// Cached list so we can preserve it during create operations.
@@ -72,19 +68,23 @@ class AnimalCubit extends Cubit<AnimalState> {
 
     final result = await searchAnimalsUseCase(queryParams);
 
-    result.fold((failure) {
-      emit(AnimalError(failure.message, existingAnimals: _animals));
-    }, (animals) {
-      _animals = animals;
-      emit(AnimalsLoaded(animals));
-    });
+    result.fold(
+      (failure) {
+        emit(AnimalError(failure.message, existingAnimals: _animals));
+      },
+      (animals) {
+        _animals = animals;
+        emit(AnimalsLoaded(animals));
+      },
+    );
   }
 
   Future<void> loadAnimalDetails(String animalId) async {
     final result = await getAnimalByIdUseCase(animalId);
-    
+
     result.fold(
-      (failure) => emit(AnimalError(failure.message, existingAnimals: _animals)),
+      (failure) =>
+          emit(AnimalError(failure.message, existingAnimals: _animals)),
       (animal) {
         // Update the animal in the local cache
         final index = _animals.indexWhere((a) => a.id == animal.id);
@@ -93,10 +93,10 @@ class AnimalCubit extends Cubit<AnimalState> {
         } else {
           _animals.add(animal);
         }
-        
+
         // Just emit loaded state so the UI rebuilds without showing a success message
         emit(AnimalsLoaded(_animals));
-      }
+      },
     );
   }
 
@@ -160,124 +160,63 @@ class AnimalCubit extends Cubit<AnimalState> {
 
   /// Uploads a profile picture for the given animal.
   ///
-  /// Flow: compress → get presigned URL → upload to S3 → confirm with backend.
+  /// The upload workflow is coordinated by [UploadAnimalPictureUseCase].
   Future<void> updateProfilePicture(String animalId, String imagePath) async {
-    emit(AnimalPictureUploading(
-      existingAnimals: _animals,
-      animalId: animalId,
-    ));
+    emit(AnimalPictureUploading(existingAnimals: _animals, animalId: animalId));
 
     try {
-      // Step 1: Compress image locally
-      final compressedBytes = await FlutterImageCompress.compressWithFile(
-        imagePath,
-        minWidth: 800,
-        minHeight: 800,
-        quality: 80,
-        format: CompressFormat.jpeg,
-      );
-
-      if (compressedBytes == null) {
-        emit(AnimalError(
-          'No se pudo comprimir la imagen',
-          existingAnimals: _animals,
-        ));
-        return;
-      }
-
-      const mimeType = 'image/jpeg';
-      final fileSize = compressedBytes.length;
-
-      // Step 2: Get presigned URL from backend
-      final urlResult = await getAnimalPictureUploadUrlUseCase(
+      final result = await uploadAnimalPictureUseCase(
         animalId: animalId,
-        mimeType: mimeType,
-        fileSize: fileSize,
+        imagePath: imagePath,
       );
 
-      await urlResult.fold(
+      await result.fold(
         (failure) async {
           emit(AnimalError(failure.message, existingAnimals: _animals));
         },
-        (urlData) async {
-          final uploadUrl = urlData['uploadUrl'] as String?;
-          final finalUrl = urlData['finalUrl'] as String?;
-
-          if (uploadUrl == null || finalUrl == null) {
-            emit(AnimalError(
-              'Respuesta inválida del servidor',
-              existingAnimals: _animals,
-            ));
-            return;
+        (finalUrl) async {
+          // Re-fetch animals to get the updated data.
+          if (_currentOwnerId != null) {
+            final fetchResult = await getAnimalsByOwnerUseCase(
+              _currentOwnerId!,
+            );
+            fetchResult.fold(
+              (failure) {
+                // Preserve the previous fallback when the refresh fails.
+                _updateAnimalPictureInList(animalId, finalUrl);
+              },
+              (fetchedAnimals) {
+                _animals = fetchedAnimals;
+              },
+            );
+          } else {
+            _updateAnimalPictureInList(animalId, finalUrl);
           }
 
-          // Step 3: Upload directly to S3
-          await s3UploadService.uploadFileToS3(
-            presignedUrl: uploadUrl,
-            bytes: compressedBytes,
-            mimeType: mimeType,
-          );
+          AnimalEntity updatedAnimal;
+          try {
+            updatedAnimal = _animals.firstWhere((a) => a.id == animalId);
+          } catch (_) {
+            _updateAnimalPictureInList(animalId, finalUrl);
+            updatedAnimal = _animals.firstWhere((a) => a.id == animalId);
+          }
 
-          // Step 4: Confirm with backend
-          final confirmResult = await confirmAnimalPictureUseCase(
-            animalId: animalId,
-            finalUrl: finalUrl,
-          );
-
-          await confirmResult.fold(
-            (failure) async {
-              emit(AnimalError(failure.message, existingAnimals: _animals));
-            },
-            (_) async {
-              // Re-fetch animals to get the updated data
-              if (_currentOwnerId != null) {
-                final fetchResult =
-                    await getAnimalsByOwnerUseCase(_currentOwnerId!);
-                fetchResult.fold(
-                  (l) {
-                    // Fallback: manually update the local list
-                    _updateAnimalPictureInList(animalId, finalUrl);
-                  },
-                  (fetchedAnimals) {
-                    _animals = fetchedAnimals;
-                  },
-                );
-              } else {
-                _updateAnimalPictureInList(animalId, finalUrl);
-              }
-
-              // Find the updated animal
-              AnimalEntity updatedAnimal;
-              try {
-                updatedAnimal = _animals.firstWhere((a) => a.id == animalId);
-              } catch (_) {
-                // Build a minimal placeholder — should not happen
-                _updateAnimalPictureInList(animalId, finalUrl);
-                updatedAnimal = _animals.firstWhere((a) => a.id == animalId);
-              }
-
-              emit(AnimalPictureUploaded(
-                updatedAnimal,
-                allAnimals: _animals,
-              ));
-            },
-          );
+          emit(AnimalPictureUploaded(updatedAnimal, allAnimals: _animals));
         },
       );
     } catch (e) {
-      emit(AnimalError(
-        'Error inesperado: ${e.toString()}',
-        existingAnimals: _animals,
-      ));
+      emit(
+        AnimalError(
+          'Error inesperado: ${e.toString()}',
+          existingAnimals: _animals,
+        ),
+      );
     }
   }
 
   /// Deletes the profile picture for the given animal by sending an empty URL.
   Future<void> deleteProfilePicture(String animalId) async {
-    emit(AnimalPictureUploading(
-      existingAnimals: _animals,
-      animalId: animalId,
-    ));
+    emit(AnimalPictureUploading(existingAnimals: _animals, animalId: animalId));
 
     try {
       final result = await confirmAnimalPictureUseCase(
@@ -292,8 +231,9 @@ class AnimalCubit extends Cubit<AnimalState> {
         (_) async {
           // Re-fetch animals to get the updated data
           if (_currentOwnerId != null) {
-            final fetchResult =
-                await getAnimalsByOwnerUseCase(_currentOwnerId!);
+            final fetchResult = await getAnimalsByOwnerUseCase(
+              _currentOwnerId!,
+            );
             fetchResult.fold(
               (l) => _updateAnimalPictureInList(animalId, null),
               (fetchedAnimals) => _animals = fetchedAnimals,
@@ -314,10 +254,12 @@ class AnimalCubit extends Cubit<AnimalState> {
         },
       );
     } catch (e) {
-      emit(AnimalError(
-        'Error inesperado: ${e.toString()}',
-        existingAnimals: _animals,
-      ));
+      emit(
+        AnimalError(
+          'Error inesperado: ${e.toString()}',
+          existingAnimals: _animals,
+        ),
+      );
     }
   }
 

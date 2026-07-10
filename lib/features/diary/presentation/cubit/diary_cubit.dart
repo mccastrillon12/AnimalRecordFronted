@@ -1,44 +1,21 @@
-import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_image_compress/flutter_image_compress.dart';
-import 'package:animal_record/core/services/s3_upload_service.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
+import 'package:animal_record/features/diary/domain/entities/local_attachment.dart';
 import 'package:animal_record/features/diary/domain/usecases/get_diary_entries_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/create_diary_entry_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/update_diary_entry_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/delete_diary_entry_usecase.dart';
-import 'package:animal_record/features/diary/domain/usecases/get_attachment_upload_url_usecase.dart';
-import 'package:animal_record/features/diary/domain/usecases/confirm_attachment_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/delete_attachment_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/upload_diary_attachment_usecase.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
-
-/// Holds local attachment info before uploading.
-class LocalAttachment {
-  final String path;
-  final String fileName;
-  final String mimeType;
-  final String fileType; // 'image' | 'audio'
-  final int size;
-
-  LocalAttachment({
-    required this.path,
-    required this.fileName,
-    required this.mimeType,
-    required this.fileType,
-    required this.size,
-  });
-}
 
 class DiaryCubit extends Cubit<DiaryState> {
   final GetDiaryEntriesUseCase getDiaryEntriesUseCase;
   final CreateDiaryEntryUseCase createDiaryEntryUseCase;
   final UpdateDiaryEntryUseCase updateDiaryEntryUseCase;
   final DeleteDiaryEntryUseCase deleteDiaryEntryUseCase;
-  final GetAttachmentUploadUrlUseCase getAttachmentUploadUrlUseCase;
-  final ConfirmAttachmentUseCase confirmAttachmentUseCase;
   final DeleteAttachmentUseCase deleteAttachmentUseCase;
-  final S3UploadService s3UploadService;
+  final UploadDiaryAttachmentUseCase uploadDiaryAttachmentUseCase;
 
   List<DiaryEntryEntity> _entries = [];
 
@@ -47,10 +24,8 @@ class DiaryCubit extends Cubit<DiaryState> {
     required this.createDiaryEntryUseCase,
     required this.updateDiaryEntryUseCase,
     required this.deleteDiaryEntryUseCase,
-    required this.getAttachmentUploadUrlUseCase,
-    required this.confirmAttachmentUseCase,
     required this.deleteAttachmentUseCase,
-    required this.s3UploadService,
+    required this.uploadDiaryAttachmentUseCase,
   }) : super(DiaryInitial());
 
   List<DiaryEntryEntity> get entries => _entries;
@@ -106,29 +81,38 @@ class DiaryCubit extends Cubit<DiaryState> {
       );
 
       DiaryEntryEntity? createdEntry;
-      final createError = createResult.fold(
-        (failure) => failure.message,
-        (entry) {
-          createdEntry = entry;
-          return null;
-        },
-      );
+      final createError = createResult.fold((failure) => failure.message, (
+        entry,
+      ) {
+        createdEntry = entry;
+        return null;
+      });
 
       if (createError != null || createdEntry == null) {
-        emit(DiaryError(
-          createError ?? 'Error al crear la nota',
-          existingEntries: _entries,
-        ));
+        emit(
+          DiaryError(
+            createError ?? 'Error al crear la nota',
+            existingEntries: _entries,
+          ),
+        );
         return;
       }
 
       // Step 2 & 3: Upload each attachment
       for (final attachment in attachments) {
-        await _uploadAttachment(
+        final uploadResult = await uploadDiaryAttachmentUseCase(
           animalId: animalId,
           entryId: createdEntry!.id,
           attachment: attachment,
         );
+        final uploadError = uploadResult.fold(
+          (failure) => failure.message,
+          (_) => null,
+        );
+        if (uploadError != null) {
+          emit(DiaryError(uploadError, existingEntries: _entries));
+          return;
+        }
       }
 
       // Re-fetch entries to get consistent state
@@ -140,10 +124,12 @@ class DiaryCubit extends Cubit<DiaryState> {
 
       emit(DiaryEntrySaved(createdEntry!, allEntries: _entries));
     } catch (e) {
-      emit(DiaryError(
-        'Error inesperado: ${e.toString()}',
-        existingEntries: _entries,
-      ));
+      emit(
+        DiaryError(
+          'Error inesperado: ${e.toString()}',
+          existingEntries: _entries,
+        ),
+      );
     }
   }
 
@@ -168,29 +154,38 @@ class DiaryCubit extends Cubit<DiaryState> {
       );
 
       DiaryEntryEntity? updatedEntry;
-      final updateError = updateResult.fold(
-        (failure) => failure.message,
-        (entry) {
-          updatedEntry = entry;
-          return null;
-        },
-      );
+      final updateError = updateResult.fold((failure) => failure.message, (
+        entry,
+      ) {
+        updatedEntry = entry;
+        return null;
+      });
 
       if (updateError != null || updatedEntry == null) {
-        emit(DiaryError(
-          updateError ?? 'Error al actualizar la nota',
-          existingEntries: _entries,
-        ));
+        emit(
+          DiaryError(
+            updateError ?? 'Error al actualizar la nota',
+            existingEntries: _entries,
+          ),
+        );
         return;
       }
 
       // Upload any new attachments added during edit
       for (final attachment in newAttachments) {
-        await _uploadAttachment(
+        final uploadResult = await uploadDiaryAttachmentUseCase(
           animalId: animalId,
           entryId: entryId,
           attachment: attachment,
         );
+        final uploadError = uploadResult.fold(
+          (failure) => failure.message,
+          (_) => null,
+        );
+        if (uploadError != null) {
+          emit(DiaryError(uploadError, existingEntries: _entries));
+          return;
+        }
       }
 
       // Delete attachments marked for deletion
@@ -208,21 +203,20 @@ class DiaryCubit extends Cubit<DiaryState> {
 
       // Re-fetch entries
       final fetchResult = await getDiaryEntriesUseCase(animalId);
-      fetchResult.fold(
-        (_) {
-          _entries = _entries
-              .map((e) => e.id == entryId ? updatedEntry! : e)
-              .toList();
-        },
-        (entries) => _entries = entries,
-      );
+      fetchResult.fold((_) {
+        _entries = _entries
+            .map((e) => e.id == entryId ? updatedEntry! : e)
+            .toList();
+      }, (entries) => _entries = entries);
 
       emit(DiaryEntryUpdated(updatedEntry!, allEntries: _entries));
     } catch (e) {
-      emit(DiaryError(
-        'Error inesperado: ${e.toString()}',
-        existingEntries: _entries,
-      ));
+      emit(
+        DiaryError(
+          'Error inesperado: ${e.toString()}',
+          existingEntries: _entries,
+        ),
+      );
     }
   }
 
@@ -249,65 +243,6 @@ class DiaryCubit extends Cubit<DiaryState> {
   }
 
   // ── Upload a single attachment ────────────────────────────────
-
-  Future<void> _uploadAttachment({
-    required String animalId,
-    required String entryId,
-    required LocalAttachment attachment,
-  }) async {
-    Uint8List bytes;
-    if (attachment.fileType == 'image') {
-      final compressed = await FlutterImageCompress.compressWithFile(
-        attachment.path,
-        minWidth: 1920,
-        minHeight: 1080,
-        quality: 85,
-        format: CompressFormat.jpeg,
-      );
-      bytes = compressed ?? await File(attachment.path).readAsBytes();
-    } else {
-      bytes = await File(attachment.path).readAsBytes();
-    }
-
-    final mimeType = attachment.fileType == 'image'
-        ? 'image/jpeg'
-        : attachment.mimeType;
-    final fileSize = bytes.length;
-
-    final urlResult = await getAttachmentUploadUrlUseCase(
-      animalId: animalId,
-      entryId: entryId,
-      mimeType: mimeType,
-      fileSize: fileSize,
-    );
-
-    await urlResult.fold(
-      (_) async {},
-      (urlData) async {
-        final uploadUrl = urlData['uploadUrl'] as String?;
-        final finalUrl = urlData['finalUrl'] as String?;
-        final attachmentId = urlData['attachmentId'] as String?;
-
-        if (uploadUrl == null || finalUrl == null || attachmentId == null) return;
-
-        await s3UploadService.uploadFileToS3(
-          presignedUrl: uploadUrl,
-          bytes: bytes,
-          mimeType: mimeType,
-        );
-
-        await confirmAttachmentUseCase(
-          animalId: animalId,
-          entryId: entryId,
-          attachmentId: attachmentId,
-          finalUrl: finalUrl,
-          fileName: attachment.fileName,
-          mimeType: mimeType,
-          size: fileSize,
-        );
-      },
-    );
-  }
 
   /// Reset to loaded state.
   void resetToLoaded() {

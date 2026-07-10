@@ -11,22 +11,15 @@ Future<void> _onFetchUserRequested(
   FetchUserRequested event,
   Emitter<AuthState> emit,
 ) async {
-  final cachedUser = await bloc.tokenStorage.getUserData();
+  final cachedUser = await bloc.userCache.read();
   bool loadedFromCache = false;
 
   if (cachedUser != null) {
-    try {
-      final userMap = json.decode(cachedUser);
-      final user = UserModel.fromJson(userMap);
-
-      final currentState = bloc.state;
-      if (currentState is! AuthSuccess || currentState.user != user) {
-        emit(AuthSuccess(user));
-      }
-      loadedFromCache = true;
-    } catch (e) {
-      // Cache corrupted – ignore and fetch from API
+    final currentState = bloc.state;
+    if (currentState is! AuthSuccess || currentState.user != cachedUser) {
+      emit(AuthSuccess(cachedUser));
     }
+    loadedFromCache = true;
   }
 
   final userId = await bloc.tokenStorage.getUserId();
@@ -189,7 +182,7 @@ Future<void> _onSocialRegisterSubmitted(
         await updateResult.fold(
           (f) async {
             // Si falla el update, procedemos con el usuario original pero logueamos el error
-            sl<Logger>().e(
+            bloc.logger.error(
               'Error actualizando nombre post-registro social: ${f.message}',
             );
             await _saveUserToCacheImpl(bloc, user);
@@ -202,7 +195,7 @@ Future<void> _onSocialRegisterSubmitted(
         );
         return;
       } catch (e) {
-        sl<Logger>().e('Error inesperado actualizando nombre: $e');
+        bloc.logger.error('Error inesperado actualizando nombre: $e');
       }
     }
 
@@ -218,25 +211,7 @@ Future<void> _onLogoutRequested(
 ) async {
   emit(AuthLoading());
 
-  // Reset animal data so the next user doesn't see the previous user's animals
-  sl<AnimalCubit>().reset();
-
-  // Limpiar sesiones sociales primero para forzar el selector de cuentas en el próximo login y evitar race conditions
-  try {
-    final googleSignIn = google_sign_in.GoogleSignIn(
-      serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
-    );
-    await googleSignIn.signOut();
-  } catch (e) {
-    sl<Logger>().w('Error al desconectar GoogleSignIn: $e');
-  }
-
-  try {
-    final microsoftAuth = sl<MicrosoftAuthService>();
-    await microsoftAuth.signOut();
-  } catch (_) {}
-
-  await bloc.logoutUseCase();
+  await bloc.logoutSessionUseCase();
 
   emit(AuthInitial());
 }

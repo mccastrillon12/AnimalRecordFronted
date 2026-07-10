@@ -1,9 +1,16 @@
 import 'package:animal_record/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:animal_record/features/auth/domain/repositories/auth_repository.dart';
 import 'package:animal_record/features/auth/data/repositories/auth_repository_impl.dart';
+import 'package:animal_record/features/auth/data/repositories/user_cache_impl.dart';
+import 'package:animal_record/features/auth/data/services/callback_session_state_cleaner.dart';
+import 'package:animal_record/features/auth/data/services/social_session_service_impl.dart';
+import 'package:animal_record/features/auth/domain/repositories/user_cache.dart';
+import 'package:animal_record/features/auth/domain/services/session_state_cleaner.dart';
+import 'package:animal_record/features/auth/domain/services/social_session_service.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/login_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/logout_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/logout_session_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/check_auth_status_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/verify_code_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/resend_code_usecase.dart';
@@ -25,11 +32,16 @@ import 'package:animal_record/features/auth/domain/usecases/validate_password_to
 import 'package:animal_record/features/auth/domain/usecases/forgot_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/reset_pin_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_pin_token_usecase.dart';
-import 'package:animal_record/features/auth/domain/usecases/get_profile_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/auth/domain/usecases/confirm_profile_picture_usecase.dart';
+import 'package:animal_record/features/auth/domain/usecases/upload_profile_picture_usecase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:animal_record/features/locations/data/datasources/locations_local_datasource.dart';
 import 'package:animal_record/core/services/s3_upload_service.dart';
+import 'package:animal_record/core/services/file_uploader.dart';
+import 'package:animal_record/core/services/media_file_service.dart';
+import 'package:animal_record/core/services/media_file_service_impl.dart';
+import 'package:animal_record/core/services/app_logger.dart';
+import 'package:animal_record/core/services/app_logger_impl.dart';
 
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 
@@ -49,8 +61,8 @@ import 'package:animal_record/features/home/domain/usecases/get_animals_by_owner
 import 'package:animal_record/features/home/domain/usecases/search_animals_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/update_animal_usecase.dart';
-import 'package:animal_record/features/home/domain/usecases/get_animal_picture_upload_url_usecase.dart';
 import 'package:animal_record/features/home/domain/usecases/confirm_animal_picture_usecase.dart';
+import 'package:animal_record/features/home/domain/usecases/upload_animal_picture_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 
 import 'package:animal_record/features/catalogs/data/datasources/catalogs_remote_datasource.dart';
@@ -74,9 +86,8 @@ import 'package:animal_record/features/diary/domain/usecases/get_diary_entries_u
 import 'package:animal_record/features/diary/domain/usecases/create_diary_entry_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/update_diary_entry_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/delete_diary_entry_usecase.dart';
-import 'package:animal_record/features/diary/domain/usecases/get_attachment_upload_url_usecase.dart';
-import 'package:animal_record/features/diary/domain/usecases/confirm_attachment_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/delete_attachment_usecase.dart';
+import 'package:animal_record/features/diary/domain/usecases/upload_diary_attachment_usecase.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
@@ -88,6 +99,7 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:animal_record/core/network/api_log_interceptor.dart';
 import 'package:animal_record/core/network/api_client.dart';
 
@@ -120,17 +132,25 @@ Future<void> init() async {
       getBiometricStatusUseCase: sl(),
       forgotPinUseCase: sl(),
       resetPinUseCase: sl(),
-      logoutUseCase: sl(),
+      logoutSessionUseCase: sl(),
       tokenStorage: sl(),
-      getProfilePictureUploadUrlUseCase: sl(),
+      userCache: sl(),
+      logger: sl(),
       confirmProfilePictureUseCase: sl(),
-      s3UploadService: sl(),
+      uploadProfilePictureUseCase: sl(),
     ),
   );
 
   sl.registerLazySingleton(() => RegisterUseCase(sl()));
   sl.registerLazySingleton(() => LoginUseCase(sl()));
   sl.registerLazySingleton(() => LogoutUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LogoutSessionUseCase(
+      sessionStateCleaner: sl(),
+      socialSessionService: sl(),
+      logoutUseCase: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => CheckAuthStatusUseCase(sl()));
   sl.registerLazySingleton(() => VerifyCodeUseCase(sl()));
   sl.registerLazySingleton(() => ResendCodeUseCase(sl()));
@@ -152,12 +172,34 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ForgotPinUseCase(sl()));
   sl.registerLazySingleton(() => ResetPinUseCase(sl()));
   sl.registerLazySingleton(() => ValidatePinTokenUseCase(sl()));
-  sl.registerLazySingleton(() => GetProfilePictureUploadUrlUseCase(sl()));
   sl.registerLazySingleton(() => ConfirmProfilePictureUseCase(sl()));
+  sl.registerLazySingleton(
+    () => UploadProfilePictureUseCase(
+      repository: sl(),
+      mediaFileService: sl(),
+      fileUploader: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => S3UploadService());
 
   sl.registerLazySingleton<AuthRepository>(
     () => AuthRepositoryImpl(remoteDataSource: sl(), tokenStorage: sl()),
+  );
+
+  sl.registerLazySingleton<UserCache>(() => UserCacheImpl(sl()));
+
+  sl.registerLazySingleton<SessionStateCleaner>(
+    () => CallbackSessionStateCleaner(() => sl<AnimalCubit>().reset()),
+  );
+
+  sl.registerLazySingleton<SocialSessionService>(
+    () => SocialSessionServiceImpl(
+      googleSignIn: GoogleSignIn(
+        serverClientId: dotenv.env['GOOGLE_SERVER_CLIENT_ID'],
+      ),
+      microsoftAuthService: sl(),
+      logger: sl(),
+    ),
   );
 
   sl.registerLazySingleton<AuthRemoteDataSource>(
@@ -200,10 +242,9 @@ Future<void> init() async {
       getAnimalsByOwnerUseCase: sl(),
       getAnimalByIdUseCase: sl(),
       updateAnimalUseCase: sl(),
-      getAnimalPictureUploadUrlUseCase: sl(),
       confirmAnimalPictureUseCase: sl(),
       searchAnimalsUseCase: sl(),
-      s3UploadService: sl(),
+      uploadAnimalPictureUseCase: sl(),
     ),
   );
 
@@ -211,9 +252,15 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAnimalsByOwnerUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalByIdUseCase(sl()));
   sl.registerLazySingleton(() => UpdateAnimalUseCase(sl()));
-  sl.registerLazySingleton(() => GetAnimalPictureUploadUrlUseCase(sl()));
   sl.registerLazySingleton(() => ConfirmAnimalPictureUseCase(sl()));
   sl.registerLazySingleton(() => SearchAnimalsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => UploadAnimalPictureUseCase(
+      repository: sl(),
+      mediaFileService: sl(),
+      fileUploader: sl(),
+    ),
+  );
 
   sl.registerLazySingleton<AnimalRepository>(
     () => AnimalRepositoryImpl(remoteDataSource: sl()),
@@ -243,8 +290,12 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAnimalPurposesUseCase(repository: sl()));
   sl.registerLazySingleton(() => GetTemperamentsUseCase(repository: sl()));
   sl.registerLazySingleton(() => GetAdoptionSourcesUseCase(repository: sl()));
-  sl.registerLazySingleton(() => GetIdentificationTypesUseCase(repository: sl()));
-  sl.registerLazySingleton(() => GetRegistrationAssociationsUseCase(repository: sl()));
+  sl.registerLazySingleton(
+    () => GetIdentificationTypesUseCase(repository: sl()),
+  );
+  sl.registerLazySingleton(
+    () => GetRegistrationAssociationsUseCase(repository: sl()),
+  );
 
   sl.registerLazySingleton<CatalogsRepository>(
     () => CatalogsRepositoryImpl(remoteDataSource: sl()),
@@ -261,19 +312,22 @@ Future<void> init() async {
       createDiaryEntryUseCase: sl(),
       updateDiaryEntryUseCase: sl(),
       deleteDiaryEntryUseCase: sl(),
-      getAttachmentUploadUrlUseCase: sl(),
-      confirmAttachmentUseCase: sl(),
       deleteAttachmentUseCase: sl(),
-      s3UploadService: sl(),
+      uploadDiaryAttachmentUseCase: sl(),
     ),
   );
   sl.registerLazySingleton(() => GetDiaryEntriesUseCase(sl()));
   sl.registerLazySingleton(() => CreateDiaryEntryUseCase(sl()));
   sl.registerLazySingleton(() => UpdateDiaryEntryUseCase(sl()));
   sl.registerLazySingleton(() => DeleteDiaryEntryUseCase(sl()));
-  sl.registerLazySingleton(() => GetAttachmentUploadUrlUseCase(sl()));
-  sl.registerLazySingleton(() => ConfirmAttachmentUseCase(sl()));
   sl.registerLazySingleton(() => DeleteAttachmentUseCase(sl()));
+  sl.registerLazySingleton(
+    () => UploadDiaryAttachmentUseCase(
+      repository: sl(),
+      mediaFileService: sl(),
+      fileUploader: sl(),
+    ),
+  );
   sl.registerLazySingleton<DiaryRepository>(
     () => DiaryRepositoryImpl(remoteDataSource: sl()),
   );
@@ -290,6 +344,11 @@ Future<void> init() async {
     ),
   );
 
+  sl.registerLazySingleton<MediaFileService>(
+    () => const MediaFileServiceImpl(),
+  );
+  sl.registerLazySingleton<FileUploader>(() => sl<S3UploadService>());
+
   sl.registerLazySingleton<MicrosoftAuthService>(
     () => MicrosoftAuthService(logger: sl()),
   );
@@ -304,6 +363,7 @@ Future<void> init() async {
   final int sendTimeout = int.parse(dotenv.env['SEND_TIMEOUT'] ?? '60');
 
   sl.registerLazySingleton(() => Logger());
+  sl.registerLazySingleton<AppLogger>(() => AppLoggerImpl(sl()));
 
   final dio = Dio(
     BaseOptions(
