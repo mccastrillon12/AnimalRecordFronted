@@ -89,6 +89,12 @@ import 'package:animal_record/features/diary/domain/usecases/delete_diary_entry_
 import 'package:animal_record/features/diary/domain/usecases/delete_attachment_usecase.dart';
 import 'package:animal_record/features/diary/domain/usecases/upload_diary_attachment_usecase.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
+import 'package:animal_record/features/shared_files/data/datasources/shared_files_platform_datasource.dart';
+import 'package:animal_record/features/shared_files/data/repositories/shared_files_repository_impl.dart';
+import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
@@ -333,6 +339,22 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<DiaryRemoteDataSource>(
     () => DiaryRemoteDataSourceImpl(apiClient: sl()),
+  );
+
+  // — Shared files feature —
+  sl.registerFactory(
+    () => SharedFilesCubit(
+      getInitialSharedFilesUseCase: sl(),
+      observeSharedFilesUseCase: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => GetInitialSharedFilesUseCase(sl()));
+  sl.registerLazySingleton(() => ObserveSharedFilesUseCase(sl()));
+  sl.registerLazySingleton<SharedFilesRepository>(
+    () => SharedFilesRepositoryImpl(sl()),
+  );
+  sl.registerLazySingleton<SharedFilesPlatformDataSource>(
+    () => SharedFilesPlatformDataSourceImpl(),
   );
 
   sl.registerLazySingleton<TokenStorage>(

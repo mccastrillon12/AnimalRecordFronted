@@ -34,6 +34,7 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_scr
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -69,6 +70,9 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
         BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
         BlocProvider(create: (context) => di.sl<DiaryCubit>()),
+        BlocProvider(
+          create: (context) => di.sl<SharedFilesCubit>()..initialize(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

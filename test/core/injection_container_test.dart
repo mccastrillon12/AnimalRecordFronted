@@ -2,6 +2,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,5 +31,6 @@ GOOGLE_SERVER_CLIENT_ID=test-client-id
     expect(di.sl<AuthBloc>(), isA<AuthBloc>());
     expect(di.sl<AnimalCubit>(), isA<AnimalCubit>());
     expect(di.sl<DiaryCubit>(), isA<DiaryCubit>());
+    expect(di.sl<SharedFilesCubit>(), isA<SharedFilesCubit>());
   });
 }
