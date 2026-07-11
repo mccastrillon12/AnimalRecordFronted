@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_family_label.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -109,7 +110,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           if (!animal.isActive) {
             inactiveAnimals.add(animal);
           } else {
-            final pluralFamily = _pluralizeFamily(animal.family);
+            final pluralFamily = pluralizeAnimalFamily(animal.family);
             grouped.putIfAbsent(pluralFamily, () => []);
             grouped[pluralFamily]!.add(animal);
           }
@@ -671,13 +672,5 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         ),
       ),
     );
-  }
-
-  String _pluralizeFamily(String family) {
-    // Canino → Caninos, Felino → Felinos, etc.
-    if (family.endsWith('o')) {
-      return '${family}s';
-    }
-    return family;
   }
 }

@@ -6,7 +6,9 @@ import 'package:animal_record/core/widgets/buttons/custom_checkbox.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/layout/base_modal_card.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_family_label.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 Future<List<AnimalEntity>?> showAnimalSelectionModal({
   required BuildContext context,
@@ -74,7 +76,9 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
   Map<String, List<AnimalEntity>> get _groupedAnimals {
     final groups = <String, List<AnimalEntity>>{};
     for (final animal in _filteredAnimals) {
-      groups.putIfAbsent(_speciesTitle(animal.species), () => []).add(animal);
+      groups
+          .putIfAbsent(pluralizeAnimalFamily(animal.species), () => [])
+          .add(animal);
     }
     return groups;
   }
@@ -132,15 +136,25 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
                 label: '',
                 hint: 'Buscar',
                 controller: _searchController,
-                prefixIcon: const Icon(
-                  Icons.search,
-                  color: AppColors.greyMedio,
-                  size: 22,
+                prefixIcon: Padding(
+                  padding: const EdgeInsets.only(
+                    left: 16,
+                    right: AppSpacing.xs,
+                  ),
+                  child: SvgPicture.asset(
+                    'assets/icons/vuesax-linear-search-2.svg',
+                    width: AppSpacing.iconSizeSmall,
+                    height: AppSpacing.iconSizeSmall,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.greyMedio,
+                      BlendMode.srcIn,
+                    ),
+                  ),
                 ),
                 maxLength: 50,
               ),
             ),
-            const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: AppSpacing.l),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
               child: CustomCheckbox(
@@ -149,7 +163,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
                 onChanged: _toggleAll,
               ),
             ),
-            const SizedBox(height: AppSpacing.m),
+            const SizedBox(height: AppSpacing.l),
             Expanded(
               child: RawScrollbar(
                 thumbColor: AppColors.primaryIndigo,
@@ -188,20 +202,35 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
     for (final entry in _groupedAnimals.entries) {
       widgets.add(
         Padding(
-          padding: const EdgeInsets.only(top: 4, bottom: 12),
+          padding: const EdgeInsets.only(bottom: AppSpacing.m),
           child: Text(entry.key, style: AppTypography.body3),
         ),
       );
       for (final animal in entry.value) {
-        final label = animal.code?.trim().isNotEmpty == true
-            ? '${animal.name} - ${animal.code}'
-            : animal.name;
+        final code = animal.code?.trim();
         widgets.add(
           Padding(
-            padding: const EdgeInsets.only(bottom: 14),
+            padding: const EdgeInsets.only(bottom: AppSpacing.m),
             child: CustomCheckbox(
               value: _selectedIds.contains(animal.id),
-              label: label,
+              label: animal.name,
+              labelWidget: RichText(
+                text: TextSpan(
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
+                  children: [
+                    TextSpan(text: animal.name),
+                    if (code?.isNotEmpty == true)
+                      TextSpan(
+                        text: ' - $code',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyBordes,
+                        ),
+                      ),
+                  ],
+                ),
+              ),
               onChanged: (selected) => _toggleAnimal(animal, selected),
             ),
           ),
@@ -210,22 +239,5 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
       widgets.add(const SizedBox(height: 2));
     }
     return widgets;
-  }
-
-  String _speciesTitle(String species) {
-    switch (species.trim().toLowerCase()) {
-      case 'canino':
-        return 'Caninos';
-      case 'felino':
-        return 'Felinos';
-      case 'equino':
-        return 'Equinos';
-      case 'bovino':
-        return 'Bovinos';
-      case 'ave':
-        return 'Aves';
-      default:
-        return species;
-    }
   }
 }
