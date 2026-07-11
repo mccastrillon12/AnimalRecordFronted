@@ -1,26 +1,28 @@
 import UIKit
 import UniformTypeIdentifiers
+import UserNotifications
 
 final class ShareViewController: UIViewController {
     private let appGroup = "group.com.animalRecord.animalRecord.shared"
     private let queueFile = "shared_files.json"
     private let processingQueue = DispatchQueue(label: "com.animalrecord.share.processing")
     private var didStartProcessing = false
+    private let statusLabel = UILabel()
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .systemBackground
 
-        let label = UILabel()
-        label.text = "Importando en Animal Record…"
-        label.textAlignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(label)
+        statusLabel.text = "Preparando archivo para Animal Record..."
+        statusLabel.textAlignment = .center
+        statusLabel.numberOfLines = 0
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(statusLabel)
 
         NSLayoutConstraint.activate([
-            label.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
-            label.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
-            label.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            statusLabel.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            statusLabel.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            statusLabel.centerYAnchor.constraint(equalTo: view.centerYAnchor),
         ])
     }
 
@@ -34,7 +36,7 @@ final class ShareViewController: UIViewController {
     private func importAttachments() {
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem]
         else {
-            finish()
+            finish(notificationScheduled: false)
             return
         }
 
@@ -64,7 +66,15 @@ final class ShareViewController: UIViewController {
         group.notify(queue: processingQueue) { [weak self] in
             guard let self else { return }
             self.persist(importedFiles)
-            DispatchQueue.main.async { self.finish() }
+            guard !importedFiles.isEmpty else {
+                DispatchQueue.main.async { self.finish(notificationScheduled: false) }
+                return
+            }
+            self.scheduleContinueNotification { scheduled in
+                DispatchQueue.main.async {
+                    self.finish(notificationScheduled: scheduled)
+                }
+            }
         }
     }
 
@@ -134,9 +144,44 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func finish() {
-        let appURL = URL(string: "animalrecord-share://shared")!
-        extensionContext?.open(appURL) { [weak self] _ in
+    private func scheduleContinueNotification(completion: @escaping (Bool) -> Void) {
+        let center = UNUserNotificationCenter.current()
+        center.getNotificationSettings { settings in
+            guard settings.authorizationStatus == .authorized ||
+                    settings.authorizationStatus == .provisional ||
+                    settings.authorizationStatus == .ephemeral
+            else {
+                completion(false)
+                return
+            }
+
+            let content = UNMutableNotificationContent()
+            content.title = "Archivo preparado"
+            content.body = "Toca para continuar en Animal Record."
+            content.sound = .default
+            content.userInfo = ["animalRecordAction": "sharedFiles"]
+
+            let trigger = UNTimeIntervalNotificationTrigger(
+                timeInterval: 1,
+                repeats: false
+            )
+            let request = UNNotificationRequest(
+                identifier: "shared-files-\(UUID().uuidString)",
+                content: content,
+                trigger: trigger
+            )
+            center.add(request) { error in
+                completion(error == nil)
+            }
+        }
+    }
+
+    private func finish(notificationScheduled: Bool) {
+        statusLabel.text = notificationScheduled
+            ? "Archivo preparado. Toca la notificación para continuar en Animal Record."
+            : "Archivo preparado. Abre Animal Record para continuar."
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil)
         }
     }

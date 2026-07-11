@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import MSAL
+import UserNotifications
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -19,6 +20,10 @@ import MSAL
       application,
       didFinishLaunchingWithOptions: launchOptions
     )
+
+    let notificationCenter = UNUserNotificationCenter.current()
+    notificationCenter.delegate = self
+    notificationCenter.requestAuthorization(options: [.alert, .sound]) { _, _ in }
 
     if let controller = window?.rootViewController as? FlutterViewController {
       sharedFilesChannel = FlutterMethodChannel(
@@ -42,17 +47,19 @@ import MSAL
       open url: URL,
       options: [UIApplication.OpenURLOptionsKey : Any] = [:]
   ) -> Bool {
-      if url.scheme == "animalrecord-share" {
-          deliverSharedFiles()
-          return true
-      }
       return MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String) || super.application(app, open: url, options: options)
   }
 
   private func deliverSharedFiles() {
+      guard let sharedFilesChannel else { return }
       let files = consumeSharedFiles()
       guard !files.isEmpty else { return }
-      sharedFilesChannel?.invokeMethod("sharedFilesReceived", arguments: files)
+      sharedFilesChannel.invokeMethod("sharedFilesReceived", arguments: files)
+  }
+
+  override func applicationDidBecomeActive(_ application: UIApplication) {
+      super.applicationDidBecomeActive(application)
+      deliverSharedFiles()
   }
 
   private func consumeSharedFiles() -> [[String: String]] {
@@ -67,6 +74,25 @@ import MSAL
 
       try? FileManager.default.removeItem(at: queueURL)
       return files
+  }
+
+  override func userNotificationCenter(
+      _ center: UNUserNotificationCenter,
+      willPresent notification: UNNotification,
+      withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
+  ) {
+      completionHandler([.banner, .sound])
+  }
+
+  override func userNotificationCenter(
+      _ center: UNUserNotificationCenter,
+      didReceive response: UNNotificationResponse,
+      withCompletionHandler completionHandler: @escaping () -> Void
+  ) {
+      if response.notification.request.content.userInfo["animalRecordAction"] as? String == "sharedFiles" {
+          deliverSharedFiles()
+      }
+      completionHandler()
   }
 
   override func application(
