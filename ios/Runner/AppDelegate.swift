@@ -9,6 +9,7 @@ import UniformTypeIdentifiers
   private let sharedAppGroup = "group.com.animalRecord.animalRecord.shared"
   private let sharedQueueFile = "shared_files.json"
   private var sharedFilesChannel: FlutterMethodChannel?
+  private var flutterIsReadyForSharedFiles = false
   private var pendingDocumentFiles: [[String: String]] = []
 
   override func application(
@@ -32,6 +33,10 @@ import UniformTypeIdentifiers
           result(FlutterMethodNotImplemented)
           return
         }
+        // Dart installs its incoming-method handler before requesting the
+        // initial files. From this point live deliveries are safe; before it,
+        // keep files persisted so a cold launch cannot lose the intent.
+        self?.flutterIsReadyForSharedFiles = true
         result(self?.consumeAllSharedFiles() ?? [])
       }
     }
@@ -55,7 +60,9 @@ import UniformTypeIdentifiers
   }
 
   private func deliverSharedFiles() {
-      guard let sharedFilesChannel else { return }
+      guard flutterIsReadyForSharedFiles,
+            let sharedFilesChannel
+      else { return }
       let files = consumeAllSharedFiles()
       guard !files.isEmpty else { return }
       sharedFilesChannel.invokeMethod("sharedFilesReceived", arguments: files)
