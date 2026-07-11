@@ -14,17 +14,12 @@ private struct ResponderChainContainingAppOpener: ContainingAppOpening {
         let legacyOpenSelector = NSSelectorFromString("openURL:")
 
         while let current = currentResponder {
-            if let application = current as? UIApplication {
-                application.open(url, options: [:], completionHandler: nil)
-                return true
-            }
             if current.responds(to: legacyOpenSelector) {
                 current.perform(legacyOpenSelector, with: url)
                 return true
             }
             currentResponder = current.next
         }
-
         return false
     }
 }

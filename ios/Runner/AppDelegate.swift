@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import MSAL
+import UniformTypeIdentifiers
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
@@ -8,6 +9,7 @@ import MSAL
   private let sharedAppGroup = "group.com.animalRecord.animalRecord.shared"
   private let sharedQueueFile = "shared_files.json"
   private var sharedFilesChannel: FlutterMethodChannel?
+  private var pendingDocumentFiles: [[String: String]] = []
 
   override func application(
     _ application: UIApplication,
@@ -30,7 +32,7 @@ import MSAL
           result(FlutterMethodNotImplemented)
           return
         }
-        result(self?.consumeSharedFiles() ?? [])
+        result(self?.consumeAllSharedFiles() ?? [])
       }
     }
 
@@ -46,14 +48,65 @@ import MSAL
           deliverSharedFiles()
           return true
       }
+      if url.isFileURL {
+          return receiveDocument(at: url)
+      }
       return MSALPublicClientApplication.handleMSALResponse(url, sourceApplication: options[UIApplication.OpenURLOptionsKey.sourceApplication] as? String) || super.application(app, open: url, options: options)
   }
 
   private func deliverSharedFiles() {
       guard let sharedFilesChannel else { return }
-      let files = consumeSharedFiles()
+      let files = consumeAllSharedFiles()
       guard !files.isEmpty else { return }
       sharedFilesChannel.invokeMethod("sharedFilesReceived", arguments: files)
+  }
+
+  private func consumeAllSharedFiles() -> [[String: String]] {
+      let files = consumeSharedFiles() + pendingDocumentFiles
+      pendingDocumentFiles.removeAll()
+      return files
+  }
+
+  private func receiveDocument(at sourceURL: URL) -> Bool {
+      guard let type = UTType(filenameExtension: sourceURL.pathExtension),
+            type.conforms(to: .image) || type.conforms(to: .pdf)
+      else { return false }
+
+      let didAccess = sourceURL.startAccessingSecurityScopedResource()
+      defer {
+          if didAccess { sourceURL.stopAccessingSecurityScopedResource() }
+      }
+
+      do {
+          let cacheDirectory = FileManager.default.urls(
+              for: .cachesDirectory,
+              in: .userDomainMask
+          )[0].appendingPathComponent("shared_files", isDirectory: true)
+          try FileManager.default.createDirectory(
+              at: cacheDirectory,
+              withIntermediateDirectories: true
+          )
+
+          let originalName = sourceURL.lastPathComponent.isEmpty
+              ? (type.conforms(to: .pdf) ? "document.pdf" : "image")
+              : sourceURL.lastPathComponent
+          let destination = cacheDirectory.appendingPathComponent(
+              "\(UUID().uuidString)-\(originalName)"
+          )
+          try FileManager.default.copyItem(at: sourceURL, to: destination)
+
+          let file: [String: String] = [
+              "path": destination.path,
+              "name": originalName,
+              "mimeType": type.preferredMIMEType ??
+                  (type.conforms(to: .pdf) ? "application/pdf" : "image/jpeg"),
+          ]
+          pendingDocumentFiles.append(file)
+          deliverSharedFiles()
+          return true
+      } catch {
+          return false
+      }
   }
 
   override func applicationDidBecomeActive(_ application: UIApplication) {
