@@ -12,6 +12,12 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
 
   StreamSubscription<List<SharedFileEntity>>? _subscription;
   bool _receivedLiveFilesDuringInitialization = false;
+  List<SharedFileEntity> _pendingFiles = const [];
+  bool _accessGranted = false;
+
+  List<SharedFileEntity> get pendingFiles => List.unmodifiable(_pendingFiles);
+  bool get hasPendingFiles => _pendingFiles.isNotEmpty;
+  bool get accessGranted => _accessGranted;
 
   SharedFilesCubit({
     required this.getInitialSharedFilesUseCase,
@@ -42,10 +48,19 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
   }
 
   void _emitFiles(List<SharedFileEntity> files) {
-    if (files.isNotEmpty) emit(SharedFilesReceived(files));
+    if (files.isEmpty) return;
+    _pendingFiles = files;
+    emit(SharedFilesReceived(files));
   }
 
-  void clear() => emit(SharedFilesInitial());
+  void grantAccess() => _accessGranted = true;
+
+  void revokeAccess() => _accessGranted = false;
+
+  void clear() {
+    _pendingFiles = const [];
+    emit(SharedFilesInitial());
+  }
 
   @override
   Future<void> close() async {

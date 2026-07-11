@@ -35,6 +35,8 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_cre
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/pages/shared_file_upload_screen.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -79,6 +81,10 @@ class MyApp extends StatelessWidget {
         title: 'AnimalRecord',
         theme: AppTheme.lightTheme,
         navigatorKey: navigatorKey,
+        builder: (context, child) => SharedFilesNavigationCoordinator(
+          navigatorKey: navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        ),
         initialRoute: AppRoutes.splash,
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
@@ -126,7 +132,7 @@ class MyApp extends StatelessWidget {
             final args = ModalRoute.of(context)!.settings.arguments;
             AnimalModel animal;
             DiaryEntryEntity? entry;
-            
+
             if (args is AnimalModel) {
               animal = args;
             } else if (args is Map<String, dynamic>) {
@@ -135,9 +141,11 @@ class MyApp extends StatelessWidget {
             } else {
               throw Exception('Invalid arguments for animalDiaryCreate route');
             }
-            
+
             return AnimalDiaryCreateScreen(animal: animal, entry: entry);
           },
+          AppRoutes.sharedFileUpload: (context) =>
+              const SharedFileUploadScreen(),
         },
       ),
     );

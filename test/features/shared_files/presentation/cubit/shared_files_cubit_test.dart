@@ -26,9 +26,9 @@ void main() {
   setUp(() {
     repository = MockSharedFilesRepository();
     incomingFiles = StreamController<List<SharedFileEntity>>.broadcast();
-    when(() => repository.observeIncomingFiles()).thenAnswer(
-      (_) => incomingFiles.stream,
-    );
+    when(
+      () => repository.observeIncomingFiles(),
+    ).thenAnswer((_) => incomingFiles.stream);
     when(() => repository.getInitialFiles()).thenAnswer((_) async => const []);
     cubit = SharedFilesCubit(
       getInitialSharedFilesUseCase: GetInitialSharedFilesUseCase(repository),
@@ -42,7 +42,9 @@ void main() {
   });
 
   test('publica los archivos que iniciaron la aplicación', () async {
-    when(() => repository.getInitialFiles()).thenAnswer((_) async => const [image]);
+    when(
+      () => repository.getInitialFiles(),
+    ).thenAnswer((_) async => const [image]);
 
     await cubit.initialize();
 
@@ -51,13 +53,34 @@ void main() {
     verify(() => repository.observeIncomingFiles()).called(1);
   });
 
-  test('publica archivos compartidos mientras la aplicación está abierta', () async {
-    await cubit.initialize();
+  test(
+    'publica archivos compartidos mientras la aplicación está abierta',
+    () async {
+      await cubit.initialize();
 
+      incomingFiles.add(const [image]);
+      await Future<void>.delayed(Duration.zero);
+
+      expect(cubit.state, const SharedFilesReceived([image]));
+      expect(cubit.pendingFiles, const [image]);
+      expect(cubit.hasPendingFiles, isTrue);
+    },
+  );
+
+  test('controla acceso y permite descartar la intención pendiente', () async {
+    await cubit.initialize();
     incomingFiles.add(const [image]);
     await Future<void>.delayed(Duration.zero);
 
-    expect(cubit.state, const SharedFilesReceived([image]));
+    cubit.grantAccess();
+    expect(cubit.accessGranted, isTrue);
+
+    cubit.revokeAccess();
+    cubit.clear();
+
+    expect(cubit.accessGranted, isFalse);
+    expect(cubit.hasPendingFiles, isFalse);
+    expect(cubit.state, isA<SharedFilesInitial>());
   });
 
   test('publica un error si falla la carga inicial', () async {
