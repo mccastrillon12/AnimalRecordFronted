@@ -119,11 +119,14 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
         style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
       ),
       onClose: () => Navigator.of(context).pop(),
-      bottomChild: SizedBox(
-        width: 118,
-        child: CustomButton(
-          text: 'Continuar',
-          onPressed: _selectedIds.isEmpty ? null : _continue,
+      bottomChild: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.l),
+        child: SizedBox(
+          width: 118,
+          child: CustomButton(
+            text: 'Continuar',
+            onPressed: _selectedIds.isEmpty ? null : _continue,
+          ),
         ),
       ),
       child: SizedBox(
@@ -132,50 +135,75 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-              child: CustomTextField(
-                label: '',
-                hint: 'Buscar',
-                controller: _searchController,
-                prefixIcon: Padding(
-                  padding: const EdgeInsets.only(
-                    left: 16,
-                    right: AppSpacing.xs,
-                  ),
-                  child: SvgPicture.asset(
-                    'assets/icons/vuesax-linear-search-2.svg',
-                    width: AppSpacing.iconSizeSmall,
-                    height: AppSpacing.iconSizeSmall,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.greyMedio,
-                      BlendMode.srcIn,
+              child: Column(
+                children: [
+                  CustomTextField(
+                    label: '',
+                    hint: 'Buscar',
+                    controller: _searchController,
+                    prefixIcon: Padding(
+                      padding: const EdgeInsets.only(
+                        left: 16,
+                        right: AppSpacing.xs,
+                      ),
+                      child: SvgPicture.asset(
+                        'assets/icons/vuesax-linear-search-2.svg',
+                        width: AppSpacing.iconSizeSmall,
+                        height: AppSpacing.iconSizeSmall,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.greyMedio,
+                          BlendMode.srcIn,
+                        ),
+                      ),
                     ),
+                    maxLength: 50,
                   ),
-                ),
-                maxLength: 50,
-              ),
-            ),
-            const SizedBox(height: AppSpacing.l),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-              child: CustomCheckbox(
-                value: _allSelected,
-                label: 'Seleccionar todos',
-                onChanged: _toggleAll,
+                  const SizedBox(height: AppSpacing.l),
+                  CustomCheckbox(
+                    value: _allSelected,
+                    label: 'Seleccionar todos',
+                    onChanged: _toggleAll,
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: AppSpacing.l),
             Expanded(
-              child: RawScrollbar(
-                thumbColor: AppColors.primaryIndigo,
-                trackColor: AppColors.greyDelineante,
-                trackVisibility: true,
-                thumbVisibility: true,
-                thickness: 2,
-                radius: const Radius.circular(4),
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 12),
-                  children: _buildGroups(),
-                ),
+              child: Stack(
+                children: [
+                  Positioned(
+                    right: 16,
+                    top: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 2,
+                      decoration: BoxDecoration(
+                        color: AppColors.greyDelineante,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Positioned.fill(
+                    child: RawScrollbar(
+                      thumbColor: AppColors.primaryIndigo,
+                      trackColor: Colors.transparent,
+                      trackBorderColor: Colors.transparent,
+                      radius: const Radius.circular(4),
+                      thickness: 2,
+                      trackVisibility: false,
+                      thumbVisibility: true,
+                      interactive: false,
+                      crossAxisMargin: 16,
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.fromLTRB(24, 0, 22, 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: _buildGroups(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
