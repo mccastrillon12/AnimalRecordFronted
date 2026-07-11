@@ -12,6 +12,7 @@ import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -61,6 +62,24 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     }
   }
 
+  Future<void> _selectAnimals(List<AnimalEntity> animals) async {
+    final selected = await showAnimalSelectionModal(
+      context: context,
+      animals: animals,
+      selectedAnimals: _selectedAnimals,
+    );
+    if (!mounted || selected == null) return;
+    setState(() => _selectedAnimals = selected);
+  }
+
+  void _showPendingUploadMessage() {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('La carga del documento se habilitará próximamente.'),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ModalPageLayout(
@@ -75,7 +94,10 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
       onClose: _close,
       bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
       bottomPadding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
-      bottomChild: const CustomButton(text: 'Subir documento', onPressed: null),
+      bottomChild: CustomButton(
+        text: 'Subir documento',
+        onPressed: _selectedAnimals.isEmpty ? null : _showPendingUploadMessage,
+      ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
         child: Column(
@@ -99,17 +121,21 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
             BlocBuilder<AnimalCubit, AnimalState>(
               builder: (context, state) {
                 final cubit = context.read<AnimalCubit>();
+                final animals = cubit.animals
+                    .where((animal) => animal.isActive)
+                    .toList(growable: false);
                 return AppMultiSearchDropdown<AnimalEntity>(
                   label: 'Animal(es)',
                   hint: state is AnimalsLoading
                       ? 'Cargando animales...'
                       : 'Seleccione el animal o animales',
                   selectedItems: _selectedAnimals,
-                  items: cubit.animals
-                      .where((animal) => animal.isActive)
-                      .toList(),
+                  items: animals,
                   itemAsString: (animal) => animal.name,
                   enabled: state is! AnimalsLoading,
+                  searchable: false,
+                  pushContentDown: false,
+                  onTap: () => _selectAnimals(animals),
                   onChanged: (animals) {
                     setState(() => _selectedAnimals = animals);
                   },
