@@ -1,6 +1,33 @@
 import UIKit
 import UniformTypeIdentifiers
-import UserNotifications
+
+private protocol ContainingAppOpening {
+    func open(_ url: URL, from responder: UIResponder) -> Bool
+}
+
+/// Compatibility adapter for internal distributions where iOS rejects
+/// `NSExtensionContext.open`. Keep this workaround isolated so it can be
+/// replaced without touching the share/import workflow.
+private struct ResponderChainContainingAppOpener: ContainingAppOpening {
+    func open(_ url: URL, from responder: UIResponder) -> Bool {
+        var currentResponder: UIResponder? = responder
+        let legacyOpenSelector = NSSelectorFromString("openURL:")
+
+        while let current = currentResponder {
+            if let application = current as? UIApplication {
+                application.open(url, options: [:], completionHandler: nil)
+                return true
+            }
+            if current.responds(to: legacyOpenSelector) {
+                current.perform(legacyOpenSelector, with: url)
+                return true
+            }
+            currentResponder = current.next
+        }
+
+        return false
+    }
+}
 
 final class ShareViewController: UIViewController {
     private let appGroup = "group.com.animalRecord.animalRecord.shared"
@@ -8,6 +35,8 @@ final class ShareViewController: UIViewController {
     private let processingQueue = DispatchQueue(label: "com.animalrecord.share.processing")
     private var didStartProcessing = false
     private let statusLabel = UILabel()
+    private let containingAppOpener: ContainingAppOpening =
+        ResponderChainContainingAppOpener()
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -36,7 +65,7 @@ final class ShareViewController: UIViewController {
     private func importAttachments() {
         guard let extensionItems = extensionContext?.inputItems as? [NSExtensionItem]
         else {
-            finish(notificationScheduled: false)
+            finish(importSucceeded: false)
             return
         }
 
@@ -66,14 +95,8 @@ final class ShareViewController: UIViewController {
         group.notify(queue: processingQueue) { [weak self] in
             guard let self else { return }
             self.persist(importedFiles)
-            guard !importedFiles.isEmpty else {
-                DispatchQueue.main.async { self.finish(notificationScheduled: false) }
-                return
-            }
-            self.scheduleContinueNotification { scheduled in
-                DispatchQueue.main.async {
-                    self.finish(notificationScheduled: scheduled)
-                }
+            DispatchQueue.main.async {
+                self.finish(importSucceeded: !importedFiles.isEmpty)
             }
         }
     }
@@ -144,44 +167,37 @@ final class ShareViewController: UIViewController {
         }
     }
 
-    private func scheduleContinueNotification(completion: @escaping (Bool) -> Void) {
-        let center = UNUserNotificationCenter.current()
-        center.getNotificationSettings { settings in
-            guard settings.authorizationStatus == .authorized ||
-                    settings.authorizationStatus == .provisional ||
-                    settings.authorizationStatus == .ephemeral
-            else {
-                completion(false)
-                return
-            }
+    private func finish(importSucceeded: Bool) {
+        guard importSucceeded,
+              let appURL = URL(string: "animalrecord-share://shared")
+        else {
+            statusLabel.text = "No fue posible preparar el archivo."
+            complete(after: 1.2)
+            return
+        }
 
-            let content = UNMutableNotificationContent()
-            content.title = "Archivo preparado"
-            content.body = "Toca para continuar en Animal Record."
-            content.sound = .default
-            content.userInfo = ["animalRecordAction": "sharedFiles"]
+        statusLabel.text = "Abriendo Animal Record..."
+        extensionContext?.open(appURL) { [weak self] opened in
+            guard let self else { return }
+            DispatchQueue.main.async {
+                let didOpen = opened || self.containingAppOpener.open(
+                    appURL,
+                    from: self
+                )
 
-            let trigger = UNTimeIntervalNotificationTrigger(
-                timeInterval: 1,
-                repeats: false
-            )
-            let request = UNNotificationRequest(
-                identifier: "shared-files-\(UUID().uuidString)",
-                content: content,
-                trigger: trigger
-            )
-            center.add(request) { error in
-                completion(error == nil)
+                if didOpen {
+                    self.complete(after: 0.25)
+                } else {
+                    self.statusLabel.text =
+                        "Archivo preparado. Abre Animal Record para continuar."
+                    self.complete(after: 1.5)
+                }
             }
         }
     }
 
-    private func finish(notificationScheduled: Bool) {
-        statusLabel.text = notificationScheduled
-            ? "Archivo preparado. Toca la notificación para continuar en Animal Record."
-            : "Archivo preparado. Abre Animal Record para continuar."
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) { [weak self] in
+    private func complete(after delay: TimeInterval) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
             self?.extensionContext?.completeRequest(returningItems: nil)
         }
     }
