@@ -101,7 +101,11 @@ import UniformTypeIdentifiers
               "mimeType": type.preferredMIMEType ??
                   (type.conforms(to: .pdf) ? "application/pdf" : "image/jpeg"),
           ]
-          pendingDocumentFiles.append(file)
+          if !persistSharedFiles([file]) {
+              // Keep an in-memory fallback if the App Group is temporarily
+              // unavailable, so an already-running Flutter engine still gets it.
+              pendingDocumentFiles.append(file)
+          }
           deliverSharedFiles()
           return true
       } catch {
@@ -126,6 +130,34 @@ import UniformTypeIdentifiers
 
       try? FileManager.default.removeItem(at: queueURL)
       return files
+  }
+
+  @discardableResult
+  private func persistSharedFiles(_ newFiles: [[String: String]]) -> Bool {
+      guard !newFiles.isEmpty,
+            let container = FileManager.default.containerURL(
+                forSecurityApplicationGroupIdentifier: sharedAppGroup
+            )
+      else { return false }
+
+      let queueURL = container.appendingPathComponent(sharedQueueFile)
+      var files: [[String: String]] = []
+      if let data = try? Data(contentsOf: queueURL),
+         let queuedFiles = try? JSONSerialization.jsonObject(with: data)
+            as? [[String: String]] {
+          files = queuedFiles
+      }
+      files.append(contentsOf: newFiles)
+
+      guard let data = try? JSONSerialization.data(withJSONObject: files)
+      else { return false }
+
+      do {
+          try data.write(to: queueURL, options: .atomic)
+          return true
+      } catch {
+          return false
+      }
   }
 
   override func application(
