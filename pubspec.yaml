@@ -91,6 +91,12 @@ dev_dependencies:
 # The following section is specific to Flutter packages.
 flutter:
 
+  # Codemagic downloads Firebase's large Git repository unreliably through
+  # SwiftPM. CocoaPods remains supported by Flutter and by every iOS plugin
+  # currently used by this project.
+  config:
+    enable-swift-package-manager: false
+
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
