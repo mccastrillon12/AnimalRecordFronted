@@ -596,11 +596,13 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
       onSelected: (value) {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
+        } else if (value == 'subir_documento') {
+          Navigator.pushNamed(context, AppRoutes.sharedFileUpload);
         } else if (value == 'transferir') {
           // TODO: Implement transfer
         }
       },
-      offset: const Offset(0, -115),
+      offset: const Offset(0, -162),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
       ),
@@ -622,6 +624,27 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               const SizedBox(width: 10),
               Text(
                 'Agregar animal',
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyTextos,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'subir_documento',
+          height: 47,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/document-upload.svg',
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Subir documento',
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                 ),
