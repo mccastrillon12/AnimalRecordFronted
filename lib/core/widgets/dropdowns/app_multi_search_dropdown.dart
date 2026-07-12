@@ -592,17 +592,10 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final disabledBg =
-        Color.lerp(
-          const Color.fromARGB(255, 187, 216, 235),
-          Colors.white,
-          0.6,
-        ) ??
-        AppColors.bgHielo;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: enabled ? AppColors.bgHielo : disabledBg,
+        color: AppColors.bgHielo,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -614,15 +607,13 @@ class _Chip extends StatelessWidget {
               style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
             ),
           ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: enabled ? onRemove : null,
-            child: Icon(
-              Icons.close,
-              size: 14,
-              color: enabled ? AppColors.greyMedio : AppColors.greyTextos,
+          if (enabled) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onRemove,
+              child: Icon(Icons.close, size: 14, color: AppColors.greyMedio),
             ),
-          ),
+          ],
         ],
       ),
     );

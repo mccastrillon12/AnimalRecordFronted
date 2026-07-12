@@ -1,5 +1,10 @@
+import 'dart:typed_data';
+
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 import 'package:image_picker/image_picker.dart';
+
+typedef PhotoToJpegConverter = Future<Uint8List> Function(Uint8List bytes);
 
 abstract interface class ManualFilePickerDataSource {
   Future<Map<Object?, Object?>?> pickFromFiles();
@@ -9,9 +14,13 @@ abstract interface class ManualFilePickerDataSource {
 
 class ManualFilePickerDataSourceImpl implements ManualFilePickerDataSource {
   final ImagePicker imagePicker;
+  final PhotoToJpegConverter photoToJpegConverter;
 
-  ManualFilePickerDataSourceImpl({ImagePicker? imagePicker})
-    : imagePicker = imagePicker ?? ImagePicker();
+  ManualFilePickerDataSourceImpl({
+    ImagePicker? imagePicker,
+    PhotoToJpegConverter? photoToJpegConverter,
+  }) : imagePicker = imagePicker ?? ImagePicker(),
+       photoToJpegConverter = photoToJpegConverter ?? _convertPhotoToJpeg;
 
   @override
   Future<Map<Object?, Object?>?> pickFromFiles() async {
@@ -35,17 +44,39 @@ class ManualFilePickerDataSourceImpl implements ManualFilePickerDataSource {
 
   @override
   Future<Map<Object?, Object?>?> pickFromPhotos() async {
-    final file = await imagePicker.pickImage(source: ImageSource.gallery);
+    final file = await imagePicker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 100,
+    );
     if (file == null) return null;
-    final bytes = await file.readAsBytes();
+    final bytes = await photoToJpegConverter(await file.readAsBytes());
 
     return {
       'path': file.path,
-      'name': file.name,
-      'mimeType': _mimeType(file.name.split('.').last),
+      'name': _jpegFileName(file.name),
+      'mimeType': 'image/jpeg',
       'size': bytes.length,
       'bytes': bytes,
     };
+  }
+
+  static Future<Uint8List> _convertPhotoToJpeg(Uint8List bytes) {
+    return FlutterImageCompress.compressWithList(
+      bytes,
+      minWidth: 1920,
+      minHeight: 1920,
+      quality: 85,
+      format: CompressFormat.jpeg,
+    );
+  }
+
+  String _jpegFileName(String name) {
+    final lastDot = name.lastIndexOf('.');
+    final originalBaseName = lastDot > 0 ? name.substring(0, lastDot) : name;
+    final baseName = originalBaseName.trim().isEmpty
+        ? 'foto'
+        : originalBaseName;
+    return '$baseName.jpg';
   }
 
   String _mimeType(String? extension) {

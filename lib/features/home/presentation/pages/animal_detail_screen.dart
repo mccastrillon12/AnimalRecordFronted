@@ -377,17 +377,26 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     required VoidCallback onTap,
     bool enabled = true,
   }) {
-    final bgColor = enabled 
+    final bgColor = enabled
         ? const Color(0xFF1A345C)
-        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), const Color(0xFF1A345C));
+        : Color.alphaBlend(
+            Colors.black.withValues(alpha: 0.6),
+            const Color(0xFF1A345C),
+          );
 
-    final textColor = enabled 
-        ? AppColors.white.withValues(alpha: 0.85) 
-        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), AppColors.white);
+    final textColor = enabled
+        ? AppColors.white.withValues(alpha: 0.85)
+        : Color.alphaBlend(
+            Colors.black.withValues(alpha: 0.6),
+            AppColors.white,
+          );
 
-    final iconColor = enabled 
-        ? AppColors.white 
-        : Color.alphaBlend(Colors.black.withValues(alpha: 0.6), AppColors.white);
+    final iconColor = enabled
+        ? AppColors.white
+        : Color.alphaBlend(
+            Colors.black.withValues(alpha: 0.6),
+            AppColors.white,
+          );
 
     return GestureDetector(
       onTap: enabled ? onTap : null,
@@ -409,10 +418,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                 iconPath,
                 width: AppSpacing.iconSizeSmall,
                 height: AppSpacing.iconSizeSmall,
-                colorFilter: ColorFilter.mode(
-                  iconColor,
-                  BlendMode.srcIn,
-                ),
+                colorFilter: ColorFilter.mode(iconColor, BlendMode.srcIn),
               ),
             ),
             const SizedBox(
@@ -453,33 +459,39 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: AppBorders.large(),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              offset: const Offset(0, 2),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: Column(
-          children: options.asMap().entries.map((entry) {
-            return MenuItemRow(
-              title: entry.value,
-              onTap: () {
-                if (entry.value == 'Información') {
-                  Navigator.pushNamed(
-                    context,
-                    AppRoutes.animalInfo,
-                    arguments: animal,
-                  );
-                }
-              },
-              showArrow: true,
-            );
-          }).toList(),
+        color: AppColors.white,
+        borderRadius: AppBorders.large(),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            offset: const Offset(0, 2),
+            blurRadius: 8,
+          ),
+        ],
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        children: options.asMap().entries.map((entry) {
+          return MenuItemRow(
+            title: entry.value,
+            onTap: () {
+              if (entry.value == 'Información') {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.animalInfo,
+                  arguments: animal,
+                );
+              } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.animalDocuments,
+                  arguments: animal.id,
+                );
+              }
+            },
+            showArrow: true,
+          );
+        }).toList(),
       ),
     );
   }

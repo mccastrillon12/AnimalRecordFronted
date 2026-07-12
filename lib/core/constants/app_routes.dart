@@ -18,4 +18,5 @@ abstract class AppRoutes {
   static const String animalDiary = '/animal-diary';
   static const String animalDiaryCreate = '/animal-diary-create';
   static const String sharedFileUpload = '/shared-file-upload';
+  static const String animalDocuments = '/animal-documents';
 }

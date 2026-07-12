@@ -29,6 +29,7 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
@@ -146,6 +147,11 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.sharedFileUpload: (context) =>
               const SharedFileUploadScreen(),
+          AppRoutes.animalDocuments: (context) {
+            final animalId =
+                ModalRoute.of(context)!.settings.arguments as String;
+            return AnimalDocumentsScreen(animalId: animalId);
+          },
         },
       ),
     );

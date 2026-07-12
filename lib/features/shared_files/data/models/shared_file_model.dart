@@ -12,7 +12,11 @@ class SharedFileModel extends SharedFileEntity {
   });
 
   factory SharedFileModel.fromMap(Map<Object?, Object?> map) {
-    final mimeType = map['mimeType']?.toString() ?? '';
+    final name = map['name']?.toString() ?? '';
+    final mimeType = _normalizedMimeType(
+      map['mimeType']?.toString() ?? '',
+      name,
+    );
     final type = mimeType == 'application/pdf'
         ? SharedFileType.pdf
         : mimeType.startsWith('image/')
@@ -20,11 +24,28 @@ class SharedFileModel extends SharedFileEntity {
         : SharedFileType.unsupported;
     return SharedFileModel(
       path: map['path']?.toString() ?? '',
-      name: map['name']?.toString() ?? '',
+      name: name,
       mimeType: mimeType,
       type: type,
       size: int.tryParse(map['size']?.toString() ?? '') ?? 0,
       bytes: map['bytes'] as Uint8List?,
     );
+  }
+
+  static String _normalizedMimeType(String mimeType, String name) {
+    final normalized = mimeType.toLowerCase();
+    if (normalized.isNotEmpty && normalized != 'application/octet-stream') {
+      return normalized;
+    }
+
+    final extension = name.contains('.')
+        ? name.split('.').last.toLowerCase()
+        : '';
+    return switch (extension) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'pdf' => 'application/pdf',
+      _ => normalized,
+    };
   }
 }

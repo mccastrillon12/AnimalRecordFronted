@@ -4,6 +4,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -20,6 +21,8 @@ import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/foundation.dart';
+import 'dart:io' as io;
 
 class SharedFileUploadScreen extends StatefulWidget {
   const SharedFileUploadScreen({super.key});
@@ -53,6 +56,17 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_selectedAnimals.isEmpty) {
+      final preselected = _preselectedAnimal;
+      if (preselected != null) {
+        _selectedAnimals = [preselected];
+      }
+    }
+  }
+
+  @override
   void dispose() {
     _fileNameController.dispose();
     _descriptionController.dispose();
@@ -76,9 +90,19 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     return arguments is Map && arguments['manualUpload'] == true;
   }
 
+  AnimalEntity? get _preselectedAnimal {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map && arguments['preselectedAnimal'] is AnimalEntity) {
+      return arguments['preselectedAnimal'] as AnimalEntity;
+    }
+    return null;
+  }
+
   Future<void> _pickManualFile(ManualFileSource source) async {
     try {
-      final file = await context.read<SharedFilesCubit>().pickManualFile(source);
+      final file = await context.read<SharedFilesCubit>().pickManualFile(
+        source,
+      );
       if (!mounted || file == null) return;
 
       setState(() {
@@ -131,10 +155,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
               ListTile(
                 leading: const Icon(Icons.photo_library_outlined),
                 title: Text('Elegir de Fotos', style: AppTypography.body4),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  ManualFileSource.photos,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, ManualFileSource.photos),
               ),
               ListTile(
                 leading: SvgPicture.asset(
@@ -143,10 +165,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
                   height: 24,
                 ),
                 title: Text('Elegir de Archivos', style: AppTypography.body4),
-                onTap: () => Navigator.pop(
-                  sheetContext,
-                  ManualFileSource.files,
-                ),
+                onTap: () =>
+                    Navigator.pop(sheetContext, ManualFileSource.files),
               ),
             ],
           ),
@@ -193,8 +213,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     return ModalPageLayout(
       title: 'Subir documento',
       fixedTitle: true,
-      fixedHeaderHeight: 138,
-      titlePadding: const EdgeInsets.only(top: 92, bottom: 12),
+      fixedHeaderHeight: 126,
+      titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
       titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
       onClose: _close,
       bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
@@ -243,30 +263,43 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
               ),
               const SizedBox(height: AppSpacing.m),
             ],
-            BlocBuilder<AnimalCubit, AnimalState>(
-              builder: (context, state) {
-                final cubit = context.read<AnimalCubit>();
-                final animals = cubit.animals
-                    .where((animal) => animal.isActive)
-                    .toList(growable: false);
-                return AppMultiSearchDropdown<AnimalEntity>(
-                  label: 'Animal(es)',
-                  hint: state is AnimalsLoading
-                      ? 'Cargando animales...'
-                      : 'Seleccione el animal o animales',
-                  selectedItems: _selectedAnimals,
-                  items: animals,
-                  itemAsString: (animal) => animal.name,
-                  enabled: state is! AnimalsLoading,
-                  searchable: false,
-                  pushContentDown: false,
-                  onTap: () => _selectAnimals(animals),
-                  onChanged: (animals) {
-                    setState(() => _selectedAnimals = animals);
-                  },
-                );
-              },
-            ),
+            if (_preselectedAnimal != null)
+              AppDropdown<AnimalEntity>(
+                label: 'Animal',
+                hint: '',
+                value: _preselectedAnimal,
+                items: [_preselectedAnimal!],
+                itemAsString: (animal) => animal.name,
+                enabled: false,
+                onChanged: null,
+              )
+            else
+              BlocBuilder<AnimalCubit, AnimalState>(
+                builder: (context, state) {
+                  final cubit = context.read<AnimalCubit>();
+                  final animals = cubit.animals
+                      .where((animal) => animal.isActive)
+                      .toList(growable: false);
+                  return AppMultiSearchDropdown<AnimalEntity>(
+                    label: 'Animal(es)',
+                    hint: state is AnimalsLoading
+                        ? 'Cargando animales...'
+                        : 'Seleccione el animal o animales',
+                    selectedItems: _selectedAnimals,
+                    items: animals,
+                    itemAsString: (animal) => animal.name,
+                    enabled: state is! AnimalsLoading,
+                    searchable: false,
+                    pushContentDown: false,
+                    onTap: () {
+                      _selectAnimals(animals);
+                    },
+                    onChanged: (animals) {
+                      setState(() => _selectedAnimals = animals);
+                    },
+                  );
+                },
+              ),
             const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Descripción (Opcional)',
@@ -448,9 +481,48 @@ class _SelectedManualFile extends StatelessWidget {
   }
 
   Widget _buildThumbnail() {
-    if (file.type == SharedFileType.image && file.bytes != null) {
-      return Image.memory(file.bytes!, fit: BoxFit.cover);
+    if (file.type == SharedFileType.image) {
+      if (file.bytes != null && file.bytes!.isNotEmpty) {
+        return Image.memory(
+          file.bytes!,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => _buildPathThumbnail(),
+        );
+      }
+      return _buildPathThumbnail();
     }
+    if (file.type == SharedFileType.pdf) {
+      return ColoredBox(
+        color: AppColors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(4.0),
+          child: Image.asset('assets/icons/pdf.png', fit: BoxFit.contain),
+        ),
+      );
+    }
+    return _fallbackThumbnail();
+  }
+
+  Widget _buildPathThumbnail() {
+    if (file.path.isEmpty) return _fallbackThumbnail();
+    if (kIsWeb) {
+      return Image.network(
+        file.path,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _fallbackThumbnail(),
+      );
+    }
+    if (io.File(file.path).existsSync()) {
+      return Image.file(
+        io.File(file.path),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => _fallbackThumbnail(),
+      );
+    }
+    return _fallbackThumbnail();
+  }
+
+  Widget _fallbackThumbnail() {
     return ColoredBox(
       color: const Color(0xFFD9D9D9),
       child: Center(

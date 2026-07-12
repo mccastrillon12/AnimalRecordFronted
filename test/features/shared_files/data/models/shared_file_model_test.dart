@@ -26,5 +26,26 @@ void main() {
 
       expect(model.type, SharedFileType.image);
     });
+
+    test('infiere una imagen cuando el sistema reporta un MIME genérico', () {
+      final model = SharedFileModel.fromMap(const {
+        'path': '/tmp/photo.jpg',
+        'name': 'photo.JPG',
+        'mimeType': 'application/octet-stream',
+      });
+
+      expect(model.mimeType, 'image/jpeg');
+      expect(model.type, SharedFileType.image);
+    });
+
+    test('infiere una imagen cuando el sistema no reporta el MIME', () {
+      final model = SharedFileModel.fromMap(const {
+        'path': '/tmp/photo.png',
+        'name': 'photo.png',
+      });
+
+      expect(model.mimeType, 'image/png');
+      expect(model.type, SharedFileType.image);
+    });
   });
 }
