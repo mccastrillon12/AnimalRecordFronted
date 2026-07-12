@@ -94,6 +94,8 @@ import 'package:animal_record/features/shared_files/data/repositories/shared_fil
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
+import 'package:animal_record/features/shared_files/data/datasources/manual_file_picker_datasource.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
@@ -346,15 +348,20 @@ Future<void> init() async {
     () => SharedFilesCubit(
       getInitialSharedFilesUseCase: sl(),
       observeSharedFilesUseCase: sl(),
+      pickManualSharedFileUseCase: sl(),
     ),
   );
   sl.registerLazySingleton(() => GetInitialSharedFilesUseCase(sl()));
   sl.registerLazySingleton(() => ObserveSharedFilesUseCase(sl()));
+  sl.registerLazySingleton(() => PickManualSharedFileUseCase(sl()));
   sl.registerLazySingleton<SharedFilesRepository>(
-    () => SharedFilesRepositoryImpl(sl()),
+    () => SharedFilesRepositoryImpl(sl(), sl()),
   );
   sl.registerLazySingleton<SharedFilesPlatformDataSource>(
     () => SharedFilesPlatformDataSourceImpl(),
+  );
+  sl.registerLazySingleton<ManualFilePickerDataSource>(
+    () => const ManualFilePickerDataSourceImpl(),
   );
 
   sl.registerLazySingleton<TokenStorage>(

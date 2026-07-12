@@ -4,4 +4,6 @@ abstract interface class SharedFilesRepository {
   Future<List<SharedFileEntity>> getInitialFiles();
 
   Stream<List<SharedFileEntity>> observeIncomingFiles();
+
+  Future<SharedFileEntity?> pickManualFile();
 }

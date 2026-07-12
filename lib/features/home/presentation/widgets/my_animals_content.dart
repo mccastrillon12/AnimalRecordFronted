@@ -105,7 +105,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         // Group by family
         final Map<String, List<AnimalModel>> grouped = {};
         final List<AnimalModel> inactiveAnimals = [];
-        
+
         for (final animal in filtered) {
           if (!animal.isActive) {
             inactiveAnimals.add(animal);
@@ -115,7 +115,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             grouped[pluralFamily]!.add(animal);
           }
         }
-        
+
         if (inactiveAnimals.isNotEmpty) {
           grouped['Transferidos e inactivos'] = inactiveAnimals;
         }
@@ -326,8 +326,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               if (sex == 'Ambos') {
                                 queryParams['sex'] = 'MALE,FEMALE';
                               } else {
-                                queryParams['sex'] =
-                                    sex == 'Macho' ? 'MALE' : 'FEMALE';
+                                queryParams['sex'] = sex == 'Macho'
+                                    ? 'MALE'
+                                    : 'FEMALE';
                               }
                             }
 
@@ -390,8 +391,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               }
 
                               if (ageRangeParts.isNotEmpty) {
-                                queryParams['ageRanges'] =
-                                    ageRangeParts.join(',');
+                                queryParams['ageRanges'] = ageRangeParts.join(
+                                  ',',
+                                );
                               }
                             }
 
@@ -597,7 +599,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
         } else if (value == 'subir_documento') {
-          Navigator.pushNamed(context, AppRoutes.sharedFileUpload);
+          Navigator.pushNamed(
+            context,
+            AppRoutes.sharedFileUpload,
+            arguments: const {'manualUpload': true},
+          );
         } else if (value == 'transferir') {
           // TODO: Implement transfer
         }

@@ -4,6 +4,7 @@ import 'package:animal_record/features/shared_files/domain/entities/shared_file_
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -33,6 +34,7 @@ void main() {
     cubit = SharedFilesCubit(
       getInitialSharedFilesUseCase: GetInitialSharedFilesUseCase(repository),
       observeSharedFilesUseCase: ObserveSharedFilesUseCase(repository),
+      pickManualSharedFileUseCase: PickManualSharedFileUseCase(repository),
     );
   });
 

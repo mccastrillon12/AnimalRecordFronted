@@ -57,6 +57,7 @@ dependencies:
   crypto: ^3.0.7
   app_links: ^6.3.0
   image_picker: ^1.1.2              # Selector de galería/cámara
+  file_picker: ^11.0.2              # Selector manual de imágenes y PDF
   flutter_image_compress: ^2.3.0    # Compresión antes de subir a S3
   cached_network_image: ^3.4.1
   shared_preferences: ^2.5.4
