@@ -116,7 +116,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
       title: 'Seleccionar animales',
       subtitle: Text(
         '${_selectedIds.length} seleccionados',
-        style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
+        style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
       ),
       onClose: () => Navigator.of(context).pop(),
       bottomChild: Padding(
@@ -220,7 +220,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
           child: Text(
             'No se encontraron animales',
             textAlign: TextAlign.center,
-            style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
+            style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
           ),
         ),
       ];
@@ -231,7 +231,10 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
       widgets.add(
         Padding(
           padding: const EdgeInsets.only(bottom: AppSpacing.m),
-          child: Text(entry.key, style: AppTypography.body3),
+          child: Text(
+            entry.key,
+            style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
+          ),
         ),
       );
       for (final animal in entry.value) {

@@ -85,12 +85,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     return ModalPageLayout(
       title: 'Subir documento',
       fixedTitle: true,
-      fixedHeaderHeight: 130,
+      fixedHeaderHeight: 138,
       titlePadding: const EdgeInsets.only(top: 92, bottom: 12),
-      titleStyle: AppTypography.body1.copyWith(
-        color: AppColors.greyTextos,
-        fontWeight: FontWeight.w700,
-      ),
+      titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
       onClose: _close,
       bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
       bottomPadding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
@@ -106,16 +103,16 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
             Text(
               'Los archivos cargados estarán disponibles en la sección '
               'correspondiente a su tipo de documento.',
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                height: 1.45,
-              ),
+              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
             ),
-            const SizedBox(height: AppSpacing.l),
+            const SizedBox(height: AppSpacing.m),
             CustomTextField(
               label: 'Nombre del archivo',
               controller: _fileNameController,
               enabled: false,
+              labelStyle: AppTypography.body6.copyWith(
+                color: AppColors.greyTextos.withValues(alpha: 0.6),
+              ),
             ),
             const SizedBox(height: AppSpacing.m),
             BlocBuilder<AnimalCubit, AnimalState>(
