@@ -115,15 +115,21 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
       ),
       builder: (sheetContext) => SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ListTile(
-                leading: const Icon(
-                  Icons.photo_library_outlined,
-                  color: AppColors.greyMedio,
+              Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                  color: AppColors.greyBordes,
+                  borderRadius: BorderRadius.circular(2),
                 ),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library_outlined),
                 title: Text('Elegir de Fotos', style: AppTypography.body4),
                 onTap: () => Navigator.pop(
                   sheetContext,
@@ -133,12 +139,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
               ListTile(
                 leading: SvgPicture.asset(
                   'assets/icons/document-upload.svg',
-                  width: AppSpacing.iconSizeSmall,
-                  height: AppSpacing.iconSizeSmall,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.greyMedio,
-                    BlendMode.srcIn,
-                  ),
+                  width: 24,
+                  height: 24,
                 ),
                 title: Text('Elegir de Archivos', style: AppTypography.body4),
                 onTap: () => Navigator.pop(
