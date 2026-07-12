@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
@@ -58,7 +59,9 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
 
   void grantAccess() => _accessGranted = true;
 
-  Future<SharedFileEntity?> pickManualFile() => pickManualSharedFileUseCase();
+  Future<SharedFileEntity?> pickManualFile(ManualFileSource source) {
+    return pickManualSharedFileUseCase(source);
+  }
 
   void revokeAccess() => _accessGranted = false;
 

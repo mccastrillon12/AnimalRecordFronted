@@ -1,4 +1,5 @@
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,9 +24,11 @@ void main() {
       type: SharedFileType.image,
       size: PickManualSharedFileUseCase.maximumImageSize,
     );
-    when(() => repository.pickManualFile()).thenAnswer((_) async => image);
+    when(
+      () => repository.pickManualFile(ManualFileSource.photos),
+    ).thenAnswer((_) async => image);
 
-    expect(await useCase(), image);
+    expect(await useCase(ManualFileSource.photos), image);
   });
 
   test('rechaza una imagen mayor a 1 MB', () async {
@@ -36,9 +39,14 @@ void main() {
       type: SharedFileType.image,
       size: PickManualSharedFileUseCase.maximumImageSize + 1,
     );
-    when(() => repository.pickManualFile()).thenAnswer((_) async => image);
+    when(
+      () => repository.pickManualFile(ManualFileSource.photos),
+    ).thenAnswer((_) async => image);
 
-    expect(useCase(), throwsA(isA<ManualFileSelectionException>()));
+    expect(
+      useCase(ManualFileSource.photos),
+      throwsA(isA<ManualFileSelectionException>()),
+    );
   });
 
   test('rechaza un PDF mayor a 5 MB', () async {
@@ -49,14 +57,21 @@ void main() {
       type: SharedFileType.pdf,
       size: PickManualSharedFileUseCase.maximumPdfSize + 1,
     );
-    when(() => repository.pickManualFile()).thenAnswer((_) async => pdf);
+    when(
+      () => repository.pickManualFile(ManualFileSource.files),
+    ).thenAnswer((_) async => pdf);
 
-    expect(useCase(), throwsA(isA<ManualFileSelectionException>()));
+    expect(
+      useCase(ManualFileSource.files),
+      throwsA(isA<ManualFileSelectionException>()),
+    );
   });
 
   test('conserva la cancelación del selector', () async {
-    when(() => repository.pickManualFile()).thenAnswer((_) async => null);
+    when(
+      () => repository.pickManualFile(ManualFileSource.files),
+    ).thenAnswer((_) async => null);
 
-    expect(await useCase(), isNull);
+    expect(await useCase(ManualFileSource.files), isNull);
   });
 }

@@ -361,7 +361,7 @@ Future<void> init() async {
     () => SharedFilesPlatformDataSourceImpl(),
   );
   sl.registerLazySingleton<ManualFilePickerDataSource>(
-    () => const ManualFilePickerDataSourceImpl(),
+    () => ManualFilePickerDataSourceImpl(),
   );
 
   sl.registerLazySingleton<TokenStorage>(

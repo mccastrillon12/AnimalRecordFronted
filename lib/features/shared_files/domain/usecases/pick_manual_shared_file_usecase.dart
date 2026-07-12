@@ -1,4 +1,5 @@
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 
 class ManualFileSelectionException implements Exception {
@@ -18,8 +19,8 @@ class PickManualSharedFileUseCase {
 
   const PickManualSharedFileUseCase(this.repository);
 
-  Future<SharedFileEntity?> call() async {
-    final file = await repository.pickManualFile();
+  Future<SharedFileEntity?> call(ManualFileSource source) async {
+    final file = await repository.pickManualFile(source);
     if (file == null) return null;
 
     if (file.type == SharedFileType.unsupported) {

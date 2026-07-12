@@ -2,6 +2,7 @@ import 'package:animal_record/features/shared_files/data/datasources/shared_file
 import 'package:animal_record/features/shared_files/data/datasources/manual_file_picker_datasource.dart';
 import 'package:animal_record/features/shared_files/data/models/shared_file_model.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 
 class SharedFilesRepositoryImpl implements SharedFilesRepository {
@@ -27,8 +28,10 @@ class SharedFilesRepositoryImpl implements SharedFilesRepository {
   }
 
   @override
-  Future<SharedFileEntity?> pickManualFile() async {
-    final file = await manualFilePickerDataSource.pickFile();
+  Future<SharedFileEntity?> pickManualFile(ManualFileSource source) async {
+    final file = source == ManualFileSource.photos
+        ? await manualFilePickerDataSource.pickFromPhotos()
+        : await manualFilePickerDataSource.pickFromFiles();
     return file == null ? null : SharedFileModel.fromMap(file);
   }
 }

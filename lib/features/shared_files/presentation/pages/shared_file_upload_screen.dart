@@ -15,6 +15,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -75,9 +76,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     return arguments is Map && arguments['manualUpload'] == true;
   }
 
-  Future<void> _pickManualFile() async {
+  Future<void> _pickManualFile(ManualFileSource source) async {
     try {
-      final file = await context.read<SharedFilesCubit>().pickManualFile();
+      final file = await context.read<SharedFilesCubit>().pickManualFile(source);
       if (!mounted || file == null) return;
 
       setState(() {
@@ -97,7 +98,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     }
   }
 
-  void _onManualFilePickerTap() {
+  Future<void> _onManualFilePickerTap() async {
     if (_manualFile != null) {
       ErrorDisplay.showError(
         context,
@@ -106,7 +107,52 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
       );
       return;
     }
-    _pickManualFile();
+    final source = await showModalBottomSheet<ManualFileSource>(
+      context: context,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: AppSpacing.m),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(
+                  Icons.photo_library_outlined,
+                  color: AppColors.greyMedio,
+                ),
+                title: Text('Elegir de Fotos', style: AppTypography.body4),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  ManualFileSource.photos,
+                ),
+              ),
+              ListTile(
+                leading: SvgPicture.asset(
+                  'assets/icons/document-upload.svg',
+                  width: AppSpacing.iconSizeSmall,
+                  height: AppSpacing.iconSizeSmall,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.greyMedio,
+                    BlendMode.srcIn,
+                  ),
+                ),
+                title: Text('Elegir de Archivos', style: AppTypography.body4),
+                onTap: () => Navigator.pop(
+                  sheetContext,
+                  ManualFileSource.files,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || source == null) return;
+    await _pickManualFile(source);
   }
 
   void _removeManualFile() {
