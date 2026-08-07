@@ -90,11 +90,14 @@ import 'package:animal_record/features/diary/domain/usecases/delete_attachment_u
 import 'package:animal_record/features/diary/domain/usecases/upload_diary_attachment_usecase.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/shared_files/data/datasources/shared_files_platform_datasource.dart';
+import 'package:animal_record/features/shared_files/data/datasources/shared_file_export_datasource.dart';
+import 'package:animal_record/features/shared_files/data/services/shared_file_pdf_builder.dart';
 import 'package:animal_record/features/shared_files/data/repositories/shared_files_repository_impl.dart';
 import 'package:animal_record/features/shared_files/domain/repositories/shared_files_repository.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:animal_record/features/shared_files/data/datasources/manual_file_picker_datasource.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 
@@ -107,6 +110,7 @@ import 'package:get_it/get_it.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:animal_record/core/network/api_log_interceptor.dart';
 import 'package:animal_record/core/network/api_client.dart';
@@ -349,13 +353,15 @@ Future<void> init() async {
       getInitialSharedFilesUseCase: sl(),
       observeSharedFilesUseCase: sl(),
       pickManualSharedFileUseCase: sl(),
+      exportSharedFileAnalysisPdfUseCase: sl(),
     ),
   );
   sl.registerLazySingleton(() => GetInitialSharedFilesUseCase(sl()));
   sl.registerLazySingleton(() => ObserveSharedFilesUseCase(sl()));
   sl.registerLazySingleton(() => PickManualSharedFileUseCase(sl()));
+  sl.registerLazySingleton(() => ExportSharedFileAnalysisPdfUseCase(sl()));
   sl.registerLazySingleton<SharedFilesRepository>(
-    () => SharedFilesRepositoryImpl(sl(), sl()),
+    () => SharedFilesRepositoryImpl(sl(), sl(), sl()),
   );
   sl.registerLazySingleton<SharedFilesPlatformDataSource>(
     () => SharedFilesPlatformDataSourceImpl(),
@@ -363,6 +369,13 @@ Future<void> init() async {
   sl.registerLazySingleton<ManualFilePickerDataSource>(
     () => ManualFilePickerDataSourceImpl(),
   );
+  sl.registerLazySingleton<SharedFileExportDataSource>(
+    () => SharedFileExportDataSourceImpl(
+      pdfBuilder: sl(),
+      sharePlus: SharePlus.instance,
+    ),
+  );
+  sl.registerLazySingleton(() => SharedFilePdfBuilder());
 
   sl.registerLazySingleton<TokenStorage>(
     () => TokenStorage(

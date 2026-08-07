@@ -15,6 +15,8 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/shared_file_analysis_dialog.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
@@ -195,11 +197,59 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     setState(() => _selectedAnimals = selected);
   }
 
-  void _showPendingUploadMessage() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('La carga del documento se habilitará próximamente.'),
+  Future<void> _showFileAnalysis() async {
+    final contentType = await showSharedFileAnalysisDialog(context: context);
+    if (!mounted || contentType == null) return;
+    Navigator.pushNamed(
+      context,
+      AppRoutes.sharedFileAnalysisReview,
+      arguments: _buildAnalysisPreview(contentType),
+    );
+  }
+
+  SharedFileAnalysisEntity _buildAnalysisPreview(
+    SharedFileContentType contentType,
+  ) {
+    final fileName = _fileNameController.text.trim();
+    return SharedFileAnalysisEntity(
+      documentType: contentType.label,
+      documentNumber: 'N° 11-230',
+      date: DateTime(2026, 1, 25),
+      originalFileName: fileName.isEmpty ? '[FileName].pdf' : fileName,
+      patient: const SharedFilePatientAnalysisEntity(
+        name: 'Brownie',
+        recordId: 'AR-C012',
+        species: 'Canino',
+        breed: 'Labrador',
+        age: '10 años',
+        weight: '15 kg',
       ),
+      tutor: const SharedFileTutorAnalysisEntity(
+        name: 'Barbara James',
+        identification: 'C.C. 1152234567',
+        phoneNumber: '(+57) 312 456 78 90',
+      ),
+      medications: const [
+        SharedFileMedicationAnalysisEntity(
+          name: 'ProtectionPets suspensión oral',
+          quantity: 1,
+          instructions:
+              'Administrar 2gr vía oral cada 24 horas durante 7 días, '
+              'siempre con el estómago lleno.',
+          originalUrl: 'preview://protection-pets',
+        ),
+        SharedFileMedicationAnalysisEntity(
+          name: 'CBD gotas (verde)',
+          quantity: 1,
+          instructions:
+              'Administrar vía oral de 3 a 5 gotas cada 24 horas durante '
+              '30 días. Suspender 15 días y reiniciar 30 días.',
+          originalUrl: 'preview://cbd',
+        ),
+      ],
+      observations:
+          'Realizar coprológico seriado, traer 3 muestras de materia fecal '
+          'de diferentes días, una cada día, valor \$40.000',
     );
   }
 
@@ -223,7 +273,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
         text: 'Subir documento',
         onPressed: !hasFile || _selectedAnimals.isEmpty
             ? null
-            : _showPendingUploadMessage,
+            : _showFileAnalysis,
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),

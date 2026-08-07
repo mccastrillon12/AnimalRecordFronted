@@ -37,6 +37,8 @@ import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_upload_screen.dart';
+import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -147,6 +149,18 @@ class MyApp extends StatelessWidget {
           },
           AppRoutes.sharedFileUpload: (context) =>
               const SharedFileUploadScreen(),
+          AppRoutes.sharedFileAnalysisReview: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileAnalysisReviewScreen(analysis: analysis);
+          },
+          AppRoutes.sharedFileSend: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileSendScreen(analysis: analysis);
+          },
           AppRoutes.animalDocuments: (context) {
             final animalId =
                 ModalRoute.of(context)!.settings.arguments as String;

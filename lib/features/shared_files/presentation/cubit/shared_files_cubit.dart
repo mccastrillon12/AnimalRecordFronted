@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/get_initial_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/observe_shared_files_usecase.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
@@ -12,6 +14,7 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
   final GetInitialSharedFilesUseCase getInitialSharedFilesUseCase;
   final ObserveSharedFilesUseCase observeSharedFilesUseCase;
   final PickManualSharedFileUseCase pickManualSharedFileUseCase;
+  final ExportSharedFileAnalysisPdfUseCase exportSharedFileAnalysisPdfUseCase;
 
   StreamSubscription<List<SharedFileEntity>>? _subscription;
   bool _receivedLiveFilesDuringInitialization = false;
@@ -26,6 +29,7 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
     required this.getInitialSharedFilesUseCase,
     required this.observeSharedFilesUseCase,
     required this.pickManualSharedFileUseCase,
+    required this.exportSharedFileAnalysisPdfUseCase,
   }) : super(SharedFilesInitial());
 
   Future<void> initialize() async {
@@ -61,6 +65,10 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
 
   Future<SharedFileEntity?> pickManualFile(ManualFileSource source) {
     return pickManualSharedFileUseCase(source);
+  }
+
+  Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
+    return exportSharedFileAnalysisPdfUseCase(analysis);
   }
 
   void revokeAccess() => _accessGranted = false;
