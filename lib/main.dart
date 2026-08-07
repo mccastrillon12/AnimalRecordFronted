@@ -29,6 +29,7 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
@@ -36,7 +37,7 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_cre
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
-import 'package:animal_record/features/shared_files/presentation/pages/shared_file_upload_screen.dart';
+import 'package:animal_record/features/shared_files/presentation/navigation/shared_file_upload_route.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
@@ -89,6 +90,12 @@ class MyApp extends StatelessWidget {
           child: child ?? const SizedBox.shrink(),
         ),
         initialRoute: AppRoutes.splash,
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.sharedFileUpload) {
+            return buildSharedFileUploadRoute(settings);
+          }
+          return null;
+        },
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
@@ -126,6 +133,11 @@ class MyApp extends StatelessWidget {
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalInfoScreen(animal: animal);
           },
+          AppRoutes.animalClinicalHistory: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalClinicalHistoryScreen(animal: animal);
+          },
           AppRoutes.animalDiary: (context) {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
@@ -147,8 +159,6 @@ class MyApp extends StatelessWidget {
 
             return AnimalDiaryCreateScreen(animal: animal, entry: entry);
           },
-          AppRoutes.sharedFileUpload: (context) =>
-              const SharedFileUploadScreen(),
           AppRoutes.sharedFileAnalysisReview: (context) {
             final analysis =
                 ModalRoute.of(context)!.settings.arguments

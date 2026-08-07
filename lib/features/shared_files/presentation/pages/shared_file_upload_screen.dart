@@ -267,7 +267,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
       titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
       titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
       onClose: _close,
-      bottomSafeAreaColor: AppColors.bgBlancoAntiFlash,
+      bottomSafeAreaColor: AppColors.white,
       bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
       bottomChild: CustomButton(
         text: 'Subir documento',

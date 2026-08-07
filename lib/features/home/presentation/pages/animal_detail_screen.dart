@@ -481,6 +481,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   AppRoutes.animalInfo,
                   arguments: animal,
                 );
+              } else if (entry.value == 'Historia clínica') {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.animalClinicalHistory,
+                  arguments: animal,
+                );
               } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
                 Navigator.pushNamed(
                   context,

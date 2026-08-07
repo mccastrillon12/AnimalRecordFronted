@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
-import 'package:animal_record/core/constants/app_routes.dart';
-import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
-import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 
 class AnimalDocumentsScreen extends StatefulWidget {
   final String animalId;
@@ -315,7 +311,9 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                       Positioned(
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
-                        child: _buildFab(context),
+                        child: AnimalDocumentUploadMenu(
+                          animalId: widget.animalId,
+                        ),
                       ),
                     ],
                   ),
@@ -354,94 +352,6 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
           height: 100,
         ), // Spacing to balance the visual center taking FAB into account
       ],
-    );
-  }
-
-  Widget _buildFab(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      child: PopupMenuButton<String>(
-        onSelected: (value) {
-          if (value == 'subir_documento') {
-            final animals = context.read<AnimalCubit>().animals;
-            final matches = animals.where(
-              (animal) => animal.id == widget.animalId,
-            );
-            if (matches.isEmpty) {
-              ErrorDisplay.showError(
-                context,
-                'No fue posible cargar la información del animal.',
-              );
-              return;
-            }
-
-            Navigator.pushNamed(
-              context,
-              AppRoutes.sharedFileUpload,
-              arguments: {
-                'manualUpload': true,
-                'preselectedAnimal': matches.first,
-              },
-            );
-          }
-        },
-        offset: const Offset(
-          0,
-          -68,
-        ), // Matches the exact 5px gap from MyAnimalsContent
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
-        ),
-        constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
-        color: AppColors.white,
-        elevation: 4,
-        itemBuilder: (context) => [
-          PopupMenuItem<String>(
-            value: 'subir_documento',
-            height: 47,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  'assets/icons/document-upload.svg',
-                  width: AppSpacing.iconSizeSmall,
-                  height: AppSpacing.iconSizeSmall,
-                ),
-                const SizedBox(width: 10),
-                Text(
-                  'Subir documentos',
-                  style: AppTypography.body4.copyWith(
-                    color: AppColors.greyTextos,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        child: Container(
-          width: AppSpacing.iconSizeMedium,
-          height: AppSpacing.iconSizeMedium,
-          decoration: BoxDecoration(
-            color: AppColors.secondaryCoral,
-            borderRadius: BorderRadius.circular(6),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.secondaryCoral.withValues(alpha: 0.4),
-                offset: const Offset(0, 4),
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.more_vert_rounded,
-            color: AppColors.white,
-            size: AppSpacing.iconSizeSmall,
-          ),
-        ),
-      ),
     );
   }
 }
