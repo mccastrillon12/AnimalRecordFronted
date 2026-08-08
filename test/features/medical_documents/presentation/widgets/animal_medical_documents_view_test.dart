@@ -1,3 +1,4 @@
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
@@ -72,6 +73,27 @@ void main() {
       findsOneWidget,
     );
     expect(find.byKey(const Key('medical-document-ai-useful')), findsOneWidget);
+    void expectWhiteFeedbackButtons() {
+      for (final key in const [
+        Key('medical-document-ai-not-useful'),
+        Key('medical-document-ai-useful'),
+      ]) {
+        final button = find.byKey(key);
+        final material = tester.widget<Material>(
+          find.descendant(of: button, matching: find.byType(Material)),
+        );
+        final ink = tester.widget<Ink>(
+          find.descendant(of: button, matching: find.byType(Ink)),
+        );
+        expect(material.color, AppColors.white);
+        expect((ink.decoration! as BoxDecoration).color, AppColors.white);
+      }
+    }
+
+    expectWhiteFeedbackButtons();
+    await tester.tap(find.byKey(const Key('medical-document-ai-useful')));
+    await tester.pump();
+    expectWhiteFeedbackButtons();
     expect(tester.takeException(), isNull);
   });
 }

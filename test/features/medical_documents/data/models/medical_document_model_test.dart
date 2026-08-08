@@ -196,6 +196,54 @@ void main() {
     expect(model.tutorDetails?.phoneNumber, '3001234567');
   });
 
+  test('parses labeled patient hints without positional inference', () {
+    final model = MedicalDocumentModel.fromJson({
+      'id': 'document-patient-key-value',
+      'animalIds': ['backend-patient'],
+      'originalFileName': 'historia.pdf',
+      'mimeType': 'application/pdf',
+      'fileSize': 100,
+      'status': 'REVIEW_PENDING',
+      'detectedCategories': <Object>[],
+      'extractionsByCategory': {
+        'CLINICAL_HISTORY': {
+          'documentType': 'CLINICAL_HISTORY',
+          'patientHints': [
+            'Name: Panchita',
+            'Species: Canine',
+            'Breed: Chihuahua',
+            'Gender: Female (Spayed)',
+            'Description: Brown/white',
+            'Date of Birth: 1/24/2023',
+            'Weight: 7.60 Lbs',
+          ],
+          'additionalFields': <String, Object>{},
+        },
+      },
+      'assignments': <Object>[],
+      'version': 1,
+    });
+
+    final patient = model.animalDetails.single;
+    expect(patient.id, isEmpty);
+    expect(patient.name, 'Panchita');
+    expect(patient.species, 'Canine');
+    expect(patient.breed, 'Chihuahua');
+    expect(patient.sex, 'Female (Spayed)');
+    expect(patient.birthdate, '1/24/2023');
+    expect(patient.weight, '7.60 Lbs');
+    expect(patient.fields, {
+      'Name': 'Panchita',
+      'Species': 'Canine',
+      'Breed': 'Chihuahua',
+      'Gender': 'Female (Spayed)',
+      'Description': 'Brown/white',
+      'Date of Birth': '1/24/2023',
+      'Weight': '7.60 Lbs',
+    });
+    expect(patient.additionalDetails['Description'], 'Brown/white');
+  });
+
   test('keeps patient and tutor data nested in additional fields', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-4',

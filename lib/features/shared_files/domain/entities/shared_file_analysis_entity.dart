@@ -11,7 +11,9 @@ class SharedFileAnalysisEntity extends Equatable {
   final SharedFileVeterinarianAnalysisEntity? veterinarian;
   final String? itemsTitle;
   final List<SharedFileMedicationAnalysisEntity> medications;
+  final List<SharedFileAnalysisSectionEntity> sections;
   final String? observations;
+  final String? originalUrl;
 
   const SharedFileAnalysisEntity({
     required this.documentType,
@@ -24,7 +26,9 @@ class SharedFileAnalysisEntity extends Equatable {
     this.veterinarian,
     this.itemsTitle,
     this.medications = const [],
+    this.sections = const [],
     this.observations,
+    this.originalUrl,
   });
 
   SharedFileAnalysisEntity withMedications(
@@ -41,7 +45,29 @@ class SharedFileAnalysisEntity extends Equatable {
       veterinarian: veterinarian,
       itemsTitle: itemsTitle,
       medications: medications,
+      sections: sections,
       observations: observations,
+      originalUrl: originalUrl,
+    );
+  }
+
+  SharedFileAnalysisEntity withOriginalUrl(String value) {
+    return SharedFileAnalysisEntity(
+      documentType: documentType,
+      documentNumber: documentNumber,
+      date: date,
+      sourceDateText: sourceDateText,
+      originalFileName: originalFileName,
+      patient: patient,
+      tutor: tutor,
+      veterinarian: veterinarian,
+      itemsTitle: itemsTitle,
+      medications: medications
+          .map((medication) => medication.withOriginalUrl(value))
+          .toList(growable: false),
+      sections: sections,
+      observations: observations,
+      originalUrl: value,
     );
   }
 
@@ -57,7 +83,9 @@ class SharedFileAnalysisEntity extends Equatable {
     veterinarian,
     itemsTitle,
     medications,
+    sections,
     observations,
+    originalUrl,
   ];
 }
 
@@ -175,16 +203,38 @@ class SharedFileAnalysisDetailEntity extends Equatable {
   List<Object?> get props => [label, value];
 }
 
+class SharedFileAnalysisSectionEntity extends Equatable {
+  final String title;
+  final List<SharedFileAnalysisDetailEntity> details;
+  final String? body;
+
+  const SharedFileAnalysisSectionEntity({
+    required this.title,
+    this.details = const [],
+    this.body,
+  });
+
+  bool get hasData =>
+      title.trim().isNotEmpty &&
+      (details.any((detail) => detail.hasData) ||
+          (body?.trim().isNotEmpty ?? false));
+
+  @override
+  List<Object?> get props => [title, details, body];
+}
+
 class SharedFileMedicationAnalysisEntity extends Equatable {
   final String name;
   final int? quantity;
   final String instructions;
+  final List<SharedFileAnalysisDetailEntity> details;
   final String? originalUrl;
 
   const SharedFileMedicationAnalysisEntity({
     required this.name,
     this.quantity,
     required this.instructions,
+    this.details = const [],
     this.originalUrl,
   });
 
@@ -193,10 +243,17 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
       name: name,
       quantity: quantity,
       instructions: instructions,
+      details: details,
       originalUrl: originalUrl,
     );
   }
 
   @override
-  List<Object?> get props => [name, quantity, instructions, originalUrl];
+  List<Object?> get props => [
+    name,
+    quantity,
+    instructions,
+    details,
+    originalUrl,
+  ];
 }

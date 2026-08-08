@@ -32,6 +32,7 @@ class _MedicalDocumentReviewScreenState
     super.initState();
     _originalPreview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
+      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
     );
   }
 
@@ -136,6 +137,7 @@ class _MedicalDocumentReviewScreenState
         acceptedDocumentId: document.status == MedicalDocumentStatus.accepted
             ? document.id
             : null,
+        fileName: document.originalFileName,
         mimeType: document.mimeType,
       );
     } catch (error) {

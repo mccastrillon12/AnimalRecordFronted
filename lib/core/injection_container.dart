@@ -104,7 +104,9 @@ import 'package:animal_record/features/medical_documents/data/datasources/medica
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
+import 'package:animal_record/features/medical_documents/data/services/medical_document_file_saver_impl.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
@@ -402,6 +404,10 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ReviewMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(() => GetMedicalDocumentDownloadUriUseCase(sl()));
+  sl.registerLazySingleton(() => SaveMedicalDocumentOriginalUseCase(sl()));
+  sl.registerLazySingleton<MedicalDocumentFileSaver>(
+    () => MedicalDocumentFileSaverImpl(dio: Dio()),
+  );
   sl.registerLazySingleton<MedicalDocumentsRepository>(
     () => MedicalDocumentsRepositoryImpl(remoteDataSource: sl()),
   );

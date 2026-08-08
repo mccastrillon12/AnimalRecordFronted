@@ -104,6 +104,9 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
 }
 
 class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
+  static const _headerActionIconSize = 20.0;
+  static const _headerActionHeight = 48.0;
+
   bool _isExporting = false;
 
   bool get _isSendMode => widget.mode == _SharedFileAnalysisMode.send;
@@ -120,7 +123,11 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
         onPressed: widget.onClose ?? () => Navigator.pop(context),
-        icon: const Icon(Icons.close, color: AppColors.greyIconos),
+        icon: const Icon(
+          Icons.close,
+          size: _headerActionIconSize,
+          color: AppColors.greyIconos,
+        ),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
       ),
@@ -132,29 +139,32 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _isExporting ? null : _exportDocument,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (_isExporting)
-                        const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      else
-                        SvgPicture.asset(
-                          AppIcons.export,
-                          width: 20,
-                          height: 20,
+                  child: SizedBox(
+                    height: _headerActionHeight,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (_isExporting)
+                          const SizedBox(
+                            width: _headerActionIconSize,
+                            height: _headerActionIconSize,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        else
+                          SvgPicture.asset(
+                            AppIcons.export,
+                            width: _headerActionIconSize,
+                            height: _headerActionIconSize,
+                          ),
+                        const SizedBox(width: AppSpacing.xs),
+                        Text(
+                          widget.actionLabel,
+                          style: AppTypography.body4.copyWith(
+                            color: AppColors.greyMedio,
+                          ),
                         ),
-                      const SizedBox(width: AppSpacing.xs),
-                      Text(
-                        widget.actionLabel,
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.greyMedio,
-                        ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -202,14 +212,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       var exportAnalysis = widget.analysis;
       if (widget.resolveOriginalUri case final resolveOriginalUri?) {
         final originalUri = await resolveOriginalUri();
-        exportAnalysis = exportAnalysis.withMedications(
-          exportAnalysis.medications
-              .map(
-                (medication) =>
-                    medication.withOriginalUrl(originalUri.toString()),
-              )
-              .toList(growable: false),
-        );
+        exportAnalysis = exportAnalysis.withOriginalUrl(originalUri.toString());
       }
       if (!mounted) return;
       await context.read<SharedFilesCubit>().exportAnalysisPdf(exportAnalysis);
@@ -306,6 +309,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final viewOriginal = onViewOriginal ?? () => _showOriginalMessage(context);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
@@ -379,6 +383,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
               _TutorDetails(tutor: analysis.tutor),
             ],
             if (analysis.medications.isNotEmpty ||
+                analysis.sections.isNotEmpty ||
                 (analysis.observations?.trim().isNotEmpty ?? false)) ...[
               const SizedBox(height: AppSpacing.l),
               const Divider(height: 1, color: AppColors.greyDelineante),
@@ -401,12 +406,21 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ) ...[
                 _MedicationDetails(
                   medication: analysis.medications[index],
-                  onViewOriginal:
-                      onViewOriginal ?? () => _showOriginalMessage(context),
+                  onViewOriginal: viewOriginal,
                 ),
                 if (index < analysis.medications.length - 1)
                   const SizedBox(height: AppSpacing.l),
               ],
+            ],
+            for (var index = 0; index < analysis.sections.length; index++) ...[
+              SizedBox(
+                height: analysis.medications.isNotEmpty || index > 0
+                    ? AppSpacing.xl
+                    : AppSpacing.l,
+              ),
+              _AnalysisSectionDetails(section: analysis.sections[index]),
+              const SizedBox(height: AppSpacing.xs),
+              _OriginalLink(onTap: viewOriginal),
             ],
             if (analysis.observations?.trim().isNotEmpty ?? false) ...[
               const SizedBox(height: AppSpacing.xl),
@@ -424,6 +438,8 @@ class _AnalysisDocumentCard extends StatelessWidget {
                   height: 1.55,
                 ),
               ),
+              const SizedBox(height: AppSpacing.xs),
+              _OriginalLink(onTap: viewOriginal),
             ],
           ],
         ),
@@ -684,6 +700,8 @@ class _AnalysisValueRow extends StatelessWidget {
           width: 119,
           child: Text(
             label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),
         ),
@@ -698,6 +716,50 @@ class _AnalysisValueRow extends StatelessWidget {
             ),
           ),
         ),
+      ],
+    );
+  }
+}
+
+class _AnalysisSectionDetails extends StatelessWidget {
+  final SharedFileAnalysisSectionEntity section;
+
+  const _AnalysisSectionDetails({required this.section});
+
+  @override
+  Widget build(BuildContext context) {
+    final details = section.details
+        .where((detail) => detail.hasData)
+        .toList(growable: false);
+    final body = section.body?.trim() ?? '';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          section.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
+        ),
+        if (body.isNotEmpty || details.isNotEmpty)
+          const SizedBox(height: AppSpacing.m),
+        if (body.isNotEmpty)
+          Text(
+            body,
+            style: AppTypography.body4.copyWith(
+              color: AppColors.greyTextos,
+              height: 1.55,
+            ),
+          ),
+        if (body.isNotEmpty && details.isNotEmpty)
+          const SizedBox(height: AppSpacing.m),
+        for (var index = 0; index < details.length; index++) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.xs),
+          _AnalysisValueRow(
+            label: details[index].label,
+            value: details[index].value,
+          ),
+        ],
       ],
     );
   }
@@ -764,22 +826,50 @@ class _MedicationDetails extends StatelessWidget {
               ),
             ),
           ),
-        if (medication.originalUrl?.trim().isNotEmpty ?? false) ...[
-          const SizedBox(height: AppSpacing.xs),
-          Align(
-            alignment: Alignment.centerRight,
-            child: GestureDetector(
-              onTap: onViewOriginal,
-              child: Text(
-                'Ver original',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.primaryFrances,
-                ),
-              ),
+        if (medication.details.any((detail) => detail.hasData))
+          Padding(
+            padding: const EdgeInsets.only(left: 22, top: AppSpacing.xs),
+            child: Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < medication.details.length;
+                  index++
+                ) ...[
+                  if (medication.details[index].hasData) ...[
+                    if (index > 0) const SizedBox(height: AppSpacing.xs),
+                    _AnalysisValueRow(
+                      label: medication.details[index].label,
+                      value: medication.details[index].value,
+                    ),
+                  ],
+                ],
+              ],
             ),
           ),
-        ],
+        const SizedBox(height: AppSpacing.xs),
+        _OriginalLink(onTap: onViewOriginal),
       ],
+    );
+  }
+}
+
+class _OriginalLink extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _OriginalLink({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Text(
+          'Ver original',
+          style: AppTypography.body4.copyWith(color: AppColors.primaryFrances),
+        ),
+      ),
     );
   }
 }

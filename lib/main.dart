@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
@@ -65,6 +68,9 @@ Future<void> main() async {
   await deepLinkService.initDeepLinks(navigatorKey);
 
   runApp(const MyApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(pdfrxFlutterInitialize(dismissPdfiumWasmWarnings: true));
+  });
 }
 
 class MyApp extends StatelessWidget {

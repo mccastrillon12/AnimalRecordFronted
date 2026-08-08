@@ -24,7 +24,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   required MedicalDocumentEntity document,
   required MedicalDocumentExtractionEntity extraction,
 }) {
-  final patient = _patient(document, extraction);
+  final patient = _patient(document);
   final tutor = document.tutorDetails;
   return SharedFileAnalysisEntity(
     documentType:
@@ -58,12 +58,22 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
           (item) => SharedFileMedicationAnalysisEntity(
             name: item.name,
             quantity: _quantity(item.fields['quantity']),
-            instructions: _instructions(item.fields),
+            instructions:
+                extraction.documentType ==
+                    MedicalDocumentCategory.vaccinationCard
+                ? ''
+                : _instructions(item.fields),
+            details:
+                extraction.documentType ==
+                    MedicalDocumentCategory.vaccinationCard
+                ? _rawItemDetails(item.fields)
+                : const [],
             originalUrl: document.id,
           ),
         )
         .toList(growable: false),
-    observations: _observations(extraction),
+    sections: _structuredSections(extraction),
+    observations: null,
   );
 }
 
@@ -84,10 +94,7 @@ String _documentNumber(String id) {
   String weight,
   List<SharedFileAnalysisDetailEntity> additionalDetails,
 })
-_patient(
-  MedicalDocumentEntity document,
-  MedicalDocumentExtractionEntity extraction,
-) {
+_patient(MedicalDocumentEntity document) {
   MedicalDocumentAnimalEntity? backendAnimal;
   for (final animal in document.animalDetails) {
     if (animal.id.isEmpty || document.animalIds.contains(animal.id)) {
@@ -99,8 +106,32 @@ _patient(
       ? null
       : document.animalDetails.first;
 
-  final hints = extraction.patientHints;
   final backendName = backendAnimal?.name.trim() ?? '';
+  final backendFields = backendAnimal?.fields ?? const <String, String>{};
+  if (backendFields.isNotEmpty) {
+    return (
+      name: backendName,
+      code: '',
+      species: '',
+      breed: '',
+      sex: '',
+      color: '',
+      age: '',
+      weight: '',
+      additionalDetails: backendFields.entries
+          .where(
+            (entry) =>
+                !_isPatientNameKey(entry.key) && entry.value.trim().isNotEmpty,
+          )
+          .map(
+            (entry) => SharedFileAnalysisDetailEntity(
+              label: entry.key,
+              value: entry.value.trim(),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
   final backendSpecies = backendAnimal?.species?.trim() ?? '';
   final backendBreed = backendAnimal?.breed?.trim() ?? '';
   final backendSex = backendAnimal?.sex?.trim() ?? '';
@@ -114,31 +145,32 @@ _patient(
         value: backendAnimal!.birthdate!.trim(),
       ),
     ..._analysisDetails(backendAnimal?.additionalDetails ?? const {}),
-    for (var index = 7; index < hints.length; index++)
-      if (hints[index].trim().isNotEmpty)
-        SharedFileAnalysisDetailEntity(
-          label: 'Información adicional ${index - 6}',
-          value: hints[index].trim(),
-        ),
   ];
   return (
-    name: backendName.isNotEmpty ? backendName : _hint(hints, 0) ?? '',
+    name: backendName,
     code: backendAnimal?.code?.trim().isNotEmpty == true
         ? backendAnimal!.code!.trim()
         : '',
-    species: backendSpecies.isNotEmpty ? backendSpecies : _hint(hints, 1) ?? '',
-    breed: backendBreed.isNotEmpty ? backendBreed : _hint(hints, 2) ?? '',
-    sex: backendSex.isNotEmpty ? backendSex : _hint(hints, 3) ?? '',
-    color: backendColor.isNotEmpty ? backendColor : _hint(hints, 4) ?? '',
-    age: backendAge.isNotEmpty ? backendAge : _hint(hints, 6) ?? '',
-    weight: backendWeight.isNotEmpty ? backendWeight : _hint(hints, 5) ?? '',
+    species: backendSpecies,
+    breed: backendBreed,
+    sex: backendSex,
+    color: backendColor,
+    age: backendAge,
+    weight: backendWeight,
     additionalDetails: additionalDetails,
   );
 }
 
-String? _hint(List<String> hints, int index) {
-  if (index >= hints.length || hints[index].trim().isEmpty) return null;
-  return hints[index].trim();
+bool _isPatientNameKey(String key) {
+  final normalized = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  return const {
+    'name',
+    'fullname',
+    'animal',
+    'animalname',
+    'patient',
+    'patientname',
+  }.contains(normalized);
 }
 
 List<MedicalDocumentItemEntity> _visibleItems(
@@ -156,11 +188,11 @@ List<MedicalDocumentItemEntity> _visibleItems(
 };
 
 String? _itemsTitle(MedicalDocumentCategory category) => switch (category) {
-  MedicalDocumentCategory.prescription => 'Medicamentos',
-  MedicalDocumentCategory.medicalOrder => 'Órdenes médicas',
-  MedicalDocumentCategory.referral => 'Información médica',
-  MedicalDocumentCategory.vaccinationCard => 'Vacunas',
-  MedicalDocumentCategory.clinicalHistory => 'Resultados diagnósticos',
+  MedicalDocumentCategory.prescription => 'Medications',
+  MedicalDocumentCategory.medicalOrder => 'Medical Orders',
+  MedicalDocumentCategory.referral => 'Diagnostic Results',
+  MedicalDocumentCategory.vaccinationCard => 'Vaccinations',
+  MedicalDocumentCategory.clinicalHistory => 'Diagnostic Results',
   MedicalDocumentCategory.other => null,
 };
 
@@ -239,7 +271,7 @@ List<SharedFileAnalysisDetailEntity> _analysisDetails(
       )
       .map(
         (entry) => SharedFileAnalysisDetailEntity(
-          label: _fieldLabel(entry.key),
+          label: _displayKey(entry.key),
           value: entry.value.trim(),
         ),
       )
@@ -265,33 +297,187 @@ String _instructions(Map<String, dynamic> fields) {
       )
       .map((entry) {
         final value = _displayValue(entry.value);
-        return '${_fieldLabel(entry.key)}: $value';
+        return '${_displayKey(entry.key)}: $value';
       })
       .join('\n');
 }
 
-String? _observations(MedicalDocumentExtractionEntity extraction) {
-  final values = <String>[
-    if (extraction.summary?.trim().isNotEmpty ?? false) extraction.summary!,
-    ...extraction.diagnoses
-        .map((diagnosis) => _itemText('Diagnóstico', diagnosis))
-        .where((value) => value.isNotEmpty),
-    ..._mapValues(extraction.clinicalHistory),
-    ..._mapValues(extraction.referral),
-    ..._mapValues(extraction.additionalFields),
-    ...extraction.warnings.map((warning) => 'Advertencia: $warning'),
+List<SharedFileAnalysisSectionEntity> _structuredSections(
+  MedicalDocumentExtractionEntity extraction,
+) {
+  final sections = <SharedFileAnalysisSectionEntity>[
+    for (var index = 0; index < extraction.diagnoses.length; index++)
+      SharedFileAnalysisSectionEntity(
+        title: extraction.diagnoses.length == 1
+            ? 'Diagnoses'
+            : 'Diagnoses ${index + 1}',
+        details: _detailsFromMap(extraction.diagnoses[index].fields),
+      ),
+    if (_hasValue(extraction.clinicalHistory))
+      SharedFileAnalysisSectionEntity(
+        title: 'Clinical History',
+        details: _detailsFromMap(extraction.clinicalHistory!),
+      ),
+    if (_hasValue(extraction.referral))
+      SharedFileAnalysisSectionEntity(
+        title: 'Referral',
+        details: _detailsFromMap(extraction.referral!),
+      ),
+    ..._additionalFieldSections(
+      extraction.additionalFields,
+      body: [
+        if (extraction.summary?.trim().isNotEmpty ?? false)
+          _sentenceLines(extraction.summary!),
+        ...extraction.warnings
+            .map(_sentenceLines)
+            .where((warning) => warning.isNotEmpty),
+      ].join('\n'),
+    ),
   ];
-  return values.isEmpty ? null : values.join('\n');
+  return sections.where((section) => section.hasData).toList(growable: false);
 }
 
-Iterable<String> _mapValues(Map<String, dynamic>? values) sync* {
-  if (values == null) return;
+List<SharedFileAnalysisSectionEntity> _additionalFieldSections(
+  Map<String, dynamic> values, {
+  String? body,
+}) {
+  final sections = <SharedFileAnalysisSectionEntity>[];
+  final scalarDetails = <SharedFileAnalysisDetailEntity>[];
+
   for (final entry in values.entries) {
-    if (_isStructuredPartyKey(entry.key)) continue;
-    if (_hasValue(entry.value)) {
-      yield '${_fieldLabel(entry.key)}: ${_displayValue(entry.value)}';
+    if (_isStructuredExtractionKey(entry.key) || !_hasValue(entry.value)) {
+      continue;
     }
+    final value = entry.value;
+    if (value is Map) {
+      final details = _detailsFromMap(
+        value.map((key, item) => MapEntry(key.toString(), item)),
+      );
+      if (details.isNotEmpty) {
+        sections.add(
+          SharedFileAnalysisSectionEntity(
+            title: _displayKey(entry.key),
+            details: details,
+          ),
+        );
+      }
+      continue;
+    }
+    if (value is Iterable && value.whereType<Map>().isNotEmpty) {
+      var index = 0;
+      for (final item in value.whereType<Map>()) {
+        final details = _detailsFromMap(
+          item.map((key, itemValue) => MapEntry(key.toString(), itemValue)),
+        );
+        if (details.isEmpty) continue;
+        index++;
+        sections.add(
+          SharedFileAnalysisSectionEntity(
+            title: '${_displayKey(entry.key)} $index',
+            details: details,
+          ),
+        );
+      }
+      continue;
+    }
+    scalarDetails.add(
+      SharedFileAnalysisDetailEntity(
+        label: _displayKey(entry.key),
+        value: _displayValue(value),
+      ),
+    );
   }
+
+  if (scalarDetails.isNotEmpty || (body?.trim().isNotEmpty ?? false)) {
+    sections.add(
+      SharedFileAnalysisSectionEntity(
+        title: 'Información adicional',
+        details: scalarDetails,
+        body: body,
+      ),
+    );
+  }
+  return sections;
+}
+
+List<SharedFileAnalysisDetailEntity> _detailsFromMap(
+  Map<String, dynamic> values,
+) {
+  return values.entries
+      .where(
+        (entry) =>
+            entry.key != 'source' &&
+            entry.key != 'confidence' &&
+            !_isStructuredPartyKey(entry.key) &&
+            _hasValue(entry.value),
+      )
+      .map(
+        (entry) => SharedFileAnalysisDetailEntity(
+          label: _displayKey(entry.key),
+          value: _displayValue(entry.value),
+        ),
+      )
+      .toList(growable: false);
+}
+
+List<SharedFileAnalysisDetailEntity> _rawItemDetails(
+  Map<String, dynamic> values,
+) {
+  return values.entries
+      .where(
+        (entry) =>
+            entry.key != 'name' &&
+            entry.key != 'quantity' &&
+            entry.key != 'source' &&
+            entry.key != 'confidence' &&
+            _hasValue(entry.value),
+      )
+      .map(
+        (entry) => SharedFileAnalysisDetailEntity(
+          label: _displayKey(entry.key),
+          value: _rawDisplayValue(entry.value),
+        ),
+      )
+      .toList(growable: false);
+}
+
+String _rawDisplayValue(Object? value) {
+  if (value is Iterable) {
+    return value.where(_hasValue).map(_rawDisplayValue).join(', ');
+  }
+  if (value is Map) {
+    return value.entries
+        .where(
+          (entry) =>
+              entry.key != 'source' &&
+              entry.key != 'confidence' &&
+              _hasValue(entry.value),
+        )
+        .map(
+          (entry) =>
+              '${_displayKey(entry.key.toString())}: '
+              '${_rawDisplayValue(entry.value)}',
+        )
+        .join(', ');
+  }
+  return value?.toString().trim() ?? '';
+}
+
+bool _isStructuredExtractionKey(String key) {
+  if (_isStructuredPartyKey(key)) return true;
+  return const {
+    'summary',
+    'documentDate',
+    'documentType',
+    'diagnoses',
+    'medications',
+    'vaccinations',
+    'medicalOrders',
+    'clinicalHistory',
+    'diagnosticResults',
+    'referral',
+    'warnings',
+  }.contains(key);
 }
 
 const _structuredPartyKeys = {
@@ -343,16 +529,6 @@ bool _isStructuredPartyKey(String key) {
       normalized.contains('caregiver');
 }
 
-String _itemText(String prefix, MedicalDocumentItemEntity item) {
-  final values = item.fields.entries
-      .where((entry) => _hasValue(entry.value))
-      .map(
-        (entry) => '${_fieldLabel(entry.key)}: ${_displayValue(entry.value)}',
-      )
-      .join(' · ');
-  return values.isEmpty ? '' : '$prefix — $values';
-}
-
 int? _quantity(Object? value) {
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString().trim() ?? '');
@@ -387,7 +563,7 @@ String _displayValue(Object? value) {
         )
         .map(
           (entry) =>
-              '${_fieldLabel(entry.key.toString())}: '
+              '${_displayKey(entry.key.toString())}: '
               '${_displayValue(entry.value)}',
         )
         .join(', ');
@@ -395,56 +571,18 @@ String _displayValue(Object? value) {
   return value?.toString().trim() ?? '';
 }
 
-String _fieldLabel(String value) {
-  const labels = {
-    'activeIngredient': 'Principio activo',
-    'address': 'Dirección',
-    'anamnesis': 'Anamnesis',
-    'applicationDate': 'Fecha de aplicación',
-    'applicationSite': 'Sitio de aplicación',
-    'brand': 'Marca',
-    'clinicalFindings': 'Hallazgos clínicos',
-    'clinicalSummary': 'Resumen clínico',
-    'color': 'Color',
-    'code': 'Código',
-    'destination': 'Destino',
-    'dose': 'Dosis',
-    'duration': 'Duración',
-    'evolution': 'Evolución',
-    'followUp': 'Seguimiento',
-    'frequency': 'Frecuencia',
-    'instructions': 'Indicaciones',
-    'interpretation': 'Interpretación',
-    'lot': 'Lote',
-    'manufacturer': 'Fabricante',
-    'email': 'Correo electrónico',
-    'name': 'Nombre',
-    'nextDoseDate': 'Próxima dosis',
-    'notes': 'Notas',
-    'orderType': 'Tipo de orden',
-    'physicalExam': 'Examen físico',
-    'presentation': 'Presentación',
-    'priority': 'Prioridad',
-    'prognosis': 'Pronóstico',
-    'quantity': 'Cantidad',
-    'reason': 'Motivo',
-    'reasonForConsultation': 'Motivo de consulta',
-    'recommendations': 'Recomendaciones',
-    'result': 'Resultado',
-    'route': 'Vía',
-    'sex': 'Sexo',
-    'specialty': 'Especialidad',
-    'status': 'Estado',
-    'treatmentPlan': 'Plan de tratamiento',
-    'veterinarian': 'Veterinario',
-    'vitalSigns': 'Signos vitales',
-  };
-  final label = labels[value];
-  if (label != null) return label;
-  final spaced = value.replaceAllMapped(
-    RegExp(r'([a-z])([A-Z])'),
-    (match) => '${match.group(1)} ${match.group(2)}',
-  );
-  if (spaced.isEmpty) return 'Campo';
-  return '${spaced[0].toUpperCase()}${spaced.substring(1)}';
+String _displayKey(String value) {
+  final separated = value
+      .trim()
+      .replaceAll(RegExp(r'[_-]+'), ' ')
+      .replaceAllMapped(
+        RegExp(r'([a-z0-9])([A-Z])'),
+        (match) => '${match.group(1)} ${match.group(2)}',
+      );
+  if (separated.isEmpty) return value;
+  return '${separated[0].toUpperCase()}${separated.substring(1)}';
+}
+
+String _sentenceLines(String value) {
+  return value.trim().replaceAllMapped(RegExp(r'\.\s+(?=\S)'), (_) => '.\n');
 }

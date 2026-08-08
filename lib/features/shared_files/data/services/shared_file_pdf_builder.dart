@@ -132,6 +132,7 @@ class SharedFilePdfBuilder {
             ], hasTitle: analysis.tutor.name.isNotEmpty),
           ],
           if (analysis.medications.isNotEmpty ||
+              analysis.sections.isNotEmpty ||
               (analysis.observations?.trim().isNotEmpty ?? false))
             _dividerWidget(),
           if (analysis.medications.isNotEmpty &&
@@ -151,9 +152,23 @@ class SharedFilePdfBuilder {
             if (index < analysis.medications.length - 1)
               pw.SizedBox(height: 24),
           ],
+          for (var index = 0; index < analysis.sections.length; index++) ...[
+            if (analysis.medications.isNotEmpty || index > 0)
+              pw.SizedBox(height: 28),
+            _analysisSection(analysis.sections[index]),
+            if (_isWebUrl(analysis.originalUrl)) ...[
+              pw.SizedBox(height: 8),
+              _originalLink(analysis.originalUrl!),
+            ],
+          ],
           if (analysis.observations?.trim().isNotEmpty ?? false) ...[
-            if (analysis.medications.isNotEmpty) pw.SizedBox(height: 28),
+            if (analysis.medications.isNotEmpty || analysis.sections.isNotEmpty)
+              pw.SizedBox(height: 28),
             _observations(analysis.observations!),
+            if (_isWebUrl(analysis.originalUrl)) ...[
+              pw.SizedBox(height: 8),
+              _originalLink(analysis.originalUrl!),
+            ],
           ],
         ],
       ),
@@ -353,6 +368,27 @@ class SharedFilePdfBuilder {
               ),
             ),
           ),
+        if (medication.details.any((detail) => detail.hasData))
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 16, top: 8),
+            child: pw.Column(
+              children: [
+                for (
+                  var index = 0;
+                  index < medication.details.length;
+                  index++
+                ) ...[
+                  if (medication.details[index].hasData) ...[
+                    if (index > 0) pw.SizedBox(height: 8),
+                    _valueRow(
+                      medication.details[index].label,
+                      medication.details[index].value,
+                    ),
+                  ],
+                ],
+              ],
+            ),
+          ),
         if (_isWebUrl(medication.originalUrl))
           pw.Padding(
             padding: const pw.EdgeInsets.only(top: 8),
@@ -381,6 +417,19 @@ class SharedFilePdfBuilder {
         uri.host.isNotEmpty;
   }
 
+  pw.Widget _originalLink(String url) {
+    return pw.Align(
+      alignment: pw.Alignment.centerRight,
+      child: pw.UrlLink(
+        destination: url.trim(),
+        child: pw.Text(
+          'Ver original',
+          style: pw.TextStyle(fontSize: _tableFontSize, color: _linkBlue),
+        ),
+      ),
+    );
+  }
+
   pw.Widget _observations(String observations) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
@@ -398,6 +447,41 @@ class SharedFilePdfBuilder {
             color: _textColor,
           ),
         ),
+      ],
+    );
+  }
+
+  pw.Widget _analysisSection(SharedFileAnalysisSectionEntity section) {
+    final details = section.details
+        .where((detail) => detail.hasData)
+        .toList(growable: false);
+    final body = section.body?.trim() ?? '';
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Text(
+          section.title,
+          style: pw.TextStyle(
+            fontSize: _tableFontSize,
+            fontWeight: pw.FontWeight.bold,
+            color: _textColor,
+          ),
+        ),
+        if (body.isNotEmpty || details.isNotEmpty) pw.SizedBox(height: 16),
+        if (body.isNotEmpty)
+          pw.Text(
+            body,
+            style: pw.TextStyle(
+              fontSize: _tableFontSize,
+              lineSpacing: 7,
+              color: _textColor,
+            ),
+          ),
+        if (body.isNotEmpty && details.isNotEmpty) pw.SizedBox(height: 16),
+        for (var index = 0; index < details.length; index++) ...[
+          if (index > 0) pw.SizedBox(height: 8),
+          _valueRow(details[index].label, details[index].value),
+        ],
       ],
     );
   }

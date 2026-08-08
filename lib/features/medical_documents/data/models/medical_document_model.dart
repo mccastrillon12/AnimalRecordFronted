@@ -245,7 +245,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
       json['animalData'],
       json['animalInfo'],
     ])
-      ..._objectMaps(candidate),
+      ..._patientMaps(candidate),
   ];
   final extractionValues = <Object?>[
     ..._map(json['extractionsByCategory']).values,
@@ -257,22 +257,29 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
     for (final candidate in [
       extraction['patient'],
       extraction['patientDetails'],
+      extraction['patientHints'],
       extraction['animal'],
       extraction['animalDetails'],
     ]) {
-      values.addAll(_objectMaps(candidate));
+      values.addAll(_patientMaps(candidate));
     }
     final additional = _nullableMap(extraction['additionalFields']);
     if (additional != null) {
       for (final candidate in [
         additional['patient'],
         additional['patientDetails'],
+        additional['patientHints'],
         additional['animal'],
         additional['animalDetails'],
       ]) {
-        values.addAll(_objectMaps(candidate));
+        values.addAll(_patientMaps(candidate));
       }
-      if (additional.keys.any(_flatPatientKeys.contains)) {
+      if (additional.entries.any(
+        (entry) =>
+            entry.value is! Map &&
+            entry.value is! Iterable &&
+            _isPatientFieldKey(entry.key),
+      )) {
         values.add(additional);
       }
     }
@@ -309,6 +316,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
           ]),
           age: _nullableText(animal, const ['age']),
           weight: _nullableText(animal, const ['weight']),
+          fields: _patientFields(animal),
           additionalDetails: _additionalTextFields(
             animal,
             excludedKeys: _knownAnimalKeys,
@@ -326,6 +334,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
             (animal.birthdate?.isEmpty ?? true) &&
             (animal.age?.isEmpty ?? true) &&
             (animal.weight?.isEmpty ?? true) &&
+            animal.fields.isEmpty &&
             animal.additionalDetails.isEmpty) {
           return false;
         }
@@ -339,6 +348,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
           animal.color,
           animal.age,
           animal.weight,
+          animal.fields,
           animal.additionalDetails,
         ].join('|');
         return seen.add(key);
@@ -887,6 +897,46 @@ Iterable<Map<String, dynamic>> _objectMaps(Object? value) sync* {
       ...nested,
     };
   }
+}
+
+Iterable<Map<String, dynamic>> _patientMaps(Object? value) sync* {
+  yield* _objectMaps(value);
+  final labeledValues = _labeledPatientValues(value);
+  if (labeledValues.isNotEmpty) yield labeledValues;
+}
+
+Map<String, dynamic> _labeledPatientValues(Object? value) {
+  if (value is! List) return const {};
+  final fields = <String, dynamic>{};
+  for (final item in value.whereType<String>()) {
+    final separator = item.indexOf(':');
+    if (separator <= 0) continue;
+    final label = item.substring(0, separator).trim();
+    final fieldValue = item.substring(separator + 1).trim();
+    if (label.isEmpty || fieldValue.isEmpty) continue;
+    fields[label] = fieldValue;
+  }
+  return fields;
+}
+
+bool _isPatientFieldKey(String key) {
+  final normalized = _normalizedKey(key);
+  return _flatPatientKeys.any(
+        (candidate) => _normalizedKey(candidate) == normalized,
+      ) ||
+      normalized.contains('animal') ||
+      normalized.contains('patient');
+}
+
+Map<String, String> _patientFields(Map<String, dynamic> values) {
+  return {
+    for (final entry in values.entries)
+      if (entry.key != 'source' &&
+          entry.key != 'confidence' &&
+          !_isTutorContainerKey(entry.key) &&
+          _valueText(entry.value)?.isNotEmpty == true)
+        entry.key: _valueText(entry.value)!,
+  };
 }
 
 String _firstText(Map<String, dynamic> values, List<String> keys) {

@@ -14,6 +14,83 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  testWidgets('shows an original link for every clinical content section', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var originalOpened = false;
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Historia clínica',
+      documentNumber: 'HC-1',
+      date: null,
+      originalFileName: 'historia.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Chuleta',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+      sections: [
+        SharedFileAnalysisSectionEntity(
+          title: 'Diagnóstico',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'clinicalFindings',
+              value: 'Masa axilar',
+            ),
+          ],
+        ),
+        SharedFileAnalysisSectionEntity(
+          title: 'Historia clínica',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'treatmentPlan',
+              value: 'Control en 5 días',
+            ),
+          ],
+        ),
+        SharedFileAnalysisSectionEntity(
+          title: 'Información adicional',
+          body:
+              'Clinical history returned by backend\n'
+              'Owner reports patient does not seem sedated',
+        ),
+      ],
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SharedFileAnalysisReviewScreen(
+          analysis: analysis,
+          onViewOriginal: () => originalOpened = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Ver original'), findsNWidgets(3));
+    expect(
+      find.textContaining('Clinical history returned by backend'),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining('Owner reports patient does not seem sedated'),
+      findsOneWidget,
+    );
+    await tester.ensureVisible(find.text('Ver original').last);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Ver original').last);
+    expect(originalOpened, isTrue);
+  });
+
   testWidgets('renders every value received through the analysis entity', (
     tester,
   ) async {
@@ -63,7 +140,28 @@ void main() {
           name: 'Medicamento variable',
           quantity: 3,
           instructions: 'Indicaciones variables del backend.',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'backendKey',
+              value: 'backendValue',
+            ),
+          ],
           originalUrl: 'https://example.test/original',
+        ),
+      ],
+      sections: const [
+        SharedFileAnalysisSectionEntity(
+          title: 'Remisión',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Motivo',
+              value: 'Evaluación cardiológica',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Destino',
+              value: 'Clínica Cardiovet',
+            ),
+          ],
         ),
       ],
       observations: 'Observación variable del backend.',
@@ -102,11 +200,19 @@ void main() {
     expect(find.text('Medicamento variable'), findsOneWidget);
     expect(find.text('x 3'), findsOneWidget);
     expect(find.text('Indicaciones variables del backend.'), findsOneWidget);
+    expect(find.text('backendKey'), findsOneWidget);
+    expect(find.text('backendValue'), findsOneWidget);
+    expect(find.text('Remisión'), findsOneWidget);
+    expect(find.text('Motivo'), findsOneWidget);
+    expect(find.text('Evaluación cardiológica'), findsOneWidget);
+    expect(find.text('Destino'), findsOneWidget);
+    expect(find.text('Clínica Cardiovet'), findsOneWidget);
     expect(find.text('Observación variable del backend.'), findsOneWidget);
     expect(find.text('Subir documento'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final dateLabel = tester.widget<Text>(find.text('Fecha'));
+    final dynamicLabel = tester.widget<Text>(find.text('backendKey'));
     final medicationName = tester.widget<Text>(
       find.text('Medicamento variable'),
     );
@@ -114,6 +220,8 @@ void main() {
       find.text('resultado-variable.pdf'),
     );
     expect(dateLabel.style?.fontSize, AppTypography.body4.fontSize);
+    expect(dynamicLabel.maxLines, 1);
+    expect(dynamicLabel.overflow, TextOverflow.ellipsis);
     expect(medicationName.style?.fontSize, AppTypography.body4.fontSize);
     expect(originalFileName.maxLines, 1);
     expect(originalFileName.overflow, TextOverflow.ellipsis);
@@ -297,6 +405,10 @@ void main() {
 
     expect(find.text('Enviar orden'), findsOneWidget);
     expect(find.text('Enviar fórmula'), findsNothing);
+    expect(
+      tester.getCenter(find.text('Enviar orden')).dy,
+      closeTo(tester.getCenter(find.byIcon(Icons.close)).dy, 0.5),
+    );
   });
 
   testWidgets('resolves and injects the original URL before exporting', (
@@ -361,6 +473,11 @@ void main() {
       exported.medications.single.originalUrl,
       'https://api.example.test/original/document-1',
     );
+    expect(
+      exported.originalUrl,
+      'https://api.example.test/original/document-1',
+    );
     expect(analysis.medications.single.originalUrl, 'document-id');
+    expect(analysis.originalUrl, isNull);
   });
 }

@@ -33,10 +33,28 @@ void main() {
           name: 'Medicamento PDF',
           quantity: 2,
           instructions: 'Indicaciones variables para el PDF.',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'backendKey',
+              value: 'backendValue',
+            ),
+          ],
           originalUrl: 'https://api.example.test/original/document-1',
         ),
       ],
+      sections: const [
+        SharedFileAnalysisSectionEntity(
+          title: 'Remisión',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Destino',
+              value: 'Clínica Cardiovet',
+            ),
+          ],
+        ),
+      ],
       observations: 'Observaciones variables para el PDF.',
+      originalUrl: 'https://api.example.test/original/document-1',
     );
     final clipboardSvg = await rootBundle.loadString(AppIcons.clipboardImport);
 

@@ -1,6 +1,7 @@
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 
 class AnalyzeMedicalDocumentUseCase {
   final MedicalDocumentsRepository repository;
@@ -38,4 +39,14 @@ class GetMedicalDocumentDownloadUriUseCase {
   final MedicalDocumentsRepository repository;
   const GetMedicalDocumentDownloadUriUseCase(this.repository);
   Future<Uri> call(String documentId) => repository.getDownloadUri(documentId);
+}
+
+class SaveMedicalDocumentOriginalUseCase {
+  final MedicalDocumentFileSaver fileSaver;
+
+  const SaveMedicalDocumentOriginalUseCase(this.fileSaver);
+
+  Future<bool> call(MedicalDocumentFileSaveRequest request) {
+    return fileSaver.save(request);
+  }
 }

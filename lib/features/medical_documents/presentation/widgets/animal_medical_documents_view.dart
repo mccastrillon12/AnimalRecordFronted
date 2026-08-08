@@ -188,7 +188,7 @@ class _MedicalDocumentCard extends StatelessWidget {
               Expanded(
                 child: Text(
                   title,
-                  style: AppTypography.body1.copyWith(
+                  style: AppTypography.body3.copyWith(
                     color: AppColors.greyTextos,
                   ),
                 ),
@@ -237,7 +237,7 @@ class _MedicalDocumentCard extends StatelessWidget {
                   children: [
                     Text(
                       'Ver detalle',
-                      style: AppTypography.body1.copyWith(
+                      style: AppTypography.body3.copyWith(
                         color: AppColors.greyMedio,
                       ),
                     ),
@@ -275,11 +275,13 @@ class _MedicalDocumentCard extends StatelessWidget {
   Future<void> _showOriginal(BuildContext context) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
+      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
     );
     try {
       await preview.show(
         context,
         acceptedDocumentId: document.id,
+        fileName: document.originalFileName,
         mimeType: document.mimeType,
       );
     } catch (error) {
@@ -297,7 +299,7 @@ class _DocumentCardValue extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.s),
+      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -305,7 +307,7 @@ class _DocumentCardValue extends StatelessWidget {
             width: 128,
             child: Text(
               label,
-              style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
+              style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
             ),
           ),
           Expanded(
@@ -313,7 +315,7 @@ class _DocumentCardValue extends StatelessWidget {
               value,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
+              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
             ),
           ),
         ],
@@ -347,8 +349,8 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
           Expanded(
             child: Text(
               '¿La ayuda de la IA te fue útil\npara leer tu documento?',
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyNegro,
+              style: AppTypography.body6.copyWith(
+                color: const Color.fromARGB(255, 0, 0, 0),
                 height: 1.5,
               ),
             ),
@@ -396,22 +398,23 @@ class _AiFeedbackButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected
-          ? AppColors.primaryFrances.withValues(alpha: 0.12)
-          : Colors.transparent,
+      color: AppColors.white,
       borderRadius: BorderRadius.circular(AppSpacing.xs),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         borderRadius: BorderRadius.circular(AppSpacing.xs),
-        child: Container(
+        child: Ink(
           width: 62,
           height: 44,
-          alignment: Alignment.center,
           decoration: BoxDecoration(
+            color: AppColors.white,
             border: Border.all(color: AppColors.primaryFrances),
             borderRadius: BorderRadius.circular(AppSpacing.xs),
           ),
-          child: Icon(icon, size: 23, color: AppColors.primaryFrances),
+          child: Center(
+            child: Icon(icon, size: 23, color: AppColors.primaryFrances),
+          ),
         ),
       ),
     );

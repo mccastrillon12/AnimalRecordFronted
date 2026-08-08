@@ -13,11 +13,8 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
   required MedicalDocumentEntity document,
   required MedicalDocumentCategory initialCategory,
 }) async {
-  final detectedCategory =
-      document.primaryDetectedCategory ??
-      (document.detectedCategories.isEmpty
-          ? initialCategory
-          : document.detectedCategories.first.category);
+  final detectedCategories = _detectedCategories(document, initialCategory);
+  final detectedCategoriesLabel = _categoryListLabel(detectedCategories);
   var selectedCategory = initialCategory;
   MedicalDocumentCategory? confirmedCategory;
 
@@ -35,7 +32,7 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
                   'La IA ha detectado que el archivo que intenta cargar corresponde a: ',
             ),
             TextSpan(
-              text: '${detectedCategory.label}.',
+              text: '$detectedCategoriesLabel.',
               style: AppTypography.body6.copyWith(
                 color: AppColors.greyTextos,
                 height: 1.6,
@@ -80,6 +77,32 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
     ),
   );
   return confirmedCategory;
+}
+
+List<MedicalDocumentCategory> _detectedCategories(
+  MedicalDocumentEntity document,
+  MedicalDocumentCategory fallback,
+) {
+  final categories = <MedicalDocumentCategory>[];
+  void add(MedicalDocumentCategory? category) {
+    if (category != null && !categories.contains(category)) {
+      categories.add(category);
+    }
+  }
+
+  add(document.primaryDetectedCategory);
+  for (final detected in document.detectedCategories) {
+    add(detected.category);
+  }
+  if (categories.isEmpty) add(fallback);
+  return List.unmodifiable(categories);
+}
+
+String _categoryListLabel(List<MedicalDocumentCategory> categories) {
+  final labels = categories.map((category) => category.label).toList();
+  if (labels.length < 2) return labels.single;
+  if (labels.length == 2) return '${labels.first} y ${labels.last}';
+  return '${labels.take(labels.length - 1).join(', ')} y ${labels.last}';
 }
 
 class _AiIndicator extends StatelessWidget {

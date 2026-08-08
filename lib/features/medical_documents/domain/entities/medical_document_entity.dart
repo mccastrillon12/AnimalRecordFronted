@@ -300,6 +300,7 @@ class MedicalDocumentAnimalEntity extends Equatable {
   final String? birthdate;
   final String? age;
   final String? weight;
+  final Map<String, String> fields;
   final Map<String, String> additionalDetails;
 
   const MedicalDocumentAnimalEntity({
@@ -313,6 +314,7 @@ class MedicalDocumentAnimalEntity extends Equatable {
     this.birthdate,
     this.age,
     this.weight,
+    this.fields = const {},
     this.additionalDetails = const {},
   });
 
@@ -328,6 +330,7 @@ class MedicalDocumentAnimalEntity extends Equatable {
     birthdate,
     age,
     weight,
+    fields,
     additionalDetails,
   ];
 }
