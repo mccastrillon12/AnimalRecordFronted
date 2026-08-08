@@ -487,6 +487,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   AppRoutes.animalClinicalHistory,
                   arguments: animal,
                 );
+              } else if (entry.value == 'Carné de vacunas') {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.animalVaccinations,
+                  arguments: animal,
+                );
               } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
                 Navigator.pushNamed(
                   context,

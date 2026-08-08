@@ -30,6 +30,7 @@ import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
@@ -137,6 +138,11 @@ class MyApp extends StatelessWidget {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalClinicalHistoryScreen(animal: animal);
+          },
+          AppRoutes.animalVaccinations: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalVaccinationsScreen(animal: animal);
           },
           AppRoutes.animalDiary: (context) {
             final animal =

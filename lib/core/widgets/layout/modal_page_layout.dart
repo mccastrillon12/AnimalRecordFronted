@@ -113,9 +113,7 @@ class ModalPageLayout extends StatelessWidget {
         child: Text(
           title,
           style: titleStyle ??
-              AppTypography.heading1.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              AppTypography.heading1
         ),
       ),
     );
