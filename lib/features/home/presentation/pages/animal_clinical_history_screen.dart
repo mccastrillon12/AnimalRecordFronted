@@ -5,7 +5,11 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
 class AnimalClinicalHistoryScreen extends StatefulWidget {
@@ -23,7 +27,16 @@ class _AnimalClinicalHistoryScreenState
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_refreshSearch);
+  }
+
+  void _refreshSearch() => setState(() {});
+
+  @override
   void dispose() {
+    _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
   }
@@ -98,25 +111,18 @@ class _AnimalClinicalHistoryScreenState
                               ),
                             ),
                           ),
-                          const SizedBox(
-                            key: Key('clinical-history-empty-gap'),
-                            height: 100,
-                          ),
-                          Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: AppSpacing.l,
-                            ),
-                            child: Text(
-                              'Ningún veterinario ha creado historias clínicas '
-                              'para este animal.',
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyTextos,
-                                height: 1.45,
-                              ),
-                              textAlign: TextAlign.center,
+                          Expanded(
+                            child: AnimalMedicalDocumentsView(
+                              animalId: widget.animal.id,
+                              category: MedicalDocumentCategory.clinicalHistory,
+                              searchQuery: _searchController.text,
+                              emptyTitle:
+                                  'El registro de historias clínicas está vacío',
+                              emptyDescription:
+                                  'Aquí se podrán visualizar las historias clínicas que se creen.',
+                              emptyBottomOffset: 100,
                             ),
                           ),
-                          const Spacer(),
                         ],
                       ),
                       Positioned(
@@ -137,6 +143,14 @@ class _AnimalClinicalHistoryScreenState
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
                           animalId: widget.animal.id,
+                          requestedCategory:
+                              MedicalDocumentCategory.clinicalHistory,
+                          onUploaded: () =>
+                              context.read<AnimalMedicalDocumentsCubit>().load(
+                                widget.animal.id,
+                                category:
+                                    MedicalDocumentCategory.clinicalHistory,
+                              ),
                         ),
                       ),
                     ],

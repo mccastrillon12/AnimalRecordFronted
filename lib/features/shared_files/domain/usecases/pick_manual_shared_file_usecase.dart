@@ -12,8 +12,7 @@ class ManualFileSelectionException implements Exception {
 }
 
 class PickManualSharedFileUseCase {
-  static const int maximumImageSize = 1024 * 1024;
-  static const int maximumPdfSize = 5 * 1024 * 1024;
+  static const int maximumFileSize = 10 * 1024 * 1024;
 
   final SharedFilesRepository repository;
 
@@ -25,17 +24,12 @@ class PickManualSharedFileUseCase {
 
     if (file.type == SharedFileType.unsupported) {
       throw const ManualFileSelectionException(
-        'Selecciona un archivo PNG, JPG, JPEG o PDF.',
+        'Selecciona un archivo PNG, JPG, JPEG, TIFF o PDF.',
       );
     }
-    if (file.type == SharedFileType.pdf && file.size > maximumPdfSize) {
+    if (file.size > maximumFileSize) {
       throw const ManualFileSelectionException(
-        'El PDF debe pesar máximo 5 MB.',
-      );
-    }
-    if (file.type == SharedFileType.image && file.size > maximumImageSize) {
-      throw const ManualFileSelectionException(
-        'La imagen debe pesar máximo 1 MB.',
+        'El archivo debe pesar máximo 10 MB.',
       );
     }
     return file;

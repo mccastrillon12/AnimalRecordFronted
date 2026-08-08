@@ -1,8 +1,15 @@
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class MockAnimalMedicalDocumentsCubit extends Mock
+    implements AnimalMedicalDocumentsCubit {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -20,8 +27,22 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        [],
+        category: MedicalDocumentCategory.vaccinationCard,
+      ),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
     await tester.pumpWidget(
-      const MaterialApp(home: AnimalVaccinationsScreen(animal: animal)),
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: documentsCubit,
+        child: const MaterialApp(
+          home: AnimalVaccinationsScreen(animal: animal),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 

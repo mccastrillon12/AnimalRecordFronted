@@ -5,7 +5,11 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
 class AnimalVaccinationsScreen extends StatefulWidget {
@@ -22,7 +26,16 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_refreshSearch);
+  }
+
+  void _refreshSearch() => setState(() {});
+
+  @override
   void dispose() {
+    _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
   }
@@ -87,7 +100,16 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                               ],
                             ),
                           ),
-                          const Expanded(child: _VaccinationsEmptyState()),
+                          Expanded(
+                            child: AnimalMedicalDocumentsView(
+                              animalId: widget.animal.id,
+                              category: MedicalDocumentCategory.vaccinationCard,
+                              searchQuery: _searchController.text,
+                              emptyTitle: 'El registro de vacunas está vacío',
+                              emptyDescription:
+                                  'Aquí se podrán visualizar las vacunas que se creen.',
+                            ),
+                          ),
                         ],
                       ),
                       Positioned(
@@ -151,6 +173,14 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
                           animalId: widget.animal.id,
+                          requestedCategory:
+                              MedicalDocumentCategory.vaccinationCard,
+                          onUploaded: () =>
+                              context.read<AnimalMedicalDocumentsCubit>().load(
+                                widget.animal.id,
+                                category:
+                                    MedicalDocumentCategory.vaccinationCard,
+                              ),
                         ),
                       ),
                     ],
@@ -240,41 +270,6 @@ class _VaccinationSortButton extends StatelessWidget {
             color: AppColors.greyMedio,
             size: 22,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VaccinationsEmptyState extends StatelessWidget {
-  const _VaccinationsEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 100),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'El registro de vacunas está vacío',
-              style: AppTypography.body3.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.m),
-            Text(
-              'Aquí se podrán visualizar las vacunas que se creen.',
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                height: 1.45,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
         ),
       ),
     );

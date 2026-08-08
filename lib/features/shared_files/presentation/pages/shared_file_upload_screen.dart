@@ -1,5 +1,5 @@
-import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -13,10 +13,13 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
+import 'package:animal_record/features/medical_documents/presentation/pages/medical_document_review_screen.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_classification_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
-import 'package:animal_record/features/shared_files/presentation/widgets/shared_file_analysis_dialog.dart';
-import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_shared_file_usecase.dart';
@@ -33,26 +36,33 @@ class SharedFileUploadScreen extends StatefulWidget {
   State<SharedFileUploadScreen> createState() => _SharedFileUploadScreenState();
 }
 
-class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
+class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
+    with WidgetsBindingObserver {
   late final TextEditingController _fileNameController;
   final TextEditingController _descriptionController = TextEditingController();
   List<AnimalEntity> _selectedAnimals = const [];
   SharedFileEntity? _manualFile;
   DateTime? _manualFileSelectedAt;
+  bool _reviewPresented = false;
+  bool _pendingResumeChecked = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     final files = context.read<SharedFilesCubit>().pendingFiles;
     _fileNameController = TextEditingController(
       text: files.isEmpty ? '' : files.first.name,
     );
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthSuccess) {
-        context.read<AnimalCubit>().loadAnimals(authState.user.id);
+        await context.read<AnimalCubit>().loadAnimals(authState.user.id);
+      }
+      if (mounted && _shouldResumePending) {
+        await _resumeCompatiblePendingFlow();
       }
     });
   }
@@ -70,12 +80,40 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _fileNameController.dispose();
     _descriptionController.dispose();
     super.dispose();
   }
 
-  void _close() {
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    if (state == AppLifecycleState.resumed &&
+        flow.state.phase == MedicalDocumentFlowPhase.pollingPaused) {
+      flow.resumePolling();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      flow.pausePolling();
+    }
+  }
+
+  Future<bool> _discardPendingFlow() async {
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    final discarded = await flow.discardCurrentFlow();
+    if (!discarded && mounted) {
+      ErrorDisplay.showError(
+        context,
+        flow.state.message ??
+            'No fue posible cancelar el análisis. Inténtalo nuevamente.',
+      );
+    }
+    return discarded;
+  }
+
+  Future<void> _close() async {
+    if (!await _discardPendingFlow() || !mounted) return;
     if (!_isManualUpload) {
       context.read<SharedFilesCubit>().clear();
     }
@@ -100,6 +138,54 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     return null;
   }
 
+  MedicalDocumentCategory? get _requestedCategory {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map &&
+        arguments['requestedCategory'] is MedicalDocumentCategory) {
+      return arguments['requestedCategory'] as MedicalDocumentCategory;
+    }
+    return null;
+  }
+
+  bool get _shouldResumePending {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    return arguments is Map && arguments['resumePending'] == true;
+  }
+
+  Future<void> _resumeCompatiblePendingFlow() async {
+    if (_pendingResumeChecked) return;
+    _pendingResumeChecked = true;
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    final pending = flow.pendingFlow;
+    if (pending == null) return;
+
+    final preselectedAnimal = _preselectedAnimal;
+    if (preselectedAnimal != null &&
+        !pending.animalIds.contains(preselectedAnimal.id)) {
+      return;
+    }
+    final requestedCategory = _requestedCategory;
+    if (requestedCategory != null &&
+        pending.requestedCategory != requestedCategory) {
+      return;
+    }
+
+    final availableAnimals = [
+      ...context.read<AnimalCubit>().animals,
+      if (preselectedAnimal != null &&
+          !context.read<AnimalCubit>().animals.any(
+            (animal) => animal.id == preselectedAnimal.id,
+          ))
+        preselectedAnimal,
+    ];
+    final restoredAnimals = availableAnimals
+        .where((animal) => pending.animalIds.contains(animal.id))
+        .toList(growable: false);
+    if (restoredAnimals.length != pending.animalIds.length) return;
+    setState(() => _selectedAnimals = restoredAnimals);
+    await flow.resumePending();
+  }
+
   Future<void> _pickManualFile(ManualFileSource source) async {
     try {
       final file = await context.read<SharedFilesCubit>().pickManualFile(
@@ -107,6 +193,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
       );
       if (!mounted || file == null) return;
 
+      if (!await _discardPendingFlow() || !mounted) return;
       setState(() {
         _manualFile = file;
         _manualFileSelectedAt = DateTime.now();
@@ -179,7 +266,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     await _pickManualFile(source);
   }
 
-  void _removeManualFile() {
+  Future<void> _removeManualFile() async {
+    if (!await _discardPendingFlow() || !mounted) return;
     setState(() {
       _manualFile = null;
       _manualFileSelectedAt = null;
@@ -197,60 +285,72 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
     setState(() => _selectedAnimals = selected);
   }
 
-  Future<void> _showFileAnalysis() async {
-    final contentType = await showSharedFileAnalysisDialog(context: context);
-    if (!mounted || contentType == null) return;
-    Navigator.pushNamed(
-      context,
-      AppRoutes.sharedFileAnalysisReview,
-      arguments: _buildAnalysisPreview(contentType),
+  Future<void> _startAnalysis() async {
+    final pendingFiles = context.read<SharedFilesCubit>().pendingFiles;
+    final sourceFile = _isManualUpload
+        ? _manualFile
+        : pendingFiles.isEmpty
+        ? null
+        : pendingFiles.first;
+    if (sourceFile == null || _selectedAnimals.isEmpty) return;
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    if ((flow.state.remoteDocument != null || flow.pendingFlow != null) &&
+        !await _discardPendingFlow()) {
+      return;
+    }
+    if (!mounted) return;
+    await flow.startAnalysis(
+      file: sourceFile,
+      animalIds: _selectedAnimals.map((animal) => animal.id).toList(),
+      requestedCategory: _requestedCategory,
     );
   }
 
-  SharedFileAnalysisEntity _buildAnalysisPreview(
-    SharedFileContentType contentType,
-  ) {
-    final fileName = _fileNameController.text.trim();
-    return SharedFileAnalysisEntity(
-      documentType: contentType.label,
-      documentNumber: 'N° 11-230',
-      date: DateTime(2026, 1, 25),
-      originalFileName: fileName.isEmpty ? '[FileName].pdf' : fileName,
-      patient: const SharedFilePatientAnalysisEntity(
-        name: 'Brownie',
-        recordId: 'AR-C012',
-        species: 'Canino',
-        breed: 'Labrador',
-        age: '10 años',
-        weight: '15 kg',
-      ),
-      tutor: const SharedFileTutorAnalysisEntity(
-        name: 'Barbara James',
-        identification: 'C.C. 1152234567',
-        phoneNumber: '(+57) 312 456 78 90',
-      ),
-      medications: const [
-        SharedFileMedicationAnalysisEntity(
-          name: 'ProtectionPets suspensión oral',
-          quantity: 1,
-          instructions:
-              'Administrar 2gr vía oral cada 24 horas durante 7 días, '
-              'siempre con el estómago lleno.',
-          originalUrl: 'preview://protection-pets',
-        ),
-        SharedFileMedicationAnalysisEntity(
-          name: 'CBD gotas (verde)',
-          quantity: 1,
-          instructions:
-              'Administrar vía oral de 3 a 5 gotas cada 24 horas durante '
-              '30 días. Suspender 15 días y reiniciar 30 días.',
-          originalUrl: 'preview://cbd',
-        ),
-      ],
-      observations:
-          'Realizar coprológico seriado, traer 3 muestras de materia fecal '
-          'de diferentes días, una cada día, valor \$40.000',
+  Future<void> _presentReview(MedicalDocumentFlowState state) async {
+    if (_reviewPresented || state.remoteDocument == null) return;
+    _reviewPresented = true;
+    final selected = await showMedicalDocumentClassificationDialog(
+      context: context,
+      document: state.remoteDocument!,
+      initialCategory:
+          state.selectedFinalCategory ?? MedicalDocumentCategory.other,
     );
+    if (!mounted) return;
+    if (selected == null) {
+      await _discardPendingFlow();
+      if (!mounted) return;
+      _reviewPresented = false;
+      return;
+    }
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    flow.selectFinalCategory(selected);
+    final description = _descriptionController.text.trim();
+    if (description.isNotEmpty) {
+      final draft = flow.state.draftExtraction!;
+      flow.updateDraft(
+        draft.copyWith(
+          additionalFields: {
+            ...draft.additionalFields,
+            'description': description,
+          },
+        ),
+      );
+    }
+    final accepted = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BlocProvider.value(
+          value: flow,
+          child: const MedicalDocumentReviewScreen(),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    _reviewPresented = false;
+    if (accepted == true) {
+      context.read<SharedFilesCubit>().clear();
+      Navigator.pop(context, true);
+    }
   }
 
   @override
@@ -260,106 +360,153 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen> {
         ? _manualFile != null
         : _fileNameController.text.isNotEmpty;
 
-    return ModalPageLayout(
-      title: 'Subir documento',
-      fixedTitle: true,
-      fixedHeaderHeight: 126,
-      titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
-      titleStyle: AppTypography.body1.copyWith(color: AppColors.greyTextos),
-      onClose: _close,
-      bottomSafeAreaColor: AppColors.white,
-      bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-      bottomChild: CustomButton(
-        text: 'Subir documento',
-        onPressed: !hasFile || _selectedAnimals.isEmpty
-            ? null
-            : _showFileAnalysis,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isManualUpload) ...[
-              _ManualFilePicker(
-                hasSelectedFile: _manualFile != null,
-                onTap: _onManualFilePickerTap,
-              ),
-              const SizedBox(height: AppSpacing.m),
-              if (_manualFile case final file?) ...[
-                _SelectedManualFile(
-                  file: file,
-                  selectedAt: _manualFileSelectedAt ?? DateTime.now(),
-                  onDelete: _removeManualFile,
-                ),
-                const SizedBox(height: AppSpacing.m),
-              ],
-            ] else ...[
-              Text(
-                'Los archivos cargados estarán disponibles en la sección '
-                'correspondiente a su tipo de documento.',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
-                ),
-              ),
-              const SizedBox(height: AppSpacing.m),
-              CustomTextField(
-                label: 'Nombre del archivo',
-                controller: _fileNameController,
-                enabled: false,
-                labelStyle: AppTypography.body6.copyWith(
-                  color: AppColors.greyTextos.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: AppSpacing.m),
-            ],
-            if (_preselectedAnimal != null)
-              AppDropdown<AnimalEntity>(
-                label: 'Animal',
-                hint: '',
-                value: _preselectedAnimal,
-                items: [_preselectedAnimal!],
-                itemAsString: (animal) => animal.name,
-                enabled: false,
-                onChanged: null,
-              )
-            else
-              BlocBuilder<AnimalCubit, AnimalState>(
-                builder: (context, state) {
-                  final cubit = context.read<AnimalCubit>();
-                  final animals = cubit.animals
-                      .where((animal) => animal.isActive)
-                      .toList(growable: false);
-                  return AppMultiSearchDropdown<AnimalEntity>(
-                    label: 'Animal(es)',
-                    hint: state is AnimalsLoading
-                        ? 'Cargando animales...'
-                        : 'Seleccione el animal o animales',
-                    selectedItems: _selectedAnimals,
-                    items: animals,
-                    itemAsString: (animal) => animal.name,
-                    enabled: state is! AnimalsLoading,
-                    searchable: false,
-                    pushContentDown: false,
-                    onTap: () {
-                      _selectAnimals(animals);
-                    },
-                    onChanged: (animals) {
-                      setState(() => _selectedAnimals = animals);
-                    },
-                  );
-                },
-              ),
-            const SizedBox(height: AppSpacing.m),
-            CustomTextField(
-              label: 'Descripción (Opcional)',
-              controller: _descriptionController,
-              maxLength: 250,
-              textCapitalization: TextCapitalization.sentences,
+    return BlocConsumer<MedicalDocumentFlowCubit, MedicalDocumentFlowState>(
+      listenWhen: (previous, current) =>
+          previous.phase != current.phase ||
+          previous.message != current.message,
+      listener: (context, state) {
+        if (state.phase == MedicalDocumentFlowPhase.reviewing &&
+            !_reviewPresented) {
+          _presentReview(state);
+        } else if (state.phase == MedicalDocumentFlowPhase.pollingPaused &&
+            (state.message?.isNotEmpty ?? false)) {
+          ErrorDisplay.showError(context, state.message!);
+        } else if (state.phase == MedicalDocumentFlowPhase.failed &&
+            (state.message?.isNotEmpty ?? false)) {
+          ErrorDisplay.showError(context, state.message!);
+        }
+      },
+      builder: (context, flowState) => Stack(
+        children: [
+          ModalPageLayout(
+            title: 'Subir documento',
+            fixedTitle: true,
+            fixedHeaderHeight: 126,
+            titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
+            titleStyle: AppTypography.body1.copyWith(
+              color: AppColors.greyTextos,
             ),
-            const SizedBox(height: AppSpacing.xl),
-          ],
-        ),
+            onClose: _close,
+            bottomSafeAreaColor: AppColors.white,
+            bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
+            bottomChild: CustomButton(
+              text: switch (flowState.phase) {
+                MedicalDocumentFlowPhase.uploading => 'Subiendo...',
+                MedicalDocumentFlowPhase.analyzing => 'Analizando con IA...',
+                MedicalDocumentFlowPhase.pollingPaused => 'Reanudar análisis',
+                MedicalDocumentFlowPhase.reviewing => 'Revisar análisis',
+                _ => 'Subir documento',
+              },
+              onPressed:
+                  !hasFile || _selectedAnimals.isEmpty || flowState.isBusy
+                  ? null
+                  : switch (flowState.phase) {
+                      MedicalDocumentFlowPhase.pollingPaused =>
+                        () => context
+                            .read<MedicalDocumentFlowCubit>()
+                            .resumePolling(),
+                      MedicalDocumentFlowPhase.reviewing => _startAnalysis,
+                      _ => _startAnalysis,
+                    },
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (isManualUpload) ...[
+                    _ManualFilePicker(
+                      hasSelectedFile: _manualFile != null,
+                      onTap: _onManualFilePickerTap,
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    if (_manualFile case final file?) ...[
+                      _SelectedManualFile(
+                        file: file,
+                        selectedAt: _manualFileSelectedAt ?? DateTime.now(),
+                        onDelete: _removeManualFile,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                    ],
+                  ] else ...[
+                    Text(
+                      'Los archivos cargados estarán disponibles en la sección '
+                      'correspondiente a su tipo de documento.',
+                      style: AppTypography.body4.copyWith(
+                        color: AppColors.greyTextos,
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                    CustomTextField(
+                      label: 'Nombre del archivo',
+                      controller: _fileNameController,
+                      enabled: false,
+                      labelStyle: AppTypography.body6.copyWith(
+                        color: AppColors.greyTextos.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.m),
+                  ],
+                  if (_preselectedAnimal != null)
+                    AppDropdown<AnimalEntity>(
+                      label: 'Animal',
+                      hint: '',
+                      value: _preselectedAnimal,
+                      items: [_preselectedAnimal!],
+                      itemAsString: (animal) => animal.name,
+                      enabled: false,
+                      onChanged: null,
+                    )
+                  else
+                    BlocBuilder<AnimalCubit, AnimalState>(
+                      builder: (context, state) {
+                        final cubit = context.read<AnimalCubit>();
+                        final animals = cubit.animals
+                            .where((animal) => animal.isActive)
+                            .toList(growable: false);
+                        return AppMultiSearchDropdown<AnimalEntity>(
+                          label: 'Animal(es)',
+                          hint: state is AnimalsLoading
+                              ? 'Cargando animales...'
+                              : 'Seleccione el animal o animales',
+                          selectedItems: _selectedAnimals,
+                          items: animals,
+                          itemAsString: (animal) => animal.name,
+                          enabled: state is! AnimalsLoading,
+                          searchable: false,
+                          pushContentDown: false,
+                          onTap: () {
+                            _selectAnimals(animals);
+                          },
+                          onChanged: (animals) {
+                            setState(() => _selectedAnimals = animals);
+                          },
+                        );
+                      },
+                    ),
+                  const SizedBox(height: AppSpacing.m),
+                  CustomTextField(
+                    label: 'Descripción (Opcional)',
+                    controller: _descriptionController,
+                    maxLength: 250,
+                    textCapitalization: TextCapitalization.sentences,
+                  ),
+                  const SizedBox(height: AppSpacing.xl),
+                ],
+              ),
+            ),
+          ),
+          if (flowState.phase == MedicalDocumentFlowPhase.uploading ||
+              flowState.phase == MedicalDocumentFlowPhase.analyzing)
+            Positioned.fill(
+              child: ColoredBox(
+                color: AppColors.white.withValues(alpha: 0.72),
+                child: const Center(
+                  child: CircularProgressIndicator(color: AppColors.aiViolet),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -418,13 +565,13 @@ class _ManualFilePicker extends StatelessWidget {
                   ),
                 ),
                 Text(
-                  'PNG, JPG or JPEG files up to 1 MB',
+                  'PNG, JPG, JPEG o TIFF',
                   style: AppTypography.body6.copyWith(
                     color: AppColors.greyBordes,
                   ),
                 ),
                 Text(
-                  'PDF files up to 5 MB',
+                  'Archivos de hasta 10 MB',
                   style: AppTypography.body6.copyWith(
                     color: AppColors.greyBordes,
                   ),

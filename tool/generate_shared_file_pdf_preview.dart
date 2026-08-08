@@ -10,18 +10,24 @@ Future<void> main() async {
     date: DateTime(2026, 1, 25),
     originalFileName: 'CertificadoPos_1037238472.pdf',
     patient: const SharedFilePatientAnalysisEntity(
-      name: 'Brownie',
-      recordId: 'AR-C012',
-      species: 'Canino',
-      breed: 'Labrador',
-      age: '10 años',
-      weight: '15 kg',
+      name: 'BENJI',
+      recordId: 'AR-B017',
+      species: 'Felino',
+      breed: 'Persa',
+      age: '',
+      weight: '',
     ),
     tutor: const SharedFileTutorAnalysisEntity(
       name: 'Barbara James',
       identification: 'C.C. 1152234567',
       phoneNumber: '(+57) 312 456 78 90',
     ),
+    veterinarian: const SharedFileVeterinarianAnalysisEntity(
+      name: 'Natalia López',
+      clinic: 'CISVET Clínica Veterinaria',
+      professionalId: '41611',
+    ),
+    itemsTitle: 'Medicamentos',
     medications: const [
       SharedFileMedicationAnalysisEntity(
         name: 'ProtectionPets suspensión oral',

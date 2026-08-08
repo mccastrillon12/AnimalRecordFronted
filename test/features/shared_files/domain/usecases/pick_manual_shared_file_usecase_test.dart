@@ -22,7 +22,7 @@ void main() {
       name: 'photo.jpg',
       mimeType: 'image/jpeg',
       type: SharedFileType.image,
-      size: PickManualSharedFileUseCase.maximumImageSize,
+      size: PickManualSharedFileUseCase.maximumFileSize,
     );
     when(
       () => repository.pickManualFile(ManualFileSource.photos),
@@ -31,13 +31,13 @@ void main() {
     expect(await useCase(ManualFileSource.photos), image);
   });
 
-  test('rechaza una imagen mayor a 1 MB', () async {
+  test('rechaza una imagen mayor a 10 MB', () async {
     const image = SharedFileEntity(
       path: '/tmp/photo.jpg',
       name: 'photo.jpg',
       mimeType: 'image/jpeg',
       type: SharedFileType.image,
-      size: PickManualSharedFileUseCase.maximumImageSize + 1,
+      size: PickManualSharedFileUseCase.maximumFileSize + 1,
     );
     when(
       () => repository.pickManualFile(ManualFileSource.photos),
@@ -49,13 +49,13 @@ void main() {
     );
   });
 
-  test('rechaza un PDF mayor a 5 MB', () async {
+  test('rechaza un PDF mayor a 10 MB', () async {
     const pdf = SharedFileEntity(
       path: '/tmp/file.pdf',
       name: 'file.pdf',
       mimeType: 'application/pdf',
       type: SharedFileType.pdf,
-      size: PickManualSharedFileUseCase.maximumPdfSize + 1,
+      size: PickManualSharedFileUseCase.maximumFileSize + 1,
     );
     when(
       () => repository.pickManualFile(ManualFileSource.files),

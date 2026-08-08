@@ -5,12 +5,17 @@ import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAnimalCubit extends Mock implements AnimalCubit {}
+
+class MockAnimalMedicalDocumentsCubit extends Mock
+    implements AnimalMedicalDocumentsCubit {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -42,8 +47,22 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        [],
+        category: MedicalDocumentCategory.clinicalHistory,
+      ),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
     await tester.pumpWidget(
-      const MaterialApp(home: AnimalClinicalHistoryScreen(animal: animal)),
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: documentsCubit,
+        child: const MaterialApp(
+          home: AnimalClinicalHistoryScreen(animal: animal),
+        ),
+      ),
     );
     await tester.pumpAndSettle();
 
@@ -78,13 +97,13 @@ void main() {
     );
     expect(headerDescriptionGap.height, 32);
     expect(descriptionSearchGap.height, 32);
-    final emptyGap = tester.widget<SizedBox>(
-      find.byKey(const Key('clinical-history-empty-gap')),
+    expect(
+      find.text('El registro de historias clínicas está vacío'),
+      findsOneWidget,
     );
-    expect(emptyGap.height, 100);
     expect(
       find.text(
-        'Ningún veterinario ha creado historias clínicas para este animal.',
+        'Aquí se podrán visualizar las historias clínicas que se creen.',
       ),
       findsOneWidget,
     );
@@ -102,14 +121,27 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
     final animalCubit = MockAnimalCubit();
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
     when(() => animalCubit.animals).thenReturn(const [animalEntity]);
     when(() => animalCubit.state).thenReturn(AnimalInitial());
     when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        [],
+        category: MedicalDocumentCategory.clinicalHistory,
+      ),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
     RouteSettings? uploadRouteSettings;
 
     await tester.pumpWidget(
-      BlocProvider<AnimalCubit>.value(
-        value: animalCubit,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AnimalCubit>.value(value: animalCubit),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
         child: MaterialApp(
           onGenerateRoute: (settings) {
             if (settings.name == AppRoutes.sharedFileUpload) {
@@ -146,6 +178,10 @@ void main() {
     final arguments = uploadRouteSettings?.arguments as Map<String, dynamic>;
     expect(arguments['manualUpload'], isTrue);
     expect(arguments['preselectedAnimal'], same(animalEntity));
+    expect(
+      arguments['requestedCategory'],
+      MedicalDocumentCategory.clinicalHistory,
+    );
     expect(tester.takeException(), isNull);
   });
 }

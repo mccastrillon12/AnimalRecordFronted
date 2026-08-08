@@ -100,6 +100,14 @@ import 'package:animal_record/features/shared_files/domain/usecases/pick_manual_
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:animal_record/features/shared_files/data/datasources/manual_file_picker_datasource.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_documents_remote_datasource.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
+import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
+import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
+import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
@@ -376,6 +384,37 @@ Future<void> init() async {
     ),
   );
   sl.registerLazySingleton(() => SharedFilePdfBuilder());
+
+  // — Medical documents feature —
+  sl.registerFactory(
+    () => MedicalDocumentFlowCubit(
+      analyzeUseCase: sl(),
+      getDocumentUseCase: sl(),
+      reviewUseCase: sl(),
+      pendingLocalDataSource: sl(),
+    ),
+  );
+  sl.registerFactory(
+    () => AnimalMedicalDocumentsCubit(getDocumentsUseCase: sl()),
+  );
+  sl.registerLazySingleton(() => AnalyzeMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => GetMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => ReviewMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => GetAnimalMedicalDocumentsUseCase(sl()));
+  sl.registerLazySingleton(() => GetMedicalDocumentDownloadUriUseCase(sl()));
+  sl.registerLazySingleton<MedicalDocumentsRepository>(
+    () => MedicalDocumentsRepositoryImpl(remoteDataSource: sl()),
+  );
+  sl.registerLazySingleton<MedicalDocumentsRemoteDataSource>(
+    () => MedicalDocumentsRemoteDataSourceImpl(
+      apiClient: sl(),
+      responseLogger: sl(),
+    ),
+  );
+  sl.registerLazySingleton(() => MedicalDocumentResponseLogger(logger: sl()));
+  sl.registerLazySingleton<PendingMedicalDocumentLocalDataSource>(
+    () => PendingMedicalDocumentLocalDataSourceImpl(sharedPreferences: sl()),
+  );
 
   sl.registerLazySingleton<TokenStorage>(
     () => TokenStorage(

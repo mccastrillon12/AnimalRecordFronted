@@ -33,6 +33,7 @@ void main() {
           name: 'Medicamento PDF',
           quantity: 2,
           instructions: 'Indicaciones variables para el PDF.',
+          originalUrl: 'https://api.example.test/original/document-1',
         ),
       ],
       observations: 'Observaciones variables para el PDF.',
@@ -46,5 +47,9 @@ void main() {
 
     expect(bytes.length, greaterThan(1000));
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
+    expect(
+      latin1.decode(bytes),
+      contains('https://api.example.test/original/document-1'),
+    );
   });
 }

@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -13,8 +14,15 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   static const _menuCloseDuration = Duration(milliseconds: 320);
 
   final String animalId;
+  final MedicalDocumentCategory? requestedCategory;
+  final VoidCallback? onUploaded;
 
-  const AnimalDocumentUploadMenu({super.key, required this.animalId});
+  const AnimalDocumentUploadMenu({
+    super.key,
+    required this.animalId,
+    this.requestedCategory,
+    this.onUploaded,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -104,10 +112,15 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
     await Future<void>.delayed(_menuCloseDuration);
     if (!context.mounted) return;
 
-    await Navigator.pushNamed(
+    final uploaded = await Navigator.pushNamed(
       context,
       AppRoutes.sharedFileUpload,
-      arguments: {'manualUpload': true, 'preselectedAnimal': matches.first},
+      arguments: {
+        'manualUpload': true,
+        'preselectedAnimal': matches.first,
+        if (requestedCategory != null) 'requestedCategory': requestedCategory,
+      },
     );
+    if (uploaded == true && context.mounted) onUploaded?.call();
   }
 }

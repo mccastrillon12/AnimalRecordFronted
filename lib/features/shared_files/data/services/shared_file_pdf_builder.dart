@@ -74,31 +74,78 @@ class SharedFilePdfBuilder {
         crossAxisAlignment: pw.CrossAxisAlignment.start,
         children: [
           _documentHeader(analysis, clipboardSvg),
-          pw.SizedBox(height: 28),
-          _valueRow('Fecha', _formatDate(analysis.date)),
-          pw.SizedBox(height: 8),
-          _valueRow('Archivo original', visibleFileName, valueColor: _linkBlue),
-          _dividerWidget(),
-          _personTitle('Paciente', analysis.patient.name),
-          pw.SizedBox(height: 12),
-          _valueRow('Animal Record ID', analysis.patient.recordId),
-          pw.SizedBox(height: 8),
-          _valueRow('Especie', analysis.patient.species),
-          pw.SizedBox(height: 8),
-          _valueRow('Raza', analysis.patient.breed),
-          pw.SizedBox(height: 8),
-          _valueRow('Edad', analysis.patient.age),
-          pw.SizedBox(height: 8),
-          _valueRow('Peso', analysis.patient.weight),
-          _dividerWidget(),
-          _personTitle('Tutor', analysis.tutor.name),
-          pw.SizedBox(height: 12),
-          _valueRow('Identificación', analysis.tutor.identification),
-          pw.SizedBox(height: 8),
-          _valueRow('Número celular', analysis.tutor.phoneNumber),
+          if (analysis.date != null || visibleFileName.isNotEmpty) ...[
+            pw.SizedBox(height: 28),
+            if (analysis.date != null ||
+                (analysis.sourceDateText?.trim().isNotEmpty ?? false))
+              _valueRow(
+                'Fecha',
+                analysis.date != null
+                    ? _formatDate(analysis.date!)
+                    : analysis.sourceDateText!.trim(),
+              ),
+            if (analysis.date != null && visibleFileName.isNotEmpty)
+              pw.SizedBox(height: 8),
+            if (visibleFileName.isNotEmpty)
+              _valueRow(
+                'Archivo original',
+                visibleFileName,
+                valueColor: _linkBlue,
+              ),
+          ],
+          if (analysis.patient.hasData) ...[
+            _dividerWidget(),
+            if (analysis.patient.name.isNotEmpty)
+              _personTitle('Paciente', analysis.patient.name),
+            ..._optionalRows([
+              ('Animal Record ID', analysis.patient.recordId),
+              ('Especie', analysis.patient.species),
+              ('Raza', analysis.patient.breed),
+              ('Sexo', analysis.patient.sex),
+              ('Color', analysis.patient.color),
+              ('Edad', analysis.patient.age),
+              ('Peso', analysis.patient.weight),
+              for (final detail in analysis.patient.additionalDetails)
+                (detail.label, detail.value),
+            ], hasTitle: analysis.patient.name.isNotEmpty),
+          ],
+          if (analysis.veterinarian?.hasData ?? false) ...[
+            _dividerWidget(),
+            if (analysis.veterinarian!.name.isNotEmpty)
+              _personTitle('Veterinario', analysis.veterinarian!.name),
+            ..._optionalRows([
+              ('Clínica', analysis.veterinarian!.clinic),
+              ('Registro profesional', analysis.veterinarian!.professionalId),
+              for (final detail in analysis.veterinarian!.additionalDetails)
+                (detail.label, detail.value),
+            ], hasTitle: analysis.veterinarian!.name.isNotEmpty),
+          ],
+          if (analysis.tutor.hasData) ...[
+            _dividerWidget(),
+            if (analysis.tutor.name.isNotEmpty)
+              _personTitle('Tutor', analysis.tutor.name),
+            ..._optionalRows([
+              ('Identificación', analysis.tutor.identification),
+              ('Número celular', analysis.tutor.phoneNumber),
+              for (final detail in analysis.tutor.additionalDetails)
+                (detail.label, detail.value),
+            ], hasTitle: analysis.tutor.name.isNotEmpty),
+          ],
           if (analysis.medications.isNotEmpty ||
               (analysis.observations?.trim().isNotEmpty ?? false))
             _dividerWidget(),
+          if (analysis.medications.isNotEmpty &&
+              (analysis.itemsTitle?.trim().isNotEmpty ?? false)) ...[
+            pw.Text(
+              analysis.itemsTitle!,
+              style: pw.TextStyle(
+                fontSize: _tableFontSize,
+                fontWeight: pw.FontWeight.bold,
+                color: _textColor,
+              ),
+            ),
+            pw.SizedBox(height: 16),
+          ],
           for (var index = 0; index < analysis.medications.length; index++) ...[
             _medication(analysis.medications[index]),
             if (index < analysis.medications.length - 1)
@@ -138,6 +185,22 @@ class SharedFilePdfBuilder {
     );
   }
 
+  List<pw.Widget> _optionalRows(
+    List<(String, String)> rows, {
+    required bool hasTitle,
+  }) {
+    final visibleRows = rows
+        .where((row) => row.$2.trim().isNotEmpty)
+        .toList(growable: false);
+    return [
+      if (hasTitle && visibleRows.isNotEmpty) pw.SizedBox(height: 12),
+      for (var index = 0; index < visibleRows.length; index++) ...[
+        if (index > 0) pw.SizedBox(height: 8),
+        _valueRow(visibleRows[index].$1, visibleRows[index].$2),
+      ],
+    ];
+  }
+
   pw.Widget _documentHeader(
     SharedFileAnalysisEntity analysis,
     String clipboardSvg,
@@ -155,11 +218,13 @@ class SharedFilePdfBuilder {
               color: _textColor,
             ),
           ),
-          pw.SizedBox(height: 8),
-          pw.Text(
-            analysis.documentNumber,
-            style: pw.TextStyle(fontSize: 12, color: _secondaryColor),
-          ),
+          if (analysis.documentNumber.trim().isNotEmpty) ...[
+            pw.SizedBox(height: 8),
+            pw.Text(
+              analysis.documentNumber,
+              style: pw.TextStyle(fontSize: 12, color: _secondaryColor),
+            ),
+          ],
         ],
       ),
     );
@@ -246,42 +311,74 @@ class SharedFilePdfBuilder {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text(
-              '>',
-              style: pw.TextStyle(fontSize: _tableFontSize, color: _blue),
+        if (medication.name.trim().isNotEmpty || medication.quantity != null)
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Text(
+                '>',
+                style: pw.TextStyle(fontSize: _tableFontSize, color: _blue),
+              ),
+              pw.SizedBox(width: 8),
+              pw.Expanded(
+                child: medication.name.trim().isEmpty
+                    ? pw.SizedBox()
+                    : pw.Text(
+                        medication.name,
+                        style: pw.TextStyle(
+                          fontSize: _tableFontSize,
+                          color: _textColor,
+                        ),
+                      ),
+              ),
+              if (medication.quantity != null)
+                pw.Text(
+                  'x ${medication.quantity}',
+                  style: pw.TextStyle(
+                    fontSize: _tableFontSize,
+                    color: _textColor,
+                  ),
+                ),
+            ],
+          ),
+        if (medication.instructions.trim().isNotEmpty)
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(left: 16, top: 8),
+            child: pw.Text(
+              medication.instructions,
+              style: pw.TextStyle(
+                fontSize: _tableFontSize,
+                lineSpacing: 7,
+                color: _textColor,
+              ),
             ),
-            pw.SizedBox(width: 8),
-            pw.Expanded(
-              child: pw.Text(
-                medication.name,
-                style: pw.TextStyle(
-                  fontSize: _tableFontSize,
-                  color: _textColor,
+          ),
+        if (_isWebUrl(medication.originalUrl))
+          pw.Padding(
+            padding: const pw.EdgeInsets.only(top: 8),
+            child: pw.Align(
+              alignment: pw.Alignment.centerRight,
+              child: pw.UrlLink(
+                destination: medication.originalUrl!.trim(),
+                child: pw.Text(
+                  'Ver original',
+                  style: pw.TextStyle(
+                    fontSize: _tableFontSize,
+                    color: _linkBlue,
+                  ),
                 ),
               ),
             ),
-            pw.Text(
-              'x ${medication.quantity}',
-              style: pw.TextStyle(fontSize: _tableFontSize, color: _textColor),
-            ),
-          ],
-        ),
-        pw.Padding(
-          padding: const pw.EdgeInsets.only(left: 16, top: 8),
-          child: pw.Text(
-            medication.instructions,
-            style: pw.TextStyle(
-              fontSize: _tableFontSize,
-              lineSpacing: 7,
-              color: _textColor,
-            ),
           ),
-        ),
       ],
     );
+  }
+
+  bool _isWebUrl(String? value) {
+    final uri = Uri.tryParse(value?.trim() ?? '');
+    return uri != null &&
+        (uri.scheme == 'https' || uri.scheme == 'http') &&
+        uri.host.isNotEmpty;
   }
 
   pw.Widget _observations(String observations) {

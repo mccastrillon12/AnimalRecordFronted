@@ -42,6 +42,8 @@ import 'package:animal_record/features/shared_files/presentation/navigation/shar
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -137,12 +139,26 @@ class MyApp extends StatelessWidget {
           AppRoutes.animalClinicalHistory: (context) {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
-            return AnimalClinicalHistoryScreen(animal: animal);
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.clinicalHistory,
+                ),
+              child: AnimalClinicalHistoryScreen(animal: animal),
+            );
           },
           AppRoutes.animalVaccinations: (context) {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
-            return AnimalVaccinationsScreen(animal: animal);
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.vaccinationCard,
+                ),
+              child: AnimalVaccinationsScreen(animal: animal),
+            );
           },
           AppRoutes.animalDiary: (context) {
             final animal =
@@ -180,7 +196,14 @@ class MyApp extends StatelessWidget {
           AppRoutes.animalDocuments: (context) {
             final animalId =
                 ModalRoute.of(context)!.settings.arguments as String;
-            return AnimalDocumentsScreen(animalId: animalId);
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animalId,
+                  category: MedicalDocumentCategory.prescription,
+                ),
+              child: AnimalDocumentsScreen(animalId: animalId),
+            );
           },
         },
       ),

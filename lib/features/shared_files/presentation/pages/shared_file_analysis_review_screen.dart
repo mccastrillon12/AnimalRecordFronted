@@ -13,30 +13,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+typedef SharedFileOriginalUriResolver = Future<Uri> Function();
+
 class SharedFileAnalysisReviewScreen extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
+  final VoidCallback? onSubmit;
+  final VoidCallback? onViewOriginal;
+  final VoidCallback? onClose;
+  final String submitLabel;
+  final bool isSubmitting;
 
-  const SharedFileAnalysisReviewScreen({super.key, required this.analysis});
+  const SharedFileAnalysisReviewScreen({
+    super.key,
+    required this.analysis,
+    this.onSubmit,
+    this.onViewOriginal,
+    this.onClose,
+    this.submitLabel = 'Subir documento',
+    this.isSubmitting = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return _SharedFileAnalysisLayout(
       analysis: analysis,
       mode: _SharedFileAnalysisMode.review,
+      onSubmit: onSubmit,
+      onViewOriginal: onViewOriginal,
+      onClose: onClose,
+      submitLabel: submitLabel,
+      isSubmitting: isSubmitting,
     );
   }
 }
 
 class SharedFileSendScreen extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
+  final VoidCallback? onViewOriginal;
+  final SharedFileOriginalUriResolver? resolveOriginalUri;
+  final String actionLabel;
 
-  const SharedFileSendScreen({super.key, required this.analysis});
+  const SharedFileSendScreen({
+    super.key,
+    required this.analysis,
+    this.onViewOriginal,
+    this.resolveOriginalUri,
+    this.actionLabel = 'Enviar fórmula',
+  });
 
   @override
   Widget build(BuildContext context) {
     return _SharedFileAnalysisLayout(
       analysis: analysis,
       mode: _SharedFileAnalysisMode.send,
+      onViewOriginal: onViewOriginal,
+      resolveOriginalUri: resolveOriginalUri,
+      actionLabel: actionLabel,
     );
   }
 }
@@ -46,8 +78,25 @@ enum _SharedFileAnalysisMode { review, send }
 class _SharedFileAnalysisLayout extends StatefulWidget {
   final SharedFileAnalysisEntity analysis;
   final _SharedFileAnalysisMode mode;
+  final VoidCallback? onSubmit;
+  final VoidCallback? onViewOriginal;
+  final VoidCallback? onClose;
+  final SharedFileOriginalUriResolver? resolveOriginalUri;
+  final String actionLabel;
+  final String submitLabel;
+  final bool isSubmitting;
 
-  const _SharedFileAnalysisLayout({required this.analysis, required this.mode});
+  const _SharedFileAnalysisLayout({
+    required this.analysis,
+    required this.mode,
+    this.onSubmit,
+    this.onViewOriginal,
+    this.onClose,
+    this.resolveOriginalUri,
+    this.actionLabel = 'Enviar fórmula',
+    this.submitLabel = 'Subir documento',
+    this.isSubmitting = false,
+  });
 
   @override
   State<_SharedFileAnalysisLayout> createState() =>
@@ -70,7 +119,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       trailingTop: AppSpacing.l,
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
-        onPressed: () => Navigator.pop(context),
+        onPressed: widget.onClose ?? () => Navigator.pop(context),
         icon: const Icon(Icons.close, color: AppColors.greyIconos),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
@@ -82,7 +131,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
                 left: AppSpacing.l,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
-                  onTap: _isExporting ? null : _exportFormula,
+                  onTap: _isExporting ? null : _exportDocument,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -100,7 +149,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
                         ),
                       const SizedBox(width: AppSpacing.xs),
                       Text(
-                        'Enviar fórmula',
+                        widget.actionLabel,
                         style: AppTypography.body4.copyWith(
                           color: AppColors.greyMedio,
                         ),
@@ -123,12 +172,17 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
             ),
       bottomChild: _isSendMode
           ? null
-          : CustomButton(text: 'Subir documento', onPressed: _openSendScreen),
+          : CustomButton(
+              text: widget.isSubmitting ? 'Guardando...' : widget.submitLabel,
+              onPressed: widget.isSubmitting
+                  ? null
+                  : widget.onSubmit ?? _openSendScreen,
+            ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
         child: _AnalysisDocumentCard(
           analysis: widget.analysis,
-          showTutor: _isSendMode,
+          onViewOriginal: widget.onViewOriginal,
         ),
       ),
     );
@@ -142,10 +196,23 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
     );
   }
 
-  Future<void> _exportFormula() async {
+  Future<void> _exportDocument() async {
     setState(() => _isExporting = true);
     try {
-      await context.read<SharedFilesCubit>().exportAnalysisPdf(widget.analysis);
+      var exportAnalysis = widget.analysis;
+      if (widget.resolveOriginalUri case final resolveOriginalUri?) {
+        final originalUri = await resolveOriginalUri();
+        exportAnalysis = exportAnalysis.withMedications(
+          exportAnalysis.medications
+              .map(
+                (medication) =>
+                    medication.withOriginalUrl(originalUri.toString()),
+              )
+              .toList(growable: false),
+        );
+      }
+      if (!mounted) return;
+      await context.read<SharedFilesCubit>().exportAnalysisPdf(exportAnalysis);
     } catch (_) {
       if (mounted) {
         ErrorDisplay.showError(
@@ -233,12 +300,9 @@ class _AnalysisNoticeHeader extends StatelessWidget {
 
 class _AnalysisDocumentCard extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
-  final bool showTutor;
+  final VoidCallback? onViewOriginal;
 
-  const _AnalysisDocumentCard({
-    required this.analysis,
-    required this.showTutor,
-  });
+  const _AnalysisDocumentCard({required this.analysis, this.onViewOriginal});
 
   @override
   Widget build(BuildContext context) {
@@ -271,24 +335,44 @@ class _AnalysisDocumentCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _DocumentHeader(analysis: analysis),
-            const SizedBox(height: AppSpacing.xl),
-            _AnalysisValueRow(
-              label: 'Fecha',
-              value: _formatDate(analysis.date),
-            ),
-            const SizedBox(height: AppSpacing.xs),
-            _AnalysisValueRow(
-              label: 'Archivo original',
-              value: analysis.originalFileName,
-              valueColor: AppColors.primaryFrances,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: AppSpacing.l),
-            const Divider(height: 1, color: AppColors.greyDelineante),
-            const SizedBox(height: AppSpacing.l),
-            _PatientDetails(patient: analysis.patient),
-            if (showTutor) ...[
+            if (analysis.date != null ||
+                (analysis.sourceDateText?.trim().isNotEmpty ?? false) ||
+                analysis.originalFileName.trim().isNotEmpty) ...[
+              const SizedBox(height: AppSpacing.xl),
+              if (analysis.date != null ||
+                  (analysis.sourceDateText?.trim().isNotEmpty ?? false))
+                _AnalysisValueRow(
+                  label: 'Fecha',
+                  value: analysis.date != null
+                      ? _formatDate(analysis.date!)
+                      : analysis.sourceDateText!.trim(),
+                ),
+              if ((analysis.date != null ||
+                      (analysis.sourceDateText?.trim().isNotEmpty ?? false)) &&
+                  analysis.originalFileName.trim().isNotEmpty)
+                const SizedBox(height: AppSpacing.xs),
+              if (analysis.originalFileName.trim().isNotEmpty)
+                _AnalysisValueRow(
+                  label: 'Archivo original',
+                  value: analysis.originalFileName,
+                  valueColor: AppColors.primaryFrances,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+            ],
+            if (analysis.patient.hasData) ...[
+              const SizedBox(height: AppSpacing.l),
+              const Divider(height: 1, color: AppColors.greyDelineante),
+              const SizedBox(height: AppSpacing.l),
+              _PatientDetails(patient: analysis.patient),
+            ],
+            if (analysis.veterinarian?.hasData ?? false) ...[
+              const SizedBox(height: AppSpacing.l),
+              const Divider(height: 1, color: AppColors.greyDelineante),
+              const SizedBox(height: AppSpacing.l),
+              _VeterinarianDetails(veterinarian: analysis.veterinarian!),
+            ],
+            if (analysis.tutor.hasData) ...[
               const SizedBox(height: AppSpacing.l),
               const Divider(height: 1, color: AppColors.greyDelineante),
               const SizedBox(height: AppSpacing.l),
@@ -301,6 +385,15 @@ class _AnalysisDocumentCard extends StatelessWidget {
             ],
             if (analysis.medications.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.l),
+              if (analysis.itemsTitle?.trim().isNotEmpty ?? false) ...[
+                Text(
+                  analysis.itemsTitle!,
+                  style: AppTypography.body3.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+              ],
               for (
                 var index = 0;
                 index < analysis.medications.length;
@@ -308,7 +401,8 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ) ...[
                 _MedicationDetails(
                   medication: analysis.medications[index],
-                  onViewOriginal: () => _showOriginalMessage(context),
+                  onViewOriginal:
+                      onViewOriginal ?? () => _showOriginalMessage(context),
                 ),
                 if (index < analysis.medications.length - 1)
                   const SizedBox(height: AppSpacing.l),
@@ -392,11 +486,13 @@ class _DocumentHeader extends StatelessWidget {
             textAlign: TextAlign.center,
             style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
           ),
-          const SizedBox(height: 6),
-          Text(
-            analysis.documentNumber,
-            style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
-          ),
+          if (analysis.documentNumber.trim().isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              analysis.documentNumber,
+              style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+            ),
+          ],
         ],
       ),
     );
@@ -410,37 +506,53 @@ class _PatientDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final details = <({String label, String value})>[
+      if (patient.recordId.trim().isNotEmpty)
+        (label: 'Animal Record ID', value: patient.recordId),
+      if (patient.species.trim().isNotEmpty)
+        (label: 'Especie', value: patient.species),
+      if (patient.breed.trim().isNotEmpty)
+        (label: 'Raza', value: patient.breed),
+      if (patient.sex.trim().isNotEmpty) (label: 'Sexo', value: patient.sex),
+      if (patient.color.trim().isNotEmpty)
+        (label: 'Color', value: patient.color),
+      if (patient.age.trim().isNotEmpty) (label: 'Edad', value: patient.age),
+      if (patient.weight.trim().isNotEmpty)
+        (label: 'Peso', value: patient.weight),
+      for (final detail in patient.additionalDetails)
+        if (detail.hasData) (label: detail.label, value: detail.value),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyTextos,
-              fontWeight: FontWeight.bold,
-            ),
-            children: [
-              const TextSpan(text: 'Paciente '),
-              TextSpan(
-                text: patient.name,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.primaryAzulClaro,
-                  fontWeight: FontWeight.bold,
-                ),
+        if (patient.name.trim().isNotEmpty)
+          RichText(
+            text: TextSpan(
+              style: AppTypography.body4.copyWith(
+                color: AppColors.greyTextos,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+              children: [
+                const TextSpan(text: 'Paciente '),
+                TextSpan(
+                  text: patient.name,
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.primaryAzulClaro,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.m),
-        _AnalysisValueRow(label: 'Animal Record ID', value: patient.recordId),
-        const SizedBox(height: AppSpacing.xs),
-        _AnalysisValueRow(label: 'Especie', value: patient.species),
-        const SizedBox(height: AppSpacing.xs),
-        _AnalysisValueRow(label: 'Raza', value: patient.breed),
-        const SizedBox(height: AppSpacing.xs),
-        _AnalysisValueRow(label: 'Edad', value: patient.age),
-        const SizedBox(height: AppSpacing.xs),
-        _AnalysisValueRow(label: 'Peso', value: patient.weight),
+        if (patient.name.trim().isNotEmpty && details.isNotEmpty)
+          const SizedBox(height: AppSpacing.m),
+        for (var index = 0; index < details.length; index++) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.xs),
+          _AnalysisValueRow(
+            label: details[index].label,
+            value: details[index].value,
+          ),
+        ],
       ],
     );
   }
@@ -453,31 +565,96 @@ class _TutorDetails extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final details = <({String label, String value})>[
+      if (tutor.identification.trim().isNotEmpty)
+        (label: 'Identificación', value: tutor.identification),
+      if (tutor.phoneNumber.trim().isNotEmpty)
+        (label: 'Número celular', value: tutor.phoneNumber),
+      for (final detail in tutor.additionalDetails)
+        if (detail.hasData) (label: detail.label, value: detail.value),
+    ];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        RichText(
-          text: TextSpan(
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyTextos,
-              fontWeight: FontWeight.bold,
-            ),
-            children: [
-              const TextSpan(text: 'Tutor '),
-              TextSpan(
-                text: tutor.name,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.primaryAzulClaro,
-                  fontWeight: FontWeight.bold,
-                ),
+        if (tutor.name.trim().isNotEmpty)
+          RichText(
+            text: TextSpan(
+              style: AppTypography.body4.copyWith(
+                color: AppColors.greyTextos,
+                fontWeight: FontWeight.bold,
               ),
-            ],
+              children: [
+                const TextSpan(text: 'Tutor '),
+                TextSpan(
+                  text: tutor.name,
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.primaryAzulClaro,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: AppSpacing.m),
-        _AnalysisValueRow(label: 'Identificación', value: tutor.identification),
-        const SizedBox(height: AppSpacing.xs),
-        _AnalysisValueRow(label: 'Número celular', value: tutor.phoneNumber),
+        if (tutor.name.trim().isNotEmpty && details.isNotEmpty)
+          const SizedBox(height: AppSpacing.m),
+        for (var index = 0; index < details.length; index++) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.xs),
+          _AnalysisValueRow(
+            label: details[index].label,
+            value: details[index].value,
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _VeterinarianDetails extends StatelessWidget {
+  final SharedFileVeterinarianAnalysisEntity veterinarian;
+
+  const _VeterinarianDetails({required this.veterinarian});
+
+  @override
+  Widget build(BuildContext context) {
+    final details = <({String label, String value})>[
+      if (veterinarian.clinic.trim().isNotEmpty)
+        (label: 'Clínica', value: veterinarian.clinic),
+      if (veterinarian.professionalId.trim().isNotEmpty)
+        (label: 'Registro profesional', value: veterinarian.professionalId),
+      for (final detail in veterinarian.additionalDetails)
+        if (detail.hasData) (label: detail.label, value: detail.value),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (veterinarian.name.trim().isNotEmpty)
+          RichText(
+            text: TextSpan(
+              style: AppTypography.body4.copyWith(
+                color: AppColors.greyTextos,
+                fontWeight: FontWeight.bold,
+              ),
+              children: [
+                const TextSpan(text: 'Veterinario '),
+                TextSpan(
+                  text: veterinarian.name,
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.primaryAzulClaro,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        if (veterinarian.name.trim().isNotEmpty && details.isNotEmpty)
+          const SizedBox(height: AppSpacing.m),
+        for (var index = 0; index < details.length; index++) ...[
+          if (index > 0) const SizedBox(height: AppSpacing.xs),
+          _AnalysisValueRow(
+            label: details[index].label,
+            value: details[index].value,
+          ),
+        ],
       ],
     );
   }
@@ -540,44 +717,53 @@ class _MedicationDetails extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(top: 2),
-              child: Icon(
-                Icons.play_arrow_rounded,
-                color: AppColors.primaryAzulClaro,
-                size: 14,
-              ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Expanded(
-              child: Text(
-                medication.name,
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
-                  height: 1.5,
+        if (medication.name.trim().isNotEmpty || medication.quantity != null)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Padding(
+                padding: EdgeInsets.only(top: 2),
+                child: Icon(
+                  Icons.play_arrow_rounded,
+                  color: AppColors.primaryAzulClaro,
+                  size: 14,
                 ),
               ),
-            ),
-            const SizedBox(width: AppSpacing.xs),
-            Text(
-              'x ${medication.quantity}',
-              style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
-            ),
-          ],
-        ),
-        Padding(
-          padding: const EdgeInsets.only(left: 22, top: AppSpacing.xs),
-          child: Text(
-            medication.instructions,
-            style: AppTypography.body4.copyWith(
-              color: AppColors.greyTextos,
-              height: 1.55,
+              const SizedBox(width: AppSpacing.xs),
+              if (medication.name.trim().isNotEmpty)
+                Expanded(
+                  child: Text(
+                    medication.name,
+                    style: AppTypography.body4.copyWith(
+                      color: AppColors.greyTextos,
+                      height: 1.5,
+                    ),
+                  ),
+                )
+              else
+                const Spacer(),
+              if (medication.quantity != null) ...[
+                const SizedBox(width: AppSpacing.xs),
+                Text(
+                  'x ${medication.quantity}',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        if (medication.instructions.trim().isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(left: 22, top: AppSpacing.xs),
+            child: Text(
+              medication.instructions,
+              style: AppTypography.body4.copyWith(
+                color: AppColors.greyTextos,
+                height: 1.55,
+              ),
             ),
           ),
-        ),
         if (medication.originalUrl?.trim().isNotEmpty ?? false) ...[
           const SizedBox(height: AppSpacing.xs),
           Align(
