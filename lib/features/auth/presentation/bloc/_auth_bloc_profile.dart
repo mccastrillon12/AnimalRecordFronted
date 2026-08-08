@@ -76,42 +76,13 @@ Future<void> _onUpdateProfilePicture(
   if (currentState is! AuthSuccess) return;
 
   emit(
-    currentState.copyWith(
-      isUploadingPicture: true,
-      profilePictureError: null,
-    ),
+    currentState.copyWith(isUploadingPicture: true, profilePictureError: null),
   );
 
   try {
-    // Paso 1: Comprimir imagen en el celular (sin gastar datos aún)
-    final compressedBytes = await FlutterImageCompress.compressWithFile(
-      event.imagePath,
-      minWidth: 800,
-      minHeight: 800,
-      quality: 80,
-      format: CompressFormat.jpeg,
-    );
+    final result = await bloc.uploadProfilePictureUseCase(event.imagePath);
 
-    if (compressedBytes == null) {
-      emit(
-        currentState.copyWith(
-          isUploadingPicture: false,
-          profilePictureError: 'No se pudo comprimir la imagen',
-        ),
-      );
-      return;
-    }
-
-    const mimeType = 'image/jpeg';
-    final fileSize = compressedBytes.length;
-
-    // Paso 2: Obtener URL pre-firmada del backend
-    final urlResult = await bloc.getProfilePictureUploadUrlUseCase(
-      mimeType: mimeType,
-      fileSize: fileSize,
-    );
-
-    await urlResult.fold(
+    await result.fold(
       (failure) async {
         emit(
           currentState.copyWith(
@@ -120,56 +91,19 @@ Future<void> _onUpdateProfilePicture(
           ),
         );
       },
-      (urlData) async {
-        final uploadUrl = urlData['uploadUrl'] as String?;
-        final finalUrl = urlData['finalUrl'] as String?;
-
-        if (uploadUrl == null || finalUrl == null) {
-          emit(
-            currentState.copyWith(
-              isUploadingPicture: false,
-              profilePictureError: 'Respuesta inválida del servidor',
-            ),
-          );
-          return;
-        }
-
-        // Paso 3: Subir directo a S3 (sin JWT, sin pasar por Lightsail)
-        await bloc.s3UploadService.uploadFileToS3(
-          presignedUrl: uploadUrl,
-          bytes: compressedBytes,
-          mimeType: mimeType,
+      (finalUrl) async {
+        // Preserve all current user data even if the PATCH response is partial.
+        final accurateUser = currentState.user.copyWith(
+          profilePicture: finalUrl,
         );
 
-        // Paso 4: Confirmar al backend con la URL pública final
-        final confirmResult = await bloc.confirmProfilePictureUseCase(finalUrl);
-
-        await confirmResult.fold(
-          (failure) async {
-            emit(
-              currentState.copyWith(
-                isUploadingPicture: false,
-                profilePictureError: failure.message,
-              ),
-            );
-          },
-          (_) async {
-            // El backend a veces devuelve una respuesta parcial en el PATCH.
-            // Para no perder los datos del usuario, clonamos el usuario actual
-            // y le inyectamos la nueva URL de la foto:
-            final accurateUser = currentState.user.copyWith(
-              profilePicture: finalUrl,
-            );
-
-            await _saveUserToCacheImpl(bloc, accurateUser);
-            emit(
-              AuthSuccess(
-                accurateUser,
-                isUploadingPicture: false,
-                isBiometricEnabled: currentState.isBiometricEnabled,
-              ),
-            );
-          },
+        await _saveUserToCacheImpl(bloc, accurateUser);
+        emit(
+          AuthSuccess(
+            accurateUser,
+            isUploadingPicture: false,
+            isBiometricEnabled: currentState.isBiometricEnabled,
+          ),
         );
       },
     );
@@ -192,10 +126,7 @@ Future<void> _onDeleteProfilePicture(
   if (currentState is! AuthSuccess) return;
 
   emit(
-    currentState.copyWith(
-      isUploadingPicture: true,
-      profilePictureError: null,
-    ),
+    currentState.copyWith(isUploadingPicture: true, profilePictureError: null),
   );
 
   try {
@@ -212,9 +143,7 @@ Future<void> _onDeleteProfilePicture(
         );
       },
       (_) async {
-        final updatedUser = currentState.user.copyWith(
-          profilePicture: '',
-        );
+        final updatedUser = currentState.user.copyWith(profilePicture: '');
 
         await _saveUserToCacheImpl(bloc, updatedUser);
         emit(

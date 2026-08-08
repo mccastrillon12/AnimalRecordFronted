@@ -10,6 +10,7 @@ import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
@@ -32,6 +33,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<SharedFilesCubit>().grantAccess();
       context.read<AuthBloc>().add(FetchUserRequested());
       _checkBiometricActivation();
     });

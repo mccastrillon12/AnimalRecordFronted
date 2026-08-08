@@ -496,13 +496,9 @@ class _SocialRegisterCompletionViewState
                               ],
                             ),
                             const SizedBox(height: AppSpacing.l),
-                            SizedBox(
-                              height:
-                                  MediaQuery.of(context).viewInsets.bottom > 0
-                                  ? (MediaQuery.of(context).viewInsets.bottom -
-                                            84)
-                                        .clamp(40.0, double.infinity)
-                                  : 40,
+                            const KeyboardSpacer(
+                              keyboardVisibleHeight: 20,
+                              keyboardHiddenHeight: 40,
                             ),
                           ],
                         ),

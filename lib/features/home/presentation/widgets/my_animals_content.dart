@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_family_label.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -104,17 +105,17 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         // Group by family
         final Map<String, List<AnimalModel>> grouped = {};
         final List<AnimalModel> inactiveAnimals = [];
-        
+
         for (final animal in filtered) {
           if (!animal.isActive) {
             inactiveAnimals.add(animal);
           } else {
-            final pluralFamily = _pluralizeFamily(animal.family);
+            final pluralFamily = pluralizeAnimalFamily(animal.family);
             grouped.putIfAbsent(pluralFamily, () => []);
             grouped[pluralFamily]!.add(animal);
           }
         }
-        
+
         if (inactiveAnimals.isNotEmpty) {
           grouped['Transferidos e inactivos'] = inactiveAnimals;
         }
@@ -325,8 +326,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               if (sex == 'Ambos') {
                                 queryParams['sex'] = 'MALE,FEMALE';
                               } else {
-                                queryParams['sex'] =
-                                    sex == 'Macho' ? 'MALE' : 'FEMALE';
+                                queryParams['sex'] = sex == 'Macho'
+                                    ? 'MALE'
+                                    : 'FEMALE';
                               }
                             }
 
@@ -389,8 +391,9 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                               }
 
                               if (ageRangeParts.isNotEmpty) {
-                                queryParams['ageRanges'] =
-                                    ageRangeParts.join(',');
+                                queryParams['ageRanges'] = ageRangeParts.join(
+                                  ',',
+                                );
                               }
                             }
 
@@ -595,11 +598,17 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
       onSelected: (value) {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
+        } else if (value == 'subir_documento') {
+          Navigator.pushNamed(
+            context,
+            AppRoutes.sharedFileUpload,
+            arguments: const {'manualUpload': true},
+          );
         } else if (value == 'transferir') {
           // TODO: Implement transfer
         }
       },
-      offset: const Offset(0, -115),
+      offset: const Offset(0, -162),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
       ),
@@ -621,6 +630,27 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               const SizedBox(width: 10),
               Text(
                 'Agregar animal',
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyTextos,
+                ),
+              ),
+            ],
+          ),
+        ),
+        PopupMenuItem<String>(
+          value: 'subir_documento',
+          height: 47,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            children: [
+              SvgPicture.asset(
+                'assets/icons/document-upload.svg',
+                width: AppSpacing.iconSizeSmall,
+                height: AppSpacing.iconSizeSmall,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'Subir documento',
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                 ),
@@ -671,13 +701,5 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         ),
       ),
     );
-  }
-
-  String _pluralizeFamily(String family) {
-    // Canino → Caninos, Felino → Felinos, etc.
-    if (family.endsWith('o')) {
-      return '${family}s';
-    }
-    return family;
   }
 }

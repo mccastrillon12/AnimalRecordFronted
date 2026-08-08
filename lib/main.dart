@@ -29,11 +29,19 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/navigation/shared_file_upload_route.dart';
+import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -69,13 +77,26 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
         BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
         BlocProvider(create: (context) => di.sl<DiaryCubit>()),
+        BlocProvider(
+          create: (context) => di.sl<SharedFilesCubit>()..initialize(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'AnimalRecord',
         theme: AppTheme.lightTheme,
         navigatorKey: navigatorKey,
+        builder: (context, child) => SharedFilesNavigationCoordinator(
+          navigatorKey: navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        ),
         initialRoute: AppRoutes.splash,
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.sharedFileUpload) {
+            return buildSharedFileUploadRoute(settings);
+          }
+          return null;
+        },
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
@@ -113,6 +134,16 @@ class MyApp extends StatelessWidget {
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalInfoScreen(animal: animal);
           },
+          AppRoutes.animalClinicalHistory: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalClinicalHistoryScreen(animal: animal);
+          },
+          AppRoutes.animalVaccinations: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return AnimalVaccinationsScreen(animal: animal);
+          },
           AppRoutes.animalDiary: (context) {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
@@ -122,7 +153,7 @@ class MyApp extends StatelessWidget {
             final args = ModalRoute.of(context)!.settings.arguments;
             AnimalModel animal;
             DiaryEntryEntity? entry;
-            
+
             if (args is AnimalModel) {
               animal = args;
             } else if (args is Map<String, dynamic>) {
@@ -131,8 +162,25 @@ class MyApp extends StatelessWidget {
             } else {
               throw Exception('Invalid arguments for animalDiaryCreate route');
             }
-            
+
             return AnimalDiaryCreateScreen(animal: animal, entry: entry);
+          },
+          AppRoutes.sharedFileAnalysisReview: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileAnalysisReviewScreen(analysis: analysis);
+          },
+          AppRoutes.sharedFileSend: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileSendScreen(analysis: analysis);
+          },
+          AppRoutes.animalDocuments: (context) {
+            final animalId =
+                ModalRoute.of(context)!.settings.arguments as String;
+            return AnimalDocumentsScreen(animalId: animalId);
           },
         },
       ),

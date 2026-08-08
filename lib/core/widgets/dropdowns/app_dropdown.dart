@@ -134,6 +134,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+
   /// When true the search [TextField] is editable and the keyboard is shown.
   /// Starts as false so the first tap only opens the options list.
   bool _keyboardAllowed = false;
@@ -144,7 +145,12 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
   List<T> _getSortedItems(List<T> items) {
     final list = List<T>.from(items);
     if (widget.preserveOrder) return list;
-    list.sort((a, b) => widget.itemAsString(a).toLowerCase().compareTo(widget.itemAsString(b).toLowerCase()));
+    list.sort(
+      (a, b) => widget
+          .itemAsString(a)
+          .toLowerCase()
+          .compareTo(widget.itemAsString(b).toLowerCase()),
+    );
     return list;
   }
 
@@ -339,15 +345,10 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
           return InkWell(
             onTap: () => _selectItem(null),
             child: Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 12,
-                vertical: 12,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
               child: Text(
                 '-- Seleccionar --',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyMedio,
-                ),
+                style: AppTypography.body4.copyWith(color: AppColors.greyMedio),
                 overflow: TextOverflow.ellipsis,
               ),
             ),
@@ -405,10 +406,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
         return InkWell(
           onTap: () => _selectItem(item),
           child: Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 12,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             child: widget.itemBuilder != null
                 ? widget.itemBuilder!(item, isSelected)
                 : DefaultTextStyle(
@@ -483,10 +481,10 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                 color: !widget.enabled
                     ? AppColors.greyDelineante
                     : _isOpen
-                        ? AppColors.primaryFrances
-                        : widget.errorText != null
-                            ? AppColors.errorRojo
-                            : AppColors.greyBordes,
+                    ? AppColors.primaryFrances
+                    : widget.errorText != null
+                    ? AppColors.errorRojo
+                    : AppColors.greyBordes,
               ),
               borderRadius: AppBorders.small(),
               color: widget.enabled
@@ -512,53 +510,69 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                         // ── Custom trigger ──────────────────────────
                         ? widget.triggerBuilder!(selectedItem)
                         : widget.searchable && _isOpen
-                            // ── Searchable & open: text field ──────
-                            ? TextField(
-                                controller: _searchController,
-                                focusNode: _focusNode,
-                                readOnly: !_keyboardAllowed,
-                                showCursor: _keyboardAllowed,
-                                onTap: !_keyboardAllowed ? _enableKeyboard : null,
-                                onChanged: _applyFilter,
-                                maxLength: widget.searchMaxLength,
-                                buildCounter: (context, {required currentLength, required isFocused, maxLength}) => null,
-                                inputFormatters: widget.searchInputFormatters ?? [
-                                  FilteringTextInputFormatter.allow(RegExp(r'[a-zA-Z0-9\s\u00C0-\u017F]')),
+                        // ── Searchable & open: text field ──────
+                        ? TextField(
+                            controller: _searchController,
+                            focusNode: _focusNode,
+                            readOnly: !_keyboardAllowed,
+                            showCursor: _keyboardAllowed,
+                            onTap: !_keyboardAllowed ? _enableKeyboard : null,
+                            onChanged: _applyFilter,
+                            maxLength: widget.searchMaxLength,
+                            buildCounter:
+                                (
+                                  context, {
+                                  required currentLength,
+                                  required isFocused,
+                                  maxLength,
+                                }) => null,
+                            inputFormatters:
+                                widget.searchInputFormatters ??
+                                [
+                                  FilteringTextInputFormatter.allow(
+                                    RegExp(r'[a-zA-Z0-9\s\u00C0-\u017F]'),
+                                  ),
                                 ],
-                                style: AppTypography.body4.copyWith(
-                                  color: AppColors.greyTextos,
-                                ),
-                                decoration: InputDecoration(
-                                  isDense: true,
-                                  contentPadding: EdgeInsets.zero,
-                                  border: InputBorder.none,
-                                  enabledBorder: InputBorder.none,
-                                  focusedBorder: InputBorder.none,
-                                  hintText: widget.hint,
-                                  hintStyle: AppTypography.body4.copyWith(
-                                    color: AppColors.greyBordes,
-                                  ),
-                                ),
-                              )
-                            // ── Closed or non-searchable ───────────
-                            : selectedItem == null && widget.value == null
-                                ? Text(
-                                    widget.hint,
-                                    style: AppTypography.body4.copyWith(
-                                      color: AppColors.greyBordes,
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                            ),
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              hintText: widget.hint,
+                              hintStyle: AppTypography.body4.copyWith(
+                                color: AppColors.greyBordes,
+                              ),
+                            ),
+                          )
+                        // ── Closed or non-searchable ───────────
+                        : selectedItem == null && widget.value == null
+                        ? Text(
+                            widget.hint,
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyBordes,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          )
+                        : DefaultTextStyle(
+                            style: AppTypography.body4.copyWith(
+                              color: widget.enabled
+                                  ? AppColors.greyTextos
+                                  : Color.lerp(
+                                      AppColors.greyTextos,
+                                      Colors.white,
+                                      0.3,
                                     ),
-                                    overflow: TextOverflow.ellipsis,
-                                  )
-                                : DefaultTextStyle(
-                                    style: AppTypography.body4.copyWith(
-                                      color: AppColors.greyTextos,
-                                    ),
-                                    child: Text(
-                                      selectedItem != null
-                                          ? widget.itemAsString(selectedItem)
-                                          : _labelOf(widget.value),
-                                    ),
-                                  ),
+                            ),
+                            child: Text(
+                              selectedItem != null
+                                  ? widget.itemAsString(selectedItem)
+                                  : _labelOf(widget.value),
+                            ),
+                          ),
                   ),
                 ),
                 // ── Arrow: tap only toggles open/close (no keyboard) ──
@@ -568,7 +582,10 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
                       ? null
                       : () => _isOpen ? _closeDropdown() : _openDropdown(),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
                     child: Icon(
                       _isOpen
                           ? Icons.keyboard_arrow_up_rounded
@@ -602,14 +619,13 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
         // the overlay is visible.
         if (_isOpen && !widget.isInline && widget.pushContent)
           SizedBox(
-            height: ((_filtered.length + (widget.showClearOption ? 1 : 0)) *
-                    44.0)
-                .clamp(80.0, 250.0),
+            height:
+                ((_filtered.length + (widget.showClearOption ? 1 : 0)) * 44.0)
+                    .clamp(80.0, 250.0),
           ),
 
         // ── Inline List ────────────────────────────────────────────
-        if (_isOpen && widget.isInline)
-          _buildPanel(250.0),
+        if (_isOpen && widget.isInline) _buildPanel(250.0),
       ],
     );
   }

@@ -172,7 +172,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 const SizedBox(height: 16),
                 ListTile(
                   leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Tomar foto'),
+                  title: Text('Tomar foto', style: AppTypography.body4),
                   onTap: () {
                     Navigator.pop(context);
                     _pickImage(ImageSource.camera);
@@ -180,7 +180,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
                 ),
                 ListTile(
                   leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Elegir de la galería'),
+                  title: Text('Elegir de la galería', style: AppTypography.body4),
                   onTap: () {
                     Navigator.pop(context);
                     _pickImage(ImageSource.gallery);

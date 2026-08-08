@@ -25,6 +25,7 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
   final bool enabled;
   final int? searchMaxLength;
   final List<TextInputFormatter>? searchInputFormatters;
+  final VoidCallback? onTap;
 
   /// Called when the user taps the "Add" button shown when there are no
   /// matching results. Receives the current search text.
@@ -49,6 +50,7 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
     this.enabled = true,
     this.searchMaxLength = 50,
     this.searchInputFormatters,
+    this.onTap,
     this.onAddItem,
     this.addItemLabel = 'Agregar',
   });
@@ -65,6 +67,7 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
 
   OverlayEntry? _overlayEntry;
   bool _isOpen = false;
+
   /// When true the search [TextField] is editable and the keyboard is shown.
   /// Starts as false so the first tap only opens the options list.
   bool _keyboardAllowed = false;
@@ -136,6 +139,10 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
 
   void _openDropdown({bool withKeyboard = false}) {
     FocusManager.instance.primaryFocus?.unfocus();
+    if (widget.onTap != null) {
+      widget.onTap!();
+      return;
+    }
     if (_isOpen) return;
     _keyboardAllowed = withKeyboard;
     if (widget.isInline) {
@@ -407,10 +414,10 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                 color: !widget.enabled
                     ? AppColors.greyDelineante
                     : _isOpen
-                        ? AppColors.primaryFrances
-                        : widget.errorText != null
-                            ? AppColors.errorRojo
-                            : AppColors.greyBordes,
+                    ? AppColors.primaryFrances
+                    : widget.errorText != null
+                    ? AppColors.errorRojo
+                    : AppColors.greyBordes,
               ),
               borderRadius: AppBorders.small(),
               color: widget.enabled
@@ -456,6 +463,10 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                               readOnly: !_keyboardAllowed,
                               showCursor: _keyboardAllowed,
                               onTap: () {
+                                if (widget.onTap != null) {
+                                  widget.onTap!();
+                                  return;
+                                }
                                 if (!_isOpen) {
                                   _openDropdown();
                                 } else if (!_keyboardAllowed) {
@@ -509,10 +520,19 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
                 GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: widget.enabled
-                      ? () => _isOpen ? _closeDropdown() : _openDropdown()
+                      ? () {
+                          if (widget.onTap != null) {
+                            widget.onTap!();
+                          } else {
+                            _isOpen ? _closeDropdown() : _openDropdown();
+                          }
+                        }
                       : null,
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 4,
+                      vertical: 4,
+                    ),
                     child: Icon(
                       _isOpen
                           ? Icons.keyboard_arrow_up_rounded
@@ -572,17 +592,10 @@ class _Chip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final disabledBg =
-        Color.lerp(
-          const Color.fromARGB(255, 187, 216, 235),
-          Colors.white,
-          0.6,
-        ) ??
-        AppColors.bgHielo;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: enabled ? AppColors.bgHielo : disabledBg,
+        color: AppColors.bgHielo,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -591,20 +604,16 @@ class _Chip extends StatelessWidget {
           Flexible(
             child: Text(
               label,
-              style: AppTypography.body6.copyWith(
-                color: AppColors.greyTextos,
-              ),
+              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
             ),
           ),
-          const SizedBox(width: 4),
-          GestureDetector(
-            onTap: enabled ? onRemove : null,
-            child: Icon(
-              Icons.close,
-              size: 14,
-              color: enabled ? AppColors.greyMedio : AppColors.greyTextos,
+          if (enabled) ...[
+            const SizedBox(width: 4),
+            GestureDetector(
+              onTap: onRemove,
+              child: Icon(Icons.close, size: 14, color: AppColors.greyMedio),
             ),
-          ),
+          ],
         ],
       ),
     );

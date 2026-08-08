@@ -7,9 +7,11 @@ class ConfirmDialog extends StatelessWidget {
   final String? description;
   final InlineSpan? richDescription;
   final Widget? content;
+  final Widget? headerLeading;
   final String confirmLabel;
   final String cancelLabel;
   final Color confirmColor;
+  final Color? titleColor;
   final bool isConfirmEnabled;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
@@ -21,9 +23,11 @@ class ConfirmDialog extends StatelessWidget {
     this.description,
     this.richDescription,
     this.content,
+    this.headerLeading,
     required this.confirmLabel,
     this.cancelLabel = 'Cancelar',
     this.confirmColor = const Color(0xFFFA2844),
+    this.titleColor,
     this.isConfirmEnabled = true,
     required this.onConfirm,
     this.onCancel,
@@ -54,7 +58,7 @@ class ConfirmDialog extends StatelessWidget {
                     child: Text(
                       title,
                       style: AppTypography.body3.copyWith(
-                        color: AppColors.greyTextos,
+                        color: titleColor ?? AppColors.greyTextos,
                         fontWeight: FontWeight.bold,
                       ),
                       textAlign: TextAlign.center,
@@ -150,6 +154,8 @@ class ConfirmDialog extends StatelessWidget {
               ),
             ),
           ),
+          if (headerLeading != null)
+            Positioned(top: 16, left: 16, child: headerLeading!),
           // X close button
           Positioned(
             top: 16,

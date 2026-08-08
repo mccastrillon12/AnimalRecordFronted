@@ -2,7 +2,10 @@ class AppIcons {
   static const String arrowLeft = 'assets/icons/arrow-left.svg';
   static const String arrowRight = 'assets/icons/arrow-right.svg';
   static const String close = 'assets/icons/close.svg'; // If it exists
-  
+  static const String magicStar = 'assets/icons/magic-star.svg';
+  static const String clipboardImport = 'assets/icons/clipboard-import.svg';
+  static const String export = 'assets/icons/export.svg';
+
   static const String boldPeople = 'assets/icons/bold-people.svg';
   static const String edit = 'assets/icons/Edit.svg';
   static const String boldFrame = 'assets/icons/bold-frame.svg';

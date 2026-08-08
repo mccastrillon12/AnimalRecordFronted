@@ -15,6 +15,12 @@ abstract class AppRoutes {
   static const String resetPin = '/reset-pin';
   static const String animalDetail = '/animal-detail';
   static const String animalInfo = '/animal-info';
+  static const String animalClinicalHistory = '/animal-clinical-history';
+  static const String animalVaccinations = '/animal-vaccinations';
   static const String animalDiary = '/animal-diary';
   static const String animalDiaryCreate = '/animal-diary-create';
+  static const String sharedFileUpload = '/shared-file-upload';
+  static const String sharedFileAnalysisReview = '/shared-file-analysis-review';
+  static const String sharedFileSend = '/shared-file-send';
+  static const String animalDocuments = '/animal-documents';
 }

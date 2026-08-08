@@ -1,0 +1,1 @@
+enum ManualFileSource { photos, files }
