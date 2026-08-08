@@ -339,12 +339,14 @@ class MedicalDocumentTutorEntity extends Equatable {
   final String name;
   final String identification;
   final String phoneNumber;
+  final Map<String, String> fields;
   final Map<String, String> additionalDetails;
 
   const MedicalDocumentTutorEntity({
     required this.name,
     required this.identification,
     required this.phoneNumber,
+    this.fields = const {},
     this.additionalDetails = const {},
   });
 
@@ -353,6 +355,7 @@ class MedicalDocumentTutorEntity extends Equatable {
     name,
     identification,
     phoneNumber,
+    fields,
     additionalDetails,
   ];
 }

@@ -1,3 +1,4 @@
+import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -6,6 +7,7 @@ import 'package:animal_record/features/medical_documents/domain/services/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 typedef _MedicalDocumentUriLoader = Future<Uri> Function();
@@ -130,9 +132,14 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
                                 color: AppColors.white,
                               ),
                             )
-                          : const Icon(
-                              Icons.download_outlined,
-                              color: AppColors.white,
+                          : SvgPicture.asset(
+                              AppIcons.receiveSquare,
+                              width: AppSpacing.iconSizeSmall,
+                              height: AppSpacing.iconSizeSmall,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.white,
+                                BlendMode.srcIn,
+                              ),
                             ),
                       tooltip: 'Descargar PDF',
                     ),

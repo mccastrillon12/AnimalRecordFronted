@@ -25,7 +25,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   required MedicalDocumentExtractionEntity extraction,
 }) {
   final patient = _patient(document);
-  final tutor = document.tutorDetails;
+  final tutor = _tutor(document.tutorDetails);
   return SharedFileAnalysisEntity(
     documentType:
         document.finalCategory?.label ?? extraction.documentType.label,
@@ -44,12 +44,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
       weight: patient.weight,
       additionalDetails: patient.additionalDetails,
     ),
-    tutor: SharedFileTutorAnalysisEntity(
-      name: tutor?.name ?? '',
-      identification: tutor?.identification ?? '',
-      phoneNumber: tutor?.phoneNumber ?? '',
-      additionalDetails: _analysisDetails(tutor?.additionalDetails ?? const {}),
-    ),
+    tutor: tutor,
     veterinarian: _veterinarian(extraction.issuer),
     itemsTitle: _itemsTitle(extraction.documentType),
     medications: _visibleItems(extraction)
@@ -75,6 +70,57 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     sections: _structuredSections(extraction),
     observations: null,
   );
+}
+
+SharedFileTutorAnalysisEntity _tutor(MedicalDocumentTutorEntity? tutor) {
+  if (tutor == null) {
+    return const SharedFileTutorAnalysisEntity(
+      name: '',
+      identification: '',
+      phoneNumber: '',
+    );
+  }
+  if (tutor.fields.isNotEmpty) {
+    return SharedFileTutorAnalysisEntity(
+      name: tutor.name,
+      identification: '',
+      phoneNumber: '',
+      additionalDetails: tutor.fields.entries
+          .where(
+            (entry) =>
+                !_isTutorNameKey(entry.key) && entry.value.trim().isNotEmpty,
+          )
+          .map(
+            (entry) => SharedFileAnalysisDetailEntity(
+              label: entry.key,
+              value: entry.value.trim(),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+  return SharedFileTutorAnalysisEntity(
+    name: tutor.name,
+    identification: tutor.identification,
+    phoneNumber: tutor.phoneNumber,
+    additionalDetails: _analysisDetails(tutor.additionalDetails),
+  );
+}
+
+bool _isTutorNameKey(String key) {
+  final normalized = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
+  return const {
+    'name',
+    'fullname',
+    'owner',
+    'ownername',
+    'tutor',
+    'tutorname',
+    'guardian',
+    'guardianname',
+    'proprietor',
+    'proprietorname',
+  }.contains(normalized);
 }
 
 String _documentNumber(String id) {
@@ -188,11 +234,11 @@ List<MedicalDocumentItemEntity> _visibleItems(
 };
 
 String? _itemsTitle(MedicalDocumentCategory category) => switch (category) {
-  MedicalDocumentCategory.prescription => 'Medications',
-  MedicalDocumentCategory.medicalOrder => 'Medical Orders',
-  MedicalDocumentCategory.referral => 'Diagnostic Results',
-  MedicalDocumentCategory.vaccinationCard => 'Vaccinations',
-  MedicalDocumentCategory.clinicalHistory => 'Diagnostic Results',
+  MedicalDocumentCategory.prescription => 'Medicamentos',
+  MedicalDocumentCategory.medicalOrder => 'Procedimientos',
+  MedicalDocumentCategory.referral => 'Resultados diagnósticos',
+  MedicalDocumentCategory.vaccinationCard => 'Vacunas',
+  MedicalDocumentCategory.clinicalHistory => 'Resultados diagnósticos',
   MedicalDocumentCategory.other => null,
 };
 

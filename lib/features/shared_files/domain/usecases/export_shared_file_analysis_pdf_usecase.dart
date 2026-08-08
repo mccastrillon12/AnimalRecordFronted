@@ -10,3 +10,16 @@ class ExportSharedFileAnalysisPdfUseCase {
     return repository.exportAnalysisPdf(analysis);
   }
 }
+
+class SaveSharedFileAnalysesPdfUseCase {
+  final SharedFilesRepository repository;
+
+  const SaveSharedFileAnalysesPdfUseCase(this.repository);
+
+  Future<bool> call(
+    List<SharedFileAnalysisEntity> analyses, {
+    required String fileName,
+  }) {
+    return repository.saveAnalysisPdfs(analyses, fileName: fileName);
+  }
+}

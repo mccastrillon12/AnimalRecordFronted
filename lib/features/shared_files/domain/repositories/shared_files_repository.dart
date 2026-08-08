@@ -10,4 +10,9 @@ abstract interface class SharedFilesRepository {
   Future<SharedFileEntity?> pickManualFile(ManualFileSource source);
 
   Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis);
+
+  Future<bool> saveAnalysisPdfs(
+    List<SharedFileAnalysisEntity> analyses, {
+    required String fileName,
+  });
 }

@@ -1,9 +1,7 @@
 import 'dart:convert';
 
-import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/features/shared_files/data/services/shared_file_pdf_builder.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -56,12 +54,7 @@ void main() {
       observations: 'Observaciones variables para el PDF.',
       originalUrl: 'https://api.example.test/original/document-1',
     );
-    final clipboardSvg = await rootBundle.loadString(AppIcons.clipboardImport);
-
-    final bytes = await SharedFilePdfBuilder().build(
-      analysis: analysis,
-      clipboardSvg: clipboardSvg,
-    );
+    final bytes = await SharedFilePdfBuilder().build(analysis: analysis);
 
     expect(bytes.length, greaterThan(1000));
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
@@ -69,5 +62,42 @@ void main() {
       latin1.decode(bytes),
       contains('https://api.example.test/original/document-1'),
     );
+  });
+
+  test('generates one combined PDF for multiple clinical histories', () async {
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Historia clínica',
+      documentNumber: '',
+      date: null,
+      originalFileName: 'historia.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Panchita',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+        additionalDetails: [
+          SharedFileAnalysisDetailEntity(label: 'Species', value: 'Canine'),
+        ],
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: 'Maria Perez',
+        identification: '',
+        phoneNumber: '',
+        additionalDetails: [
+          SharedFileAnalysisDetailEntity(label: 'Phone', value: '3001234567'),
+        ],
+      ),
+    );
+    final builder = SharedFilePdfBuilder();
+
+    final single = await builder.build(analysis: analysis);
+    final combined = await builder.buildMany(
+      analyses: const [analysis, analysis],
+    );
+
+    expect(ascii.decode(combined.take(5).toList()), '%PDF-');
+    expect(combined.length, greaterThan(single.length));
   });
 }

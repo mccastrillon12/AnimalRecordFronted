@@ -94,7 +94,7 @@ void main() {
     expect(analysis.veterinarian?.name, 'Dra. Natalia López');
     expect(analysis.veterinarian?.clinic, 'Clínica Animal Record');
     expect(analysis.veterinarian?.professionalId, 'MV-41611');
-    expect(analysis.itemsTitle, 'Medications');
+    expect(analysis.itemsTitle, 'Medicamentos');
     expect(analysis.medications.single.name, 'Enzymax Holliday');
     expect(analysis.medications.single.instructions, contains('1/4 tableta'));
     expect(analysis.medications.single.instructions, contains('cada 48 horas'));
@@ -270,6 +270,46 @@ void main() {
         ('Date of Birth', '1/24/2023'),
         ('Weight', '7.60 Lbs'),
       ],
+    );
+  });
+
+  test('renders tutor key-value fields exactly as received', () {
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+    );
+    const document = MedicalDocumentEntity(
+      id: 'document-labeled-tutor',
+      animalIds: ['animal-1'],
+      tutorDetails: MedicalDocumentTutorEntity(
+        name: 'Maria Perez',
+        identification: '',
+        phoneNumber: '',
+        fields: {
+          'Name': 'Maria Perez',
+          'Phone': '3001234567',
+          'Address': 'Main Street 42',
+        },
+      ),
+      originalFileName: 'historia.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.reviewPending,
+      version: 1,
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: document,
+      extraction: extraction,
+    );
+
+    expect(analysis.tutor.name, 'Maria Perez');
+    expect(analysis.tutor.identification, isEmpty);
+    expect(analysis.tutor.phoneNumber, isEmpty);
+    expect(
+      analysis.tutor.additionalDetails.map(
+        (detail) => (detail.label, detail.value),
+      ),
+      [('Phone', '3001234567'), ('Address', 'Main Street 42')],
     );
   });
 

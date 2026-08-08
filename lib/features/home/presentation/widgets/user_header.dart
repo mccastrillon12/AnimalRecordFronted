@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animal_record/core/widgets/display/app_user_avatar.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -42,43 +42,14 @@ class UserHeader extends StatelessWidget {
                     GestureDetector(
                       onTap: () =>
                           Navigator.pushNamed(context, AppRoutes.profile),
-                      child: Container(
-                        width: 52,
-                        height: 52,
-                        decoration: BoxDecoration(
-                          color: AppColors.primaryIndigo,
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: BlocBuilder<AuthBloc, AuthState>(
-                          builder: (context, state) {
-                            String name = '';
-                            String? profilePic;
-                            if (state is AuthSuccess) {
-                              name = state.user.name;
-                              profilePic = state.user.profilePicture;
-                            }
-
-                            if (profilePic != null && profilePic.isNotEmpty) {
-                              return ClipRRect(
-                                borderRadius: BorderRadius.circular(12),
-                                child: CachedNetworkImage(
-                                  imageUrl: profilePic,
-                                  fit: BoxFit.cover,
-                                  width: 52,
-                                  height: 52,
-                                  fadeInDuration: Duration.zero,
-                                  fadeOutDuration: Duration.zero,
-                                  placeholder: (context, url) =>
-                                      _buildInitials(name),
-                                  errorWidget: (context, url, error) =>
-                                      _buildInitials(name),
-                                ),
-                              );
-                            }
-
-                            return _buildInitials(name);
-                          },
-                        ),
+                      child: BlocBuilder<AuthBloc, AuthState>(
+                        builder: (context, state) {
+                          final user = state is AuthSuccess ? state.user : null;
+                          return AppUserAvatar(
+                            name: user?.name ?? '',
+                            imageUrl: user?.profilePicture,
+                          );
+                        },
                       ),
                     ),
 
@@ -197,18 +168,6 @@ class UserHeader extends StatelessWidget {
     );
   }
 
-  String _getInitials(String name) {
-    if (name.isEmpty) return 'U';
-    final parts = name.trim().split(RegExp(r'\s+'));
-    if (parts.isEmpty) return 'U';
-
-    if (parts.length == 1) {
-      return parts.first[0].toUpperCase();
-    }
-
-    return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-  }
-
   String _formatName(String name) {
     if (name.isEmpty) return '';
     final parts = name.trim().split(RegExp(r'\s+'));
@@ -220,14 +179,5 @@ class UserHeader extends StatelessWidget {
     });
 
     return formattedParts.join(' ');
-  }
-
-  Widget _buildInitials(String name) {
-    return Center(
-      child: Text(
-        _getInitials(name),
-        style: AppTypography.heading1.copyWith(color: AppColors.white),
-      ),
-    );
   }
 }

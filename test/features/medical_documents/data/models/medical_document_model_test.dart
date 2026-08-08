@@ -244,6 +244,39 @@ void main() {
     expect(patient.additionalDetails['Description'], 'Brown/white');
   });
 
+  test('parses labeled tutor hints without positional inference', () {
+    final model = MedicalDocumentModel.fromJson({
+      'id': 'document-tutor-key-value',
+      'animalIds': ['animal-1'],
+      'originalFileName': 'historia.pdf',
+      'mimeType': 'application/pdf',
+      'fileSize': 100,
+      'status': 'REVIEW_PENDING',
+      'detectedCategories': <Object>[],
+      'extractionsByCategory': {
+        'CLINICAL_HISTORY': {
+          'documentType': 'CLINICAL_HISTORY',
+          'additionalFields': {
+            'tutorHints': [
+              'Name: Maria Perez',
+              'Phone: 3001234567',
+              'Address: Main Street 42',
+            ],
+          },
+        },
+      },
+      'assignments': <Object>[],
+      'version': 1,
+    });
+
+    expect(model.tutorDetails?.name, 'Maria Perez');
+    expect(model.tutorDetails?.fields, {
+      'Name': 'Maria Perez',
+      'Phone': '3001234567',
+      'Address': 'Main Street 42',
+    });
+  });
+
   test('keeps patient and tutor data nested in additional fields', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-4',

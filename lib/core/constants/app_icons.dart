@@ -5,6 +5,9 @@ class AppIcons {
   static const String magicStar = 'assets/icons/magic-star.svg';
   static const String clipboardImport = 'assets/icons/clipboard-import.svg';
   static const String export = 'assets/icons/export.svg';
+  static const String receiveSquare =
+      'assets/icons/vuesax-bold-receive-square.svg';
+  static const String folderFavorite = 'assets/icons/folder-favorite.svg';
 
   static const String boldPeople = 'assets/icons/bold-people.svg';
   static const String edit = 'assets/icons/Edit.svg';

@@ -48,12 +48,10 @@ Future<void> main() async {
         r'Realizar coprológico seriado, traer 3 muestras de materia fecal de '
         r'diferentes días, una cada día, valor $40.000',
   );
-  final clipboardSvg = await File(
-    'assets/icons/clipboard-import.svg',
-  ).readAsString();
+  final logoBytes = await File('assets/Logo/Logotipo_azul.png').readAsBytes();
   final bytes = await SharedFilePdfBuilder().build(
     analysis: analysis,
-    clipboardSvg: clipboardSvg,
+    logoBytes: logoBytes,
   );
   final outputDirectory = Directory('output/pdf');
   await outputDirectory.create(recursive: true);

@@ -357,6 +357,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
 }
 
 MedicalDocumentTutorEntity? _tutorDetails(Map<String, dynamic> json) {
+  final fields = _tutorFields(json);
   final candidates = <Object?>[];
   _collectTutorCandidates(candidates, json);
   final values = candidates
@@ -418,6 +419,7 @@ MedicalDocumentTutorEntity? _tutorDetails(Map<String, dynamic> json) {
   if (name.isEmpty &&
       identification.isEmpty &&
       phoneNumber.isEmpty &&
+      fields.isEmpty &&
       additionalDetails.isEmpty) {
     return null;
   }
@@ -425,8 +427,82 @@ MedicalDocumentTutorEntity? _tutorDetails(Map<String, dynamic> json) {
     name: name,
     identification: identification,
     phoneNumber: phoneNumber,
+    fields: fields,
     additionalDetails: additionalDetails,
   );
+}
+
+Map<String, String> _tutorFields(Map<String, dynamic> json) {
+  final result = <String, String>{};
+
+  void collect(Object? value, {bool tutorContext = false, int depth = 0}) {
+    if (value == null || depth > 12) return;
+    if (value is List) {
+      if (tutorContext) {
+        for (final entry in _labeledValues(value).entries) {
+          result.putIfAbsent(entry.key, () => entry.value.toString());
+        }
+      }
+      for (final item in value) {
+        collect(item, tutorContext: tutorContext, depth: depth + 1);
+      }
+      return;
+    }
+    final map = _nullableMap(value);
+    if (map == null) return;
+
+    if (tutorContext) {
+      final label = _nullableText(map, const [
+        'label',
+        'field',
+        'key',
+        'title',
+        'concept',
+        'campo',
+        'etiqueta',
+      ]);
+      final labeledValue = _nullableText(map, const [
+        'value',
+        'text',
+        'content',
+        'data',
+        'valor',
+      ]);
+      if (label != null && labeledValue != null) {
+        result.putIfAbsent(label, () => labeledValue);
+      } else {
+        for (final entry in map.entries) {
+          if (entry.value is Map || entry.value is Iterable) continue;
+          if (const {'source', 'confidence'}.contains(entry.key)) continue;
+          final text = _valueText(entry.value);
+          if (text?.isNotEmpty == true) {
+            result.putIfAbsent(entry.key, () => text!);
+          }
+        }
+      }
+    }
+
+    for (final entry in map.entries) {
+      final isTutorField = _isTutorContainerKey(entry.key);
+      if (!tutorContext &&
+          isTutorField &&
+          entry.value is! Map &&
+          entry.value is! Iterable) {
+        final text = _valueText(entry.value);
+        if (text?.isNotEmpty == true) {
+          result.putIfAbsent(entry.key, () => text!);
+        }
+      }
+      collect(
+        entry.value,
+        tutorContext: tutorContext || isTutorField,
+        depth: depth + 1,
+      );
+    }
+  }
+
+  collect(json);
+  return result;
 }
 
 void _collectTutorCandidates(
@@ -635,20 +711,8 @@ void _addTutorCandidates(
 }
 
 Map<String, dynamic>? _tutorHintsDetails(Object? value) {
-  if (value is! List) return null;
-  if (value.any((item) => item is Map || item is Iterable)) return null;
-  final hints = value
-      .map((item) => item.toString().trim())
-      .where((item) => item.isNotEmpty)
-      .toList(growable: false);
-  if (hints.isEmpty) return null;
-  return {
-    'name': hints[0],
-    if (hints.length > 1) 'identification': hints[1],
-    if (hints.length > 2) 'phoneNumber': hints[2],
-    if (hints.length > 3) 'email': hints[3],
-    if (hints.length > 4) 'address': hints[4],
-  };
+  final values = _labeledValues(value);
+  return values.isEmpty ? null : values;
 }
 
 Map<String, dynamic>? _flatTutorDetails(Map<String, dynamic>? values) {
@@ -901,11 +965,11 @@ Iterable<Map<String, dynamic>> _objectMaps(Object? value) sync* {
 
 Iterable<Map<String, dynamic>> _patientMaps(Object? value) sync* {
   yield* _objectMaps(value);
-  final labeledValues = _labeledPatientValues(value);
+  final labeledValues = _labeledValues(value);
   if (labeledValues.isNotEmpty) yield labeledValues;
 }
 
-Map<String, dynamic> _labeledPatientValues(Object? value) {
+Map<String, dynamic> _labeledValues(Object? value) {
   if (value is! List) return const {};
   final fields = <String, dynamic>{};
   for (final item in value.whereType<String>()) {

@@ -370,6 +370,7 @@ Future<void> init() async {
   sl.registerLazySingleton(() => ObserveSharedFilesUseCase(sl()));
   sl.registerLazySingleton(() => PickManualSharedFileUseCase(sl()));
   sl.registerLazySingleton(() => ExportSharedFileAnalysisPdfUseCase(sl()));
+  sl.registerLazySingleton(() => SaveSharedFileAnalysesPdfUseCase(sl()));
   sl.registerLazySingleton<SharedFilesRepository>(
     () => SharedFilesRepositoryImpl(sl(), sl(), sl()),
   );

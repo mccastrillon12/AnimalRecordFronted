@@ -5,9 +5,9 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/home/presentation/widgets/clinical_history_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
-import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -112,15 +112,9 @@ class _AnimalClinicalHistoryScreenState
                             ),
                           ),
                           Expanded(
-                            child: AnimalMedicalDocumentsView(
-                              animalId: widget.animal.id,
-                              category: MedicalDocumentCategory.clinicalHistory,
+                            child: ClinicalHistoryGroupsView(
+                              animal: widget.animal,
                               searchQuery: _searchController.text,
-                              emptyTitle:
-                                  'El registro de historias clínicas está vacío',
-                              emptyDescription:
-                                  'Aquí se podrán visualizar las historias clínicas que se creen.',
-                              emptyBottomOffset: 100,
                             ),
                           ),
                         ],
@@ -181,7 +175,7 @@ class _ClinicalHistoryHeader extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Historia clínica',
+            'Historias clínicas',
             style: AppTypography.heading1.copyWith(
               color: AppColors.textPrimary,
             ),

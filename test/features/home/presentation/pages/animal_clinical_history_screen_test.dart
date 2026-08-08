@@ -1,5 +1,8 @@
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/features/auth/domain/entities/user_entity.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -13,6 +16,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockAnimalCubit extends Mock implements AnimalCubit {}
+
+class MockAuthBloc extends Mock implements AuthBloc {}
 
 class MockAnimalMedicalDocumentsCubit extends Mock
     implements AnimalMedicalDocumentsCubit {}
@@ -47,7 +52,11 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
+    final authBloc = MockAuthBloc();
     final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    final accountOwner = UserEntity.empty().copyWith(name: 'Barbara James');
+    when(() => authBloc.state).thenReturn(AuthSuccess(accountOwner));
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
     when(() => documentsCubit.state).thenReturn(
       const AnimalMedicalDocumentsLoaded(
         [],
@@ -57,8 +66,13 @@ void main() {
     when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
 
     await tester.pumpWidget(
-      BlocProvider<AnimalMedicalDocumentsCubit>.value(
-        value: documentsCubit,
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
         child: const MaterialApp(
           home: AnimalClinicalHistoryScreen(animal: animal),
         ),
@@ -66,7 +80,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Historia clínica'), findsOneWidget);
+    expect(find.text('Historias clínicas'), findsOneWidget);
     expect(find.textContaining('Brownie', findRichText: true), findsOneWidget);
     expect(find.textContaining('AR-C012', findRichText: true), findsOneWidget);
     expect(
@@ -168,7 +182,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
-    expect(find.text('Historia clínica'), findsOneWidget);
+    expect(find.text('Historias clínicas'), findsOneWidget);
     expect(find.text('Flujo de subida existente'), findsNothing);
 
     await tester.pumpAndSettle();
@@ -183,5 +197,142 @@ void main() {
       MedicalDocumentCategory.clinicalHistory,
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('groups clinical histories and opens the selected group', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final authBloc = MockAuthBloc();
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    final accountOwner = UserEntity.empty().copyWith(name: 'Barbara James');
+    when(() => authBloc.state).thenReturn(AuthSuccess(accountOwner));
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      documentDate: 'January 25, 2026',
+      issuer: {'name': 'Marc Doe', 'clinic': 'Clínica Punto Vet'},
+    );
+    const documents = [
+      MedicalDocumentEntity(
+        id: 'history-1',
+        animalIds: ['animal-1'],
+        originalFileName: 'history-1.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.clinicalHistory,
+        validatedExtraction: extraction,
+        version: 1,
+      ),
+      MedicalDocumentEntity(
+        id: 'history-2',
+        animalIds: ['animal-1'],
+        originalFileName: 'history-2.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.clinicalHistory,
+        validatedExtraction: extraction,
+        version: 1,
+      ),
+    ];
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        documents,
+        category: MedicalDocumentCategory.clinicalHistory,
+      ),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
+        child: const MaterialApp(
+          home: AnimalClinicalHistoryScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Barbara James'), findsOneWidget);
+    expect(find.text('Marc Doe'), findsNothing);
+    expect(find.text('Documentos:'), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+
+    await tester.tap(find.text('Ver historias'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Subidas por mí'), findsOneWidget);
+    expect(find.text('Historia clínica 1'), findsOneWidget);
+    expect(find.text('Historia clínica 2'), findsOneWidget);
+    expect(find.text('Descargar todo'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('clinical-history-menu-history-1')));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Descargar historia'), findsOneWidget);
+    expect(find.text('Cambiar privacidad'), findsNothing);
+  });
+
+  testWidgets('shows the current user name, initials and own-group title', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final authBloc = MockAuthBloc();
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    final user = UserEntity.empty().copyWith(name: 'Maria Perez');
+    when(() => authBloc.state).thenReturn(AuthSuccess(user));
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        MedicalDocumentEntity(
+          id: 'own-history',
+          animalIds: ['animal-1'],
+          originalFileName: 'own-history.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+          ),
+          version: 1,
+        ),
+      ], category: MedicalDocumentCategory.clinicalHistory),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
+        child: const MaterialApp(
+          home: AnimalClinicalHistoryScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Maria Perez'), findsOneWidget);
+    expect(find.text('MP'), findsOneWidget);
+
+    await tester.tap(find.text('Ver historias'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Subidas por mí'), findsOneWidget);
   });
 }
