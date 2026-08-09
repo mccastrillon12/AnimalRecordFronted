@@ -54,12 +54,19 @@ class PendingMedicalDocumentLocalDataSourceImpl
       final json = jsonDecode(stored) as Map<String, dynamic>;
       final documentId = json['documentId']?.toString() ?? '';
       final startedAt = DateTime.tryParse(json['startedAt']?.toString() ?? '');
-      if (documentId.isEmpty || startedAt == null) return null;
+      final animalIds = (json['animalIds'] as List<dynamic>? ?? const [])
+          .map((id) => id.toString())
+          .where((id) => id.trim().isNotEmpty)
+          .toList(growable: false);
+      if (documentId.isEmpty ||
+          startedAt == null ||
+          animalIds.isEmpty ||
+          animalIds.toSet().length != animalIds.length) {
+        return null;
+      }
       return PendingMedicalDocumentFlow(
         documentId: documentId,
-        animalIds: (json['animalIds'] as List<dynamic>? ?? const [])
-            .map((id) => id.toString())
-            .toList(growable: false),
+        animalIds: animalIds,
         startedAt: startedAt,
         requestedCategory: MedicalDocumentCategory.tryParse(
           json['requestedCategory'],

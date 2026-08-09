@@ -118,7 +118,6 @@ void main() {
       analysis.sections
           .firstWhere((section) => section.title == 'Información adicional')
           .body,
-      'Tratamiento completo.\nControl posterior.\n'
       'Confirmar peso antes de administrar.\nMantener refrigerado.',
     );
     expect(analysis.observations, isNull);
@@ -182,7 +181,7 @@ void main() {
       'Studies performed',
       'Referral number',
     ]);
-    expect(additional.body, 'Remisión para valoración especializada');
+    expect(additional.body, isEmpty);
     expect(analysis.observations, isNull);
   });
 

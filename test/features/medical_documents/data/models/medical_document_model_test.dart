@@ -33,6 +33,19 @@ void main() {
             'clinic': 'Clínica Animal Record',
             'professionalId': 'MV-41611',
           },
+          'patient': {
+            'name': 'Brownie',
+            'identifier': 'AR-001',
+            'species': 'Canino',
+            'breed': 'Labrador',
+            'microchip': '985141000000001',
+          },
+          'owner': {
+            'name': 'Barbara James',
+            'identification': '1152234567',
+            'phone': '3124567890',
+            'email': 'barbara@example.com',
+          },
           'patientHints': ['Brownie'],
           'diagnoses': [],
           'medications': [
@@ -69,6 +82,10 @@ void main() {
     expect(extraction.medications.single.name, 'ProtectionPets');
     expect(extraction.medications.single.source?.page, 1);
     expect(extraction.issuer?['name'], 'Dra. Natalia López');
+    expect(extraction.patient?.identifier, 'AR-001');
+    expect(extraction.patient?.microchip, '985141000000001');
+    expect(extraction.owner?.name, 'Barbara James');
+    expect(extraction.owner?.email, 'barbara@example.com');
     expect(extraction.additionalFields['clinic'], 'Animal Record');
     expect(model.version, 3);
   });
@@ -78,6 +95,14 @@ void main() {
     () {
       const extraction = MedicalDocumentExtractionEntity(
         documentType: MedicalDocumentCategory.prescription,
+        patient: MedicalDocumentPatientEntity(
+          name: 'Brownie',
+          identifier: 'AR-001',
+        ),
+        owner: MedicalDocumentOwnerEntity(
+          name: 'Barbara James',
+          phone: '3124567890',
+        ),
         patientHints: ['Brownie'],
         medications: [
           MedicalDocumentItemEntity(
@@ -106,6 +131,11 @@ void main() {
       expect(payload['finalCategory'], 'PRESCRIPTION');
       final validated = payload['validatedExtraction'] as Map<String, dynamic>;
       expect(validated['documentType'], 'PRESCRIPTION');
+      expect(validated['patient'], {'name': 'Brownie', 'identifier': 'AR-001'});
+      expect(validated['owner'], {
+        'name': 'Barbara James',
+        'phone': '3124567890',
+      });
       expect(validated['diagnoses'], isEmpty);
       expect(validated['vaccinations'], isEmpty);
       expect((payload['assignments'] as List), hasLength(2));
@@ -196,7 +226,7 @@ void main() {
     expect(model.tutorDetails?.phoneNumber, '3001234567');
   });
 
-  test('parses labeled patient hints without positional inference', () {
+  test('preserves patient hints without treating them as patient fields', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-patient-key-value',
       'animalIds': ['backend-patient'],
@@ -224,27 +254,22 @@ void main() {
       'version': 1,
     });
 
-    final patient = model.animalDetails.single;
-    expect(patient.id, isEmpty);
-    expect(patient.name, 'Panchita');
-    expect(patient.species, 'Canine');
-    expect(patient.breed, 'Chihuahua');
-    expect(patient.sex, 'Female (Spayed)');
-    expect(patient.birthdate, '1/24/2023');
-    expect(patient.weight, '7.60 Lbs');
-    expect(patient.fields, {
-      'Name': 'Panchita',
-      'Species': 'Canine',
-      'Breed': 'Chihuahua',
-      'Gender': 'Female (Spayed)',
-      'Description': 'Brown/white',
-      'Date of Birth': '1/24/2023',
-      'Weight': '7.60 Lbs',
-    });
-    expect(patient.additionalDetails['Description'], 'Brown/white');
+    expect(model.animalDetails, isEmpty);
+    final extraction =
+        model.extractionsByCategory[MedicalDocumentCategory.clinicalHistory]!;
+    expect(extraction.patient, isNull);
+    expect(extraction.patientHints, [
+      'Name: Panchita',
+      'Species: Canine',
+      'Breed: Chihuahua',
+      'Gender: Female (Spayed)',
+      'Description: Brown/white',
+      'Date of Birth: 1/24/2023',
+      'Weight: 7.60 Lbs',
+    ]);
   });
 
-  test('parses labeled tutor hints without positional inference', () {
+  test('does not promote additional tutor hints to structured owner', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-tutor-key-value',
       'animalIds': ['animal-1'],
@@ -269,15 +294,14 @@ void main() {
       'version': 1,
     });
 
-    expect(model.tutorDetails?.name, 'Maria Perez');
-    expect(model.tutorDetails?.fields, {
-      'Name': 'Maria Perez',
-      'Phone': '3001234567',
-      'Address': 'Main Street 42',
-    });
+    expect(model.tutorDetails, isNull);
+    final extraction =
+        model.extractionsByCategory[MedicalDocumentCategory.clinicalHistory]!;
+    expect(extraction.owner, isNull);
+    expect(extraction.additionalFields['tutorHints'], isNotEmpty);
   });
 
-  test('keeps patient and tutor data nested in additional fields', () {
+  test('uses structured patient and owner from validated extraction', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-4',
       'animalIds': ['backend-patient'],
@@ -288,26 +312,25 @@ void main() {
       'finalCategory': 'PRESCRIPTION',
       'validatedExtraction': {
         'documentType': 'PRESCRIPTION',
+        'patient': {
+          'identifier': 'backend-patient',
+          'name': 'BENJI',
+          'sex': 'Macho',
+          'color': 'Blanco y negro',
+          'microchip': '985141000000001',
+        },
+        'owner': {
+          'name': 'Andrea Pérez',
+          'identification': '123456',
+          'phone': '3001234567',
+          'email': 'andrea@example.com',
+        },
         'patientHints': <String>[],
         'diagnoses': <Object>[],
         'medications': <Object>[],
         'vaccinations': <Object>[],
         'medicalOrders': <Object>[],
-        'additionalFields': {
-          'patient': {
-            'id': 'backend-patient',
-            'name': 'BENJI',
-            'sex': 'Macho',
-            'color': 'Blanco y negro',
-            'microchip': '985141000000001',
-          },
-          'datosPropietario': {
-            'nombreCompleto': 'Andrea Pérez',
-            'documento': '123456',
-            'celular': '3001234567',
-            'email': 'andrea@example.com',
-          },
-        },
+        'additionalFields': <String, Object>{},
         'warnings': <String>[],
       },
       'detectedCategories': <Object>[],
@@ -321,6 +344,7 @@ void main() {
     expect(patient.sex, 'Macho');
     expect(patient.color, 'Blanco y negro');
     expect(patient.additionalDetails['microchip'], '985141000000001');
+    expect(model.validatedExtraction?.patient?.name, 'BENJI');
     expect(model.tutorDetails?.name, 'Andrea Pérez');
     expect(model.tutorDetails?.identification, '123456');
     expect(model.tutorDetails?.phoneNumber, '3001234567');
@@ -328,9 +352,10 @@ void main() {
       model.tutorDetails?.additionalDetails['email'],
       'andrea@example.com',
     );
+    expect(model.validatedExtraction?.owner?.name, 'Andrea Pérez');
   });
 
-  test('finds snake case owner data at arbitrary backend nesting', () {
+  test('does not infer owner from arbitrary additional-field nesting', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-owner-snake-case',
       'animalIds': ['backend-patient'],
@@ -364,16 +389,16 @@ void main() {
       'version': 1,
     });
 
-    expect(model.tutorDetails?.name, 'Carlos Gomez');
-    expect(model.tutorDetails?.identification, '998877');
-    expect(model.tutorDetails?.phoneNumber, '3115557788');
+    expect(model.tutorDetails, isNull);
     expect(
-      model.tutorDetails?.additionalDetails['email'],
-      'carlos@example.com',
+      model
+          .extractionsByCategory[MedicalDocumentCategory.prescription]
+          ?.additionalFields['extractedParties'],
+      isNotNull,
     );
   });
 
-  test('groups owner label and value rows returned by extraction', () {
+  test('does not infer owner from label-value rows in additional fields', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-owner-labels',
       'animalIds': ['backend-patient'],
@@ -405,9 +430,6 @@ void main() {
       'version': 1,
     });
 
-    expect(model.tutorDetails?.name, 'Luisa Torres');
-    expect(model.tutorDetails?.identification, '445566');
-    expect(model.tutorDetails?.phoneNumber, '3004005000');
-    expect(model.tutorDetails?.additionalDetails['email'], 'luisa@example.com');
+    expect(model.tutorDetails, isNull);
   });
 }

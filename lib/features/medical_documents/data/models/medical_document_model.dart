@@ -102,7 +102,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
           .toList(growable: false),
       animalDetails: _animalDetails(json),
       tutorDetails: _tutorDetails(json),
-      version: _integer(json['version'], fallback: 1),
+      version: _integer(json['version']),
       createdAt: _date(json['createdAt']),
       updatedAt: _date(json['updatedAt']),
       reviewedAt: _date(json['reviewedAt']),
@@ -136,6 +136,8 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
             additionalFields['veterinarian'] ??
             additionalFields['veterinarianDetails'],
       ),
+      patient: _patientFromJson(_nullableMap(json['patient'])),
+      owner: _ownerFromJson(_nullableMap(json['owner'])),
       patientHints: _strings(json['patientHints']),
       diagnoses: items(json['diagnoses']),
       medications: items(json['medications']),
@@ -192,6 +194,10 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       if (extraction.documentDate != null)
         'documentDate': extraction.documentDate,
       if (extraction.issuer != null) 'issuer': extraction.issuer,
+      if (extraction.patient?.hasData ?? false)
+        'patient': _patientToJson(extraction.patient!),
+      if (extraction.owner?.hasData ?? false)
+        'owner': _ownerToJson(extraction.owner!),
       'patientHints': extraction.patientHints,
       'diagnoses': extraction.diagnoses.map(itemToJson).toList(),
       'medications': extraction.medications.map(itemToJson).toList(),
@@ -232,6 +238,68 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
   }
 }
 
+MedicalDocumentPatientEntity? _patientFromJson(Map<String, dynamic>? json) {
+  if (json == null) return null;
+  final patient = MedicalDocumentPatientEntity(
+    name: _nullableString(json['name']),
+    identifier: _nullableString(json['identifier']),
+    species: _nullableString(json['species']),
+    breed: _nullableString(json['breed']),
+    sex: _nullableString(json['sex']),
+    color: _nullableString(json['color']),
+    size: _nullableString(json['size']),
+    reproductiveStatus: _nullableString(json['reproductiveStatus']),
+    age: _nullableString(json['age']),
+    birthDate: _nullableString(json['birthDate']),
+    weight: _nullableString(json['weight']),
+    microchip: _nullableString(json['microchip']),
+  );
+  return patient.hasData ? patient : null;
+}
+
+MedicalDocumentOwnerEntity? _ownerFromJson(Map<String, dynamic>? json) {
+  if (json == null) return null;
+  final owner = MedicalDocumentOwnerEntity(
+    name: _nullableString(json['name']),
+    identification: _nullableString(json['identification']),
+    phone: _nullableString(json['phone']),
+    email: _nullableString(json['email']),
+    address: _nullableString(json['address']),
+  );
+  return owner.hasData ? owner : null;
+}
+
+Map<String, dynamic> _patientToJson(MedicalDocumentPatientEntity patient) => {
+  if (_hasText(patient.name)) 'name': patient.name,
+  if (_hasText(patient.identifier)) 'identifier': patient.identifier,
+  if (_hasText(patient.species)) 'species': patient.species,
+  if (_hasText(patient.breed)) 'breed': patient.breed,
+  if (_hasText(patient.sex)) 'sex': patient.sex,
+  if (_hasText(patient.color)) 'color': patient.color,
+  if (_hasText(patient.size)) 'size': patient.size,
+  if (_hasText(patient.reproductiveStatus))
+    'reproductiveStatus': patient.reproductiveStatus,
+  if (_hasText(patient.age)) 'age': patient.age,
+  if (_hasText(patient.birthDate)) 'birthDate': patient.birthDate,
+  if (_hasText(patient.weight)) 'weight': patient.weight,
+  if (_hasText(patient.microchip)) 'microchip': patient.microchip,
+};
+
+Map<String, dynamic> _ownerToJson(MedicalDocumentOwnerEntity owner) => {
+  if (_hasText(owner.name)) 'name': owner.name,
+  if (_hasText(owner.identification)) 'identification': owner.identification,
+  if (_hasText(owner.phone)) 'phone': owner.phone,
+  if (_hasText(owner.email)) 'email': owner.email,
+  if (_hasText(owner.address)) 'address': owner.address,
+};
+
+bool _hasText(String? value) => value?.trim().isNotEmpty == true;
+
+String? _nullableString(Object? value) {
+  final text = value?.toString().trim();
+  return text == null || text.isEmpty ? null : text;
+}
+
 List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
   final values = <Map<String, dynamic>>[
     for (final candidate in [
@@ -257,31 +325,10 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
     for (final candidate in [
       extraction['patient'],
       extraction['patientDetails'],
-      extraction['patientHints'],
       extraction['animal'],
       extraction['animalDetails'],
     ]) {
       values.addAll(_patientMaps(candidate));
-    }
-    final additional = _nullableMap(extraction['additionalFields']);
-    if (additional != null) {
-      for (final candidate in [
-        additional['patient'],
-        additional['patientDetails'],
-        additional['patientHints'],
-        additional['animal'],
-        additional['animalDetails'],
-      ]) {
-        values.addAll(_patientMaps(candidate));
-      }
-      if (additional.entries.any(
-        (entry) =>
-            entry.value is! Map &&
-            entry.value is! Iterable &&
-            _isPatientFieldKey(entry.key),
-      )) {
-        values.add(additional);
-      }
     }
   }
   final seen = <String>{};
@@ -297,6 +344,7 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
           ]),
           code: _nullableText(animal, const [
             'code',
+            'identifier',
             'recordId',
             'animalRecordId',
             'animalRecordCode',
@@ -357,6 +405,39 @@ List<MedicalDocumentAnimalEntity> _animalDetails(Map<String, dynamic> json) {
 }
 
 MedicalDocumentTutorEntity? _tutorDetails(Map<String, dynamic> json) {
+  final structuredOwners = <Map<String, dynamic>>[
+    for (final extraction in [
+      ..._map(json['extractionsByCategory']).values,
+      json['validatedExtraction'],
+    ])
+      if (_nullableMap(_nullableMap(extraction)?['owner']) case final owner?)
+        owner,
+  ];
+  if (structuredOwners.isNotEmpty) {
+    final owner = structuredOwners.first;
+    final fields = <String, String>{
+      for (final entry in owner.entries)
+        if (_valueText(entry.value)?.isNotEmpty == true)
+          entry.key: _valueText(entry.value)!,
+    };
+    return MedicalDocumentTutorEntity(
+      name: _nullableString(owner['name']) ?? '',
+      identification: _nullableString(owner['identification']) ?? '',
+      phoneNumber: _nullableString(owner['phone']) ?? '',
+      fields: fields,
+      additionalDetails: {
+        if (_nullableString(owner['email']) case final email?) 'email': email,
+        if (_nullableString(owner['address']) case final address?)
+          'address': address,
+      },
+    );
+  }
+
+  final hasCategorizedExtraction =
+      _map(json['extractionsByCategory']).isNotEmpty ||
+      _nullableMap(json['validatedExtraction']) != null;
+  if (hasCategorizedExtraction) return null;
+
   final fields = _tutorFields(json);
   final candidates = <Object?>[];
   _collectTutorCandidates(candidates, json);
@@ -783,31 +864,6 @@ String _normalizedKey(String value) {
       .replaceAll('ñ', 'n');
 }
 
-const _flatPatientKeys = {
-  'patientId',
-  'patientName',
-  'recordId',
-  'code',
-  'animalName',
-  'animalRecordId',
-  'animalRecordCode',
-  'species',
-  'family',
-  'breed',
-  'race',
-  'sex',
-  'gender',
-  'patientSex',
-  'color',
-  'coatColor',
-  'patientColor',
-  'birthdate',
-  'birthDate',
-  'dateOfBirth',
-  'age',
-  'weight',
-};
-
 const _knownAnimalKeys = {
   'id',
   'animalId',
@@ -817,6 +873,7 @@ const _knownAnimalKeys = {
   'patientName',
   'fullName',
   'code',
+  'identifier',
   'recordId',
   'animalRecordId',
   'animalRecordCode',
@@ -981,15 +1038,6 @@ Map<String, dynamic> _labeledValues(Object? value) {
     fields[label] = fieldValue;
   }
   return fields;
-}
-
-bool _isPatientFieldKey(String key) {
-  final normalized = _normalizedKey(key);
-  return _flatPatientKeys.any(
-        (candidate) => _normalizedKey(candidate) == normalized,
-      ) ||
-      normalized.contains('animal') ||
-      normalized.contains('patient');
 }
 
 Map<String, String> _patientFields(Map<String, dynamic> values) {

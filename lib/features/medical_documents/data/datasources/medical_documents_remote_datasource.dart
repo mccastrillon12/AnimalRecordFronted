@@ -66,6 +66,12 @@ class MedicalDocumentsRemoteDataSourceImpl
       statusCode: response.statusCode,
       response: response.data,
     );
+    if (response.statusCode != 202) {
+      throw FormatException(
+        'El análisis debía iniciar con HTTP 202, pero respondió '
+        '${response.statusCode ?? 'sin estado'}.',
+      );
+    }
     return MedicalDocumentModel.fromJson(_responseMap(response.data));
   }
 
@@ -122,7 +128,9 @@ class MedicalDocumentsRemoteDataSourceImpl
     );
     final value = _responseMap(response.data)['downloadUrl']?.toString();
     final uri = value == null ? null : Uri.tryParse(value);
-    if (uri == null) {
+    if (uri == null ||
+        (uri.scheme != 'https' && uri.scheme != 'http') ||
+        uri.host.isEmpty) {
       throw const FormatException('El servidor no devolvió una URL válida.');
     }
     return uri;

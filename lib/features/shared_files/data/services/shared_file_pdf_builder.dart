@@ -41,16 +41,23 @@ class SharedFilePdfBuilder {
     final logo = logoBytes == null ? null : pw.MemoryImage(logoBytes);
 
     for (final analysis in analyses) {
+      final firstPageIndex = document.document.pdfPageList.pages.length;
+      var analysisPagesCount = 0;
       document.addPage(
         pw.MultiPage(
           pageFormat: PdfPageFormat.a4,
           margin: const pw.EdgeInsets.fromLTRB(56, 50, 56, 42),
           theme: theme,
           header: (_) => _pageHeader(analysis, logo),
-          footer: (context) => _pageFooter(context),
+          footer: (context) => _pageFooter(
+            pageNumber: context.pageNumber - firstPageIndex,
+            pagesCount: analysisPagesCount == 0 ? 1 : analysisPagesCount,
+          ),
           build: (_) => _documentContent(analysis),
         ),
       );
+      analysisPagesCount =
+          document.document.pdfPageList.pages.length - firstPageIndex;
     }
     return document.save();
   }
@@ -134,6 +141,12 @@ class SharedFilePdfBuilder {
   }
 
   List<pw.Widget> _documentContent(SharedFileAnalysisEntity analysis) {
+    final regularSections = analysis.sections
+        .where((section) => !_isAdditionalInformation(section))
+        .toList(growable: false);
+    final additionalInformationSections = analysis.sections
+        .where(_isAdditionalInformation)
+        .toList(growable: false);
     final widgets = <pw.Widget>[
       if (analysis.date != null ||
           (analysis.sourceDateText?.trim().isNotEmpty ?? false))
@@ -195,7 +208,7 @@ class SharedFilePdfBuilder {
             for (final detail in analysis.patient.additionalDetails)
               (detail.label, detail.value),
           ],
-          columns: 3,
+          columns: 2,
         ),
       ]);
     }
@@ -207,7 +220,7 @@ class SharedFilePdfBuilder {
       ]);
     }
 
-    for (final section in analysis.sections) {
+    for (final section in regularSections) {
       widgets.addAll([
         pw.SizedBox(height: _sectionGap),
         _analysisSection(section, analysis.originalUrl),
@@ -236,6 +249,13 @@ class SharedFilePdfBuilder {
           analysis.observations!.trim(),
           analysis.originalUrl,
         ),
+      ]);
+    }
+
+    for (final section in additionalInformationSections) {
+      widgets.addAll([
+        pw.SizedBox(height: _sectionGap),
+        _analysisSection(section, analysis.originalUrl),
       ]);
     }
     return widgets;
@@ -350,7 +370,7 @@ class SharedFilePdfBuilder {
       children: [
         _sectionTitle(section.title),
         if (details.isNotEmpty || body.isNotEmpty) pw.SizedBox(height: 10),
-        if (details.isNotEmpty) _detailGrid(details, columns: 2),
+        if (details.isNotEmpty) _detailGrid(details, columns: 1),
         if (details.isNotEmpty && body.isNotEmpty) pw.SizedBox(height: 6),
         if (body.isNotEmpty) _bodyText(body),
         if (_isWebUrl(originalUrl)) ...[
@@ -400,7 +420,7 @@ class SharedFilePdfBuilder {
                   .where((detail) => detail.hasData)
                   .map((detail) => (detail.label, detail.value))
                   .toList(growable: false),
-              columns: 2,
+              columns: 1,
             ),
           ),
         if (_isWebUrl(item.originalUrl)) ...[
@@ -457,14 +477,19 @@ class SharedFilePdfBuilder {
     );
   }
 
-  pw.Widget _pageFooter(pw.Context context) {
+  pw.Widget _pageFooter({required int pageNumber, required int pagesCount}) {
     return pw.Align(
       alignment: pw.Alignment.centerRight,
       child: pw.Text(
-        'Pág. ${context.pageNumber} de ${context.pagesCount}',
+        '$pageNumber-$pagesCount',
         style: pw.TextStyle(fontSize: 8, color: _secondary),
       ),
     );
+  }
+
+  bool _isAdditionalInformation(SharedFileAnalysisSectionEntity section) {
+    final title = section.title.trim().toLowerCase();
+    return title == 'información adicional' || title == 'informacion adicional';
   }
 
   bool _isWebUrl(String? value) {

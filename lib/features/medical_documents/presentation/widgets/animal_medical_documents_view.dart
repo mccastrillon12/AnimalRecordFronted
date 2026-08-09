@@ -456,14 +456,6 @@ String _documentDescription(MedicalDocumentEntity document) {
       if (value.isNotEmpty) return value;
     }
   }
-  final summary = extraction?.summary?.trim() ?? '';
-  if (summary.isNotEmpty) return summary;
-  for (final detected in document.detectedCategories) {
-    if (detected.category == document.finalCategory &&
-        (detected.summary?.trim().isNotEmpty ?? false)) {
-      return detected.summary!.trim();
-    }
-  }
   return '';
 }
 
@@ -483,7 +475,6 @@ String _searchableDocumentText(MedicalDocumentEntity document) {
   return [
     document.originalFileName,
     document.finalCategory?.label,
-    extraction?.summary,
     extraction?.documentDate,
     ...?extraction?.patientHints,
     ...?extraction?.diagnoses.expand(_itemSearchValues),

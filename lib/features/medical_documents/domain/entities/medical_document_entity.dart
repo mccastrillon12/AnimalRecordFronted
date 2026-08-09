@@ -1,5 +1,7 @@
 import 'package:equatable/equatable.dart';
 
+const _unchangedMedicalField = Object();
+
 enum MedicalDocumentCategory {
   prescription('PRESCRIPTION', 'Fórmula médica'),
   medicalOrder('MEDICAL_ORDER', 'Orden médica'),
@@ -130,12 +132,161 @@ class MedicalDocumentItemEntity extends Equatable {
   List<Object?> get props => [id, confidence, source, fields];
 }
 
+class MedicalDocumentPatientEntity extends Equatable {
+  final String? name;
+  final String? identifier;
+  final String? species;
+  final String? breed;
+  final String? sex;
+  final String? color;
+  final String? size;
+  final String? reproductiveStatus;
+  final String? age;
+  final String? birthDate;
+  final String? weight;
+  final String? microchip;
+
+  const MedicalDocumentPatientEntity({
+    this.name,
+    this.identifier,
+    this.species,
+    this.breed,
+    this.sex,
+    this.color,
+    this.size,
+    this.reproductiveStatus,
+    this.age,
+    this.birthDate,
+    this.weight,
+    this.microchip,
+  });
+
+  bool get hasData =>
+      props.any((value) => value?.toString().trim().isNotEmpty == true);
+
+  MedicalDocumentPatientEntity copyWith({
+    Object? name = _unchangedMedicalField,
+    Object? identifier = _unchangedMedicalField,
+    Object? species = _unchangedMedicalField,
+    Object? breed = _unchangedMedicalField,
+    Object? sex = _unchangedMedicalField,
+    Object? color = _unchangedMedicalField,
+    Object? size = _unchangedMedicalField,
+    Object? reproductiveStatus = _unchangedMedicalField,
+    Object? age = _unchangedMedicalField,
+    Object? birthDate = _unchangedMedicalField,
+    Object? weight = _unchangedMedicalField,
+    Object? microchip = _unchangedMedicalField,
+  }) {
+    return MedicalDocumentPatientEntity(
+      name: identical(name, _unchangedMedicalField)
+          ? this.name
+          : name as String?,
+      identifier: identical(identifier, _unchangedMedicalField)
+          ? this.identifier
+          : identifier as String?,
+      species: identical(species, _unchangedMedicalField)
+          ? this.species
+          : species as String?,
+      breed: identical(breed, _unchangedMedicalField)
+          ? this.breed
+          : breed as String?,
+      sex: identical(sex, _unchangedMedicalField) ? this.sex : sex as String?,
+      color: identical(color, _unchangedMedicalField)
+          ? this.color
+          : color as String?,
+      size: identical(size, _unchangedMedicalField)
+          ? this.size
+          : size as String?,
+      reproductiveStatus: identical(reproductiveStatus, _unchangedMedicalField)
+          ? this.reproductiveStatus
+          : reproductiveStatus as String?,
+      age: identical(age, _unchangedMedicalField) ? this.age : age as String?,
+      birthDate: identical(birthDate, _unchangedMedicalField)
+          ? this.birthDate
+          : birthDate as String?,
+      weight: identical(weight, _unchangedMedicalField)
+          ? this.weight
+          : weight as String?,
+      microchip: identical(microchip, _unchangedMedicalField)
+          ? this.microchip
+          : microchip as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [
+    name,
+    identifier,
+    species,
+    breed,
+    sex,
+    color,
+    size,
+    reproductiveStatus,
+    age,
+    birthDate,
+    weight,
+    microchip,
+  ];
+}
+
+class MedicalDocumentOwnerEntity extends Equatable {
+  final String? name;
+  final String? identification;
+  final String? phone;
+  final String? email;
+  final String? address;
+
+  const MedicalDocumentOwnerEntity({
+    this.name,
+    this.identification,
+    this.phone,
+    this.email,
+    this.address,
+  });
+
+  bool get hasData =>
+      props.any((value) => value?.toString().trim().isNotEmpty == true);
+
+  MedicalDocumentOwnerEntity copyWith({
+    Object? name = _unchangedMedicalField,
+    Object? identification = _unchangedMedicalField,
+    Object? phone = _unchangedMedicalField,
+    Object? email = _unchangedMedicalField,
+    Object? address = _unchangedMedicalField,
+  }) {
+    return MedicalDocumentOwnerEntity(
+      name: identical(name, _unchangedMedicalField)
+          ? this.name
+          : name as String?,
+      identification: identical(identification, _unchangedMedicalField)
+          ? this.identification
+          : identification as String?,
+      phone: identical(phone, _unchangedMedicalField)
+          ? this.phone
+          : phone as String?,
+      email: identical(email, _unchangedMedicalField)
+          ? this.email
+          : email as String?,
+      address: identical(address, _unchangedMedicalField)
+          ? this.address
+          : address as String?,
+    );
+  }
+
+  @override
+  List<Object?> get props => [name, identification, phone, email, address];
+}
+
 class MedicalDocumentExtractionEntity extends Equatable {
   final MedicalDocumentCategory documentType;
   final double? documentTypeConfidence;
   final String? summary;
   final String? documentDate;
   final Map<String, dynamic>? issuer;
+  final MedicalDocumentPatientEntity? patient;
+  final MedicalDocumentOwnerEntity? owner;
   final List<String> patientHints;
   final List<MedicalDocumentItemEntity> diagnoses;
   final List<MedicalDocumentItemEntity> medications;
@@ -153,6 +304,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
     this.summary,
     this.documentDate,
     this.issuer,
+    this.patient,
+    this.owner,
     this.patientHints = const [],
     this.diagnoses = const [],
     this.medications = const [],
@@ -183,6 +336,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
     String? summary,
     String? documentDate,
     Map<String, dynamic>? issuer,
+    MedicalDocumentPatientEntity? patient,
+    MedicalDocumentOwnerEntity? owner,
     List<String>? patientHints,
     List<MedicalDocumentItemEntity>? diagnoses,
     List<MedicalDocumentItemEntity>? medications,
@@ -201,6 +356,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
       summary: summary ?? this.summary,
       documentDate: documentDate ?? this.documentDate,
       issuer: issuer ?? this.issuer,
+      patient: patient ?? this.patient,
+      owner: owner ?? this.owner,
       patientHints: patientHints ?? this.patientHints,
       diagnoses: diagnoses ?? this.diagnoses,
       medications: medications ?? this.medications,
@@ -222,37 +379,43 @@ class MedicalDocumentExtractionEntity extends Equatable {
       documentTypeConfidence: documentTypeConfidence,
       summary: summary,
       documentDate: documentDate,
-      issuer: issuer,
-      patientHints: patientHints,
+      issuer: issuer == null ? null : _deepCopyMap(issuer!),
+      patient: patient,
+      owner: owner,
+      patientHints: List.unmodifiable(patientHints),
       diagnoses: switch (category) {
         MedicalDocumentCategory.prescription ||
         MedicalDocumentCategory.medicalOrder ||
         MedicalDocumentCategory.referral ||
-        MedicalDocumentCategory.clinicalHistory => diagnoses,
+        MedicalDocumentCategory.clinicalHistory => _copyItems(diagnoses),
         _ => const [],
       },
       medications: switch (category) {
         MedicalDocumentCategory.prescription ||
-        MedicalDocumentCategory.referral => medications,
+        MedicalDocumentCategory.referral => _copyItems(medications),
         _ => const [],
       },
       vaccinations: category == MedicalDocumentCategory.vaccinationCard
-          ? vaccinations
+          ? _copyItems(vaccinations)
           : const [],
       medicalOrders: category == MedicalDocumentCategory.medicalOrder
-          ? medicalOrders
+          ? _copyItems(medicalOrders)
           : const [],
       clinicalHistory: category == MedicalDocumentCategory.clinicalHistory
-          ? clinicalHistory
+          ? clinicalHistory == null
+                ? null
+                : _deepCopyMap(clinicalHistory!)
           : null,
       diagnosticResults:
           category == MedicalDocumentCategory.referral ||
               category == MedicalDocumentCategory.clinicalHistory
-          ? diagnosticResults
+          ? _copyItems(diagnosticResults)
           : const [],
-      referral: category == MedicalDocumentCategory.referral ? referral : null,
-      additionalFields: additionalFields,
-      warnings: warnings,
+      referral: category == MedicalDocumentCategory.referral && referral != null
+          ? _deepCopyMap(referral!)
+          : null,
+      additionalFields: _deepCopyMap(additionalFields),
+      warnings: List.unmodifiable(warnings),
     );
   }
 
@@ -263,6 +426,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
     summary,
     documentDate,
     issuer,
+    patient,
+    owner,
     patientHints,
     diagnoses,
     medications,
@@ -274,6 +439,36 @@ class MedicalDocumentExtractionEntity extends Equatable {
     additionalFields,
     warnings,
   ];
+}
+
+List<MedicalDocumentItemEntity> _copyItems(
+  List<MedicalDocumentItemEntity> items,
+) => List.unmodifiable(
+  items.map(
+    (item) => MedicalDocumentItemEntity(
+      id: item.id,
+      confidence: item.confidence,
+      source: item.source,
+      fields: _deepCopyMap(item.fields),
+    ),
+  ),
+);
+
+Map<String, dynamic> _deepCopyMap(Map<String, dynamic> values) => {
+  for (final entry in values.entries) entry.key: _deepCopyValue(entry.value),
+};
+
+Object? _deepCopyValue(Object? value) {
+  if (value is Map) {
+    return {
+      for (final entry in value.entries)
+        entry.key.toString(): _deepCopyValue(entry.value),
+    };
+  }
+  if (value is Iterable) {
+    return value.map(_deepCopyValue).toList(growable: false);
+  }
+  return value;
 }
 
 class MedicalDocumentAssignmentEntity extends Equatable {

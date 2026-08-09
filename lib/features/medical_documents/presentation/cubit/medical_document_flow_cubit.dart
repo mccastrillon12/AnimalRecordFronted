@@ -8,8 +8,10 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:uuid/uuid.dart';
 
 typedef MedicalDocumentPollDelay = Future<void> Function(Duration duration);
+typedef MedicalDocumentItemIdGenerator = String Function();
 
 class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   static const pollDelays = [
@@ -23,6 +25,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   final ReviewMedicalDocumentUseCase reviewUseCase;
   final PendingMedicalDocumentLocalDataSource pendingLocalDataSource;
   final MedicalDocumentPollDelay pollDelay;
+  final MedicalDocumentItemIdGenerator itemIdGenerator;
 
   int _pollGeneration = 0;
   bool _polling = false;
@@ -36,7 +39,9 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     required this.reviewUseCase,
     required this.pendingLocalDataSource,
     MedicalDocumentPollDelay? pollDelay,
+    MedicalDocumentItemIdGenerator? itemIdGenerator,
   }) : pollDelay = pollDelay ?? Future<void>.delayed,
+       itemIdGenerator = itemIdGenerator ?? const Uuid().v4,
        super(const MedicalDocumentFlowState());
 
   Future<void> startAnalysis({
@@ -44,15 +49,6 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     required List<String> animalIds,
     MedicalDocumentCategory? requestedCategory,
   }) async {
-    if (animalIds.isEmpty) {
-      emit(
-        state.copyWith(
-          phase: MedicalDocumentFlowPhase.failed,
-          message: 'Selecciona al menos un animal.',
-        ),
-      );
-      return;
-    }
     _pollGeneration++;
     emit(
       MedicalDocumentFlowState(
@@ -185,7 +181,6 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
           ),
         );
       case MedicalDocumentStatus.failed:
-        await pendingLocalDataSource.clear();
         emit(
           state.copyWith(
             phase: MedicalDocumentFlowPhase.failed,
@@ -263,6 +258,8 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     );
   }
 
+  String createDraftItemId() => itemIdGenerator();
+
   void updateAssignment(String animalId, List<String> extractedItemIds) {
     final validIds = state.draftExtraction?.extractedItemIds.toSet() ?? {};
     emit(
@@ -290,22 +287,24 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       ),
     );
     try {
+      final request = ReviewMedicalDocumentRequest.accept(
+        documentVersion: document.version,
+        finalCategory: category,
+        validatedExtraction: extraction.sanitizedFor(category),
+        assignments: document.animalIds
+            .map(
+              (animalId) => MedicalDocumentAssignmentEntity(
+                animalId: animalId,
+                extractedItemIds:
+                    state.assignmentsByAnimalId[animalId] ?? const [],
+              ),
+            )
+            .toList(growable: false),
+      );
       final reviewed = await reviewUseCase(
         document.id,
-        ReviewMedicalDocumentRequest.accept(
-          documentVersion: document.version,
-          finalCategory: category,
-          validatedExtraction: extraction.sanitizedFor(category),
-          assignments: document.animalIds
-              .map(
-                (animalId) => MedicalDocumentAssignmentEntity(
-                  animalId: animalId,
-                  extractedItemIds:
-                      state.assignmentsByAnimalId[animalId] ?? const [],
-                ),
-              )
-              .toList(growable: false),
-        ),
+        request,
+        originalAnimalIds: document.animalIds,
       );
       await _applyTerminalOrReviewState(reviewed);
     } on ApiException catch (error) {
@@ -363,11 +362,26 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     }
     emit(state.copyWith(phase: MedicalDocumentFlowPhase.submitting));
     try {
+      final request = ReviewMedicalDocumentRequest.reject(
+        documentVersion: document.version,
+      );
       final reviewed = await reviewUseCase(
         document.id,
-        ReviewMedicalDocumentRequest.reject(documentVersion: document.version),
+        request,
+        originalAnimalIds: document.animalIds,
       );
       await _applyTerminalOrReviewState(reviewed);
+    } on ApiException catch (error) {
+      if (error.statusCode == 409) {
+        await _handleVersionConflict(document.id);
+      } else {
+        emit(
+          state.copyWith(
+            phase: MedicalDocumentFlowPhase.reviewing,
+            message: error.message,
+          ),
+        );
+      }
     } catch (error) {
       emit(
         state.copyWith(
@@ -391,6 +405,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     _pollGeneration++;
     final document = state.remoteDocument;
     if (document?.status == MedicalDocumentStatus.reviewPending) {
+      final documentId = document!.id;
       emit(
         state.copyWith(
           phase: MedicalDocumentFlowPhase.submitting,
@@ -398,12 +413,26 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         ),
       );
       try {
-        await reviewUseCase(
-          document!.id,
-          ReviewMedicalDocumentRequest.reject(
-            documentVersion: document.version,
-          ),
+        final request = ReviewMedicalDocumentRequest.reject(
+          documentVersion: document.version,
         );
+        await reviewUseCase(
+          documentId,
+          request,
+          originalAnimalIds: document.animalIds,
+        );
+      } on ApiException catch (error) {
+        if (error.statusCode == 409) {
+          await _handleVersionConflict(documentId);
+        } else {
+          emit(
+            state.copyWith(
+              phase: MedicalDocumentFlowPhase.reviewing,
+              message: error.message,
+            ),
+          );
+        }
+        return false;
       } catch (error) {
         emit(
           state.copyWith(

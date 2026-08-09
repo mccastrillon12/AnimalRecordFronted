@@ -24,8 +24,12 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   required MedicalDocumentEntity document,
   required MedicalDocumentExtractionEntity extraction,
 }) {
-  final patient = _patient(document);
-  final tutor = _tutor(document.tutorDetails);
+  final patient = _patient(document, extraction.patient);
+  final tutor = _tutor(
+    extraction.owner == null
+        ? document.tutorDetails
+        : _ownerAsTutor(extraction.owner!),
+  );
   return SharedFileAnalysisEntity(
     documentType:
         document.finalCategory?.label ?? extraction.documentType.label,
@@ -107,6 +111,19 @@ SharedFileTutorAnalysisEntity _tutor(MedicalDocumentTutorEntity? tutor) {
   );
 }
 
+MedicalDocumentTutorEntity _ownerAsTutor(MedicalDocumentOwnerEntity owner) {
+  return MedicalDocumentTutorEntity(
+    name: owner.name ?? '',
+    identification: owner.identification ?? '',
+    phoneNumber: owner.phone ?? '',
+    additionalDetails: {
+      if (owner.email?.trim().isNotEmpty == true) 'email': owner.email!.trim(),
+      if (owner.address?.trim().isNotEmpty == true)
+        'address': owner.address!.trim(),
+    },
+  );
+}
+
 bool _isTutorNameKey(String key) {
   final normalized = key.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]'), '');
   return const {
@@ -140,7 +157,44 @@ String _documentNumber(String id) {
   String weight,
   List<SharedFileAnalysisDetailEntity> additionalDetails,
 })
-_patient(MedicalDocumentEntity document) {
+_patient(
+  MedicalDocumentEntity document,
+  MedicalDocumentPatientEntity? structuredPatient,
+) {
+  if (structuredPatient?.hasData ?? false) {
+    return (
+      name: structuredPatient!.name?.trim() ?? '',
+      code: structuredPatient.identifier?.trim() ?? '',
+      species: structuredPatient.species?.trim() ?? '',
+      breed: structuredPatient.breed?.trim() ?? '',
+      sex: structuredPatient.sex?.trim() ?? '',
+      color: structuredPatient.color?.trim() ?? '',
+      age: structuredPatient.age?.trim() ?? '',
+      weight: structuredPatient.weight?.trim() ?? '',
+      additionalDetails: [
+        if (structuredPatient.size?.trim().isNotEmpty == true)
+          SharedFileAnalysisDetailEntity(
+            label: 'size',
+            value: structuredPatient.size!.trim(),
+          ),
+        if (structuredPatient.reproductiveStatus?.trim().isNotEmpty == true)
+          SharedFileAnalysisDetailEntity(
+            label: 'reproductiveStatus',
+            value: structuredPatient.reproductiveStatus!.trim(),
+          ),
+        if (structuredPatient.birthDate?.trim().isNotEmpty == true)
+          SharedFileAnalysisDetailEntity(
+            label: 'birthDate',
+            value: structuredPatient.birthDate!.trim(),
+          ),
+        if (structuredPatient.microchip?.trim().isNotEmpty == true)
+          SharedFileAnalysisDetailEntity(
+            label: 'microchip',
+            value: structuredPatient.microchip!.trim(),
+          ),
+      ],
+    );
+  }
   MedicalDocumentAnimalEntity? backendAnimal;
   for (final animal in document.animalDetails) {
     if (animal.id.isEmpty || document.animalIds.contains(animal.id)) {
@@ -371,13 +425,10 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
       ),
     ..._additionalFieldSections(
       extraction.additionalFields,
-      body: [
-        if (extraction.summary?.trim().isNotEmpty ?? false)
-          _sentenceLines(extraction.summary!),
-        ...extraction.warnings
-            .map(_sentenceLines)
-            .where((warning) => warning.isNotEmpty),
-      ].join('\n'),
+      body: extraction.warnings
+          .map(_sentenceLines)
+          .where((warning) => warning.isNotEmpty)
+          .join('\n'),
     ),
   ];
   return sections.where((section) => section.hasData).toList(growable: false);

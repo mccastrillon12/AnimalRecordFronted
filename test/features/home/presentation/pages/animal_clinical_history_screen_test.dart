@@ -97,11 +97,18 @@ void main() {
     final searchField = tester.widget<TextField>(
       find.byKey(const Key('clinical-history-search-field')),
     );
+    expect(searchField.enabled, isFalse);
+    expect(searchField.decoration?.fillColor, AppColors.white);
     final enabledBorder = searchField.decoration?.enabledBorder;
+    final disabledBorder = searchField.decoration?.disabledBorder;
     expect(enabledBorder, isA<OutlineInputBorder>());
     expect(
       (enabledBorder! as OutlineInputBorder).borderSide,
-      const BorderSide(color: AppColors.greyDelineante, width: 1),
+      const BorderSide(color: AppColors.greyBordes, width: 1),
+    );
+    expect(
+      (disabledBorder! as OutlineInputBorder).borderSide,
+      const BorderSide(color: AppColors.greyBordes, width: 1),
     );
     final headerDescriptionGap = tester.widget<SizedBox>(
       find.byKey(const Key('clinical-history-header-description-gap')),
@@ -267,6 +274,20 @@ void main() {
     expect(find.text('Documentos:'), findsOneWidget);
     expect(find.text('2'), findsOneWidget);
 
+    final search = find.byKey(const Key('clinical-history-search-field'));
+    expect(tester.widget<TextField>(search).enabled, isTrue);
+    await tester.enterText(search, 'history-2.pdf');
+    await tester.pump();
+    expect(find.text('Barbara James'), findsOneWidget);
+
+    await tester.enterText(search, 'sin coincidencias');
+    await tester.pump();
+    expect(find.text('Barbara James'), findsNothing);
+    expect(find.text('No se encontraron historias clínicas.'), findsOneWidget);
+
+    await tester.enterText(search, '');
+    await tester.pump();
+
     await tester.tap(find.text('Ver historias'));
     await tester.pumpAndSettle();
 
@@ -274,6 +295,10 @@ void main() {
     expect(find.text('Historia clínica 1'), findsOneWidget);
     expect(find.text('Historia clínica 2'), findsOneWidget);
     expect(find.text('Descargar todo'), findsOneWidget);
+    expect(
+      find.byKey(const Key('animal-document-upload-menu')),
+      findsOneWidget,
+    );
 
     await tester.tap(find.byKey(const Key('clinical-history-menu-history-1')));
     await tester.pumpAndSettle();

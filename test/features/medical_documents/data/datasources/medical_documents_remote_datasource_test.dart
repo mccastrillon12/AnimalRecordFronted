@@ -107,6 +107,35 @@ void main() {
     ).called(2);
   });
 
+  test('rejects an analyze response that does not use HTTP 202', () async {
+    when(
+      () =>
+          apiClient.post<Map<String, dynamic>>(any(), data: any(named: 'data')),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        data: _response(status: 'ANALYZING'),
+        requestOptions: RequestOptions(path: '/medical-documents/analyze'),
+        statusCode: 200,
+      ),
+    );
+
+    final future = dataSource.analyze(
+      AnalyzeMedicalDocumentRequest(
+        file: SharedFileEntity(
+          path: '',
+          name: 'formula.pdf',
+          mimeType: 'application/pdf',
+          type: SharedFileType.pdf,
+          size: 3,
+          bytes: Uint8List.fromList([1, 2, 3]),
+        ),
+        animalIds: const ['animal-1'],
+      ),
+    );
+
+    await expectLater(future, throwsA(isA<FormatException>()));
+  });
+
   test('lists accepted documents using the final-category query', () async {
     when(
       () => apiClient.get<List<dynamic>>(
@@ -160,6 +189,22 @@ void main() {
       ).called(2);
     },
   );
+
+  test('rejects a malformed original download URL', () async {
+    when(() => apiClient.get<Map<String, dynamic>>(any())).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        data: {'downloadUrl': '/relative/original.pdf'},
+        requestOptions: RequestOptions(
+          path: '/medical-documents/document-1/download-url',
+        ),
+      ),
+    );
+
+    await expectLater(
+      dataSource.getDownloadUri('document-1'),
+      throwsA(isA<FormatException>()),
+    );
+  });
 }
 
 Map<String, dynamic> _response({required String status}) => {

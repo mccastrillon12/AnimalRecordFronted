@@ -104,12 +104,27 @@ class _AnimalClinicalHistoryScreenState
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.l,
                             ),
-                            child: AnimalRecordSearchField(
-                              controller: _searchController,
-                              fieldKey: const Key(
-                                'clinical-history-search-field',
-                              ),
-                            ),
+                            child:
+                                BlocSelector<
+                                  AnimalMedicalDocumentsCubit,
+                                  AnimalMedicalDocumentsState,
+                                  bool
+                                >(
+                                  selector: (state) =>
+                                      state is AnimalMedicalDocumentsLoaded &&
+                                      state.category ==
+                                          MedicalDocumentCategory
+                                              .clinicalHistory &&
+                                      state.documents.isNotEmpty,
+                                  builder: (context, hasRecords) =>
+                                      AnimalRecordSearchField(
+                                        controller: _searchController,
+                                        enabled: hasRecords,
+                                        fieldKey: const Key(
+                                          'clinical-history-search-field',
+                                        ),
+                                      ),
+                                ),
                           ),
                           Expanded(
                             child: ClinicalHistoryGroupsView(

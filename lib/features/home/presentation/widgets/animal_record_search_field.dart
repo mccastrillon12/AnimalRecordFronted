@@ -10,13 +10,15 @@ class AnimalRecordSearchField extends StatelessWidget {
   final Key? fieldKey;
   final Color fillColor;
   final Color borderColor;
+  final bool enabled;
 
   const AnimalRecordSearchField({
     super.key,
     required this.controller,
     this.fieldKey,
-    this.fillColor = AppColors.bgBlancoAntiFlash,
-    this.borderColor = AppColors.greyDelineante,
+    this.fillColor = AppColors.white,
+    this.borderColor = AppColors.greyBordes,
+    this.enabled = true,
   });
 
   @override
@@ -25,12 +27,17 @@ class AnimalRecordSearchField extends StatelessWidget {
       borderRadius: AppBorders.small(),
       borderSide: BorderSide(color: borderColor, width: 1),
     );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: AppBorders.small(),
+      borderSide: const BorderSide(color: AppColors.primaryFrances, width: 1),
+    );
 
     return SizedBox(
       height: AppSpacing.iconSizeMedium,
       child: TextField(
         key: fieldKey,
         controller: controller,
+        enabled: enabled,
         style: AppTypography.body4,
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
@@ -46,7 +53,7 @@ class AnimalRecordSearchField extends StatelessWidget {
               width: 20,
               height: 20,
               colorFilter: const ColorFilter.mode(
-                AppColors.greyBordes,
+                AppColors.greyMedio,
                 BlendMode.srcIn,
               ),
             ),
@@ -54,7 +61,8 @@ class AnimalRecordSearchField extends StatelessWidget {
           prefixIconConstraints: const BoxConstraints(),
           border: border,
           enabledBorder: border,
-          focusedBorder: border,
+          disabledBorder: border,
+          focusedBorder: focusedBorder,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),
       ),

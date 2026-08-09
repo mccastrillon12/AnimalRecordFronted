@@ -59,5 +59,31 @@ void main() {
       expect(result.sex, 'macho');
       expect(result.ageDisplay, '1-3 años');
     });
+
+    test('excluye de la tarjeta los diagnósticos extraídos de documentos', () {
+      const entity = AnimalEntity(
+        id: 'animal-9012',
+        name: 'Manchas',
+        code: 'AR-B017',
+        species: 'BOVINE',
+        breed: 'Cebú',
+        sex: 'MALE',
+        reproductiveStatus: 'INTACT',
+        hasChip: false,
+        isAssociationMember: false,
+        temperament: ['Agresivo'],
+        diagnosis: [
+          'Ninguno/Desconocido',
+          'Enteritis linfoplasmocitaria',
+          'Colitis',
+          'Enterocolitis crónica',
+        ],
+        ownerId: 'owner-1',
+      );
+
+      final result = AnimalModel.fromEntity(entity);
+
+      expect(result.diagnosis, const ['Ninguno/Desconocido']);
+    });
   });
 }

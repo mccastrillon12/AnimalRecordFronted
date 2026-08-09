@@ -2,6 +2,20 @@ import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 
 /// Represents an animal registered in the system.
 class AnimalModel {
+  static const _profileDiagnosisValues = <String>{
+    'none',
+    'unknown',
+    'ninguno',
+    'ninguno/desconocido',
+    'mielopatía degenerativa',
+    'displasia de cadera',
+    'leishmaniasis',
+    'otro',
+    'degenerative_myelopathy',
+    'hip_dysplasia',
+    'other',
+  };
+
   final String id;
   final String name;
   final String code;
@@ -184,7 +198,7 @@ class AnimalModel {
       imageUrl: entity.profilePictureUrl,
       temperament: entity.temperament,
       allergies: entity.allergies,
-      diagnosis: entity.diagnosis,
+      diagnosis: _profileDiagnoses(entity.diagnosis),
       species: entity.species,
       reproductiveStatus: entity.reproductiveStatus,
       birthdate: entity.birthdate,
@@ -215,6 +229,15 @@ class AnimalModel {
       isActive: entity.isActive,
       deactivationReason: entity.deactivationReason,
     );
+  }
+
+  static List<String> _profileDiagnoses(List<String> diagnoses) {
+    return diagnoses
+        .where(
+          (diagnosis) =>
+              _profileDiagnosisValues.contains(diagnosis.trim().toLowerCase()),
+        )
+        .toList(growable: false);
   }
 
   String get sexDisplay {

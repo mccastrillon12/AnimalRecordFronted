@@ -9,6 +9,7 @@ import 'package:animal_record/core/widgets/display/app_user_avatar.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
@@ -61,23 +62,24 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
 
         final query = searchQuery.trim().toLowerCase();
         final currentUser = _currentUser(context);
-        final groups =
-            _groups(
-                  state.documents,
-                  currentUserName: currentUser.name.isNotEmpty
-                      ? currentUser.name
-                      : (animal.ownerName?.trim().isNotEmpty == true
-                            ? animal.ownerName!.trim()
-                            : 'Usuario'),
-                  currentUserPicture: currentUser.picture,
-                )
-                .where(
-                  (group) =>
-                      query.isEmpty ||
-                      group.searchText.toLowerCase().contains(query),
-                )
-                .toList(growable: false);
-        if (groups.isEmpty) return const _ClinicalHistoryEmptyState();
+        final allGroups = _groups(
+          state.documents,
+          currentUserName: currentUser.name.isNotEmpty
+              ? currentUser.name
+              : (animal.ownerName?.trim().isNotEmpty == true
+                    ? animal.ownerName!.trim()
+                    : 'Usuario'),
+          currentUserPicture: currentUser.picture,
+        );
+        if (allGroups.isEmpty) return const _ClinicalHistoryEmptyState();
+        final groups = allGroups
+            .where(
+              (group) =>
+                  query.isEmpty ||
+                  group.searchText.toLowerCase().contains(query),
+            )
+            .toList(growable: false);
+        if (groups.isEmpty) return const _ClinicalHistoryNoResultsState();
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.l,
@@ -146,93 +148,118 @@ class _ClinicalHistoryGroupScreenState
                     topRight: Radius.circular(AppBorders.radiusXXLarge),
                   ),
                 ),
-                child: Column(
+                clipBehavior: Clip.antiAlias,
+                child: Stack(
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.l,
-                        AppSpacing.xl,
-                        AppSpacing.l,
-                        0,
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          IconButton(
-                            key: const Key('clinical-history-group-back'),
-                            onPressed: () => Navigator.pop(context),
-                            icon: const Icon(Icons.arrow_back),
-                            color: AppColors.greyIconos,
+                    Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(
+                            AppSpacing.l,
+                            AppSpacing.xl,
+                            AppSpacing.l,
+                            0,
                           ),
-                          IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.close),
-                            color: AppColors.greyIconos,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              IconButton(
+                                key: const Key('clinical-history-group-back'),
+                                onPressed: () => Navigator.pop(context),
+                                icon: const Icon(Icons.arrow_back),
+                                color: AppColors.greyIconos,
+                              ),
+                              IconButton(
+                                onPressed: () => Navigator.of(context).pop(),
+                                icon: const Icon(Icons.close),
+                                color: AppColors.greyIconos,
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    _GroupHeading(group: widget.group, animal: widget.animal),
-                    const SizedBox(height: AppSpacing.xl),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.l,
-                      ),
-                      child: Text(
-                        'Encuentre todas las historias clínicas realizadas por '
-                        'el veterinario seleccionado.',
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.greyTextos,
-                          height: 1.45,
                         ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.l,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: TextButton.icon(
-                          key: const Key('download-all-clinical-histories'),
-                          onPressed: _downloading ? null : _downloadAll,
-                          icon: _downloading
-                              ? const SizedBox.square(
-                                  dimension: 18,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
+                        const SizedBox(height: AppSpacing.m),
+                        _GroupHeading(
+                          group: widget.group,
+                          animal: widget.animal,
+                        ),
+                        const SizedBox(height: AppSpacing.xl),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.l,
+                          ),
+                          child: Text(
+                            'Encuentre todas las historias clínicas realizadas por '
+                            'el veterinario seleccionado.',
+                            style: AppTypography.body4.copyWith(
+                              color: AppColors.greyTextos,
+                              height: 1.45,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: AppSpacing.l,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton.icon(
+                              key: const Key('download-all-clinical-histories'),
+                              onPressed: _downloading ? null : _downloadAll,
+                              icon: _downloading
+                                  ? const SizedBox.square(
+                                      dimension: 18,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                      ),
+                                    )
+                                  : SvgPicture.asset(
+                                      AppIcons.receiveSquare,
+                                      width: 20,
+                                      height: 20,
+                                    ),
+                              label: const Text('Descargar todo'),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.fromLTRB(
+                              AppSpacing.l,
+                              AppSpacing.xs,
+                              AppSpacing.l,
+                              88,
+                            ),
+                            itemCount: widget.group.documents.length,
+                            separatorBuilder: (_, _) =>
+                                const SizedBox(height: AppSpacing.m),
+                            itemBuilder: (context, index) =>
+                                _ClinicalHistoryCard(
+                                  index: index,
+                                  document: widget.group.documents[index],
+                                  onTap: () => _showDocument(
+                                    widget.group.documents[index],
                                   ),
-                                )
-                              : SvgPicture.asset(
-                                  AppIcons.receiveSquare,
-                                  width: 20,
-                                  height: 20,
+                                  onDownload: () => _downloadDocument(
+                                    widget.group.documents[index],
+                                  ),
                                 ),
-                          label: const Text('Descargar todo'),
+                          ),
                         ),
-                      ),
+                      ],
                     ),
-                    Expanded(
-                      child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(
-                          AppSpacing.l,
-                          AppSpacing.xs,
-                          AppSpacing.l,
-                          AppSpacing.xl,
-                        ),
-                        itemCount: widget.group.documents.length,
-                        separatorBuilder: (_, _) =>
-                            const SizedBox(height: AppSpacing.m),
-                        itemBuilder: (context, index) => _ClinicalHistoryCard(
-                          index: index,
-                          document: widget.group.documents[index],
-                          onTap: () =>
-                              _showDocument(widget.group.documents[index]),
-                          onDownload: () =>
-                              _downloadDocument(widget.group.documents[index]),
-                        ),
+                    Positioned(
+                      right: AppSpacing.l,
+                      bottom: AppSpacing.l,
+                      child: AnimalDocumentUploadMenu(
+                        animalId: widget.animal.id,
+                        requestedCategory:
+                            MedicalDocumentCategory.clinicalHistory,
+                        onUploaded: () =>
+                            context.read<AnimalMedicalDocumentsCubit>().load(
+                              widget.animal.id,
+                              category: MedicalDocumentCategory.clinicalHistory,
+                            ),
                       ),
                     ),
                   ],
@@ -670,6 +697,24 @@ class _ClinicalHistoryEmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ClinicalHistoryNoResultsState extends StatelessWidget {
+  const _ClinicalHistoryNoResultsState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 100),
+        child: Text(
+          'No se encontraron historias clínicas.',
+          style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
+          textAlign: TextAlign.center,
         ),
       ),
     );

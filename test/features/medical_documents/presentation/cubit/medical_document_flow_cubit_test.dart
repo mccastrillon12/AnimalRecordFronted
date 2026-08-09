@@ -9,6 +9,9 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/medi
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+const animal1Id = '11111111-1111-4111-8111-111111111111';
+const animal2Id = '22222222-2222-4222-8222-222222222222';
+
 void main() {
   const file = SharedFileEntity(
     path: '/tmp/formula.pdf',
@@ -32,7 +35,7 @@ void main() {
 
       await cubit.startAnalysis(
         file: file,
-        animalIds: const ['animal-1', 'animal-2'],
+        animalIds: const [animal1Id, animal2Id],
         requestedCategory: MedicalDocumentCategory.prescription,
       );
 
@@ -43,13 +46,13 @@ void main() {
       );
       expect(cubit.state.draftExtraction?.medications, hasLength(1));
       expect(cubit.state.draftExtraction?.vaccinations, isEmpty);
-      expect(cubit.state.assignmentsByAnimalId['animal-1'], [
+      expect(cubit.state.assignmentsByAnimalId[animal1Id], [
         'diagnosis-1',
         'medication-1',
       ]);
       expect(pending.value?.documentId, 'document-1');
 
-      cubit.updateAssignment('animal-2', const []);
+      cubit.updateAssignment(animal2Id, const []);
       await cubit.accept();
 
       expect(cubit.state.phase, MedicalDocumentFlowPhase.completed);
@@ -85,7 +88,7 @@ void main() {
 
       await cubit.startAnalysis(
         file: file,
-        animalIds: const ['animal-1', 'animal-2'],
+        animalIds: const [animal1Id, animal2Id],
         requestedCategory: MedicalDocumentCategory.prescription,
       );
       final draftBeforeConflict = cubit.state.draftExtraction;
@@ -115,7 +118,7 @@ void main() {
 
       await cubit.startAnalysis(
         file: file,
-        animalIds: const ['animal-1', 'animal-2'],
+        animalIds: const [animal1Id, animal2Id],
       );
       expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
 
@@ -126,7 +129,7 @@ void main() {
 
       await cubit.startAnalysis(
         file: file,
-        animalIds: const ['animal-1', 'animal-2'],
+        animalIds: const [animal1Id, animal2Id],
       );
       expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
       expect(repository.analyzeCalls, 2);
@@ -145,7 +148,7 @@ void main() {
 
     await cubit.startAnalysis(
       file: file,
-      animalIds: const ['animal-1', 'animal-2'],
+      animalIds: const [animal1Id, animal2Id],
     );
     expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
 
@@ -160,6 +163,171 @@ void main() {
     expect(cubit.state.remoteDocument, isNull);
     expect(pending.value, isNull);
   });
+
+  test(
+    'keeps the pending id after a polling error and resumes with GET',
+    () async {
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: const [],
+      );
+      final pending = _MemoryPendingDataSource();
+      final cubit = _buildCubit(repository, pending);
+      addTearDown(cubit.close);
+
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+      );
+
+      expect(cubit.state.phase, MedicalDocumentFlowPhase.pollingPaused);
+      expect(pending.value?.documentId, 'document-1');
+
+      repository.getResponses.add(
+        _document(MedicalDocumentStatus.reviewPending),
+      );
+      await cubit.resumePolling();
+
+      expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
+      expect(repository.analyzeCalls, 1);
+    },
+  );
+
+  test('restores a persisted flow with GET without uploading again', () async {
+    final repository = _FakeMedicalDocumentsRepository(
+      analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+      getResponses: [_document(MedicalDocumentStatus.reviewPending)],
+    );
+    final pending = _MemoryPendingDataSource()
+      ..value = PendingMedicalDocumentFlow(
+        documentId: 'document-1',
+        animalIds: const [animal1Id, animal2Id],
+        startedAt: DateTime.utc(2026, 8, 8),
+        requestedCategory: MedicalDocumentCategory.prescription,
+      );
+    final cubit = _buildCubit(repository, pending);
+    addTearDown(cubit.close);
+
+    final restored = await cubit.resumePending();
+
+    expect(restored, isTrue);
+    expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
+    expect(cubit.state.animalIds, const [animal1Id, animal2Id]);
+    expect(repository.analyzeCalls, 0);
+  });
+
+  test('keeps a failed flow until the user explicitly resets it', () async {
+    final repository = _FakeMedicalDocumentsRepository(
+      analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+      getResponses: [_document(MedicalDocumentStatus.failed)],
+    );
+    final pending = _MemoryPendingDataSource();
+    final cubit = _buildCubit(repository, pending);
+    addTearDown(cubit.close);
+
+    await cubit.startAnalysis(
+      file: file,
+      animalIds: const [animal1Id, animal2Id],
+    );
+
+    expect(cubit.state.phase, MedicalDocumentFlowPhase.failed);
+    expect(pending.value?.documentId, 'document-1');
+
+    await cubit.reset();
+    expect(pending.value, isNull);
+  });
+
+  test(
+    'does not mutate detection when an unclassified flow selects a final category',
+    () async {
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: [_unclassifiedDocument()],
+      );
+      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+      addTearDown(cubit.close);
+
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+        requestedCategory: MedicalDocumentCategory.prescription,
+      );
+
+      expect(cubit.state.remoteDocument?.detectedCategories, isEmpty);
+      expect(cubit.state.remoteDocument?.primaryDetectedCategory, isNull);
+      expect(
+        cubit.state.remoteDocument?.classificationOutcome,
+        MedicalDocumentClassificationOutcome.unclassified,
+      );
+      expect(
+        cubit.state.selectedFinalCategory,
+        MedicalDocumentCategory.prescription,
+      );
+      expect(
+        cubit.state.draftExtraction?.documentType,
+        MedicalDocumentCategory.prescription,
+      );
+    },
+  );
+
+  test('refreshes the latest version when rejection conflicts', () async {
+    final repository = _FakeMedicalDocumentsRepository(
+      analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+      getResponses: [
+        _document(MedicalDocumentStatus.reviewPending),
+        _document(MedicalDocumentStatus.reviewPending, version: 5),
+      ],
+      reviewError: const ApiException(
+        statusCode: 409,
+        message: 'Version conflict',
+      ),
+    );
+    final pending = _MemoryPendingDataSource();
+    final cubit = _buildCubit(repository, pending);
+    addTearDown(cubit.close);
+
+    await cubit.startAnalysis(
+      file: file,
+      animalIds: const [animal1Id, animal2Id],
+    );
+    await cubit.reject();
+
+    expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
+    expect(cubit.state.remoteDocument?.version, 5);
+    expect(cubit.state.versionConflict, isTrue);
+    expect(pending.value?.documentId, 'document-1');
+  });
+
+  test(
+    'keeps multiple category extractions separate when accepting one',
+    () async {
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: [_multipleDocument()],
+        reviewResponse: _document(MedicalDocumentStatus.accepted, version: 2),
+      );
+      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+      addTearDown(cubit.close);
+
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+      );
+      expect(cubit.state.remoteDocument?.detectedCategories, hasLength(2));
+
+      cubit.selectFinalCategory(MedicalDocumentCategory.vaccinationCard);
+      await cubit.accept();
+
+      final extraction = repository.lastReviewRequest?.validatedExtraction;
+      expect(
+        repository.lastReviewRequest?.finalCategory,
+        MedicalDocumentCategory.vaccinationCard,
+      );
+      expect(extraction?.vaccinations, hasLength(1));
+      expect(extraction?.medications, isEmpty);
+      expect(extraction?.clinicalHistory, isNull);
+    },
+  );
 }
 
 MedicalDocumentFlowCubit _buildCubit(
@@ -200,7 +368,7 @@ MedicalDocumentEntity _document(
   );
   return MedicalDocumentEntity(
     id: 'document-1',
-    animalIds: const ['animal-1', 'animal-2'],
+    animalIds: const [animal1Id, animal2Id],
     originalFileName: 'formula.pdf',
     mimeType: 'application/pdf',
     fileSize: 2048,
@@ -218,6 +386,63 @@ MedicalDocumentEntity _document(
         ? extraction
         : null,
     version: version,
+  );
+}
+
+MedicalDocumentEntity _unclassifiedDocument() {
+  return const MedicalDocumentEntity(
+    id: 'document-1',
+    animalIds: [animal1Id, animal2Id],
+    originalFileName: 'menu.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 2048,
+    status: MedicalDocumentStatus.reviewPending,
+    requestedCategory: MedicalDocumentCategory.prescription,
+    classificationOutcome: MedicalDocumentClassificationOutcome.unclassified,
+    extractionsByCategory: {
+      MedicalDocumentCategory.other: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.other,
+        summary: 'Contenido no clasificado',
+      ),
+    },
+    version: 1,
+  );
+}
+
+MedicalDocumentEntity _multipleDocument() {
+  return const MedicalDocumentEntity(
+    id: 'document-1',
+    animalIds: [animal1Id, animal2Id],
+    originalFileName: 'historia-vacunas.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 2048,
+    status: MedicalDocumentStatus.reviewPending,
+    primaryDetectedCategory: MedicalDocumentCategory.clinicalHistory,
+    detectedCategories: [
+      DetectedMedicalDocumentCategoryEntity(
+        category: MedicalDocumentCategory.clinicalHistory,
+      ),
+      DetectedMedicalDocumentCategoryEntity(
+        category: MedicalDocumentCategory.vaccinationCard,
+      ),
+    ],
+    classificationOutcome: MedicalDocumentClassificationOutcome.multiple,
+    extractionsByCategory: {
+      MedicalDocumentCategory.clinicalHistory: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.clinicalHistory,
+        clinicalHistory: {'reasonForConsultation': 'Control'},
+      ),
+      MedicalDocumentCategory.vaccinationCard: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.vaccinationCard,
+        vaccinations: [
+          MedicalDocumentItemEntity(
+            id: 'vaccination-1',
+            fields: {'name': 'Rabies'},
+          ),
+        ],
+      ),
+    },
+    version: 1,
   );
 }
 

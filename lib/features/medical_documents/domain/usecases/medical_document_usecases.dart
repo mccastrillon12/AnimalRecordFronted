@@ -2,12 +2,18 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_contract_validator.dart';
 
 class AnalyzeMedicalDocumentUseCase {
   final MedicalDocumentsRepository repository;
   const AnalyzeMedicalDocumentUseCase(this.repository);
-  Future<MedicalDocumentEntity> call(AnalyzeMedicalDocumentRequest request) =>
-      repository.analyze(request);
+  Future<MedicalDocumentEntity> call(AnalyzeMedicalDocumentRequest request) {
+    MedicalDocumentContractValidator.validateAnalysis(
+      file: request.file,
+      animalIds: request.animalIds,
+    );
+    return repository.analyze(request);
+  }
 }
 
 class GetMedicalDocumentUseCase {
@@ -22,8 +28,15 @@ class ReviewMedicalDocumentUseCase {
   const ReviewMedicalDocumentUseCase(this.repository);
   Future<MedicalDocumentEntity> call(
     String documentId,
-    ReviewMedicalDocumentRequest request,
-  ) => repository.review(documentId, request);
+    ReviewMedicalDocumentRequest request, {
+    required List<String> originalAnimalIds,
+  }) {
+    MedicalDocumentContractValidator.validateReview(
+      request: request,
+      originalAnimalIds: originalAnimalIds,
+    );
+    return repository.review(documentId, request);
+  }
 }
 
 class GetAnimalMedicalDocumentsUseCase {
