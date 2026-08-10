@@ -30,22 +30,46 @@ class AnimalMedicalDocumentsError extends AnimalMedicalDocumentsState {
 
 class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
   final GetAnimalMedicalDocumentsUseCase getDocumentsUseCase;
+  String? _loadedAnimalId;
+  MedicalDocumentCategory? _loadedCategory;
 
   AnimalMedicalDocumentsCubit({required this.getDocumentsUseCase})
     : super(AnimalMedicalDocumentsInitial());
 
-  Future<void> load(
+  Future<void> load(String animalId, {MedicalDocumentCategory? category}) =>
+      _load(animalId, category: category, preserveExisting: false);
+
+  /// Refreshes the list after an accepted upload without replacing documents
+  /// that are already visible for the same animal and category.
+  Future<void> refreshAfterUpload(
     String animalId, {
     MedicalDocumentCategory? category,
+  }) => _load(animalId, category: category, preserveExisting: true);
+
+  Future<void> _load(
+    String animalId, {
+    required MedicalDocumentCategory? category,
+    required bool preserveExisting,
   }) async {
+    final previousDocuments =
+        preserveExisting &&
+            _loadedAnimalId == animalId &&
+            _loadedCategory == category &&
+            state is AnimalMedicalDocumentsLoaded
+        ? (state as AnimalMedicalDocumentsLoaded).documents
+        : const <MedicalDocumentEntity>[];
     emit(AnimalMedicalDocumentsLoading());
     try {
-      emit(
-        AnimalMedicalDocumentsLoaded(
-          await getDocumentsUseCase(animalId, category: category),
-          category: category,
-        ),
+      final fetchedDocuments = await getDocumentsUseCase(
+        animalId,
+        category: category,
       );
+      final documents = preserveExisting
+          ? _mergeDocuments(fetchedDocuments, previousDocuments)
+          : fetchedDocuments;
+      _loadedAnimalId = animalId;
+      _loadedCategory = category;
+      emit(AnimalMedicalDocumentsLoaded(documents, category: category));
     } catch (error) {
       emit(
         AnimalMedicalDocumentsError(
@@ -53,5 +77,17 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
         ),
       );
     }
+  }
+
+  List<MedicalDocumentEntity> _mergeDocuments(
+    List<MedicalDocumentEntity> fetched,
+    List<MedicalDocumentEntity> previous,
+  ) {
+    final fetchedIds = fetched.map((document) => document.id).toSet();
+    return List.unmodifiable([
+      ...fetched,
+      for (final document in previous)
+        if (!fetchedIds.contains(document.id)) document,
+    ]);
   }
 }

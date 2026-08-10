@@ -112,12 +112,22 @@ class MedicalDocumentsRemoteDataSourceImpl
   }) async {
     final response = await apiClient.get<List<dynamic>>(
       '/animals/$animalId/medical-documents',
-      queryParameters: category == null
-          ? null
-          : {'category': category.wireValue},
     );
-    return (response.data ?? const [])
+    responseLogger.logResponse(
+      operation: 'LIST_BY_ANIMAL',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    final documents = (response.data ?? const [])
         .map((item) => MedicalDocumentModel.fromJson(_responseMap(item)))
+        .toList(growable: false);
+    if (category == null) return documents;
+    return documents
+        .where(
+          (document) =>
+              document.finalCategory == category ||
+              document.validatedExtraction?.documentType == category,
+        )
         .toList(growable: false);
   }
 

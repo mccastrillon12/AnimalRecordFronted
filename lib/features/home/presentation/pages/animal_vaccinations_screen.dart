@@ -3,11 +3,12 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/pages/vaccination_card_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/home/presentation/widgets/vaccination_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
-import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,7 @@ class AnimalVaccinationsScreen extends StatefulWidget {
 
 class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  bool? _alphabeticalSortAscending;
 
   @override
   void initState() {
@@ -96,18 +98,25 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.xs),
-                                const _VaccinationSortButton(),
+                                _VaccinationSortButton(
+                                  sortAscending:
+                                      _alphabeticalSortAscending ?? true,
+                                  onTap: () => setState(() {
+                                    _alphabeticalSortAscending =
+                                        _alphabeticalSortAscending == null
+                                        ? true
+                                        : !_alphabeticalSortAscending!;
+                                  }),
+                                ),
                               ],
                             ),
                           ),
                           Expanded(
-                            child: AnimalMedicalDocumentsView(
-                              animalId: widget.animal.id,
-                              category: MedicalDocumentCategory.vaccinationCard,
+                            child: VaccinationGroupsView(
+                              animal: widget.animal,
                               searchQuery: _searchController.text,
-                              emptyTitle: 'El registro de vacunas está vacío',
-                              emptyDescription:
-                                  'Aquí se podrán visualizar las vacunas que se creen.',
+                              alphabeticalSortAscending:
+                                  _alphabeticalSortAscending,
                             ),
                           ),
                         ],
@@ -125,7 +134,18 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                               label: 'Ver carné de vacunas',
                               child: GestureDetector(
                                 key: const Key('view-vaccination-card-button'),
-                                onTap: () {},
+                                onTap: () => Navigator.push<void>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: context
+                                          .read<AnimalMedicalDocumentsCubit>(),
+                                      child: VaccinationCardScreen(
+                                        animal: widget.animal,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 behavior: HitTestBehavior.opaque,
                                 child: SizedBox(
                                   height: AppSpacing.iconSizeSmall,
@@ -175,8 +195,9 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.vaccinationCard,
-                          onUploaded: () =>
-                              context.read<AnimalMedicalDocumentsCubit>().load(
+                          onUploaded: () => context
+                              .read<AnimalMedicalDocumentsCubit>()
+                              .refreshAfterUpload(
                                 widget.animal.id,
                                 category:
                                     MedicalDocumentCategory.vaccinationCard,
@@ -249,7 +270,13 @@ class _VaccinationsHeader extends StatelessWidget {
 }
 
 class _VaccinationSortButton extends StatelessWidget {
-  const _VaccinationSortButton();
+  final bool sortAscending;
+  final VoidCallback onTap;
+
+  const _VaccinationSortButton({
+    required this.sortAscending,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -260,15 +287,18 @@ class _VaccinationSortButton extends StatelessWidget {
       shadowColor: AppColors.greyNegro.withValues(alpha: 0.12),
       child: InkWell(
         key: const Key('vaccinations-sort-button'),
-        onTap: () {},
+        onTap: onTap,
         borderRadius: AppBorders.small(),
-        child: const SizedBox(
+        child: SizedBox(
           width: AppSpacing.iconSizeMedium,
           height: AppSpacing.iconSizeMedium,
           child: Icon(
             Icons.sort_by_alpha_rounded,
             color: AppColors.greyMedio,
             size: 22,
+            semanticLabel: sortAscending
+                ? 'Orden ascendente'
+                : 'Orden descendente',
           ),
         ),
       ),

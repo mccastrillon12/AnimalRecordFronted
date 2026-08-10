@@ -10,6 +10,61 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 /// Display mode for the animal card.
 enum AnimalCardMode { list, grid, compactList, detailHeader }
 
+class AnimalAvatar extends StatelessWidget {
+  final AnimalModel animal;
+  final double size;
+  final double borderRadius;
+
+  const AnimalAvatar({
+    super.key,
+    required this.animal,
+    required this.size,
+    required this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: AppColors.bgHielo,
+        borderRadius: BorderRadius.circular(borderRadius),
+      ),
+      child: animal.imageUrl?.trim().isNotEmpty ?? false
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(borderRadius),
+              child: CachedNetworkImage(
+                imageUrl: animal.imageUrl!.trim(),
+                fit: BoxFit.cover,
+                alignment: Alignment.topCenter,
+                width: size,
+                height: size,
+                fadeInDuration: Duration.zero,
+                fadeOutDuration: Duration.zero,
+                placeholder: (_, _) => _placeholder(),
+                errorWidget: (_, _, _) => _placeholder(),
+              ),
+            )
+          : _placeholder(),
+    );
+  }
+
+  Widget _placeholder() {
+    return Center(
+      child: SvgPicture.asset(
+        _animalFamilyIconPath(animal.family),
+        width: size * 0.5,
+        height: size * 0.5,
+        colorFilter: const ColorFilter.mode(
+          AppColors.primaryFrances,
+          BlendMode.srcIn,
+        ),
+      ),
+    );
+  }
+}
+
 /// A reusable card for displaying an animal.
 ///
 /// Supports three layouts:
@@ -243,10 +298,7 @@ class AnimalCard extends StatelessWidget {
           // Context menu or tag
           if (!animal.isActive)
             Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 8,
-                vertical: 1,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
               decoration: BoxDecoration(
                 color: AppColors.bgRosa,
                 borderRadius: BorderRadius.circular(20),
@@ -260,9 +312,7 @@ class AnimalCard extends StatelessWidget {
               ),
               child: Text(
                 'Inactivo',
-                style: AppTypography.body5.copyWith(
-                  color: AppColors.errorRojo,
-                ),
+                style: AppTypography.body5.copyWith(color: AppColors.errorRojo),
               ),
             )
           else
@@ -288,45 +338,7 @@ class AnimalCard extends StatelessWidget {
   // ===========================================================================
 
   Widget _buildPhoto({required double size, required double borderRadius}) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: AppColors.bgHielo,
-        borderRadius: BorderRadius.circular(borderRadius),
-      ),
-      child: animal.imageUrl != null
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: CachedNetworkImage(
-                imageUrl: animal.imageUrl!,
-                fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
-                width: size,
-                height: size,
-                fadeInDuration: Duration.zero,
-                fadeOutDuration: Duration.zero,
-                placeholder: (context, url) => _buildPlaceholderIcon(size),
-                errorWidget: (context, url, error) =>
-                    _buildPlaceholderIcon(size),
-              ),
-            )
-          : _buildPlaceholderIcon(size),
-    );
-  }
-
-  Widget _buildPlaceholderIcon(double size) {
-    return Center(
-      child: SvgPicture.asset(
-        _getFamilyIconPath(animal.family),
-        width: size * 0.5,
-        height: size * 0.5,
-        colorFilter: const ColorFilter.mode(
-          AppColors.primaryFrances,
-          BlendMode.srcIn,
-        ),
-      ),
-    );
+    return AnimalAvatar(animal: animal, size: size, borderRadius: borderRadius);
   }
 
   // ===========================================================================
@@ -431,7 +443,7 @@ class AnimalCard extends StatelessWidget {
       color: AppColors.bgHielo,
       child: Center(
         child: SvgPicture.asset(
-          _getFamilyIconPath(animal.family),
+          _animalFamilyIconPath(animal.family),
           width: 64,
           height: 64,
           colorFilter: const ColorFilter.mode(
@@ -442,19 +454,19 @@ class AnimalCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  String _getFamilyIconPath(String family) {
-    final lowerFamily = family.toLowerCase();
-    if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
-      return 'assets/illustrations/cat_icon.svg';
-    } else if (lowerFamily.contains('canino') || lowerFamily.contains('perro')) {
-      return 'assets/illustrations/dog_icon.svg';
-    } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
-      return 'assets/illustrations/bovino_icon.svg';
-    } else if (lowerFamily.contains('equino') || lowerFamily.contains('caballo')) {
-      return 'assets/illustrations/equino_icon.svg';
-    }
-    // Fallback to dog if unknown
+String _animalFamilyIconPath(String family) {
+  final lowerFamily = family.toLowerCase();
+  if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
+    return 'assets/illustrations/cat_icon.svg';
+  } else if (lowerFamily.contains('canino') || lowerFamily.contains('perro')) {
     return 'assets/illustrations/dog_icon.svg';
+  } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
+    return 'assets/illustrations/bovino_icon.svg';
+  } else if (lowerFamily.contains('equino') ||
+      lowerFamily.contains('caballo')) {
+    return 'assets/illustrations/equino_icon.svg';
   }
+  return 'assets/illustrations/dog_icon.svg';
 }

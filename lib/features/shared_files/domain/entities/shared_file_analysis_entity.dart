@@ -225,6 +225,7 @@ class SharedFileAnalysisSectionEntity extends Equatable {
 
 class SharedFileMedicationAnalysisEntity extends Equatable {
   final String name;
+  final String? groupTitle;
   final int? quantity;
   final String instructions;
   final List<SharedFileAnalysisDetailEntity> details;
@@ -232,6 +233,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
 
   const SharedFileMedicationAnalysisEntity({
     required this.name,
+    this.groupTitle,
     this.quantity,
     required this.instructions,
     this.details = const [],
@@ -241,6 +243,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
   SharedFileMedicationAnalysisEntity withOriginalUrl(String originalUrl) {
     return SharedFileMedicationAnalysisEntity(
       name: name,
+      groupTitle: groupTitle,
       quantity: quantity,
       instructions: instructions,
       details: details,
@@ -251,6 +254,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
   @override
   List<Object?> get props => [
     name,
+    groupTitle,
     quantity,
     instructions,
     details,

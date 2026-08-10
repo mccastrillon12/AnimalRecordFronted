@@ -12,6 +12,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 
@@ -263,7 +264,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                       const SizedBox(width: AppSpacing.l),
 
                       // View toggle
-                      _buildIconButton(
+                      AnimalListControlButton(
                         child: SvgPicture.asset(
                           _viewMode == AnimalCardMode.list
                               ? 'assets/icons/vuesax-bold-element-3.svg'
@@ -281,7 +282,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                       const SizedBox(width: AppSpacing.m),
 
                       // Filter button
-                      _buildIconButton(
+                      AnimalListControlButton(
                         child: SvgPicture.asset(
                           'assets/icons/vuesax-bold-setting-4.svg',
                           colorFilter: ColorFilter.mode(
@@ -455,32 +456,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           ],
         );
       },
-    );
-  }
-
-  Widget _buildIconButton({
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: AppSpacing.iconSizeMedium,
-        height: AppSpacing.iconSizeMedium,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.greyDelineante),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F1925).withValues(alpha: 0.08),
-              offset: const Offset(0, 4),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Center(child: child),
-      ),
     );
   }
 

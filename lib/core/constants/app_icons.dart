@@ -8,6 +8,8 @@ class AppIcons {
   static const String receiveSquare =
       'assets/icons/vuesax-bold-receive-square.svg';
   static const String folderFavorite = 'assets/icons/folder-favorite.svg';
+  static const String vaccineShield = 'assets/icons/Vector.svg';
+  static const String vaccinationCardBackground = 'assets/icons/Group 2009.svg';
 
   static const String boldPeople = 'assets/icons/bold-people.svg';
   static const String edit = 'assets/icons/Edit.svg';

@@ -141,6 +141,9 @@ class SharedFilePdfBuilder {
   }
 
   List<pw.Widget> _documentContent(SharedFileAnalysisEntity analysis) {
+    if (_isVaccinationCard(analysis)) {
+      return _vaccinationDocumentContent(analysis);
+    }
     final regularSections = analysis.sections
         .where((section) => !_isAdditionalInformation(section))
         .toList(growable: false);
@@ -260,6 +263,279 @@ class SharedFilePdfBuilder {
     }
     return widgets;
   }
+
+  List<pw.Widget> _vaccinationDocumentContent(
+    SharedFileAnalysisEntity analysis,
+  ) {
+    final widgets = <pw.Widget>[];
+    if (analysis.tutor.hasData) {
+      widgets.add(
+        _personSection(
+          label: 'Tutor',
+          name: analysis.tutor.name,
+          details: [
+            ('Identificación', analysis.tutor.identification),
+            ('Número celular', analysis.tutor.phoneNumber),
+            for (final detail in analysis.tutor.additionalDetails)
+              (detail.label, detail.value),
+          ],
+          columns: 2,
+        ),
+      );
+    }
+    if (analysis.patient.hasData) {
+      if (widgets.isNotEmpty) widgets.add(pw.SizedBox(height: 14));
+      widgets.add(
+        _personSection(
+          label: 'Paciente',
+          name: analysis.patient.name,
+          details: [
+            ('AR ID', analysis.patient.recordId),
+            ('Especie', analysis.patient.species),
+            ('Raza', analysis.patient.breed),
+            ('Sexo', analysis.patient.sex),
+            ('Color', analysis.patient.color),
+            ('Edad', analysis.patient.age),
+            ('Peso', analysis.patient.weight),
+            for (final detail in analysis.patient.additionalDetails)
+              (detail.label, detail.value),
+          ],
+          columns: 2,
+        ),
+      );
+    }
+    if (widgets.isNotEmpty) widgets.add(pw.SizedBox(height: 14));
+
+    final nextDoseValues = analysis.sections
+        .where((section) => section.title.trim() == 'Próxima dosis')
+        .map((section) => section.body?.trim() ?? '')
+        .where((value) => value.isNotEmpty)
+        .toList(growable: false);
+    final fallbackNextDose = nextDoseValues.isEmpty
+        ? null
+        : nextDoseValues.first;
+
+    String? previousVaccinationGroup;
+    for (var index = 0; index < analysis.medications.length; index++) {
+      final dose = analysis.medications[index];
+      final vaccinationGroup = dose.groupTitle?.trim().isNotEmpty ?? false
+          ? dose.groupTitle!.trim()
+          : analysis.itemsTitle?.trim() ?? '';
+      final startsVaccinationGroup =
+          index == 0 || vaccinationGroup != previousVaccinationGroup;
+      final doseTutorDetails = dose.details
+          .where(_isVaccinationTutorDetail)
+          .toList(growable: false);
+      final dosePatientDetails = dose.details
+          .where(_isVaccinationPatientDetail)
+          .toList(growable: false);
+      final tutorName = _vaccinationPartyName(doseTutorDetails, 'Tutor');
+      final patientName = _vaccinationPartyName(dosePatientDetails, 'Paciente');
+      final tutorValues = _vaccinationPartyValues(doseTutorDetails, 'Tutor');
+      final patientValues = _vaccinationPartyValues(
+        dosePatientDetails,
+        'Paciente',
+      );
+      final doseNextValues = dose.details
+          .where((detail) => detail.label == 'Próxima dosis' && detail.hasData)
+          .map((detail) => detail.value)
+          .toList(growable: false);
+      final nextDose = startsVaccinationGroup
+          ? doseNextValues.isNotEmpty
+                ? doseNextValues.first
+                : index == 0
+                ? fallbackNextDose
+                : null
+          : null;
+      final doseDetails = dose.details
+          .where(
+            (detail) =>
+                detail.hasData &&
+                !_isVaccinationVeterinarianDetail(detail) &&
+                !_isVaccinationTutorDetail(detail) &&
+                !_isVaccinationPatientDetail(detail) &&
+                !_isVaccinationVisualDetail(detail) &&
+                detail.label != 'Próxima dosis',
+          )
+          .map((detail) => (detail.label, detail.value))
+          .toList(growable: false);
+      final veterinarianDetails = dose.details
+          .where(_isVaccinationVeterinarianDetail)
+          .toList(growable: false);
+      final veterinarianNames = veterinarianDetails
+          .where((detail) => detail.label == 'Veterinario')
+          .map((detail) => detail.value)
+          .toList(growable: false);
+      final veterinarianName = veterinarianNames.isEmpty
+          ? null
+          : veterinarianNames.first;
+      final veterinarianValues = veterinarianDetails
+          .where((detail) => detail.label != 'Veterinario')
+          .map(
+            (detail) =>
+                (detail.label.replaceFirst('Veterinario - ', ''), detail.value),
+          )
+          .toList(growable: false);
+      widgets.addAll([
+        if (index == 0)
+          pw.SizedBox(height: 18)
+        else ...[
+          pw.SizedBox(height: startsVaccinationGroup ? 30 : 18),
+          pw.Divider(color: _divider, height: 1),
+          pw.SizedBox(height: startsVaccinationGroup ? 22 : 18),
+        ],
+        if (startsVaccinationGroup && vaccinationGroup.isNotEmpty) ...[
+          _vaccinationGroupTitle(vaccinationGroup),
+        ],
+        if (nextDose != null) ...[
+          pw.SizedBox(height: 10),
+          _singleDetail('Próxima dosis', nextDose),
+        ],
+        pw.SizedBox(height: 18),
+        pw.Text(
+          dose.name,
+          style: pw.TextStyle(
+            fontSize: _bodySize,
+            fontWeight: pw.FontWeight.bold,
+            color: _text,
+          ),
+        ),
+        if (doseDetails.isNotEmpty) ...[
+          pw.SizedBox(height: 12),
+          _vaccinationDetailGrid(doseDetails),
+        ],
+        if (veterinarianName != null || veterinarianValues.isNotEmpty) ...[
+          pw.SizedBox(height: 14),
+          _personSection(
+            label: 'Veterinario',
+            name: veterinarianName ?? '',
+            details: veterinarianValues,
+            columns: 2,
+          ),
+        ],
+        if (_isWebUrl(dose.originalUrl)) ...[
+          pw.SizedBox(height: 8),
+          _originalLink(dose.originalUrl!),
+        ],
+        if (tutorName != null || tutorValues.isNotEmpty) ...[
+          pw.SizedBox(height: 22),
+          _personSection(
+            label: 'Tutor',
+            name: tutorName ?? '',
+            details: tutorValues,
+            columns: 2,
+          ),
+        ],
+        if (patientName != null || patientValues.isNotEmpty) ...[
+          pw.SizedBox(height: 22),
+          _personSection(
+            label: 'Paciente',
+            name: patientName ?? '',
+            details: patientValues,
+            columns: 2,
+          ),
+        ],
+      ]);
+      previousVaccinationGroup = vaccinationGroup;
+    }
+    return widgets;
+  }
+
+  pw.Widget _vaccinationDetailGrid(List<(String, String)> details) {
+    final rows = <pw.TableRow>[];
+    const columns = 3;
+    for (var index = 0; index < details.length; index += columns) {
+      rows.add(
+        pw.TableRow(
+          children: [
+            for (var column = 0; column < columns; column++)
+              index + column < details.length
+                  ? pw.Padding(
+                      padding: const pw.EdgeInsets.only(right: 14, bottom: 12),
+                      child: pw.Column(
+                        crossAxisAlignment: pw.CrossAxisAlignment.start,
+                        children: [
+                          pw.Text(
+                            details[index + column].$1,
+                            style: pw.TextStyle(
+                              fontSize: _smallSize,
+                              color: _secondary,
+                            ),
+                          ),
+                          pw.SizedBox(height: 5),
+                          pw.Text(
+                            details[index + column].$2,
+                            style: pw.TextStyle(
+                              fontSize: _smallSize,
+                              color: _text,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : pw.SizedBox(),
+          ],
+        ),
+      );
+    }
+    return pw.Table(
+      columnWidths: const {
+        0: pw.FlexColumnWidth(),
+        1: pw.FlexColumnWidth(),
+        2: pw.FlexColumnWidth(),
+      },
+      children: rows,
+    );
+  }
+
+  bool _isVaccinationCard(SharedFileAnalysisEntity analysis) {
+    final type = analysis.documentType.trim().toLowerCase();
+    return type == 'carné de vacunación' || type == 'certificado de vacunación';
+  }
+
+  bool _isVaccinationVisualDetail(SharedFileAnalysisDetailEntity detail) {
+    final label = detail.label.trim().toLowerCase();
+    return label == 'etiqueta' ||
+        label == 'label' ||
+        label.contains('firma') ||
+        label.contains('signature') ||
+        label.contains('sello') ||
+        label.contains('stamp') ||
+        label.contains('seal');
+  }
+
+  bool _isVaccinationVeterinarianDetail(
+    SharedFileAnalysisDetailEntity detail,
+  ) =>
+      detail.label == 'Veterinario' ||
+      detail.label.startsWith('Veterinario - ');
+
+  bool _isVaccinationTutorDetail(SharedFileAnalysisDetailEntity detail) =>
+      detail.label == 'Tutor' || detail.label.startsWith('Tutor - ');
+
+  bool _isVaccinationPatientDetail(SharedFileAnalysisDetailEntity detail) =>
+      detail.label == 'Paciente' || detail.label.startsWith('Paciente - ');
+
+  String? _vaccinationPartyName(
+    List<SharedFileAnalysisDetailEntity> details,
+    String label,
+  ) {
+    final names = details
+        .where((detail) => detail.label == label && detail.hasData)
+        .map((detail) => detail.value)
+        .toList(growable: false);
+    return names.isEmpty ? null : names.first;
+  }
+
+  List<(String, String)> _vaccinationPartyValues(
+    List<SharedFileAnalysisDetailEntity> details,
+    String label,
+  ) => details
+      .where((detail) => detail.label != label && detail.hasData)
+      .map(
+        (detail) => (detail.label.replaceFirst('$label - ', ''), detail.value),
+      )
+      .toList(growable: false);
 
   pw.Widget _personSection({
     required String label,
@@ -453,6 +729,29 @@ class SharedFilePdfBuilder {
         fontSize: _headingSize,
         fontWeight: pw.FontWeight.bold,
         color: _text,
+      ),
+    );
+  }
+
+  pw.Widget _vaccinationGroupTitle(String value) {
+    const prefix = 'Vacuna ';
+    final hasPrefix = value.toLowerCase().startsWith(prefix.toLowerCase());
+    final vaccineName = hasPrefix ? value.substring(prefix.length).trim() : '';
+    if (!hasPrefix || vaccineName.isEmpty) return _sectionTitle(value);
+    return pw.RichText(
+      text: pw.TextSpan(
+        style: pw.TextStyle(
+          fontSize: _headingSize,
+          fontWeight: pw.FontWeight.bold,
+          color: _text,
+        ),
+        children: [
+          const pw.TextSpan(text: prefix),
+          pw.TextSpan(
+            text: vaccineName,
+            style: pw.TextStyle(color: _blue),
+          ),
+        ],
       ),
     );
   }

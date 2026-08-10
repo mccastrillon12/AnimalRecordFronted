@@ -100,4 +100,134 @@ void main() {
     expect(ascii.decode(combined.take(5).toList()), '%PDF-');
     expect(combined.length, greaterThan(single.length));
   });
+
+  test('includes an original link for every vaccination dose', () async {
+    const firstUrl = 'https://api.example.test/vaccines/dose-1.pdf';
+    const secondUrl = 'https://api.example.test/vaccines/dose-2.pdf';
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Carné de vacunación',
+      documentNumber: '',
+      date: null,
+      originalFileName: '',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Brownie',
+        recordId: 'AR-C012',
+        species: 'Canino',
+        breed: 'Labrador',
+        age: '10 años',
+        weight: '15 kg',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: 'Barbara James',
+        identification: 'C.C. 1152234567',
+        phoneNumber: '312 456 78 90',
+      ),
+      itemsTitle: 'Vacuna Rabia',
+      sections: [
+        SharedFileAnalysisSectionEntity(
+          title: 'Próxima dosis',
+          body: 'Octubre 27, 2028',
+        ),
+      ],
+      medications: [
+        SharedFileMedicationAnalysisEntity(
+          name: 'Dosis 1',
+          instructions: '',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Fecha',
+              value: 'Octubre 27, 2025',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Veterinario',
+              value: 'María Ríos',
+            ),
+          ],
+          originalUrl: firstUrl,
+        ),
+        SharedFileMedicationAnalysisEntity(
+          name: 'Dosis 2',
+          instructions: '',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Fecha',
+              value: 'Junio 10, 2024',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Veterinario',
+              value: 'Juanita Doe',
+            ),
+          ],
+          originalUrl: secondUrl,
+        ),
+      ],
+    );
+
+    final bytes = await SharedFilePdfBuilder().build(analysis: analysis);
+    final pdfText = latin1.decode(bytes);
+
+    expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
+    expect(pdfText, contains(firstUrl));
+    expect(pdfText, contains(secondUrl));
+  });
+
+  test('uses the vaccination layout for certificates too', () async {
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Certificado de vacunación',
+      documentNumber: '',
+      date: null,
+      originalFileName: '',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Brownie',
+        recordId: 'AR-C012',
+        species: 'Canino',
+        breed: 'Labrador',
+        age: '10 años',
+        weight: '15 kg',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: 'Barbara James',
+        identification: 'C.C. 1152234567',
+        phoneNumber: '312 456 78 90',
+      ),
+      medications: [
+        SharedFileMedicationAnalysisEntity(
+          name: 'Dosis 1',
+          groupTitle: 'Vacuna Rabia',
+          instructions: '',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Próxima dosis',
+              value: 'Octubre 27, 2028',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Fecha',
+              value: 'Octubre 27, 2025',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Etiqueta',
+              value: 'https://example.test/label.png',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Firma Veterinario',
+              value: 'https://example.test/signature.png',
+            ),
+            SharedFileAnalysisDetailEntity(
+              label: 'Veterinario',
+              value: 'María Ríos',
+            ),
+          ],
+          originalUrl: 'https://example.test/rabies.pdf',
+        ),
+      ],
+    );
+
+    final bytes = await SharedFilePdfBuilder().build(analysis: analysis);
+    final pdfText = latin1.decode(bytes);
+
+    expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
+    expect(pdfText, contains('https://example.test/rabies.pdf'));
+    expect(pdfText, isNot(contains('https://example.test/label.png')));
+    expect(pdfText, isNot(contains('https://example.test/signature.png')));
+  });
 }

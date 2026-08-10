@@ -15,6 +15,7 @@ import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
 import '../widgets/my_animals_content.dart';
+import '../widgets/vaccination_cards_content.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -45,6 +46,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (isPending && mounted) {
       await tokenStorage.setBiometricActivationPending(false);
+      if (!mounted) return;
 
       ErrorDisplay.showSuccess(context, 'Biometría activada exitosamente.');
     }
@@ -103,6 +105,8 @@ class _HomeScreenState extends State<HomeScreen> {
     switch (_activeSection) {
       case 'mis_animales':
         return const MyAnimalsContent();
+      case 'vaccination_cards':
+        return const VaccinationCardsContent();
       default:
         // Home / Inicio
         return AnimalsSection(
