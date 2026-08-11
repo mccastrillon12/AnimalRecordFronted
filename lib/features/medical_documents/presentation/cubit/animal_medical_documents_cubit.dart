@@ -51,6 +51,8 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
     required MedicalDocumentCategory? category,
     required bool preserveExisting,
   }) async {
+    if (isClosed) return;
+
     final previousDocuments =
         preserveExisting &&
             _loadedAnimalId == animalId &&
@@ -64,6 +66,8 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
         animalId,
         category: category,
       );
+      if (isClosed) return;
+
       final documents = preserveExisting
           ? _mergeDocuments(fetchedDocuments, previousDocuments)
           : fetchedDocuments;
@@ -71,6 +75,8 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
       _loadedCategory = category;
       emit(AnimalMedicalDocumentsLoaded(documents, category: category));
     } catch (error) {
+      if (isClosed) return;
+
       emit(
         AnimalMedicalDocumentsError(
           error.toString().replaceFirst('Exception: ', ''),

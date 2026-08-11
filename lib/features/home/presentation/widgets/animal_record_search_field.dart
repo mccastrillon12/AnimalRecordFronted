@@ -3,6 +3,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalRecordSearchField extends StatelessWidget {
@@ -11,6 +12,7 @@ class AnimalRecordSearchField extends StatelessWidget {
   final Color fillColor;
   final Color borderColor;
   final bool enabled;
+  final int? maxLength;
 
   const AnimalRecordSearchField({
     super.key,
@@ -19,6 +21,7 @@ class AnimalRecordSearchField extends StatelessWidget {
     this.fillColor = AppColors.white,
     this.borderColor = AppColors.greyBordes,
     this.enabled = true,
+    this.maxLength,
   });
 
   @override
@@ -38,6 +41,9 @@ class AnimalRecordSearchField extends StatelessWidget {
         key: fieldKey,
         controller: controller,
         enabled: enabled,
+        inputFormatters: maxLength == null
+            ? null
+            : [LengthLimitingTextInputFormatter(maxLength)],
         style: AppTypography.body4,
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(

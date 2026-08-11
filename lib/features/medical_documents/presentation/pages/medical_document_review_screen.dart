@@ -6,6 +6,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/medi
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_rejection_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -73,6 +74,7 @@ class _MedicalDocumentReviewScreenState
             ),
             isSubmitting: state.phase == MedicalDocumentFlowPhase.submitting,
             onSubmit: () => context.read<MedicalDocumentFlowCubit>().accept(),
+            onDoNotUpload: _showRejectionDialog,
             onViewOriginal: _showOriginal,
             onClose: _discardAndClose,
           );
@@ -90,6 +92,12 @@ class _MedicalDocumentReviewScreenState
     if (!mounted) return;
     _isDiscarding = false;
     if (discarded) _popWithResult(false);
+  }
+
+  Future<void> _showRejectionDialog() async {
+    final reason = await showMedicalDocumentRejectionDialog(context: context);
+    if (!mounted || reason == null) return;
+    await context.read<MedicalDocumentFlowCubit>().reject();
   }
 
   void _popWithResult(bool result) {

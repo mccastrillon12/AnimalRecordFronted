@@ -276,6 +276,13 @@ void main() {
 
     final search = find.byKey(const Key('clinical-history-search-field'));
     expect(tester.widget<TextField>(search).enabled, isTrue);
+    await tester.enterText(search, '1234567890123456789012345');
+    await tester.pump();
+    expect(
+      tester.widget<TextField>(search).controller?.text,
+      '12345678901234567890',
+    );
+
     await tester.enterText(search, 'history-2.pdf');
     await tester.pump();
     expect(find.text('Barbara James'), findsOneWidget);

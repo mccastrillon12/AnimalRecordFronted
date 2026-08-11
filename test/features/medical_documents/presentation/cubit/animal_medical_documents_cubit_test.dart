@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
@@ -58,6 +60,24 @@ void main() {
     final state = cubit.state as AnimalMedicalDocumentsLoaded;
     expect(state.documents, hasLength(1));
     expect(state.documents.single.version, 2);
+  });
+
+  test('does not emit when a pending load completes after close', () async {
+    final getDocuments = _MockGetAnimalMedicalDocumentsUseCase();
+    final pendingDocuments = Completer<List<MedicalDocumentEntity>>();
+    final cubit = AnimalMedicalDocumentsCubit(
+      getDocumentsUseCase: getDocuments,
+    );
+
+    when(
+      () => getDocuments(animalId, category: category),
+    ).thenAnswer((_) => pendingDocuments.future);
+
+    final load = cubit.load(animalId, category: category);
+    await cubit.close();
+    pendingDocuments.complete([_document('late-document')]);
+
+    await expectLater(load, completes);
   });
 }
 

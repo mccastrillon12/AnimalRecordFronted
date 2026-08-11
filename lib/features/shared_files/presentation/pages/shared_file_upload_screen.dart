@@ -488,7 +488,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                   CustomTextField(
                     label: 'Descripción (Opcional)',
                     controller: _descriptionController,
-                    maxLength: 250,
+                    maxLength: 50,
                     textCapitalization: TextCapitalization.sentences,
                   ),
                   const SizedBox(height: AppSpacing.xl),

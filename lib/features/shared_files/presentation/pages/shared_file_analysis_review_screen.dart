@@ -18,6 +18,7 @@ typedef SharedFileOriginalUriResolver = Future<Uri> Function();
 class SharedFileAnalysisReviewScreen extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
   final VoidCallback? onSubmit;
+  final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
   final VoidCallback? onClose;
   final String submitLabel;
@@ -27,6 +28,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
     super.key,
     required this.analysis,
     this.onSubmit,
+    this.onDoNotUpload,
     this.onViewOriginal,
     this.onClose,
     this.submitLabel = 'Subir documento',
@@ -39,6 +41,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
       analysis: analysis,
       mode: _SharedFileAnalysisMode.review,
       onSubmit: onSubmit,
+      onDoNotUpload: onDoNotUpload,
       onViewOriginal: onViewOriginal,
       onClose: onClose,
       submitLabel: submitLabel,
@@ -79,6 +82,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final SharedFileAnalysisEntity analysis;
   final _SharedFileAnalysisMode mode;
   final VoidCallback? onSubmit;
+  final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
   final VoidCallback? onClose;
   final SharedFileOriginalUriResolver? resolveOriginalUri;
@@ -90,6 +94,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     required this.analysis,
     required this.mode,
     this.onSubmit,
+    this.onDoNotUpload,
     this.onViewOriginal,
     this.onClose,
     this.resolveOriginalUri,
@@ -182,11 +187,48 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
             ),
       bottomChild: _isSendMode
           ? null
-          : CustomButton(
-              text: widget.isSubmitting ? 'Guardando...' : widget.submitLabel,
-              onPressed: widget.isSubmitting
-                  ? null
-                  : widget.onSubmit ?? _openSendScreen,
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomButton(
+                  text: widget.isSubmitting
+                      ? 'Guardando...'
+                      : widget.submitLabel,
+                  onPressed: widget.isSubmitting
+                      ? null
+                      : widget.onSubmit ?? _openSendScreen,
+                ),
+                if (widget.onDoNotUpload != null) ...[
+                  const SizedBox(height: AppSpacing.m),
+                  OutlinedButton(
+                    onPressed: widget.isSubmitting
+                        ? null
+                        : widget.onDoNotUpload,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryFrances,
+                      disabledForegroundColor: AppColors.greyMedio,
+                      minimumSize: const Size(double.infinity, 36),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      side: BorderSide(
+                        color: widget.isSubmitting
+                            ? AppColors.greyDelineante
+                            : AppColors.primaryFrances,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: AppBorders.medium(),
+                      ),
+                    ),
+                    child: Text(
+                      'No subir',
+                      style: AppTypography.body3.copyWith(
+                        color: widget.isSubmitting
+                            ? AppColors.greyMedio
+                            : AppColors.primaryFrances,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
             ),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),

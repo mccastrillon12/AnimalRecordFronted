@@ -123,6 +123,7 @@ class _AnimalClinicalHistoryScreenState
                                         fieldKey: const Key(
                                           'clinical-history-search-field',
                                         ),
+                                        maxLength: 20,
                                       ),
                                 ),
                           ),

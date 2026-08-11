@@ -324,8 +324,6 @@ class _DocumentCardValue extends StatelessWidget {
   }
 }
 
-enum _AiFeedbackValue { useful, notUseful }
-
 class _AiFeedbackBanner extends StatefulWidget {
   const _AiFeedbackBanner();
 
@@ -334,10 +332,54 @@ class _AiFeedbackBanner extends StatefulWidget {
 }
 
 class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
-  _AiFeedbackValue? _selected;
+  bool _hasResponded = false;
+  bool _isDismissed = false;
 
   @override
   Widget build(BuildContext context) {
+    if (_isDismissed) return const SizedBox.shrink();
+
+    if (_hasResponded) {
+      return Container(
+        key: const Key('medical-document-ai-feedback-thanks'),
+        padding: const EdgeInsets.all(AppSpacing.m),
+        decoration: BoxDecoration(
+          gradient: AppColors.aiAnalysisGradient,
+          borderRadius: AppBorders.large(),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Text(
+                'Gracias por tu respuesta, la tendremos en cuenta para seguir '
+                'entrenando la IA.',
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.greyNegro,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(width: AppSpacing.m),
+            IconButton(
+              key: const Key('medical-document-ai-feedback-close'),
+              onPressed: () => setState(() => _isDismissed = true),
+              icon: const Icon(
+                Icons.close,
+                color: AppColors.greyIconos,
+                size: 24,
+              ),
+              tooltip: 'Cerrar',
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(
+                minWidth: AppSpacing.xl,
+                minHeight: AppSpacing.xl,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
@@ -359,41 +401,29 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
           _AiFeedbackButton(
             key: const Key('medical-document-ai-not-useful'),
             icon: Icons.thumb_down_alt,
-            selected: _selected == _AiFeedbackValue.notUseful,
-            onTap: () => setState(
-              () => _selected = _selected == _AiFeedbackValue.notUseful
-                  ? null
-                  : _AiFeedbackValue.notUseful,
-            ),
+            onTap: _submitFeedback,
           ),
           const SizedBox(width: AppSpacing.m),
           _AiFeedbackButton(
             key: const Key('medical-document-ai-useful'),
             icon: Icons.thumb_up_alt,
-            selected: _selected == _AiFeedbackValue.useful,
-            onTap: () => setState(
-              () => _selected = _selected == _AiFeedbackValue.useful
-                  ? null
-                  : _AiFeedbackValue.useful,
-            ),
+            onTap: _submitFeedback,
           ),
         ],
       ),
     );
   }
+
+  void _submitFeedback() {
+    setState(() => _hasResponded = true);
+  }
 }
 
 class _AiFeedbackButton extends StatelessWidget {
   final IconData icon;
-  final bool selected;
   final VoidCallback onTap;
 
-  const _AiFeedbackButton({
-    super.key,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
+  const _AiFeedbackButton({super.key, required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {

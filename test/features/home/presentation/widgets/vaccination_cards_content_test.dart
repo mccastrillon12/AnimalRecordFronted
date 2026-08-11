@@ -127,6 +127,16 @@ void main() {
       findsOneWidget,
     );
     expect(tester.takeException(), isNull);
+
+    await tester.enterText(
+      find.byKey(const Key('vaccination-cards-search-field')),
+      '1234567890123456789012345',
+    );
+    await tester.pump();
+    final searchField = tester.widget<TextField>(
+      find.byKey(const Key('vaccination-cards-search-field')),
+    );
+    expect(searchField.controller?.text, '12345678901234567890');
   });
 
   testWidgets('main vaccination item selects the vaccination cards section', (

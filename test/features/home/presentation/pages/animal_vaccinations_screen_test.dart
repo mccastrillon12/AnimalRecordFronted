@@ -245,7 +245,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('vaccination-group-detail-rabies')));
+    final rabiesCard = find.byKey(const Key('vaccination-group-rabies'));
+    await tester.tapAt(tester.getTopLeft(rabiesCard) + const Offset(30, 30));
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('export-vaccination-group')), findsOneWidget);

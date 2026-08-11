@@ -128,110 +128,122 @@ class _VaccinationGroupCard extends StatelessWidget {
     final latest = group.latest;
     final hasDates =
         latest.applicationDate.isNotEmpty || latest.nextDoseDate.isNotEmpty;
-    return Container(
-      key: Key('vaccination-group-${group.key}'),
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: AppColors.bgBlancoAntiFlash,
-        borderRadius: AppBorders.small(),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0D000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+    final borderRadius = AppBorders.small();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('vaccination-group-${group.key}'),
+        onTap: onDetail,
+        borderRadius: borderRadius,
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          decoration: BoxDecoration(
+            color: AppColors.bgBlancoAntiFlash,
+            borderRadius: borderRadius,
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0D000000),
+                blurRadius: 8,
+                offset: Offset(0, 3),
+              ),
+            ],
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SvgPicture.asset(AppIcons.vaccineShield, width: 17, height: 21),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Text(
-                  group.title,
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w700,
+              Row(
+                children: [
+                  SvgPicture.asset(
+                    AppIcons.vaccineShield,
+                    width: 17,
+                    height: 21,
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Text(
+                      group.title,
+                      style: AppTypography.body3.copyWith(
+                        color: AppColors.textPrimary,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                  Container(
+                    constraints: const BoxConstraints(
+                      minWidth: 22,
+                      minHeight: 22,
+                    ),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x14000000),
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '${group.count}',
+                      style: AppTypography.body6.copyWith(
+                        color: AppColors.primaryFrances,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (hasDates) ...[
+                const SizedBox(height: AppSpacing.l),
+                Padding(
+                  padding: const EdgeInsets.only(left: 29),
+                  child: Column(
+                    children: [
+                      if (latest.applicationDate.isNotEmpty)
+                        _VaccinationValue(
+                          label: 'Última aplicación:',
+                          value: latest.applicationDate,
+                        ),
+                      if (latest.nextDoseDate.isNotEmpty)
+                        _VaccinationValue(
+                          label: 'Próxima dosis:',
+                          value: latest.nextDoseDate,
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              Container(
-                constraints: const BoxConstraints(minWidth: 22, minHeight: 22),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  '${group.count}',
-                  style: AppTypography.body6.copyWith(
-                    color: AppColors.primaryFrances,
-                    fontWeight: FontWeight.w700,
+              ],
+              const SizedBox(height: AppSpacing.m),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  key: Key('vaccination-group-detail-${group.key}'),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ver detalle',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.greyMedio,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(
+                        Icons.chevron_right,
+                        size: AppSpacing.iconSizeSmall,
+                        color: AppColors.greyIconos,
+                      ),
+                    ],
                   ),
                 ),
               ),
             ],
           ),
-          if (hasDates) ...[
-            const SizedBox(height: AppSpacing.l),
-            Padding(
-              padding: const EdgeInsets.only(left: 29),
-              child: Column(
-                children: [
-                  if (latest.applicationDate.isNotEmpty)
-                    _VaccinationValue(
-                      label: 'Última aplicación:',
-                      value: latest.applicationDate,
-                    ),
-                  if (latest.nextDoseDate.isNotEmpty)
-                    _VaccinationValue(
-                      label: 'Próxima dosis:',
-                      value: latest.nextDoseDate,
-                    ),
-                ],
-              ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              key: Key('vaccination-group-detail-${group.key}'),
-              onTap: onDetail,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xs),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Ver detalle',
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyMedio,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    const Icon(
-                      Icons.chevron_right,
-                      size: AppSpacing.iconSizeSmall,
-                      color: AppColors.greyIconos,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

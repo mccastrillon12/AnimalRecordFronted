@@ -91,6 +91,50 @@ void main() {
     expect(originalOpened, isTrue);
   });
 
+  testWidgets('shows the no-upload action and invokes its callback', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var doNotUploadPressed = false;
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Carné de vacunas',
+      documentNumber: '',
+      date: null,
+      originalFileName: 'vacunas.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Canela',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SharedFileAnalysisReviewScreen(
+          analysis: analysis,
+          onDoNotUpload: () => doNotUploadPressed = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Subir documento'), findsOneWidget);
+    expect(find.text('No subir'), findsOneWidget);
+
+    await tester.tap(find.text('No subir'));
+
+    expect(doNotUploadPressed, isTrue);
+  });
+
   testWidgets('renders every value received through the analysis entity', (
     tester,
   ) async {

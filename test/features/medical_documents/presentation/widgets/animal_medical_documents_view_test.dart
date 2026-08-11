@@ -93,7 +93,86 @@ void main() {
     expectWhiteFeedbackButtons();
     await tester.tap(find.byKey(const Key('medical-document-ai-useful')));
     await tester.pump();
-    expectWhiteFeedbackButtons();
+    expect(
+      find.text(
+        'Gracias por tu respuesta, la tendremos en cuenta para seguir '
+        'entrenando la IA.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-not-useful')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('medical-document-ai-useful')), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('medical-document-ai-feedback-close')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsNothing,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows the thank-you message after negative AI feedback', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const document = MedicalDocumentEntity(
+      id: 'document-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.prescription),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin fórmulas',
+              emptyDescription: 'Sin documentos',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('medical-document-ai-not-useful')));
+    await tester.pump();
+
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Gracias por tu respuesta'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }

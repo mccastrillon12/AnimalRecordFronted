@@ -83,6 +83,7 @@ class _VaccinationCardsContentState extends State<VaccinationCardsContent> {
                     child: AnimalRecordSearchField(
                       controller: _searchController,
                       fieldKey: const Key('vaccination-cards-search-field'),
+                      maxLength: 20,
                     ),
                   ),
                   const SizedBox(width: AppSpacing.l),
