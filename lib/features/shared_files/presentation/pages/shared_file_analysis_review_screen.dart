@@ -118,12 +118,17 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final noticeHeight = _AnalysisNoticeHeader.containerHeightFor(
+      context,
+      isSendMode: _isSendMode,
+    );
+
     return ModalPageLayout(
       title: '',
       titlePadding: EdgeInsets.zero,
       titleStyle: const TextStyle(fontSize: 0, height: 0),
       fixedTitle: true,
-      fixedHeaderHeight: _isSendMode ? 164 : 180,
+      fixedHeaderHeight: _AnalysisNoticeHeader.totalHeightFor(noticeHeight),
       trailingTop: AppSpacing.l,
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
@@ -175,7 +180,10 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
               ),
             ]
           : null,
-      fixedHeaderChild: _AnalysisNoticeHeader(isSendMode: _isSendMode),
+      fixedHeaderChild: _AnalysisNoticeHeader(
+        isSendMode: _isSendMode,
+        containerHeight: noticeHeight,
+      ),
       bottomSafeAreaColor: AppColors.white,
       bottomPadding: _isSendMode
           ? null
@@ -272,21 +280,68 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 }
 
 class _AnalysisNoticeHeader extends StatelessWidget {
-  final bool isSendMode;
+  static const _topPadding = 72.0;
+  static const _sendContainerHeight = 68.0;
+  static const _reviewMinimumContainerHeight = 84.0;
+  static const _reviewMessage =
+      'Análisis realizado con IA. Verifica los datos antes de subir el '
+      'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
+      'seleccionó múltiples animales este será el documento que se le '
+      'asociará a cada uno de ellos.';
 
-  const _AnalysisNoticeHeader({required this.isSendMode});
+  final bool isSendMode;
+  final double containerHeight;
+
+  const _AnalysisNoticeHeader({
+    required this.isSendMode,
+    required this.containerHeight,
+  });
+
+  static double containerHeightFor(
+    BuildContext context, {
+    required bool isSendMode,
+  }) {
+    if (isSendMode) return _sendContainerHeight;
+
+    final availableTextWidth =
+        (MediaQuery.sizeOf(context).width -
+                (AppSpacing.l * 2) -
+                (AppSpacing.m * 2) -
+                12 -
+                AppSpacing.s)
+            .clamp(1.0, double.infinity)
+            .toDouble();
+    final painter = TextPainter(
+      text: TextSpan(
+        text: _reviewMessage,
+        style: AppTypography.body6.copyWith(
+          color: AppColors.greyNegro,
+          height: 1.4,
+        ),
+      ),
+      textDirection: Directionality.of(context),
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: availableTextWidth);
+    final requiredHeight = painter.height + (AppSpacing.m * 2);
+    return requiredHeight > _reviewMinimumContainerHeight
+        ? requiredHeight
+        : _reviewMinimumContainerHeight;
+  }
+
+  static double totalHeightFor(double containerHeight) =>
+      _topPadding + containerHeight + AppSpacing.l;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.l,
-        72,
+        _topPadding,
         AppSpacing.l,
         AppSpacing.l,
       ),
       child: Container(
-        height: isSendMode ? 68 : 84,
+        height: containerHeight,
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
           gradient: AppColors.aiAnalysisGradient,
@@ -327,9 +382,7 @@ class _AnalysisNoticeHeader extends StatelessWidget {
                       ),
                     )
                   : Text(
-                      'Análisis realizado con IA. Verifica los datos antes de '
-                      'subir el archivo; una vez enviado, no se admiten cambios '
-                      'ni eliminaciones.',
+                      _reviewMessage,
                       style: AppTypography.body6.copyWith(
                         color: const Color.fromARGB(255, 0, 0, 0),
                         height: 1.4,

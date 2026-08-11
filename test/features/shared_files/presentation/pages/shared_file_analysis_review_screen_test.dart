@@ -289,7 +289,10 @@ void main() {
 
     expect(
       find.text(
-        'Análisis realizado con IA. Verifica los datos antes de subir el archivo; una vez enviado, no se admiten cambios ni eliminaciones.',
+        'Análisis realizado con IA. Verifica los datos antes de subir el '
+        'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
+        'seleccionó múltiples animales este será el documento que se le '
+        'asociará a cada uno de ellos.',
       ),
       findsOneWidget,
     );
@@ -312,6 +315,9 @@ void main() {
       ),
       isTrue,
     );
+    final layout = tester.widget<ModalPageLayout>(find.byType(ModalPageLayout));
+    expect(layout.fixedHeaderHeight, greaterThan(180));
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('opens the send page with export action and tutor data', (
