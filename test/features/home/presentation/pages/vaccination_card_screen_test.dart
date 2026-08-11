@@ -113,6 +113,11 @@ void main() {
           .height,
       AppSpacing.m,
     );
+    final fixedContentGap = find.byKey(
+      const Key('vaccination-card-fixed-content-gap'),
+    );
+    expect(tester.getSize(fixedContentGap).height, AppSpacing.xl);
+    final gapRectBeforeScroll = tester.getRect(fixedContentGap);
     final title = tester.widget<Text>(
       find.byKey(const Key('vaccination-card-title')),
     );
@@ -176,6 +181,12 @@ void main() {
       find.byKey(const Key('vaccination-card-footer-logo')),
       findsOneWidget,
     );
+    await tester.drag(
+      find.byType(SingleChildScrollView),
+      const Offset(0, -300),
+    );
+    await tester.pumpAndSettle();
+    expect(tester.getRect(fixedContentGap), gapRectBeforeScroll);
     await tester.tap(find.byKey(const Key('vaccination-card-menu')));
     await tester.pumpAndSettle();
     expect(

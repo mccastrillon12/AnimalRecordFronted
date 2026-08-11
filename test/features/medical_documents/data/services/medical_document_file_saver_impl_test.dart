@@ -46,4 +46,25 @@ void main() {
 
     expect(saved, isFalse);
   });
+
+  test('preserves an existing image extension without appending pdf', () async {
+    String? savedName;
+    final saver = MedicalDocumentFileSaverImpl(
+      dio: Dio(),
+      saveBytes: ({required fileName, required bytes}) async {
+        savedName = fileName;
+        return 'saved/$fileName';
+      },
+    );
+
+    final saved = await saver.save(
+      MedicalDocumentFileSaveRequest(
+        fileName: '15240513993600.jpg',
+        bytes: Uint8List.fromList([1, 2, 3]),
+      ),
+    );
+
+    expect(saved, isTrue);
+    expect(savedName, '15240513993600.jpg');
+  });
 }

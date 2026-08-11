@@ -24,7 +24,7 @@ class MedicalDocumentFileSaverImpl implements MedicalDocumentFileSaver {
   Future<bool> save(MedicalDocumentFileSaveRequest request) async {
     final bytes = await _loadBytes(request);
     final result = await saveBytes(
-      fileName: _safePdfFileName(request.fileName),
+      fileName: _safeFileName(request.fileName),
       bytes: bytes,
     );
     return result != null;
@@ -55,19 +55,25 @@ class MedicalDocumentFileSaverImpl implements MedicalDocumentFileSaver {
     required String fileName,
     required Uint8List bytes,
   }) {
+    final extension = _fileExtension(fileName) ?? 'pdf';
     return FilePicker.saveFile(
-      dialogTitle: 'Guardar PDF',
+      dialogTitle: 'Guardar archivo',
       fileName: fileName,
       type: FileType.custom,
-      allowedExtensions: const ['pdf'],
+      allowedExtensions: [extension],
       bytes: bytes,
     );
   }
 
-  String _safePdfFileName(String value) {
+  String _safeFileName(String value) {
     var name = value.trim().replaceAll(RegExp(r'[<>:"/\\|?*\x00-\x1F]'), '_');
     if (name.isEmpty) name = 'documento_medico.pdf';
-    if (!name.toLowerCase().endsWith('.pdf')) name = '$name.pdf';
+    if (_fileExtension(name) == null) name = '$name.pdf';
     return name;
+  }
+
+  static String? _fileExtension(String fileName) {
+    final match = RegExp(r'\.([a-zA-Z0-9]{1,10})$').firstMatch(fileName.trim());
+    return match?.group(1)?.toLowerCase();
   }
 }

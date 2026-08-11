@@ -50,6 +50,9 @@ class AppDropdown<T> extends StatefulWidget {
   /// Fixed width; defaults to `double.infinity`.
   final double? width;
 
+  /// Trigger height; defaults to the shared input height token.
+  final double height;
+
   /// Override the default label style.
   final TextStyle? labelStyle;
 
@@ -109,6 +112,7 @@ class AppDropdown<T> extends StatefulWidget {
     this.errorText,
     this.enabled = true,
     this.width,
+    this.height = AppSpacing.inputHeight,
     this.labelStyle,
     this.searchable = false,
     this.isInline = false,
@@ -473,7 +477,7 @@ class _AppDropdownState<T> extends State<AppDropdown<T>> {
         CompositedTransformTarget(
           link: _layerLink,
           child: Container(
-            height: AppSpacing.inputHeight,
+            height: widget.height,
             width: widget.width ?? double.infinity,
             padding: const EdgeInsets.only(left: 12, right: 8),
             decoration: BoxDecoration(

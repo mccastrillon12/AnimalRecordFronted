@@ -3,6 +3,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/display/app_user_avatar.dart';
@@ -394,13 +395,7 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.bgBlancoAntiFlash,
         borderRadius: AppBorders.small(),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x12000000),
-            blurRadius: 8,
-            offset: Offset(0, 3),
-          ),
-        ],
+        boxShadow: const [AppShadows.card],
       ),
       child: Column(
         children: [
@@ -488,105 +483,112 @@ class _ClinicalHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.bgBlancoAntiFlash,
-      borderRadius: AppBorders.large(),
-      child: InkWell(
-        key: Key('clinical-history-${document.id}'),
-        onTap: onTap,
+    return DecoratedBox(
+      key: Key('clinical-history-shadow-${document.id}'),
+      decoration: BoxDecoration(
         borderRadius: AppBorders.large(),
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.m),
-          child: Row(
-            children: [
-              SvgPicture.asset(
-                AppIcons.folderFavorite,
-                width: AppSpacing.iconSizeMedium,
-                height: AppSpacing.iconSizeMedium,
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Historia clínica ${index + 1}',
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    Text(
-                      _documentDate(document),
-                      style: AppTypography.body6.copyWith(
-                        color: AppColors.greyBordes,
-                      ),
-                    ),
-                  ],
+        boxShadow: const [AppShadows.card],
+      ),
+      child: Material(
+        color: AppColors.bgBlancoAntiFlash,
+        borderRadius: AppBorders.large(),
+        child: InkWell(
+          key: Key('clinical-history-${document.id}'),
+          onTap: onTap,
+          borderRadius: AppBorders.large(),
+          child: Padding(
+            padding: const EdgeInsets.all(AppSpacing.m),
+            child: Row(
+              children: [
+                SvgPicture.asset(
+                  AppIcons.folderFavorite,
+                  width: AppSpacing.iconSizeMedium,
+                  height: AppSpacing.iconSizeMedium,
                 ),
-              ),
-              Theme(
-                data: Theme.of(context).copyWith(
-                  splashColor: Colors.transparent,
-                  highlightColor: Colors.transparent,
-                ),
-                child: PopupMenuButton<String>(
-                  key: Key('clinical-history-menu-${document.id}'),
-                  padding: EdgeInsets.zero,
-                  offset: const Offset(-175, 42),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(
-                      AppBorders.radiusMedium,
-                    ),
-                  ),
-                  constraints: const BoxConstraints(
-                    minWidth: 203,
-                    maxWidth: 203,
-                  ),
-                  color: AppColors.white,
-                  elevation: 4,
-                  icon: const Icon(
-                    Icons.more_vert,
-                    color: AppColors.primaryFrances,
-                  ),
-                  onSelected: (_) => onDownload(),
-                  itemBuilder: (_) => [
-                    PopupMenuItem<String>(
-                      value: 'download',
-                      height: 47,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.m,
+                const SizedBox(width: AppSpacing.m),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Historia clínica ${index + 1}',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
-                      child: Row(
-                        children: [
-                          SvgPicture.asset(
-                            AppIcons.receiveSquare,
-                            width: AppSpacing.iconSizeSmall,
-                            height: AppSpacing.iconSizeSmall,
-                            colorFilter: const ColorFilter.mode(
-                              AppColors.greyMedio,
-                              BlendMode.srcIn,
-                            ),
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              'Descargar historia',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.greyTextos,
+                      const SizedBox(height: AppSpacing.xs),
+                      Text(
+                        _documentDate(document),
+                        style: AppTypography.body6.copyWith(
+                          color: AppColors.greyBordes,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Theme(
+                  data: Theme.of(context).copyWith(
+                    splashColor: Colors.transparent,
+                    highlightColor: Colors.transparent,
+                  ),
+                  child: PopupMenuButton<String>(
+                    key: Key('clinical-history-menu-${document.id}'),
+                    padding: EdgeInsets.zero,
+                    offset: const Offset(-175, 42),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(
+                        AppBorders.radiusMedium,
+                      ),
+                    ),
+                    constraints: const BoxConstraints(
+                      minWidth: 203,
+                      maxWidth: 203,
+                    ),
+                    color: AppColors.white,
+                    elevation: 4,
+                    icon: const Icon(
+                      Icons.more_vert,
+                      color: AppColors.primaryFrances,
+                    ),
+                    onSelected: (_) => onDownload(),
+                    itemBuilder: (_) => [
+                      PopupMenuItem<String>(
+                        value: 'download',
+                        height: 47,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: AppSpacing.m,
+                        ),
+                        child: Row(
+                          children: [
+                            SvgPicture.asset(
+                              AppIcons.receiveSquare,
+                              width: AppSpacing.iconSizeSmall,
+                              height: AppSpacing.iconSizeSmall,
+                              colorFilter: const ColorFilter.mode(
+                                AppColors.greyMedio,
+                                BlendMode.srcIn,
                               ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'Descargar historia',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTypography.body4.copyWith(
+                                  color: AppColors.greyTextos,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

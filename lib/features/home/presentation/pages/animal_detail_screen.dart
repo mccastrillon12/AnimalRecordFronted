@@ -451,7 +451,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       'Carné de vacunas',
       'Desparasitaciones',
       'Órdenes, fórmulas y remisiones',
-      'Ayudas diagnosticas',
+      'Ayudas diagnósticas',
       'Peso',
       'Genealogía',
     ];
@@ -498,6 +498,12 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   context,
                   AppRoutes.animalDocuments,
                   arguments: animal.id,
+                );
+              } else if (entry.value == 'Ayudas diagnósticas') {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.animalDiagnosticAids,
+                  arguments: animal,
                 );
               }
             },

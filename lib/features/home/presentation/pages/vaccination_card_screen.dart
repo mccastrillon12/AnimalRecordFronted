@@ -86,45 +86,58 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
                   ),
                 ),
                 Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(22, 32, 22, 32),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        Container(
-                          key: const Key('vaccination-card-content-background'),
-                          clipBehavior: Clip.antiAlias,
-                          padding: const EdgeInsets.fromLTRB(
-                            AppSpacing.m,
-                            AppSpacing.m,
-                            AppSpacing.m,
-                            AppSpacing.xl,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.bgHielo,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
+                  child: Column(
+                    children: [
+                      const SizedBox(
+                        key: Key('vaccination-card-fixed-content-gap'),
+                        height: AppSpacing.xl,
+                      ),
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.fromLTRB(22, 0, 22, 32),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              _AnimalPhoto(animal: widget.animal),
-                              const SizedBox(height: 20),
-                              _AppProfileInformation(
-                                animal: widget.animal,
-                                user: user,
+                              Container(
+                                key: const Key(
+                                  'vaccination-card-content-background',
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                padding: const EdgeInsets.fromLTRB(
+                                  AppSpacing.m,
+                                  AppSpacing.m,
+                                  AppSpacing.m,
+                                  AppSpacing.xl,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.bgHielo,
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
+                                  children: [
+                                    _AnimalPhoto(animal: widget.animal),
+                                    const SizedBox(height: 20),
+                                    _AppProfileInformation(
+                                      animal: widget.animal,
+                                      user: user,
+                                    ),
+                                    const SizedBox(height: 20),
+                                    _VaccinationCardDocuments(
+                                      animalId: widget.animal.id,
+                                      selectedGroup: widget.selectedGroup,
+                                    ),
+                                  ],
+                                ),
                               ),
-                              const SizedBox(height: 20),
-                              _VaccinationCardDocuments(
-                                animalId: widget.animal.id,
-                                selectedGroup: widget.selectedGroup,
-                              ),
+                              const SizedBox(height: AppSpacing.xl),
+                              const _VaccinationCardFooter(),
                             ],
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.xl),
-                        const _VaccinationCardFooter(),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               ],
