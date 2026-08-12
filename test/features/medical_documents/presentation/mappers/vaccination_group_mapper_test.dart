@@ -37,12 +37,14 @@ void main() {
     expect(groups.single.title, 'Rabia');
     expect(groups.single.count, 2);
     expect(groups.single.latest.sourceName, 'Rabia');
-    expect(groups.single.latest.applicationDate, 'Octubre 27, 2025');
-    expect(groups.single.latest.nextDoseDate, 'Octubre 27, 2028');
+    expect(groups.single.latest.applicationDate, '10/27/2025');
+    expect(groups.single.latest.applicationDateLabel, 'Fecha De Aplicacion');
+    expect(groups.single.latest.nextDoseDate, '10/27/2028');
+    expect(groups.single.latest.nextDoseDateLabel, 'Proxima Dosis');
   });
 
   test(
-    'uses covered diseases to group product names under a Spanish title',
+    'uses covered diseases to group product names without translating them',
     () {
       final documents = [
         _document(
@@ -68,7 +70,7 @@ void main() {
 
       expect(groups, hasLength(1));
       expect(groups.single.key, 'distemper');
-      expect(groups.single.title, 'Moquillo canino');
+      expect(groups.single.title, 'Vanguard Product');
       expect(groups.single.count, 2);
     },
   );
@@ -129,8 +131,8 @@ void main() {
       'rabies-2023',
       'rabies-2022',
     ]);
-    expect(group.latest.applicationDate, 'Julio 1, 2025');
-    expect(group.latest.nextDoseDate, 'Julio 1, 2026');
+    expect(group.latest.applicationDate, '7/01/25');
+    expect(group.latest.nextDoseDate, '7/01/26');
   });
 
   test('builds ordered doses and preserves parties and original links', () {
@@ -200,7 +202,7 @@ void main() {
     expect(detail.vaccineName, 'Rabia');
     expect(detail.doses.map((dose) => dose.title), ['Dosis 1', 'Dosis 2']);
     expect(detail.doses.first.document.id, 'rabies-new');
-    expect(detail.doses.first.nextDoseDate, 'Octubre 27, 2028');
+    expect(detail.doses.first.nextDoseDate, '10/27/2028');
     expect(detail.doses.first.veterinarian?.name, 'María Ríos');
     expect(detail.doses.last.veterinarian?.name, 'Juanita Doe');
     expect(detail.doses.first.tutor.name, 'Barbara James');
@@ -209,7 +211,12 @@ void main() {
     expect(detail.doses.last.patient.name, 'Max');
     expect(
       detail.doses.last.details.map((detail) => detail.label),
-      containsAllInOrder(['Fecha', 'Marca', 'Fabricante', '# Lote']),
+      containsAllInOrder([
+        'Application Date',
+        'Brand',
+        'Manufacturer',
+        'Lot Number',
+      ]),
     );
     expect(pdf.documentType, 'Carné de vacunación');
     expect(pdf.itemsTitle, 'Vacuna Rabia');
@@ -223,8 +230,8 @@ void main() {
       pdf.medications.first.details,
       containsAll([
         const SharedFileAnalysisDetailEntity(
-          label: 'Próxima dosis',
-          value: 'Octubre 27, 2028',
+          label: 'Next Dose Date',
+          value: '10/27/2028',
         ),
         const SharedFileAnalysisDetailEntity(
           label: 'Tutor',

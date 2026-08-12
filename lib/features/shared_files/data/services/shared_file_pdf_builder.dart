@@ -155,9 +155,9 @@ class SharedFilePdfBuilder {
           (analysis.sourceDateText?.trim().isNotEmpty ?? false))
         _singleDetail(
           _dateLabel(analysis.documentType),
-          analysis.date != null
-              ? _formatDate(analysis.date!)
-              : analysis.sourceDateText!.trim(),
+          analysis.sourceDateText?.trim().isNotEmpty == true
+              ? analysis.sourceDateText!.trim()
+              : _formatDate(analysis.date!),
         ),
     ];
 
@@ -307,9 +307,14 @@ class SharedFilePdfBuilder {
     if (widgets.isNotEmpty) widgets.add(pw.SizedBox(height: 14));
 
     final nextDoseValues = analysis.sections
-        .where((section) => section.title.trim() == 'Próxima dosis')
-        .map((section) => section.body?.trim() ?? '')
-        .where((value) => value.isNotEmpty)
+        .where((section) => _isVaccinationNextDoseLabel(section.title))
+        .where((section) => section.body?.trim().isNotEmpty ?? false)
+        .map(
+          (section) => SharedFileAnalysisDetailEntity(
+            label: section.title.trim(),
+            value: section.body!.trim(),
+          ),
+        )
         .toList(growable: false);
     final fallbackNextDose = nextDoseValues.isEmpty
         ? null
@@ -337,8 +342,10 @@ class SharedFilePdfBuilder {
         'Paciente',
       );
       final doseNextValues = dose.details
-          .where((detail) => detail.label == 'Próxima dosis' && detail.hasData)
-          .map((detail) => detail.value)
+          .where(
+            (detail) =>
+                detail.hasData && _isVaccinationNextDoseLabel(detail.label),
+          )
           .toList(growable: false);
       final nextDose = startsVaccinationGroup
           ? doseNextValues.isNotEmpty
@@ -355,7 +362,7 @@ class SharedFilePdfBuilder {
                 !_isVaccinationTutorDetail(detail) &&
                 !_isVaccinationPatientDetail(detail) &&
                 !_isVaccinationVisualDetail(detail) &&
-                detail.label != 'Próxima dosis',
+                !_isVaccinationNextDoseLabel(detail.label),
           )
           .map((detail) => (detail.label, detail.value))
           .toList(growable: false);
@@ -389,7 +396,7 @@ class SharedFilePdfBuilder {
         ],
         if (nextDose != null) ...[
           pw.SizedBox(height: 10),
-          _singleDetail('Próxima dosis', nextDose),
+          _singleDetail(nextDose.label, nextDose.value),
         ],
         pw.SizedBox(height: 18),
         pw.Text(
@@ -502,6 +509,29 @@ class SharedFilePdfBuilder {
         label.contains('sello') ||
         label.contains('stamp') ||
         label.contains('seal');
+  }
+
+  bool _isVaccinationNextDoseLabel(String label) {
+    final normalized = label
+        .trim()
+        .toLowerCase()
+        .replaceAll(RegExp('[áàäâ]'), 'a')
+        .replaceAll(RegExp('[éèëê]'), 'e')
+        .replaceAll(RegExp('[íìïî]'), 'i')
+        .replaceAll(RegExp('[óòöô]'), 'o')
+        .replaceAll(RegExp('[úùüû]'), 'u')
+        .replaceAll(RegExp(r'[^a-z0-9]'), '');
+    return const {
+      'nextdose',
+      'nextdosedate',
+      'nextvaccinationdate',
+      'duedate',
+      'boosterdue',
+      'boosterduedate',
+      'proximadosis',
+      'fechaproximadosis',
+      'fechasiguientedosis',
+    }.contains(normalized);
   }
 
   bool _isVaccinationVeterinarianDetail(

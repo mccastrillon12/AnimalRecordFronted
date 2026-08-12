@@ -5,7 +5,9 @@ class SharedFileAnalysisEntity extends Equatable {
   final String documentNumber;
   final DateTime? date;
   final String? sourceDateText;
+  final String? sourceDateLabel;
   final String originalFileName;
+  final String? originalFileNameLabel;
   final SharedFilePatientAnalysisEntity patient;
   final SharedFileTutorAnalysisEntity tutor;
   final SharedFileVeterinarianAnalysisEntity? veterinarian;
@@ -20,7 +22,9 @@ class SharedFileAnalysisEntity extends Equatable {
     required this.documentNumber,
     required this.date,
     this.sourceDateText,
+    this.sourceDateLabel,
     required this.originalFileName,
+    this.originalFileNameLabel,
     required this.patient,
     required this.tutor,
     this.veterinarian,
@@ -39,7 +43,9 @@ class SharedFileAnalysisEntity extends Equatable {
       documentNumber: documentNumber,
       date: date,
       sourceDateText: sourceDateText,
+      sourceDateLabel: sourceDateLabel,
       originalFileName: originalFileName,
+      originalFileNameLabel: originalFileNameLabel,
       patient: patient,
       tutor: tutor,
       veterinarian: veterinarian,
@@ -57,7 +63,9 @@ class SharedFileAnalysisEntity extends Equatable {
       documentNumber: documentNumber,
       date: date,
       sourceDateText: sourceDateText,
+      sourceDateLabel: sourceDateLabel,
       originalFileName: originalFileName,
+      originalFileNameLabel: originalFileNameLabel,
       patient: patient,
       tutor: tutor,
       veterinarian: veterinarian,
@@ -77,7 +85,9 @@ class SharedFileAnalysisEntity extends Equatable {
     documentNumber,
     date,
     sourceDateText,
+    sourceDateLabel,
     originalFileName,
+    originalFileNameLabel,
     patient,
     tutor,
     veterinarian,

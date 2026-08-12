@@ -272,7 +272,15 @@ void main() {
     expect(find.text('Barbara James'), findsOneWidget);
     expect(find.text('Marc Doe'), findsNothing);
     expect(find.text('Documentos:'), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    final documentCountBadge = find.byKey(
+      const Key('clinical-history-document-count-Barbara James'),
+    );
+    expect(documentCountBadge, findsOneWidget);
+    expect(
+      find.descendant(of: documentCountBadge, matching: find.text('2')),
+      findsOneWidget,
+    );
+    expect(find.text('2'), findsNWidgets(2));
 
     final search = find.byKey(const Key('clinical-history-search-field'));
     expect(tester.widget<TextField>(search).enabled, isTrue);
@@ -295,7 +303,10 @@ void main() {
     await tester.enterText(search, '');
     await tester.pump();
 
-    await tester.tap(find.text('Ver historias'));
+    final groupCard = find.byKey(
+      const Key('clinical-history-group-Barbara James'),
+    );
+    await tester.tapAt(tester.getTopLeft(groupCard) + const Offset(12, 12));
     await tester.pumpAndSettle();
 
     expect(find.text('Subidas por mí'), findsOneWidget);
@@ -314,7 +325,7 @@ void main() {
     expect(find.text('Cambiar privacidad'), findsNothing);
   });
 
-  testWidgets('opens the detail directly when there is one clinical history', (
+  testWidgets('opens the only history detail from its overview card', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -338,6 +349,20 @@ void main() {
           validatedExtraction: MedicalDocumentExtractionEntity(
             documentType: MedicalDocumentCategory.clinicalHistory,
             documentDate: 'December 1, 2026',
+            patient: MedicalDocumentPatientEntity(
+              name: 'Chuleta',
+              identifier: '101077',
+              species: 'Canine (Dog)',
+              breed: 'Chihuahua',
+              reproductiveStatus: 'Neutered',
+              fields: {
+                'name': 'Chuleta',
+                'identifier': '101077',
+                'species': 'Canine (Dog)',
+                'breed': 'Chihuahua',
+                'reproductiveStatus': 'Neutered',
+              },
+            ),
           ),
           version: 1,
         ),
@@ -360,12 +385,35 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Historias clínicas'), findsOneWidget);
+    expect(find.text('Enviar historia clínica'), findsNothing);
+    expect(
+      find.byKey(const Key('clinical-history-search-field')),
+      findsOneWidget,
+    );
+    expect(find.text('Ver historias'), findsOneWidget);
+
+    final singleHistoryCard = find.byKey(
+      const Key('clinical-history-group-Barbara James'),
+    );
+    await tester.tapAt(
+      tester.getTopLeft(singleHistoryCard) + const Offset(12, 12),
+    );
+    await tester.pumpAndSettle();
+
     expect(find.text('Enviar historia clínica'), findsOneWidget);
+    expect(find.text('Document Date'), findsOneWidget);
+    expect(find.text('December 1, 2026'), findsOneWidget);
+    expect(find.text('Original File Name'), findsOneWidget);
+    expect(find.text('Identifier'), findsOneWidget);
+    expect(find.text('101077'), findsOneWidget);
+    expect(find.text('Species'), findsOneWidget);
+    expect(find.text('Reproductive Status'), findsOneWidget);
+    expect(find.text('Neutered'), findsOneWidget);
     expect(
       find.byKey(const Key('clinical-history-search-field')),
       findsNothing,
     );
-    expect(find.text('Ver historias'), findsNothing);
   });
 
   testWidgets('shows the current user name, initials and own-group title', (

@@ -159,8 +159,8 @@ void main() {
     expect(find.text('Vacuna'), findsNWidgets(2));
     expect(find.text('Dosis 1'), findsNWidgets(2));
     expect(find.text('Dosis 2'), findsOneWidget);
-    expect(find.text('Julio 1, 2025'), findsOneWidget);
-    expect(find.text('Julio 1, 2026'), findsOneWidget);
+    expect(find.text('7/01/25'), findsOneWidget);
+    expect(find.text('7/01/26'), findsOneWidget);
     final photo = find.byKey(const Key('vaccination-card-animal-photo-card'));
     final profile = find.byKey(const Key('vaccination-card-app-information'));
     final vaccination = find.byKey(const Key('vaccination-type-rabia'));

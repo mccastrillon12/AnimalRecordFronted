@@ -1,11 +1,9 @@
-import 'dart:async';
-
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
-import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,57 +12,39 @@ import 'package:mocktail/mocktail.dart';
 class _MockAnimalCubit extends Mock implements AnimalCubit {}
 
 void main() {
-  testWidgets(
-    'shows history loading in the menu and then opens the only detail',
-    (tester) async {
-      await tester.binding.setSurfaceSize(const Size(600, 1000));
-      addTearDown(() => tester.binding.setSurfaceSize(null));
+  testWidgets('always opens the clinical histories overview', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
 
-      final animalCubit = _MockAnimalCubit();
-      when(
-        () => animalCubit.state,
-      ).thenReturn(const AnimalsLoaded([_animalEntity]));
-      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
-      final pendingDocuments = Completer<List<MedicalDocumentEntity>>();
-      var loaderCalls = 0;
-
-      await tester.pumpWidget(
-        BlocProvider<AnimalCubit>.value(
-          value: animalCubit,
-          child: MaterialApp(
-            home: AnimalDetailScreen(
-              animal: _animal,
-              loadClinicalHistories: (_) {
-                loaderCalls++;
-                return pendingDocuments.future;
-              },
-            ),
-          ),
+    final animalCubit = _MockAnimalCubit();
+    when(
+      () => animalCubit.state,
+    ).thenReturn(const AnimalsLoaded([_animalEntity]));
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          routes: {
+            AppRoutes.animalClinicalHistory: (_) =>
+                const Scaffold(body: Text('Ventana de historias clínicas')),
+          },
+          home: const AnimalDetailScreen(animal: _animal),
         ),
-      );
-      await tester.pumpAndSettle();
+      ),
+    );
+    await tester.pumpAndSettle();
 
-      final historyItem = find.byKey(
-        const Key('animal-clinical-history-menu-item'),
-      );
-      await tester.ensureVisible(historyItem);
-      await tester.tap(historyItem);
-      await tester.pump();
+    final historyItem = find.byKey(
+      const Key('animal-clinical-history-menu-item'),
+    );
+    await tester.ensureVisible(historyItem);
+    await tester.tap(historyItem);
+    await tester.pumpAndSettle();
 
-      expect(loaderCalls, 1);
-      expect(
-        find.byKey(const Key('animal-clinical-history-menu-loading')),
-        findsOneWidget,
-      );
-      expect(find.text('Historias clínicas'), findsNothing);
-
-      pendingDocuments.complete(const [_clinicalHistory]);
-      await tester.pumpAndSettle();
-
-      expect(find.text('Enviar historia clínica'), findsOneWidget);
-      expect(find.text('Historias clínicas'), findsNothing);
-    },
-  );
+    expect(find.text('Ventana de historias clínicas'), findsOneWidget);
+    expect(find.text('Enviar historia clínica'), findsNothing);
+  });
 }
 
 const _animal = AnimalModel(
@@ -87,19 +67,4 @@ const _animalEntity = AnimalEntity(
   temperament: [],
   diagnosis: [],
   ownerId: 'owner-1',
-);
-
-const _clinicalHistory = MedicalDocumentEntity(
-  id: 'only-history',
-  animalIds: ['animal-1'],
-  originalFileName: 'only-history.pdf',
-  mimeType: 'application/pdf',
-  fileSize: 100,
-  status: MedicalDocumentStatus.accepted,
-  finalCategory: MedicalDocumentCategory.clinicalHistory,
-  validatedExtraction: MedicalDocumentExtractionEntity(
-    documentType: MedicalDocumentCategory.clinicalHistory,
-    documentDate: 'December 1, 2026',
-  ),
-  version: 1,
 );

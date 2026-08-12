@@ -42,9 +42,7 @@ DateTime? parseMedicalDocumentDate(String? value) {
 }
 
 String displayMedicalDocumentDate(String? value) {
-  final parsed = parseMedicalDocumentDate(value);
-  if (parsed == null) return value?.trim() ?? '';
-  return formatMedicalDocumentDate(parsed);
+  return value?.trim() ?? '';
 }
 
 String formatMedicalDocumentDate(DateTime date) {

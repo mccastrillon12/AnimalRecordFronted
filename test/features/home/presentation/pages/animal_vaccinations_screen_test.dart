@@ -99,7 +99,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('groups English and Spanish vaccines in Spanish cards', (
+  testWidgets('groups vaccines without translating backend content', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -149,11 +149,11 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Rabia'), findsOneWidget);
-    expect(find.text('Moquillo canino'), findsOneWidget);
-    expect(find.text('Octubre 27, 2025'), findsOneWidget);
-    expect(find.text('Octubre 27, 2028'), findsOneWidget);
-    expect(find.text('Última aplicación:'), findsNWidgets(2));
-    expect(find.text('Próxima dosis:'), findsOneWidget);
+    expect(find.text('Canine Distemper'), findsOneWidget);
+    expect(find.text('10/27/2025'), findsOneWidget);
+    expect(find.text('10/27/2028'), findsOneWidget);
+    expect(find.text('Application Date:'), findsNWidgets(2));
+    expect(find.text('Next Dose Date:'), findsOneWidget);
     expect(find.byKey(const Key('vaccination-group-rabies')), findsOneWidget);
     expect(
       find.byKey(const Key('vaccination-group-distemper')),
@@ -252,8 +252,8 @@ void main() {
     expect(find.byKey(const Key('export-vaccination-group')), findsOneWidget);
     expect(find.text('Enviar'), findsOneWidget);
     expect(find.text('Detalle de vacunación'), findsNWidgets(2));
-    expect(find.text('Próxima dosis'), findsOneWidget);
-    expect(find.text('Octubre 27, 2028'), findsOneWidget);
+    expect(find.text('Next Dose Date'), findsOneWidget);
+    expect(find.text('10/27/2028'), findsOneWidget);
     expect(find.text('Dosis 1'), findsOneWidget);
     expect(find.text('Dosis 2'), findsOneWidget);
     expect(find.text('Ver original'), findsNWidgets(2));
@@ -278,8 +278,12 @@ void main() {
     expect(find.textContaining('Brownie', findRichText: true), findsOneWidget);
     expect(find.textContaining('John Doe', findRichText: true), findsOneWidget);
     expect(find.textContaining('Max', findRichText: true), findsOneWidget);
-    final firstRecord = find.byKey(const Key('vaccination-record-rabies-new'));
-    final secondRecord = find.byKey(const Key('vaccination-record-rabies-old'));
+    final firstRecord = find.byKey(
+      const Key('vaccination-record-rabies-new-0'),
+    );
+    final secondRecord = find.byKey(
+      const Key('vaccination-record-rabies-old-1'),
+    );
     expect(
       tester.getTopLeft(secondRecord).dy - tester.getBottomLeft(firstRecord).dy,
       AppSpacing.xl,
@@ -310,6 +314,62 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets('opens doses that share the same medical document id', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    when(() => documentsCubit.state).thenReturn(
+      AnimalMedicalDocumentsLoaded([
+        _vaccinationDocument(
+          id: 'shared-vaccine-document',
+          vaccinationId: 'bordetella-1',
+          fields: const {
+            'name': 'Bordetella',
+            'applicationDate': 'January 24, 2023',
+          },
+          additionalVaccinations: const [
+            MedicalDocumentItemEntity(
+              id: 'bordetella-2',
+              fields: {
+                'name': 'Bordetella',
+                'applicationDate': 'January 24, 2024',
+              },
+            ),
+          ],
+        ),
+      ], category: MedicalDocumentCategory.vaccinationCard),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: documentsCubit,
+        child: const MaterialApp(
+          home: AnimalVaccinationsScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('vaccination-group-bordetella')));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.byKey(const Key('vaccination-record-shared-vaccine-document-0')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('vaccination-record-shared-vaccine-document-1')),
+      findsOneWidget,
+    );
+    expect(find.text('Dosis 1'), findsOneWidget);
+    expect(find.text('Dosis 2'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 MedicalDocumentEntity _vaccinationDocument({
@@ -319,6 +379,7 @@ MedicalDocumentEntity _vaccinationDocument({
   Map<String, dynamic>? issuer,
   MedicalDocumentPatientEntity? patient,
   MedicalDocumentOwnerEntity? owner,
+  List<MedicalDocumentItemEntity> additionalVaccinations = const [],
 }) {
   return MedicalDocumentEntity(
     id: id,
@@ -335,6 +396,7 @@ MedicalDocumentEntity _vaccinationDocument({
       owner: owner,
       vaccinations: [
         MedicalDocumentItemEntity(id: vaccinationId, fields: fields),
+        ...additionalVaccinations,
       ],
     ),
     version: 1,

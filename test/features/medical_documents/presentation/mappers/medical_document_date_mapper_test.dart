@@ -2,7 +2,7 @@ import 'package:animal_record/features/medical_documents/presentation/mappers/me
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('parses the localized document date returned by the backend', () {
+  test('parses dates for sorting but preserves the backend text', () {
     final date = parseMedicalDocumentDate(
       'miércoles, 14 de mayo de 2025, 7:21 p.m.',
     );
@@ -10,7 +10,7 @@ void main() {
     expect(date, DateTime(2025, 5, 14, 19, 21));
     expect(
       displayMedicalDocumentDate('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
-      'Mayo 14, 2025',
+      'miércoles, 14 de mayo de 2025, 7:21 p.m.',
     );
   });
 

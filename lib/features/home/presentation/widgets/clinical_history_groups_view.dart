@@ -90,18 +90,24 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
           ),
           itemCount: groups.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => _ClinicalHistoryGroupCard(
-            group: groups[index],
-            onTap: () => Navigator.push<void>(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ClinicalHistoryGroupScreen(
-                  animal: animal,
-                  group: groups[index],
-                ),
-              ),
-            ),
-          ),
+          itemBuilder: (context, index) {
+            final group = groups[index];
+            return _ClinicalHistoryGroupCard(
+              group: group,
+              onTap: () {
+                final singleDocument = group.documents.length == 1
+                    ? group.documents.single
+                    : null;
+                final destination = singleDocument?.validatedExtraction != null
+                    ? ClinicalHistoryDocumentScreen(document: singleDocument!)
+                    : ClinicalHistoryGroupScreen(animal: animal, group: group);
+                Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(builder: (_) => destination),
+                );
+              },
+            );
+          },
         );
       },
     );
@@ -398,79 +404,113 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final latest = group.documents.first;
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: AppColors.bgBlancoAntiFlash,
-        borderRadius: AppBorders.small(),
-        boxShadow: const [AppShadows.card],
-      ),
-      child: Column(
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    final borderRadius = AppBorders.small();
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: Key('clinical-history-group-${group.name}'),
+        onTap: onTap,
+        borderRadius: borderRadius,
+        child: Ink(
+          padding: const EdgeInsets.all(AppSpacing.m),
+          decoration: BoxDecoration(
+            color: AppColors.bgBlancoAntiFlash,
+            borderRadius: borderRadius,
+            boxShadow: const [AppShadows.card],
+          ),
+          child: Column(
             children: [
-              AppUserAvatar(
-                name: group.name,
-                imageUrl: group.profilePicture,
-                size: AppSpacing.xl,
-                borderRadius: AppBorders.radiusSmall,
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      group.name,
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyTextos,
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  AppUserAvatar(
+                    name: group.name,
+                    imageUrl: group.profilePicture,
+                    size: AppSpacing.xl,
+                    borderRadius: AppBorders.radiusSmall,
+                  ),
+                  const SizedBox(width: AppSpacing.m),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          group.name,
+                          style: AppTypography.body3.copyWith(
+                            color: AppColors.greyTextos,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(height: AppSpacing.l),
+                        _GroupValue(
+                          label: 'Última actualización:',
+                          value: _documentDate(latest),
+                        ),
+                        const SizedBox(height: AppSpacing.xs),
+                        _GroupValue(
+                          label: 'Documentos:',
+                          value: '${group.documents.length}',
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.xs),
+                  Container(
+                    key: Key('clinical-history-document-count-${group.name}'),
+                    constraints: const BoxConstraints(
+                      minWidth: 22,
+                      minHeight: 22,
+                    ),
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.symmetric(horizontal: 6),
+                    decoration: const BoxDecoration(
+                      color: AppColors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Color(0x14000000),
+                          blurRadius: 5,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      '${group.documents.length}',
+                      style: AppTypography.body6.copyWith(
+                        color: AppColors.primaryFrances,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    const SizedBox(height: AppSpacing.l),
-                    _GroupValue(
-                      label: 'Última actualización:',
-                      value: _documentDate(latest),
-                    ),
-                    const SizedBox(height: AppSpacing.xs),
-                    _GroupValue(
-                      label: 'Documentos:',
-                      value: '${group.documents.length}',
-                    ),
-                  ],
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.m),
+              Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  key: Key('view-clinical-histories-${group.name}'),
+                  padding: const EdgeInsets.all(AppSpacing.xs),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Ver historias',
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.greyMedio,
+                        ),
+                      ),
+                      const SizedBox(width: AppSpacing.xs),
+                      const Icon(
+                        Icons.chevron_right,
+                        color: AppColors.greyIconos,
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              key: Key('view-clinical-histories-${group.name}'),
-              onTap: onTap,
-              child: Padding(
-                padding: const EdgeInsets.all(AppSpacing.xs),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Ver historias',
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyMedio,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    const Icon(
-                      Icons.chevron_right,
-                      color: AppColors.greyIconos,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }

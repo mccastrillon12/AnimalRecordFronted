@@ -441,10 +441,12 @@ class _AnalysisDocumentCard extends StatelessWidget {
               if (analysis.date != null ||
                   (analysis.sourceDateText?.trim().isNotEmpty ?? false))
                 _AnalysisValueRow(
-                  label: 'Fecha',
-                  value: analysis.date != null
-                      ? _formatDate(analysis.date!)
-                      : analysis.sourceDateText!.trim(),
+                  label: analysis.sourceDateLabel?.trim().isNotEmpty == true
+                      ? analysis.sourceDateLabel!.trim()
+                      : 'Fecha',
+                  value: analysis.sourceDateText?.trim().isNotEmpty == true
+                      ? analysis.sourceDateText!.trim()
+                      : _formatDate(analysis.date!),
                 ),
               if ((analysis.date != null ||
                       (analysis.sourceDateText?.trim().isNotEmpty ?? false)) &&
@@ -452,7 +454,10 @@ class _AnalysisDocumentCard extends StatelessWidget {
                 const SizedBox(height: AppSpacing.xs),
               if (analysis.originalFileName.trim().isNotEmpty)
                 _AnalysisValueRow(
-                  label: 'Archivo original',
+                  label:
+                      analysis.originalFileNameLabel?.trim().isNotEmpty == true
+                      ? analysis.originalFileNameLabel!.trim()
+                      : 'Archivo original',
                   value: analysis.originalFileName,
                   valueColor: AppColors.primaryFrances,
                   maxLines: 1,
@@ -788,6 +793,7 @@ class _AnalysisValueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelMaxLines = label.trim().contains(RegExp(r'\s')) ? 2 : 1;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -795,7 +801,7 @@ class _AnalysisValueRow extends StatelessWidget {
           width: 119,
           child: Text(
             label,
-            maxLines: 1,
+            maxLines: labelMaxLines,
             overflow: TextOverflow.ellipsis,
             style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),

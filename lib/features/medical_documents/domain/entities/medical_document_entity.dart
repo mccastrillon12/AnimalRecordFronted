@@ -145,6 +145,7 @@ class MedicalDocumentPatientEntity extends Equatable {
   final String? birthDate;
   final String? weight;
   final String? microchip;
+  final Map<String, String> fields;
 
   const MedicalDocumentPatientEntity({
     this.name,
@@ -159,10 +160,27 @@ class MedicalDocumentPatientEntity extends Equatable {
     this.birthDate,
     this.weight,
     this.microchip,
+    this.fields = const {},
   });
 
   bool get hasData =>
-      props.any((value) => value?.toString().trim().isNotEmpty == true);
+      [
+        name,
+        identifier,
+        species,
+        breed,
+        sex,
+        color,
+        size,
+        reproductiveStatus,
+        age,
+        birthDate,
+        weight,
+        microchip,
+      ].any((value) => value?.trim().isNotEmpty == true) ||
+      fields.entries.any(
+        (entry) => entry.key.trim().isNotEmpty && entry.value.trim().isNotEmpty,
+      );
 
   MedicalDocumentPatientEntity copyWith({
     Object? name = _unchangedMedicalField,
@@ -177,6 +195,7 @@ class MedicalDocumentPatientEntity extends Equatable {
     Object? birthDate = _unchangedMedicalField,
     Object? weight = _unchangedMedicalField,
     Object? microchip = _unchangedMedicalField,
+    Map<String, String>? fields,
   }) {
     return MedicalDocumentPatientEntity(
       name: identical(name, _unchangedMedicalField)
@@ -211,6 +230,7 @@ class MedicalDocumentPatientEntity extends Equatable {
       microchip: identical(microchip, _unchangedMedicalField)
           ? this.microchip
           : microchip as String?,
+      fields: fields ?? this.fields,
     );
   }
 
@@ -228,6 +248,7 @@ class MedicalDocumentPatientEntity extends Equatable {
     birthDate,
     weight,
     microchip,
+    fields,
   ];
 }
 

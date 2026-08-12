@@ -345,6 +345,13 @@ void main() {
     expect(patient.color, 'Blanco y negro');
     expect(patient.additionalDetails['microchip'], '985141000000001');
     expect(model.validatedExtraction?.patient?.name, 'BENJI');
+    expect(model.validatedExtraction?.patient?.fields, {
+      'identifier': 'backend-patient',
+      'name': 'BENJI',
+      'sex': 'Macho',
+      'color': 'Blanco y negro',
+      'microchip': '985141000000001',
+    });
     expect(model.tutorDetails?.name, 'Andrea Pérez');
     expect(model.tutorDetails?.identification, '123456');
     expect(model.tutorDetails?.phoneNumber, '3001234567');

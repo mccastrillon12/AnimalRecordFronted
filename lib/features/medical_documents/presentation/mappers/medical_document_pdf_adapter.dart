@@ -36,7 +36,9 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     documentNumber: _documentNumber(document.id),
     date: parseMedicalDocumentDate(extraction.documentDate),
     sourceDateText: extraction.documentDate,
+    sourceDateLabel: _displayKey('documentDate'),
     originalFileName: document.originalFileName,
+    originalFileNameLabel: _displayKey('originalFileName'),
     patient: SharedFilePatientAnalysisEntity(
       name: patient.name,
       recordId: patient.code,
@@ -96,7 +98,7 @@ SharedFileTutorAnalysisEntity _tutor(MedicalDocumentTutorEntity? tutor) {
           )
           .map(
             (entry) => SharedFileAnalysisDetailEntity(
-              label: entry.key,
+              label: _displayKey(entry.key),
               value: entry.value.trim(),
             ),
           )
@@ -161,40 +163,6 @@ _patient(
   MedicalDocumentEntity document,
   MedicalDocumentPatientEntity? structuredPatient,
 ) {
-  if (structuredPatient?.hasData ?? false) {
-    return (
-      name: structuredPatient!.name?.trim() ?? '',
-      code: structuredPatient.identifier?.trim() ?? '',
-      species: structuredPatient.species?.trim() ?? '',
-      breed: structuredPatient.breed?.trim() ?? '',
-      sex: structuredPatient.sex?.trim() ?? '',
-      color: structuredPatient.color?.trim() ?? '',
-      age: structuredPatient.age?.trim() ?? '',
-      weight: structuredPatient.weight?.trim() ?? '',
-      additionalDetails: [
-        if (structuredPatient.size?.trim().isNotEmpty == true)
-          SharedFileAnalysisDetailEntity(
-            label: 'size',
-            value: structuredPatient.size!.trim(),
-          ),
-        if (structuredPatient.reproductiveStatus?.trim().isNotEmpty == true)
-          SharedFileAnalysisDetailEntity(
-            label: 'reproductiveStatus',
-            value: structuredPatient.reproductiveStatus!.trim(),
-          ),
-        if (structuredPatient.birthDate?.trim().isNotEmpty == true)
-          SharedFileAnalysisDetailEntity(
-            label: 'birthDate',
-            value: structuredPatient.birthDate!.trim(),
-          ),
-        if (structuredPatient.microchip?.trim().isNotEmpty == true)
-          SharedFileAnalysisDetailEntity(
-            label: 'microchip',
-            value: structuredPatient.microchip!.trim(),
-          ),
-      ],
-    );
-  }
   MedicalDocumentAnimalEntity? backendAnimal;
   for (final animal in document.animalDetails) {
     if (animal.id.isEmpty || document.animalIds.contains(animal.id)) {
@@ -225,38 +193,51 @@ _patient(
           )
           .map(
             (entry) => SharedFileAnalysisDetailEntity(
-              label: entry.key,
+              label: _displayKey(entry.key),
               value: entry.value.trim(),
             ),
           )
           .toList(growable: false),
     );
   }
-  final backendSpecies = backendAnimal?.species?.trim() ?? '';
-  final backendBreed = backendAnimal?.breed?.trim() ?? '';
-  final backendSex = backendAnimal?.sex?.trim() ?? '';
-  final backendColor = backendAnimal?.color?.trim() ?? '';
-  final backendAge = backendAnimal?.age?.trim() ?? '';
-  final backendWeight = backendAnimal?.weight?.trim() ?? '';
+
+  if (structuredPatient?.hasData ?? false) {
+    final fields = structuredPatient!.fields;
+    return (
+      name: structuredPatient.name?.trim() ?? '',
+      code: '',
+      species: '',
+      breed: '',
+      sex: '',
+      color: '',
+      age: '',
+      weight: '',
+      additionalDetails: fields.entries
+          .where(
+            (entry) =>
+                !_isPatientNameKey(entry.key) && entry.value.trim().isNotEmpty,
+          )
+          .map(
+            (entry) => SharedFileAnalysisDetailEntity(
+              label: _displayKey(entry.key),
+              value: entry.value.trim(),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
   final additionalDetails = <SharedFileAnalysisDetailEntity>[
-    if (backendAnimal?.birthdate?.trim().isNotEmpty == true)
-      SharedFileAnalysisDetailEntity(
-        label: 'Fecha de nacimiento',
-        value: backendAnimal!.birthdate!.trim(),
-      ),
     ..._analysisDetails(backendAnimal?.additionalDetails ?? const {}),
   ];
   return (
     name: backendName,
-    code: backendAnimal?.code?.trim().isNotEmpty == true
-        ? backendAnimal!.code!.trim()
-        : '',
-    species: backendSpecies,
-    breed: backendBreed,
-    sex: backendSex,
-    color: backendColor,
-    age: backendAge,
-    weight: backendWeight,
+    code: '',
+    species: '',
+    breed: '',
+    sex: '',
+    color: '',
+    age: '',
+    weight: '',
     additionalDetails: additionalDetails,
   );
 }
@@ -310,52 +291,20 @@ SharedFileVeterinarianAnalysisEntity? _veterinarian(
     'veterinarianName',
     'doctorName',
   ]);
-  final clinic = _firstValue(values, const [
-    'clinic',
-    'clinicName',
-    'institution',
-    'institutionName',
-  ]);
-  final professionalId = _firstValue(values, const [
-    'professionalId',
-    'professionalLicense',
-    'professionalCard',
-    'licenseNumber',
-    'registrationNumber',
-    'registration',
-  ]);
   final additionalDetails = _analysisDetails(
     {
       for (final entry in values.entries)
         if (_hasValue(entry.value)) entry.key: _displayValue(entry.value),
     },
-    excludedKeys: const {
-      'name',
-      'fullName',
-      'veterinarianName',
-      'doctorName',
-      'clinic',
-      'clinicName',
-      'institution',
-      'institutionName',
-      'professionalId',
-      'professionalLicense',
-      'professionalCard',
-      'licenseNumber',
-      'registrationNumber',
-      'registration',
-    },
+    excludedKeys: const {'name', 'fullName', 'veterinarianName', 'doctorName'},
   );
-  if (name.isEmpty &&
-      clinic.isEmpty &&
-      professionalId.isEmpty &&
-      additionalDetails.isEmpty) {
+  if (name.isEmpty && additionalDetails.isEmpty) {
     return null;
   }
   return SharedFileVeterinarianAnalysisEntity(
     name: name,
-    clinic: clinic,
-    professionalId: professionalId,
+    clinic: '',
+    professionalId: '',
     additionalDetails: additionalDetails,
   );
 }

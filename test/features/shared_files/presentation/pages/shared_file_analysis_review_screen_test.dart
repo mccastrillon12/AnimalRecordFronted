@@ -264,8 +264,11 @@ void main() {
       find.text('resultado-variable.pdf'),
     );
     expect(dateLabel.style?.fontSize, AppTypography.body4.fontSize);
+    final multiWordLabel = tester.widget<Text>(find.text('Animal Record ID'));
     expect(dynamicLabel.maxLines, 1);
     expect(dynamicLabel.overflow, TextOverflow.ellipsis);
+    expect(multiWordLabel.maxLines, 2);
+    expect(multiWordLabel.overflow, TextOverflow.ellipsis);
     expect(medicationName.style?.fontSize, AppTypography.body4.fontSize);
     expect(originalFileName.maxLines, 1);
     expect(originalFileName.overflow, TextOverflow.ellipsis);

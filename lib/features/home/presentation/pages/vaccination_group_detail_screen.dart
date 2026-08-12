@@ -139,7 +139,9 @@ class VaccinationRecordList extends StatelessWidget {
         children: [
           for (var index = 0; index < detail.doses.length; index++) ...[
             _VaccinationRecordBlock(
-              key: Key('vaccination-record-${detail.doses[index].document.id}'),
+              key: Key(
+                'vaccination-record-${detail.doses[index].document.id}-$index',
+              ),
               vaccineName: detail.vaccineName,
               dose: detail.doses[index],
               onViewOriginal: () =>
@@ -317,7 +319,10 @@ class _DoseSection extends StatelessWidget {
           ),
           if (dose.nextDoseDate.isNotEmpty) ...[
             const SizedBox(height: AppSpacing.xl),
-            _DetailValue(label: 'Próxima dosis', value: dose.nextDoseDate),
+            _DetailValue(
+              label: dose.nextDoseDateLabel,
+              value: dose.nextDoseDate,
+            ),
           ],
           const SizedBox(height: AppSpacing.l),
           const Divider(height: 1, color: AppColors.greyDelineante),
@@ -377,6 +382,7 @@ class _DetailValue extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final labelMaxLines = label.trim().contains(RegExp(r'\s')) ? 2 : 1;
     final uri = Uri.tryParse(value);
     final isImage =
         showImage &&
@@ -389,6 +395,8 @@ class _DetailValue extends StatelessWidget {
           width: 119,
           child: Text(
             label,
+            maxLines: labelMaxLines,
+            overflow: TextOverflow.ellipsis,
             style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
           ),
         ),

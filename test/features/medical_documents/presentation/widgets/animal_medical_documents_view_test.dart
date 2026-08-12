@@ -64,7 +64,10 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Adjunto: Fórmula médica N° 7d22ffa7'), findsOneWidget);
-    expect(find.text('Mayo 14, 2025'), findsOneWidget);
+    expect(
+      find.text('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
+      findsOneWidget,
+    );
     expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
     expect(find.text('Control hepático'), findsOneWidget);
     expect(find.text('Ver detalle'), findsOneWidget);

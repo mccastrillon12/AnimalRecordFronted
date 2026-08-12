@@ -9,7 +9,9 @@ class VaccinationApplicationViewData extends Equatable {
   final MedicalDocumentItemEntity vaccination;
   final String sourceName;
   final String applicationDate;
+  final String applicationDateLabel;
   final String nextDoseDate;
+  final String nextDoseDateLabel;
   final DateTime sortDate;
 
   const VaccinationApplicationViewData({
@@ -17,7 +19,9 @@ class VaccinationApplicationViewData extends Equatable {
     required this.vaccination,
     required this.sourceName,
     required this.applicationDate,
+    required this.applicationDateLabel,
     required this.nextDoseDate,
+    required this.nextDoseDateLabel,
     required this.sortDate,
   });
 
@@ -27,7 +31,9 @@ class VaccinationApplicationViewData extends Equatable {
     vaccination,
     sourceName,
     applicationDate,
+    applicationDateLabel,
     nextDoseDate,
+    nextDoseDateLabel,
     sortDate,
   ];
 }
@@ -63,6 +69,7 @@ class VaccinationDoseViewData extends Equatable {
   final String title;
   final MedicalDocumentEntity document;
   final String nextDoseDate;
+  final String nextDoseDateLabel;
   final List<SharedFileAnalysisDetailEntity> details;
   final SharedFileVeterinarianAnalysisEntity? veterinarian;
   final SharedFileTutorAnalysisEntity tutor;
@@ -72,6 +79,7 @@ class VaccinationDoseViewData extends Equatable {
     required this.title,
     required this.document,
     required this.nextDoseDate,
+    required this.nextDoseDateLabel,
     required this.details,
     this.veterinarian,
     required this.tutor,
@@ -83,6 +91,7 @@ class VaccinationDoseViewData extends Equatable {
     title,
     document,
     nextDoseDate,
+    nextDoseDateLabel,
     details,
     veterinarian,
     tutor,
@@ -117,6 +126,7 @@ VaccinationDetailViewData vaccinationDetailViewData(
         title: 'Dosis ${index + 1}',
         document: application.document,
         nextDoseDate: application.nextDoseDate,
+        nextDoseDateLabel: application.nextDoseDateLabel,
         details: _doseDetails(application.vaccination.fields),
         veterinarian: analysis.veterinarian,
         tutor: analysis.tutor,
@@ -159,7 +169,7 @@ SharedFileAnalysisEntity vaccinationGroupToPdfAnalysis(
           details: [
             if (detail.doses[index].nextDoseDate.isNotEmpty)
               SharedFileAnalysisDetailEntity(
-                label: 'Próxima dosis',
+                label: detail.doses[index].nextDoseDateLabel,
                 value: detail.doses[index].nextDoseDate,
               ),
             ..._tutorDetails(detail.doses[index].tutor),
@@ -220,7 +230,7 @@ SharedFileAnalysisEntity vaccinationGroupsToPdfAnalysis(
             details: [
               if (dose.nextDoseDate.isNotEmpty)
                 SharedFileAnalysisDetailEntity(
-                  label: 'Próxima dosis',
+                  label: dose.nextDoseDateLabel,
                   value: dose.nextDoseDate,
                 ),
               ...dose.details,
@@ -344,7 +354,6 @@ List<VaccinationGroupViewData> groupVaccinations(
   List<MedicalDocumentEntity> documents,
 ) {
   final grouped = <String, List<VaccinationApplicationViewData>>{};
-  final titles = <String, String>{};
 
   for (final document in documents) {
     final extraction = document.validatedExtraction;
@@ -352,12 +361,12 @@ List<VaccinationGroupViewData> groupVaccinations(
     for (final vaccination in extraction.vaccinations) {
       final sourceName = _vaccinationName(vaccination.fields);
       final identity = _vaccinationIdentity(sourceName, vaccination.fields);
-      final applicationDate = _fieldValue(
+      final applicationDate = _fieldEntry(
         vaccination.fields,
         _applicationDateKeys,
       );
-      final nextDoseDate = _fieldValue(vaccination.fields, _nextDoseDateKeys);
-      final parsedApplicationDate = _parseFlexibleDate(applicationDate);
+      final nextDoseDate = _fieldEntry(vaccination.fields, _nextDoseDateKeys);
+      final parsedApplicationDate = _parseFlexibleDate(applicationDate.value);
       final documentDate =
           document.updatedAt ??
           document.reviewedAt ??
@@ -365,18 +374,19 @@ List<VaccinationGroupViewData> groupVaccinations(
           parseMedicalDocumentDate(extraction.documentDate) ??
           DateTime.fromMillisecondsSinceEpoch(0);
       grouped
-          .putIfAbsent(identity.key, () => [])
+          .putIfAbsent(identity, () => [])
           .add(
             VaccinationApplicationViewData(
               document: document,
               vaccination: vaccination,
               sourceName: sourceName,
-              applicationDate: _displayDate(applicationDate),
-              nextDoseDate: _displayDate(nextDoseDate),
+              applicationDate: applicationDate.value,
+              applicationDateLabel: _displayFieldKey(applicationDate.key),
+              nextDoseDate: nextDoseDate.value,
+              nextDoseDateLabel: _displayFieldKey(nextDoseDate.key),
               sortDate: parsedApplicationDate ?? documentDate,
             ),
           );
-      titles[identity.key] = identity.title;
     }
   }
 
@@ -386,7 +396,7 @@ List<VaccinationGroupViewData> groupVaccinations(
           ..sort((left, right) => right.sortDate.compareTo(left.sortDate));
         return VaccinationGroupViewData(
           key: entry.key,
-          title: titles[entry.key]!,
+          title: applications.first.sourceName,
           applications: applications,
         );
       })
@@ -397,29 +407,9 @@ List<VaccinationGroupViewData> groupVaccinations(
 
 List<SharedFileAnalysisDetailEntity> _doseDetails(Map<String, dynamic> fields) {
   final details = <SharedFileAnalysisDetailEntity>[];
-  final usedKeys = <String>{};
-  for (final definition in _doseFieldDefinitions) {
-    for (final entry in fields.entries) {
-      final key = _normalizeKey(entry.key);
-      if (usedKeys.contains(key) || !definition.keys.contains(key)) continue;
-      final rawValue = _valueText(entry.value);
-      if (rawValue.isEmpty) continue;
-      details.add(
-        SharedFileAnalysisDetailEntity(
-          label: definition.label,
-          value: definition.isDate ? _displayDate(rawValue) : rawValue,
-        ),
-      );
-      usedKeys.add(key);
-      break;
-    }
-  }
-
   for (final entry in fields.entries) {
     final key = _normalizeKey(entry.key);
-    if (usedKeys.contains(key) ||
-        _doseIgnoredKeys.contains(key) ||
-        _nextDoseDateKeys.contains(key)) {
+    if (_doseIgnoredKeys.contains(key) || _nextDoseDateKeys.contains(key)) {
       continue;
     }
     final value = _valueText(entry.value);
@@ -447,82 +437,76 @@ String _displayFieldKey(String value) {
   return '${separated[0].toUpperCase()}${separated.substring(1)}';
 }
 
-({String key, String title}) _vaccinationIdentity(
-  String sourceName,
-  Map<String, dynamic> fields,
-) {
+String _vaccinationIdentity(String sourceName, Map<String, dynamic> fields) {
   final fromName = _knownVaccination(sourceName);
   if (fromName != null) return fromName;
 
   final coveredDiseases = _coveredDiseases(fields);
   final identities = coveredDiseases
       .map(_knownVaccination)
-      .whereType<({String key, String title})>()
+      .whereType<String>()
       .toSet();
   if (identities.length == 1) return identities.single;
-  if (identities.length > 1) {
-    return (key: 'multiple_canine', title: 'Vacuna múltiple canina');
-  }
+  if (identities.length > 1) return 'multiple_canine';
 
-  final fallback = sourceName.trim().isNotEmpty ? sourceName.trim() : 'Vacuna';
-  return (key: _normalize(fallback), title: fallback);
+  return _normalize(sourceName);
 }
 
-({String key, String title})? _knownVaccination(String value) {
+String? _knownVaccination(String value) {
   final normalized = _normalize(value);
   if (normalized.isEmpty) return null;
   if (_containsAny(normalized, const ['rabies', 'rabia'])) {
-    return (key: 'rabies', title: 'Rabia');
+    return 'rabies';
   }
   if (_containsAny(normalized, const ['distemper', 'moquillo'])) {
-    return (key: 'distemper', title: 'Moquillo canino');
+    return 'distemper';
   }
   if (_containsAny(normalized, const ['parvovirus', 'parvo', 'parvovirosis'])) {
-    return (key: 'parvovirus', title: 'Parvovirus');
+    return 'parvovirus';
   }
   if (_containsAny(normalized, const ['leptospirosis', 'lepto'])) {
-    return (key: 'leptospirosis', title: 'Leptospirosis');
+    return 'leptospirosis';
   }
   if (_containsAny(normalized, const [
     'bordetella',
     'kennel cough',
     'tos de las perreras',
   ])) {
-    return (key: 'bordetella', title: 'Bordetella');
+    return 'bordetella';
   }
   if (_containsAny(normalized, const [
     'canine hepatitis',
     'hepatitis canina',
     'adenovirus',
   ])) {
-    return (key: 'canine_hepatitis', title: 'Hepatitis canina');
+    return 'canine_hepatitis';
   }
   if (_containsAny(normalized, const ['parainfluenza'])) {
-    return (key: 'parainfluenza', title: 'Parainfluenza');
+    return 'parainfluenza';
   }
   if (_containsAny(normalized, const ['feline leukemia', 'leucemia felina']) ||
       normalized == 'felv') {
-    return (key: 'feline_leukemia', title: 'Leucemia felina');
+    return 'feline_leukemia';
   }
   if (_containsAny(normalized, const ['panleukopenia', 'panleucopenia'])) {
-    return (key: 'panleukopenia', title: 'Panleucopenia felina');
+    return 'panleukopenia';
   }
   if (_containsAny(normalized, const ['calicivirus'])) {
-    return (key: 'calicivirus', title: 'Calicivirus felino');
+    return 'calicivirus';
   }
   if (_containsAny(normalized, const [
     'rhinotracheitis',
     'rinotraqueitis',
     'herpesvirus',
   ])) {
-    return (key: 'rhinotracheitis', title: 'Rinotraqueítis felina');
+    return 'rhinotracheitis';
   }
   if (_containsAny(normalized, const [
     'fvrcp',
     'triple feline',
     'triple felina',
   ])) {
-    return (key: 'feline_core', title: 'Triple felina');
+    return 'feline_core';
   }
   if (_containsAny(normalized, const [
     'dhpp',
@@ -531,7 +515,7 @@ String _displayFieldKey(String value) {
     'multiple canine',
     'multiple canina',
   ])) {
-    return (key: 'multiple_canine', title: 'Vacuna múltiple canina');
+    return 'multiple_canine';
   }
   return null;
 }
@@ -569,9 +553,16 @@ String _fieldValue(Map<String, dynamic> fields, Set<String> acceptedKeys) {
   return '';
 }
 
-String _displayDate(String value) {
-  final parsed = _parseFlexibleDate(value);
-  return parsed == null ? value.trim() : formatMedicalDocumentDate(parsed);
+({String key, String value}) _fieldEntry(
+  Map<String, dynamic> fields,
+  Set<String> acceptedKeys,
+) {
+  for (final entry in fields.entries) {
+    if (!acceptedKeys.contains(_normalizeKey(entry.key))) continue;
+    final value = _valueText(entry.value).trim();
+    if (value.isNotEmpty) return (key: entry.key, value: value);
+  }
+  return (key: '', value: '');
 }
 
 DateTime? _parseFlexibleDate(String value) {
@@ -693,49 +684,6 @@ const _doseIgnoredKeys = {
   'nombre',
   'nombrevacuna',
 };
-
-const _doseFieldDefinitions = <({String label, Set<String> keys, bool isDate})>[
-  (label: 'Fecha', keys: _applicationDateKeys, isDate: true),
-  (label: 'Marca', keys: {'brand', 'marca'}, isDate: false),
-  (label: 'Fabricante', keys: {'manufacturer', 'fabricante'}, isDate: false),
-  (
-    label: '# Lote',
-    keys: {'lot', 'lotnumber', 'batch', 'batchnumber', 'lote', 'numerolote'},
-    isDate: false,
-  ),
-  (
-    label: 'Pto. aplicación',
-    keys: {
-      'applicationsite',
-      'administrationsite',
-      'injectionsite',
-      'sitioaplicacion',
-      'puntoaplicacion',
-    },
-    isDate: false,
-  ),
-  (
-    label: 'F. de vencimiento',
-    keys: {
-      'expirationdate',
-      'expirydate',
-      'lotexpirationdate',
-      'fechavencimiento',
-      'fechadeexpiracion',
-    },
-    isDate: true,
-  ),
-  (
-    label: 'Etiqueta',
-    keys: {'label', 'labelurl', 'etiqueta', 'etiquetaurl'},
-    isDate: false,
-  ),
-  (
-    label: 'Observaciones',
-    keys: {'observations', 'observation', 'notes', 'observaciones', 'notas'},
-    isDate: false,
-  ),
-];
 
 const _englishMonths = {
   'january': 1,

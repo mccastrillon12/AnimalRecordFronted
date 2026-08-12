@@ -1,5 +1,6 @@
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -71,6 +72,14 @@ void main() {
           breed: 'Labrador',
           age: '8 años',
           weight: '18 kg',
+          fields: {
+            'name': 'Brownie backend',
+            'code': 'AR-BACK',
+            'species': 'CANINE',
+            'breed': 'Labrador',
+            'age': '8 años',
+            'weight': '18 kg',
+          },
         ),
       ],
       originalFileName: 'Fórmula médica.pdf',
@@ -86,14 +95,33 @@ void main() {
     );
 
     expect(analysis.patient.name, 'Brownie backend');
-    expect(analysis.patient.recordId, 'AR-BACK');
-    expect(analysis.patient.species, 'CANINE');
-    expect(analysis.patient.breed, 'Labrador');
-    expect(analysis.patient.age, '8 años');
-    expect(analysis.patient.weight, '18 kg');
+    expect(analysis.patient.recordId, isEmpty);
+    expect(analysis.patient.species, isEmpty);
+    expect(
+      analysis.patient.additionalDetails.map(
+        (detail) => (detail.label, detail.value),
+      ),
+      [
+        ('Code', 'AR-BACK'),
+        ('Species', 'CANINE'),
+        ('Breed', 'Labrador'),
+        ('Age', '8 años'),
+        ('Weight', '18 kg'),
+      ],
+    );
     expect(analysis.veterinarian?.name, 'Dra. Natalia López');
-    expect(analysis.veterinarian?.clinic, 'Clínica Animal Record');
-    expect(analysis.veterinarian?.professionalId, 'MV-41611');
+    expect(analysis.veterinarian?.clinic, isEmpty);
+    expect(analysis.veterinarian?.professionalId, isEmpty);
+    expect(analysis.veterinarian?.additionalDetails, [
+      const SharedFileAnalysisDetailEntity(
+        label: 'Clinic',
+        value: 'Clínica Animal Record',
+      ),
+      const SharedFileAnalysisDetailEntity(
+        label: 'Professional Id',
+        value: 'MV-41611',
+      ),
+    ]);
     expect(analysis.itemsTitle, 'Medicamentos');
     expect(analysis.medications.single.name, 'Enzymax Holliday');
     expect(analysis.medications.single.instructions, contains('1/4 tableta'));
@@ -469,5 +497,7 @@ void main() {
 
     expect(analysis.date, DateTime(2025, 5, 14, 19, 21));
     expect(analysis.sourceDateText, 'miércoles, 14 de mayo de 2025, 7:21 p.m.');
+    expect(analysis.sourceDateLabel, 'Document Date');
+    expect(analysis.originalFileNameLabel, 'Original File Name');
   });
 }

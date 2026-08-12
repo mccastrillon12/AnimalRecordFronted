@@ -253,6 +253,7 @@ MedicalDocumentPatientEntity? _patientFromJson(Map<String, dynamic>? json) {
     birthDate: _nullableString(json['birthDate']),
     weight: _nullableString(json['weight']),
     microchip: _nullableString(json['microchip']),
+    fields: _patientFields(json),
   );
   return patient.hasData ? patient : null;
 }
@@ -269,21 +270,24 @@ MedicalDocumentOwnerEntity? _ownerFromJson(Map<String, dynamic>? json) {
   return owner.hasData ? owner : null;
 }
 
-Map<String, dynamic> _patientToJson(MedicalDocumentPatientEntity patient) => {
-  if (_hasText(patient.name)) 'name': patient.name,
-  if (_hasText(patient.identifier)) 'identifier': patient.identifier,
-  if (_hasText(patient.species)) 'species': patient.species,
-  if (_hasText(patient.breed)) 'breed': patient.breed,
-  if (_hasText(patient.sex)) 'sex': patient.sex,
-  if (_hasText(patient.color)) 'color': patient.color,
-  if (_hasText(patient.size)) 'size': patient.size,
-  if (_hasText(patient.reproductiveStatus))
-    'reproductiveStatus': patient.reproductiveStatus,
-  if (_hasText(patient.age)) 'age': patient.age,
-  if (_hasText(patient.birthDate)) 'birthDate': patient.birthDate,
-  if (_hasText(patient.weight)) 'weight': patient.weight,
-  if (_hasText(patient.microchip)) 'microchip': patient.microchip,
-};
+Map<String, dynamic> _patientToJson(MedicalDocumentPatientEntity patient) =>
+    patient.fields.isNotEmpty
+    ? Map<String, dynamic>.from(patient.fields)
+    : {
+        if (_hasText(patient.name)) 'name': patient.name,
+        if (_hasText(patient.identifier)) 'identifier': patient.identifier,
+        if (_hasText(patient.species)) 'species': patient.species,
+        if (_hasText(patient.breed)) 'breed': patient.breed,
+        if (_hasText(patient.sex)) 'sex': patient.sex,
+        if (_hasText(patient.color)) 'color': patient.color,
+        if (_hasText(patient.size)) 'size': patient.size,
+        if (_hasText(patient.reproductiveStatus))
+          'reproductiveStatus': patient.reproductiveStatus,
+        if (_hasText(patient.age)) 'age': patient.age,
+        if (_hasText(patient.birthDate)) 'birthDate': patient.birthDate,
+        if (_hasText(patient.weight)) 'weight': patient.weight,
+        if (_hasText(patient.microchip)) 'microchip': patient.microchip,
+      };
 
 Map<String, dynamic> _ownerToJson(MedicalDocumentOwnerEntity owner) => {
   if (_hasText(owner.name)) 'name': owner.name,

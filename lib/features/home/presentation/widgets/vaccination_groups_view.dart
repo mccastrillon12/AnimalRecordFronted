@@ -204,12 +204,12 @@ class _VaccinationGroupCard extends StatelessWidget {
                     children: [
                       if (latest.applicationDate.isNotEmpty)
                         _VaccinationValue(
-                          label: 'Última aplicación:',
+                          label: '${latest.applicationDateLabel}:',
                           value: latest.applicationDate,
                         ),
                       if (latest.nextDoseDate.isNotEmpty)
                         _VaccinationValue(
-                          label: 'Próxima dosis:',
+                          label: '${latest.nextDoseDateLabel}:',
                           value: latest.nextDoseDate,
                         ),
                     ],

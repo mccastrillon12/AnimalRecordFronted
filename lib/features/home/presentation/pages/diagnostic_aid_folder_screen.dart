@@ -335,10 +335,12 @@ class _DiagnosticAidDocumentCard extends StatelessWidget {
   }
 
   String _documentDate(MedicalDocumentEntity document) {
-    final localDate = document.updatedAt ?? document.createdAt;
-    if (localDate != null) return formatMedicalDocumentDate(localDate);
-    return displayMedicalDocumentDate(
+    final backendDate = displayMedicalDocumentDate(
       document.validatedExtraction?.documentDate,
     );
+    if (backendDate.isNotEmpty) return backendDate;
+    final localDate = document.updatedAt ?? document.createdAt;
+    if (localDate != null) return formatMedicalDocumentDate(localDate);
+    return '';
   }
 }
