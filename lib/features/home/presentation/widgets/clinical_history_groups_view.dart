@@ -123,6 +123,38 @@ class ClinicalHistoryGroupScreen extends StatefulWidget {
       _ClinicalHistoryGroupScreenState();
 }
 
+class ClinicalHistoryDocumentScreen extends StatelessWidget {
+  final MedicalDocumentEntity document;
+
+  const ClinicalHistoryDocumentScreen({super.key, required this.document});
+
+  @override
+  Widget build(BuildContext context) {
+    return SharedFileSendScreen(
+      analysis: medicalDocumentToPdfAnalysis(document: document),
+      onViewOriginal: () => _showOriginal(context),
+      resolveOriginalUri: () =>
+          di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
+      actionLabel: medicalDocumentSendActionLabel(
+        MedicalDocumentCategory.clinicalHistory,
+      ),
+    );
+  }
+
+  Future<void> _showOriginal(BuildContext context) async {
+    final preview = MedicalDocumentOriginalPreview(
+      getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
+      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
+    );
+    await preview.show(
+      context,
+      acceptedDocumentId: document.id,
+      fileName: document.originalFileName,
+      mimeType: document.mimeType,
+    );
+  }
+}
+
 class _ClinicalHistoryGroupScreenState
     extends State<ClinicalHistoryGroupScreen> {
   bool _downloading = false;
@@ -329,32 +361,8 @@ class _ClinicalHistoryGroupScreenState
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (detailContext) => SharedFileSendScreen(
-          analysis: medicalDocumentToPdfAnalysis(document: document),
-          onViewOriginal: () => _showOriginal(detailContext, document),
-          resolveOriginalUri: () =>
-              di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
-          actionLabel: medicalDocumentSendActionLabel(
-            MedicalDocumentCategory.clinicalHistory,
-          ),
-        ),
+        builder: (_) => ClinicalHistoryDocumentScreen(document: document),
       ),
-    );
-  }
-
-  Future<void> _showOriginal(
-    BuildContext context,
-    MedicalDocumentEntity document,
-  ) async {
-    final preview = MedicalDocumentOriginalPreview(
-      getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
-      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
-    );
-    await preview.show(
-      context,
-      acceptedDocumentId: document.id,
-      fileName: document.originalFileName,
-      mimeType: document.mimeType,
     );
   }
 }

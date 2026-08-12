@@ -211,7 +211,10 @@ Future<void> init() async {
   sl.registerLazySingleton<UserCache>(() => UserCacheImpl(sl()));
 
   sl.registerLazySingleton<SessionStateCleaner>(
-    () => CallbackSessionStateCleaner(() => sl<AnimalCubit>().reset()),
+    () => CallbackSessionStateCleaner(() {
+      sl<AnimalCubit>().reset();
+      sl<MedicalDocumentsRepository>().clearCache();
+    }),
   );
 
   sl.registerLazySingleton<SocialSessionService>(

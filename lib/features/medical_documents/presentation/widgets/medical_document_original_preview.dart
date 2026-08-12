@@ -108,8 +108,8 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
           children: [
             Padding(
               padding: const EdgeInsets.only(
-                top: AppSpacing.xl,
-                right: AppSpacing.s,
+                top: 58,
+                right: AppSpacing.l,
               ),
               child: SizedBox(
                 height: AppSpacing.iconSizeSmall,

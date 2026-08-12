@@ -10,6 +10,7 @@ import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
@@ -53,6 +54,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _navigateToSection(String? section) {
+    if (openSingleAnimalVaccinations(context, section)) return;
+
     setState(() {
       _activeSection = section;
     });

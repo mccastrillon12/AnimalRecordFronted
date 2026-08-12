@@ -45,7 +45,12 @@ class GetAnimalMedicalDocumentsUseCase {
   Future<List<MedicalDocumentEntity>> call(
     String animalId, {
     MedicalDocumentCategory? category,
-  }) => repository.getByAnimal(animalId, category: category);
+    bool forceRefresh = false,
+  }) => repository.getByAnimal(
+    animalId,
+    category: category,
+    forceRefresh: forceRefresh,
+  );
 }
 
 class GetMedicalDocumentDownloadUriUseCase {

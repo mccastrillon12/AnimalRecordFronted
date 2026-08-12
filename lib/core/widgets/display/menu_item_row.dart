@@ -13,6 +13,7 @@ class MenuItemRow extends StatelessWidget {
   final IconData? icon;
   final VoidCallback? onTap;
   final bool showArrow;
+  final Widget? trailing;
 
   const MenuItemRow({
     super.key,
@@ -20,6 +21,7 @@ class MenuItemRow extends StatelessWidget {
     this.icon,
     this.onTap,
     this.showArrow = true,
+    this.trailing,
   });
 
   @override
@@ -30,26 +32,17 @@ class MenuItemRow extends StatelessWidget {
       child: Container(
         width: double.infinity,
         height: 56,
-        padding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.m,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
         decoration: const BoxDecoration(
           border: Border(
-            bottom: BorderSide(
-              color: AppColors.greyDelineante,
-              width: 0.5,
-            ),
+            bottom: BorderSide(color: AppColors.greyDelineante, width: 0.5),
           ),
         ),
         alignment: Alignment.center,
         child: Row(
           children: [
             if (icon != null) ...[
-              Icon(
-                icon,
-                size: 20,
-                color: AppColors.primaryFrances,
-              ),
+              Icon(icon, size: 20, color: AppColors.primaryFrances),
               const SizedBox(width: AppSpacing.s),
             ],
 
@@ -63,7 +56,9 @@ class MenuItemRow extends StatelessWidget {
               ),
             ),
 
-            if (showArrow)
+            if (trailing case final trailing?)
+              trailing
+            else if (showArrow)
               const Icon(
                 Icons.chevron_right_rounded,
                 size: 22,

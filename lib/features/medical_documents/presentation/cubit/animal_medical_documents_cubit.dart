@@ -65,6 +65,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
       final fetchedDocuments = await getDocumentsUseCase(
         animalId,
         category: category,
+        forceRefresh: preserveExisting,
       );
       if (isClosed) return;
 

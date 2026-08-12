@@ -314,6 +314,60 @@ void main() {
     expect(find.text('Cambiar privacidad'), findsNothing);
   });
 
+  testWidgets('opens the detail directly when there is one clinical history', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final authBloc = MockAuthBloc();
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    final accountOwner = UserEntity.empty().copyWith(name: 'Barbara James');
+    when(() => authBloc.state).thenReturn(AuthSuccess(accountOwner));
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        MedicalDocumentEntity(
+          id: 'only-history',
+          animalIds: ['animal-1'],
+          originalFileName: 'only-history.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+            documentDate: 'December 1, 2026',
+          ),
+          version: 1,
+        ),
+      ], category: MedicalDocumentCategory.clinicalHistory),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
+        child: const MaterialApp(
+          home: AnimalClinicalHistoryScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Enviar historia clínica'), findsOneWidget);
+    expect(
+      find.byKey(const Key('clinical-history-search-field')),
+      findsNothing,
+    );
+    expect(find.text('Ver historias'), findsNothing);
+  });
+
   testWidgets('shows the current user name, initials and own-group title', (
     tester,
   ) async {
@@ -331,6 +385,19 @@ void main() {
           id: 'own-history',
           animalIds: ['animal-1'],
           originalFileName: 'own-history.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+          ),
+          version: 1,
+        ),
+        MedicalDocumentEntity(
+          id: 'own-history-2',
+          animalIds: ['animal-1'],
+          originalFileName: 'own-history-2.pdf',
           mimeType: 'application/pdf',
           fileSize: 100,
           status: MedicalDocumentStatus.accepted,

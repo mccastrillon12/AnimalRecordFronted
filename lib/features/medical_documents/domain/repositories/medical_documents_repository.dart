@@ -14,7 +14,10 @@ abstract interface class MedicalDocumentsRepository {
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
+    bool forceRefresh = false,
   });
+
+  void clearCache();
 
   Future<Uri> getDownloadUri(String documentId);
 }

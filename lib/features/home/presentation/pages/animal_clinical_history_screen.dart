@@ -43,6 +43,33 @@ class _AnimalClinicalHistoryScreenState
 
   @override
   Widget build(BuildContext context) {
+    return BlocBuilder<
+      AnimalMedicalDocumentsCubit,
+      AnimalMedicalDocumentsState
+    >(
+      builder: (context, state) {
+        final singleDocument = _singleClinicalHistory(state);
+        if (singleDocument != null) {
+          return ClinicalHistoryDocumentScreen(document: singleDocument);
+        }
+        return _buildOverview(context);
+      },
+    );
+  }
+
+  MedicalDocumentEntity? _singleClinicalHistory(
+    AnimalMedicalDocumentsState state,
+  ) {
+    if (state is! AnimalMedicalDocumentsLoaded ||
+        state.category != MedicalDocumentCategory.clinicalHistory ||
+        state.documents.length != 1 ||
+        state.documents.single.validatedExtraction == null) {
+      return null;
+    }
+    return state.documents.single;
+  }
+
+  Widget _buildOverview(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,

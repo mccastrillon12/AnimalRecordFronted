@@ -139,6 +139,9 @@ class _RecordingFileSaver implements MedicalDocumentFileSaver {
 
 class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   @override
+  void clearCache() {}
+
+  @override
   Future<Uri> getDownloadUri(String documentId) async =>
       Uri.parse('https://example.test/original');
 
@@ -161,5 +164,6 @@ class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
+    bool forceRefresh = false,
   }) => throw UnimplementedError();
 }

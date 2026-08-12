@@ -6,11 +6,16 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/features/home/presentation/widgets/clinical_history_groups_view.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -26,8 +31,14 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_scr
 /// - Top menu overlay accessible via trigger
 class AnimalDetailScreen extends StatefulWidget {
   final AnimalModel animal;
+  final Future<List<MedicalDocumentEntity>> Function(String animalId)?
+  loadClinicalHistories;
 
-  const AnimalDetailScreen({super.key, required this.animal});
+  const AnimalDetailScreen({
+    super.key,
+    required this.animal,
+    this.loadClinicalHistories,
+  });
 
   @override
   State<AnimalDetailScreen> createState() => _AnimalDetailScreenState();
@@ -35,6 +46,7 @@ class AnimalDetailScreen extends StatefulWidget {
 
 class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   bool _isMenuOpen = false;
+  bool _loadingClinicalHistories = false;
 
   void _toggleMenu() {
     setState(() => _isMenuOpen = !_isMenuOpen);
@@ -472,46 +484,98 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: options.asMap().entries.map((entry) {
+          final isClinicalHistory = entry.key == 1;
           return MenuItemRow(
+            key: isClinicalHistory
+                ? const Key('animal-clinical-history-menu-item')
+                : null,
             title: entry.value,
-            onTap: () {
-              if (entry.value == 'Información') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalInfo,
-                  arguments: animal,
-                );
-              } else if (entry.value == 'Historia clínica') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalClinicalHistory,
-                  arguments: animal,
-                );
-              } else if (entry.value == 'Carné de vacunas') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalVaccinations,
-                  arguments: animal,
-                );
-              } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalDocuments,
-                  arguments: animal.id,
-                );
-              } else if (entry.value == 'Ayudas diagnósticas') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalDiagnosticAids,
-                  arguments: animal,
-                );
-              }
-            },
+            onTap: isClinicalHistory && _loadingClinicalHistories
+                ? null
+                : () {
+                    if (entry.value == 'Información') {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.animalInfo,
+                        arguments: animal,
+                      );
+                    } else if (entry.value == 'Historia clínica') {
+                      _openClinicalHistory(animal);
+                    } else if (entry.value == 'Carné de vacunas') {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.animalVaccinations,
+                        arguments: animal,
+                      );
+                    } else if (entry.value ==
+                        'Órdenes, fórmulas y remisiones') {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.animalDocuments,
+                        arguments: animal.id,
+                      );
+                    } else if (entry.value == 'Ayudas diagnósticas') {
+                      Navigator.pushNamed(
+                        context,
+                        AppRoutes.animalDiagnosticAids,
+                        arguments: animal,
+                      );
+                    }
+                  },
             showArrow: true,
+            trailing: isClinicalHistory && _loadingClinicalHistories
+                ? const SizedBox.square(
+                    key: Key('animal-clinical-history-menu-loading'),
+                    dimension: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : null,
           );
         }).toList(),
       ),
     );
+  }
+
+  Future<void> _openClinicalHistory(AnimalModel animal) async {
+    if (_loadingClinicalHistories) return;
+    setState(() => _loadingClinicalHistories = true);
+
+    try {
+      final loader = widget.loadClinicalHistories;
+      final documents = loader != null
+          ? await loader(animal.id)
+          : await di.sl<GetAnimalMedicalDocumentsUseCase>()(
+              animal.id,
+              category: MedicalDocumentCategory.clinicalHistory,
+            );
+      if (!mounted) return;
+      setState(() => _loadingClinicalHistories = false);
+
+      if (documents.length == 1 &&
+          documents.single.validatedExtraction != null) {
+        await Navigator.push<void>(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                ClinicalHistoryDocumentScreen(document: documents.single),
+          ),
+        );
+        return;
+      }
+
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.animalClinicalHistory,
+        arguments: animal,
+      );
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _loadingClinicalHistories = false);
+      ErrorDisplay.showError(
+        context,
+        error.toString().replaceFirst('Exception: ', ''),
+      );
+    }
   }
 
   // ── Footer Logo ───────────────────────────────────────────────

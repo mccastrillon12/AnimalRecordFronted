@@ -6,7 +6,12 @@ import 'package:animal_record/features/medical_documents/domain/repositories/med
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   final MedicalDocumentsRemoteDataSource remoteDataSource;
 
-  const MedicalDocumentsRepositoryImpl({required this.remoteDataSource});
+  final Map<_MedicalDocumentsCacheKey, List<MedicalDocumentEntity>> _cache = {};
+  final Map<_MedicalDocumentsCacheKey, Future<List<MedicalDocumentEntity>>>
+  _inFlight = {};
+  final Map<_MedicalDocumentsCacheKey, int> _cacheGenerations = {};
+
+  MedicalDocumentsRepositoryImpl({required this.remoteDataSource});
 
   @override
   Future<MedicalDocumentEntity> analyze(
@@ -21,15 +26,97 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   Future<MedicalDocumentEntity> review(
     String documentId,
     ReviewMedicalDocumentRequest request,
-  ) => remoteDataSource.review(documentId, request);
+  ) async {
+    final document = await remoteDataSource.review(documentId, request);
+    if (document.status == MedicalDocumentStatus.accepted) {
+      for (final animalId in document.animalIds) {
+        _invalidateAnimal(animalId);
+      }
+    }
+    return document;
+  }
 
   @override
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
-  }) => remoteDataSource.getByAnimal(animalId, category: category);
+    bool forceRefresh = false,
+  }) {
+    final key = _MedicalDocumentsCacheKey(animalId, category);
+    if (!forceRefresh) {
+      final cached = _cache[key];
+      if (cached != null) return Future.value(cached);
+
+      final pending = _inFlight[key];
+      if (pending != null) return pending;
+    }
+
+    final generation = forceRefresh
+        ? (_cacheGenerations[key] ?? 0) + 1
+        : _cacheGenerations[key] ?? 0;
+    _cacheGenerations[key] = generation;
+
+    late final Future<List<MedicalDocumentEntity>> request;
+    request = remoteDataSource
+        .getByAnimal(animalId, category: category)
+        .then((documents) {
+          final immutableDocuments = List<MedicalDocumentEntity>.unmodifiable(
+            documents,
+          );
+          if (_cacheGenerations[key] == generation) {
+            _cache[key] = immutableDocuments;
+          }
+          return immutableDocuments;
+        })
+        .whenComplete(() {
+          if (identical(_inFlight[key], request)) {
+            _inFlight.remove(key);
+          }
+        });
+    _inFlight[key] = request;
+    return request;
+  }
+
+  @override
+  void clearCache() {
+    final keys = {..._cache.keys, ..._inFlight.keys};
+    for (final key in keys) {
+      _cacheGenerations[key] = (_cacheGenerations[key] ?? 0) + 1;
+    }
+    _cache.clear();
+    _inFlight.clear();
+  }
 
   @override
   Future<Uri> getDownloadUri(String documentId) =>
       remoteDataSource.getDownloadUri(documentId);
+
+  void _invalidateAnimal(String animalId) {
+    final keys = {
+      ..._cache.keys.where((key) => key.animalId == animalId),
+      ..._inFlight.keys.where((key) => key.animalId == animalId),
+    };
+    for (final key in keys) {
+      _cacheGenerations[key] = (_cacheGenerations[key] ?? 0) + 1;
+      _cache.remove(key);
+      _inFlight.remove(key);
+    }
+  }
+}
+
+class _MedicalDocumentsCacheKey {
+  final String animalId;
+  final MedicalDocumentCategory? category;
+
+  const _MedicalDocumentsCacheKey(this.animalId, this.category);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is _MedicalDocumentsCacheKey &&
+          animalId == other.animalId &&
+          category == other.category;
+
+  @override
+  int get hashCode => Object.hash(animalId, category);
 }

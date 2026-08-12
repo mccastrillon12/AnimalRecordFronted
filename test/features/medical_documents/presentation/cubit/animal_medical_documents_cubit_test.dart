@@ -28,7 +28,7 @@ void main() {
       await cubit.load(animalId, category: category);
 
       when(
-        () => getDocuments(animalId, category: category),
+        () => getDocuments(animalId, category: category, forceRefresh: true),
       ).thenAnswer((_) async => [_document('second')]);
       await cubit.refreshAfterUpload(animalId, category: category);
 
@@ -53,7 +53,7 @@ void main() {
     await cubit.load(animalId, category: category);
 
     when(
-      () => getDocuments(animalId, category: category),
+      () => getDocuments(animalId, category: category, forceRefresh: true),
     ).thenAnswer((_) async => [_document('same', version: 2)]);
     await cubit.refreshAfterUpload(animalId, category: category);
 

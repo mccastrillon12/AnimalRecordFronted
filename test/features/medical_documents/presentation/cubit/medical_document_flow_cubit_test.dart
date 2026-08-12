@@ -462,6 +462,9 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   }) : getResponses = [...getResponses];
 
   @override
+  void clearCache() {}
+
+  @override
   Future<MedicalDocumentEntity> analyze(
     AnalyzeMedicalDocumentRequest request,
   ) async {
@@ -489,6 +492,7 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
+    bool forceRefresh = false,
   }) async => const [];
 
   @override
