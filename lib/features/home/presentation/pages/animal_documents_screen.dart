@@ -26,6 +26,8 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   final TextEditingController _searchController = TextEditingController();
   String? _searchErrorText;
   int _loadedTabIndex = 0;
+  MedicalDocumentCategory? _aiFeedbackCategory;
+  int _aiFeedbackRequestId = 0;
 
   @override
   void initState() {
@@ -57,6 +59,23 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     1 => MedicalDocumentCategory.medicalOrder,
     _ => MedicalDocumentCategory.referral,
   };
+
+  void _handleUploadedDocument() {
+    final category = _categoryForIndex(_tabController.index);
+    setState(() {
+      _aiFeedbackCategory = category;
+      _aiFeedbackRequestId++;
+    });
+    context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+      widget.animalId,
+      category: category,
+    );
+  }
+
+  void _dismissAiFeedback(MedicalDocumentCategory category) {
+    if (_aiFeedbackCategory != category) return;
+    setState(() => _aiFeedbackCategory = null);
+  }
 
   @override
   void dispose() {
@@ -314,6 +333,14 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                                   animalId: widget.animalId,
                                   category:
                                       MedicalDocumentCategory.prescription,
+                                  showAiFeedback:
+                                      _aiFeedbackCategory ==
+                                      MedicalDocumentCategory.prescription,
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.prescription,
+                                      ),
                                   searchQuery: _searchController.text,
                                   emptyTitle:
                                       'El registro de fórmulas está vacío',
@@ -324,6 +351,14 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                                   animalId: widget.animalId,
                                   category:
                                       MedicalDocumentCategory.medicalOrder,
+                                  showAiFeedback:
+                                      _aiFeedbackCategory ==
+                                      MedicalDocumentCategory.medicalOrder,
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.medicalOrder,
+                                      ),
                                   searchQuery: _searchController.text,
                                   emptyTitle:
                                       'El registro de órdenes está vacío',
@@ -333,6 +368,14 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                                 AnimalMedicalDocumentsView(
                                   animalId: widget.animalId,
                                   category: MedicalDocumentCategory.referral,
+                                  showAiFeedback:
+                                      _aiFeedbackCategory ==
+                                      MedicalDocumentCategory.referral,
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.referral,
+                                      ),
                                   searchQuery: _searchController.text,
                                   emptyTitle:
                                       'El registro de remisiones está vacío',
@@ -354,13 +397,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                           requestedCategory: _categoryForIndex(
                             _tabController.index,
                           ),
-                          onUploaded: () =>
-                              context.read<AnimalMedicalDocumentsCubit>().load(
-                                widget.animalId,
-                                category: _categoryForIndex(
-                                  _tabController.index,
-                                ),
-                              ),
+                          onUploaded: _handleUploadedDocument,
                         ),
                       ),
                     ],

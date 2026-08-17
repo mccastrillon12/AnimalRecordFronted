@@ -23,6 +23,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final String emptyDescription;
   final String searchQuery;
   final double emptyBottomOffset;
+  final bool showAiFeedback;
+  final int aiFeedbackRequestId;
+  final VoidCallback? onAiFeedbackDismissed;
 
   const AnimalMedicalDocumentsView({
     super.key,
@@ -32,6 +35,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     required this.emptyDescription,
     this.searchQuery = '',
     this.emptyBottomOffset = 100,
+    this.showAiFeedback = false,
+    this.aiFeedbackRequestId = 0,
+    this.onAiFeedbackDismissed,
   });
 
   @override
@@ -83,7 +89,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                   _searchableDocumentText(document).contains(query),
             )
             .toList(growable: false);
-        if (documents.isEmpty) {
+        if (documents.isEmpty && !showAiFeedback) {
           return _EmptyState(
             title: emptyTitle,
             description: emptyDescription,
@@ -92,12 +98,15 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
         }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-          itemCount: documents.length + 1,
+          itemCount: documents.length + (showAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => index == 0
-              ? const _AiFeedbackBanner()
+          itemBuilder: (context, index) => showAiFeedback && index == 0
+              ? _AiFeedbackBanner(
+                  key: ValueKey(aiFeedbackRequestId),
+                  onDismissed: onAiFeedbackDismissed,
+                )
               : _MedicalDocumentCard(
-                  document: documents[index - 1],
+                  document: documents[index - (showAiFeedback ? 1 : 0)],
                   category: category,
                 ),
         );
@@ -339,7 +348,9 @@ class _DocumentCardValue extends StatelessWidget {
 }
 
 class _AiFeedbackBanner extends StatefulWidget {
-  const _AiFeedbackBanner();
+  final VoidCallback? onDismissed;
+
+  const _AiFeedbackBanner({super.key, this.onDismissed});
 
   @override
   State<_AiFeedbackBanner> createState() => _AiFeedbackBannerState();
@@ -376,7 +387,7 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
             const SizedBox(width: AppSpacing.m),
             IconButton(
               key: const Key('medical-document-ai-feedback-close'),
-              onPressed: () => setState(() => _isDismissed = true),
+              onPressed: _dismiss,
               icon: const Icon(
                 Icons.close,
                 color: AppColors.greyIconos,
@@ -430,6 +441,11 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
 
   void _submitFeedback() {
     setState(() => _hasResponded = true);
+  }
+
+  void _dismiss() {
+    setState(() => _isDismissed = true);
+    widget.onDismissed?.call();
   }
 }
 

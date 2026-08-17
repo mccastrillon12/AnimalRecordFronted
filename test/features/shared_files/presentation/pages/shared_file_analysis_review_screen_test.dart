@@ -14,6 +14,55 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  testWidgets('shows original link below the only available file detail', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    var originalOpened = false;
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Otro',
+      documentNumber: 'N° 823a18e8',
+      date: null,
+      originalFileName: '15240513993600.jpg',
+      originalFileNameLabel: 'Original File Name',
+      patient: SharedFilePatientAnalysisEntity(
+        name: '',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SharedFileAnalysisReviewScreen(
+          analysis: analysis,
+          onViewOriginal: () => originalOpened = true,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final originalLink = find.text('Ver original');
+    final fileName = find.text('15240513993600.jpg');
+    expect(originalLink, findsOneWidget);
+    expect(
+      tester.getTopLeft(originalLink).dy,
+      greaterThan(tester.getBottomLeft(fileName).dy),
+    );
+
+    await tester.tap(originalLink);
+    expect(originalOpened, isTrue);
+  });
+
   testWidgets('shows an original link for every clinical content section', (
     tester,
   ) async {

@@ -418,6 +418,13 @@ class _AnalysisDocumentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final viewOriginal = onViewOriginal ?? () => _showOriginalMessage(context);
+    final hasDetailedOriginalLinks =
+        analysis.medications.isNotEmpty ||
+        analysis.sections.isNotEmpty ||
+        (analysis.observations?.trim().isNotEmpty ?? false);
+    final showStandaloneOriginalLink =
+        analysis.originalFileName.trim().isNotEmpty &&
+        !hasDetailedOriginalLinks;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(10),
@@ -476,6 +483,10 @@ class _AnalysisDocumentCard extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+              if (showStandaloneOriginalLink) ...[
+                const SizedBox(height: AppSpacing.xs),
+                _OriginalLink(onTap: viewOriginal),
+              ],
             ],
             if (analysis.patient.hasData) ...[
               const SizedBox(height: AppSpacing.l),
