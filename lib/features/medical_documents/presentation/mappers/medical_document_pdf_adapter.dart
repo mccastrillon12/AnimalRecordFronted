@@ -54,7 +54,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     veterinarian: _veterinarian(extraction.issuer),
     itemsTitle: _itemsTitle(extraction.documentType),
     medications: _visibleItems(extraction)
-        .where((item) => item.fields.values.any(_hasValue))
+        .where(_itemHasValue)
         .map(
           (item) => SharedFileMedicationAnalysisEntity(
             name: item.name,
@@ -63,11 +63,11 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
                 extraction.documentType ==
                     MedicalDocumentCategory.vaccinationCard
                 ? ''
-                : _instructions(item.fields),
+                : _instructions(_itemValues(item)),
             details:
                 extraction.documentType ==
                     MedicalDocumentCategory.vaccinationCard
-                ? _rawItemDetails(item.fields)
+                ? _rawItemDetails(_itemValues(item))
                 : const [],
             originalUrl: document.id,
           ),
@@ -342,6 +342,8 @@ String _instructions(Map<String, dynamic> fields) {
         (entry) =>
             entry.key != 'name' &&
             (entry.key != 'quantity' || parsedQuantity == null) &&
+            !_isWarningKey(entry.key) &&
+            !_isSourceKey(entry.key) &&
             _hasValue(entry.value),
       )
       .map((entry) {
@@ -360,7 +362,7 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
         title: extraction.diagnoses.length == 1
             ? 'Diagnoses'
             : 'Diagnoses ${index + 1}',
-        details: _detailsFromMap(extraction.diagnoses[index].fields),
+        details: _detailsFromMap(_itemValues(extraction.diagnoses[index])),
       ),
     if (_hasValue(extraction.clinicalHistory))
       SharedFileAnalysisSectionEntity(
@@ -374,10 +376,15 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
       ),
     ..._additionalFieldSections(
       extraction.additionalFields,
-      body: extraction.warnings
-          .map(_sentenceLines)
-          .where((warning) => warning.isNotEmpty)
-          .join('\n'),
+      allowedStructuredKeys: {
+        if (extraction.diagnoses.isEmpty) 'diagnoses',
+        if (extraction.medications.isEmpty) 'medications',
+        if (extraction.vaccinations.isEmpty) 'vaccinations',
+        if (extraction.medicalOrders.isEmpty) 'medicalOrders',
+        if (extraction.clinicalHistory == null) 'clinicalHistory',
+        if (extraction.diagnosticResults.isEmpty) 'diagnosticResults',
+        if (extraction.referral == null) 'referral',
+      },
     ),
   ];
   return sections.where((section) => section.hasData).toList(growable: false);
@@ -385,13 +392,17 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
 
 List<SharedFileAnalysisSectionEntity> _additionalFieldSections(
   Map<String, dynamic> values, {
-  String? body,
+  Set<String> allowedStructuredKeys = const {},
 }) {
   final sections = <SharedFileAnalysisSectionEntity>[];
   final scalarDetails = <SharedFileAnalysisDetailEntity>[];
 
   for (final entry in values.entries) {
-    if (_isStructuredExtractionKey(entry.key) || !_hasValue(entry.value)) {
+    if (_isWarningKey(entry.key) ||
+        _isSourceKey(entry.key) ||
+        (_isStructuredExtractionKey(entry.key) &&
+            !allowedStructuredKeys.contains(entry.key)) ||
+        !_hasValue(entry.value)) {
       continue;
     }
     final value = entry.value;
@@ -434,12 +445,11 @@ List<SharedFileAnalysisSectionEntity> _additionalFieldSections(
     );
   }
 
-  if (scalarDetails.isNotEmpty || (body?.trim().isNotEmpty ?? false)) {
+  if (scalarDetails.isNotEmpty) {
     sections.add(
       SharedFileAnalysisSectionEntity(
         title: 'Información adicional',
         details: scalarDetails,
-        body: body,
       ),
     );
   }
@@ -452,8 +462,8 @@ List<SharedFileAnalysisDetailEntity> _detailsFromMap(
   return values.entries
       .where(
         (entry) =>
-            entry.key != 'source' &&
-            entry.key != 'confidence' &&
+            !_isWarningKey(entry.key) &&
+            !_isSourceKey(entry.key) &&
             !_isStructuredPartyKey(entry.key) &&
             _hasValue(entry.value),
       )
@@ -474,8 +484,8 @@ List<SharedFileAnalysisDetailEntity> _rawItemDetails(
         (entry) =>
             entry.key != 'name' &&
             entry.key != 'quantity' &&
-            entry.key != 'source' &&
-            entry.key != 'confidence' &&
+            !_isWarningKey(entry.key) &&
+            !_isSourceKey(entry.key) &&
             _hasValue(entry.value),
       )
       .map(
@@ -495,8 +505,8 @@ String _rawDisplayValue(Object? value) {
     return value.entries
         .where(
           (entry) =>
-              entry.key != 'source' &&
-              entry.key != 'confidence' &&
+              !_isWarningKey(entry.key.toString()) &&
+              !_isSourceKey(entry.key.toString()) &&
               _hasValue(entry.value),
         )
         .map(
@@ -527,8 +537,6 @@ bool _isStructuredExtractionKey(String key) {
 }
 
 const _structuredPartyKeys = {
-  'source',
-  'confidence',
   'patient',
   'patientDetails',
   'animal',
@@ -575,6 +583,24 @@ bool _isStructuredPartyKey(String key) {
       normalized.contains('caregiver');
 }
 
+bool _isWarningKey(String key) => key.trim().toLowerCase() == 'warnings';
+
+bool _isSourceKey(String key) => key.trim().toLowerCase() == 'source';
+
+bool _itemHasValue(MedicalDocumentItemEntity item) =>
+    item.fields.values.any(_hasValue);
+
+Map<String, dynamic> _itemValues(MedicalDocumentItemEntity item) => {
+  if (item.id.trim().isNotEmpty) 'id': item.id,
+  ...item.fields,
+  if (item.confidence != null) 'confidence': item.confidence,
+  if (item.source != null)
+    'source': {
+      if (item.source!.page != null) 'page': item.source!.page,
+      if (item.source!.text != null) 'text': item.source!.text,
+    },
+};
+
 int? _quantity(Object? value) {
   if (value is num) return value.toInt();
   return int.tryParse(value?.toString().trim() ?? '');
@@ -587,8 +613,8 @@ bool _hasValue(Object? value) {
   if (value is Map) {
     return value.entries.any(
       (entry) =>
-          entry.key != 'source' &&
-          entry.key != 'confidence' &&
+          !_isWarningKey(entry.key.toString()) &&
+          !_isSourceKey(entry.key.toString()) &&
           _hasValue(entry.value),
     );
   }
@@ -603,8 +629,8 @@ String _displayValue(Object? value) {
     return value.entries
         .where(
           (entry) =>
-              entry.key != 'source' &&
-              entry.key != 'confidence' &&
+              !_isWarningKey(entry.key.toString()) &&
+              !_isSourceKey(entry.key.toString()) &&
               _hasValue(entry.value),
         )
         .map(
@@ -627,8 +653,4 @@ String _displayKey(String value) {
       );
   if (separated.isEmpty) return value;
   return '${separated[0].toUpperCase()}${separated.substring(1)}';
-}
-
-String _sentenceLines(String value) {
-  return value.trim().replaceAllMapped(RegExp(r'\.\s+(?=\S)'), (_) => '.\n');
 }

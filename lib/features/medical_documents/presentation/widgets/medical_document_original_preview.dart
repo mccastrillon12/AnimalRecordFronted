@@ -1,4 +1,3 @@
-import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -7,7 +6,7 @@ import 'package:animal_record/features/medical_documents/domain/services/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 typedef _MedicalDocumentUriLoader = Future<Uri> Function();
@@ -26,8 +25,12 @@ class MedicalDocumentOriginalPreview {
     SharedFileEntity? localFile,
     String? acceptedDocumentId,
     String? fileName,
+    GlobalKey? closeIconKey,
+    GlobalKey? downloadIconKey,
     required String mimeType,
   }) async {
+    final closeIconRect = _globalRect(closeIconKey);
+    final downloadIconRect = _globalRect(downloadIconKey);
     final remoteUriLoader = localFile == null && acceptedDocumentId != null
         ? () => getDownloadUriUseCase(acceptedDocumentId)
         : null;
@@ -37,10 +40,13 @@ class MedicalDocumentOriginalPreview {
       await showDialog<void>(
         context: context,
         barrierColor: AppColors.overlayBlack,
+        useSafeArea: false,
         builder: (_) => _PdfPreviewDialog(
           localFile: localFile,
           remoteUriLoader: remoteUriLoader,
           fileName: fileName ?? localFile?.name ?? 'documento_medico.pdf',
+          closeIconRect: closeIconRect,
+          downloadIconRect: downloadIconRect,
           saveOriginalUseCase: saveOriginalUseCase,
         ),
       );
@@ -51,12 +57,54 @@ class MedicalDocumentOriginalPreview {
     if (!context.mounted) return;
     await showDialog<void>(
       context: context,
-      barrierColor: Colors.transparent,
+      barrierColor: AppColors.overlayBlack,
+      useSafeArea: false,
       builder: (_) => ImagePreviewDialog(
         imageUrl: remoteUri?.toString() ?? localFile?.path ?? '',
         imageBytes: localFile?.bytes,
+        closeIconRect: closeIconRect,
+        downloadIconRect: downloadIconRect,
+        onDownload: () => _downloadImage(
+          context,
+          localFile: localFile,
+          remoteUriLoader: remoteUriLoader,
+          fileName: fileName ?? localFile?.name ?? 'documento_medico',
+        ),
       ),
     );
+  }
+
+  Future<void> _downloadImage(
+    BuildContext context, {
+    required SharedFileEntity? localFile,
+    required _MedicalDocumentUriLoader? remoteUriLoader,
+    required String fileName,
+  }) async {
+    try {
+      final remoteUri = localFile == null
+          ? await remoteUriLoader?.call()
+          : null;
+      final saved = await saveOriginalUseCase(
+        MedicalDocumentFileSaveRequest(
+          fileName: fileName,
+          bytes: localFile?.bytes,
+          localPath: localFile?.path,
+          remoteUri: remoteUri,
+        ),
+      );
+      if (saved && context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Imagen guardada correctamente.')),
+        );
+      }
+    } catch (error) {
+      if (context.mounted) {
+        ErrorDisplay.showError(
+          context,
+          'No fue posible descargar la imagen. Inténtalo nuevamente.',
+        );
+      }
+    }
   }
 }
 
@@ -64,12 +112,16 @@ class _PdfPreviewDialog extends StatefulWidget {
   final SharedFileEntity? localFile;
   final _MedicalDocumentUriLoader? remoteUriLoader;
   final String fileName;
+  final Rect? closeIconRect;
+  final Rect? downloadIconRect;
   final SaveMedicalDocumentOriginalUseCase saveOriginalUseCase;
 
   const _PdfPreviewDialog({
     required this.localFile,
     required this.remoteUriLoader,
     required this.fileName,
+    required this.closeIconRect,
+    required this.downloadIconRect,
     required this.saveOriginalUseCase,
   });
 
@@ -78,6 +130,7 @@ class _PdfPreviewDialog extends StatefulWidget {
 }
 
 class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
+  static const _controlsDocumentGap = 20.0;
   static const _viewerParams = PdfViewerParams(
     margin: AppSpacing.s,
     backgroundColor: Colors.transparent,
@@ -101,75 +154,70 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
 
   @override
   Widget build(BuildContext context) {
-    return Dialog.fullscreen(
-      backgroundColor: Colors.transparent,
-      child: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: 58,
-                right: AppSpacing.l,
-              ),
-              child: SizedBox(
-                height: AppSpacing.iconSizeSmall,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    IconButton(
-                      onPressed: _isDownloading ? null : _download,
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(
-                        width: AppSpacing.iconSizeSmall,
-                        height: AppSpacing.iconSizeSmall,
-                      ),
-                      iconSize: AppSpacing.iconSizeSmall,
-                      icon: _isDownloading
-                          ? const SizedBox.square(
-                              dimension: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: AppColors.white,
-                              ),
-                            )
-                          : SvgPicture.asset(
-                              AppIcons.receiveSquare,
-                              width: AppSpacing.iconSizeSmall,
-                              height: AppSpacing.iconSizeSmall,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.white,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                      tooltip: 'Descargar PDF',
-                    ),
-
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints.tightFor(
-                        width: AppSpacing.iconSizeSmall,
-                        height: AppSpacing.iconSizeSmall,
-                      ),
-                      iconSize: AppSpacing.iconSizeSmall,
-                      icon: const Icon(Icons.close, color: AppColors.white),
-                      tooltip: 'Cerrar',
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.only(
+    final navigationBarColor = Color.alphaBlend(
+      AppColors.overlayBlack,
+      AppColors.white,
+    );
+    final safeAreaTop = MediaQuery.paddingOf(context).top;
+    final closeButtonRect = _localPreviewRect(
+      widget.closeIconRect,
+      safeAreaTop: safeAreaTop,
+      fallback: Rect.fromLTWH(
+        MediaQuery.sizeOf(context).width - AppSpacing.l - previewControlSize,
+        AppSpacing.l,
+        previewControlSize,
+        previewControlSize,
+      ),
+    );
+    final downloadButtonRect = _localPreviewRect(
+      widget.downloadIconRect,
+      safeAreaTop: safeAreaTop,
+      fallback: Rect.fromLTWH(
+        AppSpacing.l,
+        closeButtonRect.top,
+        previewControlSize,
+        previewControlSize,
+      ),
+    );
+    final controlsBottom = _maxValue(
+      closeButtonRect.bottom,
+      downloadButtonRect.bottom,
+    );
+    final documentTopInset = controlsBottom + _controlsDocumentGap;
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: navigationBarColor,
+        systemNavigationBarDividerColor: navigationBarColor,
+        systemNavigationBarIconBrightness: Brightness.dark,
+        systemNavigationBarContrastEnforced: false,
+      ),
+      child: Dialog.fullscreen(
+        backgroundColor: Colors.transparent,
+        child: SafeArea(
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Padding(
+                padding: EdgeInsets.only(
+                  top: documentTopInset,
                   left: AppSpacing.xxs,
                   right: AppSpacing.xxs,
                   bottom: AppSpacing.xxs,
                 ),
                 child: _buildDocument(),
               ),
-            ),
-          ],
+              Positioned.fill(
+                child: PreviewOverlayControls(
+                  closeButtonRect: closeButtonRect,
+                  downloadButtonRect: downloadButtonRect,
+                  isDownloading: _isDownloading,
+                  onClose: () => Navigator.pop(context),
+                  onDownload: _download,
+                  downloadTooltip: 'Descargar PDF',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -285,4 +333,22 @@ double _fitPageWidth(
   double coverZoom,
 ) {
   return coverZoom;
+}
+
+Rect? _globalRect(GlobalKey? key) {
+  final renderObject = key?.currentContext?.findRenderObject();
+  if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+  return renderObject.localToGlobal(Offset.zero) & renderObject.size;
+}
+
+double _maxValue(double first, double second) =>
+    first > second ? first : second;
+
+Rect _localPreviewRect(
+  Rect? globalRect, {
+  required double safeAreaTop,
+  required Rect fallback,
+}) {
+  if (globalRect == null) return fallback;
+  return globalRect.shift(Offset(0, -safeAreaTop));
 }

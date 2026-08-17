@@ -1,15 +1,14 @@
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_diagnostic_aids_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
@@ -92,7 +91,7 @@ void main() {
     expect(searchField.decoration?.fillColor, AppColors.white);
   });
 
-  testWidgets('renders other documents from left to right using Grupo 844', (
+  testWidgets('renders PDF previews from left to right', (
     tester,
   ) async {
     final documents = List.generate(
@@ -117,11 +116,15 @@ void main() {
         findsOneWidget,
       );
     }
-    final newestIcon = tester.widget<SvgPicture>(
-      find.byKey(const Key('diagnostic-aid-folder-icon-document-4')),
+    final newestPreview = find.byKey(
+      const Key('diagnostic-aid-file-preview-document-4'),
     );
-    expect(newestIcon.width, 75);
-    expect(newestIcon.height, 64);
+    expect(newestPreview, findsOneWidget);
+    expect(tester.getSize(newestPreview), const Size(75, 64));
+    final pdfImage = tester.widget<Image>(
+      find.descendant(of: newestPreview, matching: find.byType(Image)),
+    );
+    expect((pdfImage.image as AssetImage).assetName, 'assets/icons/pdf.png');
     final newestFolderRect = tester.getRect(
       find.byKey(const Key('diagnostic-aid-folder-document-4')),
     );
@@ -175,7 +178,45 @@ void main() {
     );
   });
 
-  testWidgets('opens a folder with its document and no upload menu', (
+  testWidgets('renders an image thumbnail for image diagnostic aids', (
+    tester,
+  ) async {
+    await di.sl.reset();
+    addTearDown(() => di.sl.reset());
+    final downloadUriUseCase = MockGetMedicalDocumentDownloadUriUseCase();
+    when(
+      () => downloadUriUseCase('image-document'),
+    ).thenAnswer((_) async => Uri.parse('https://example.com/diagnostico.png'));
+    di.sl.registerSingleton<GetMedicalDocumentDownloadUriUseCase>(
+      downloadUriUseCase,
+    );
+
+    await pumpScreen(
+      tester,
+      AnimalMedicalDocumentsLoaded([
+        _document(
+          id: 'image-document',
+          fileName: 'diagnostico.png',
+          mimeType: 'image/png',
+          updatedAt: DateTime(2026, 8, 4),
+        ),
+      ], category: MedicalDocumentCategory.other),
+    );
+
+    final preview = find.byKey(
+      const Key('diagnostic-aid-file-preview-image-document'),
+    );
+    expect(preview, findsOneWidget);
+    final image = tester.widget<CachedNetworkImage>(
+      find.descendant(of: preview, matching: find.byType(CachedNetworkImage)),
+    );
+    expect(image.imageUrl, 'https://example.com/diagnostico.png');
+    expect(image.fadeInDuration, Duration.zero);
+    expect(image.fadeOutDuration, Duration.zero);
+    verify(() => downloadUriUseCase('image-document')).called(1);
+  });
+
+  testWidgets('opens the selected diagnostic aid directly', (
     tester,
   ) async {
     await di.sl.reset();
@@ -207,61 +248,24 @@ void main() {
     );
 
     await tester.tap(find.byKey(const Key('diagnostic-aid-folder-document-1')));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Carpeta 1'), findsOneWidget);
-    expect(find.text('Ayuda diagnóstica 1'), findsOneWidget);
-    expect(find.text('Agosto 4, 2026'), findsOneWidget);
-    expect(
-      find.byKey(const Key('diagnostic-aid-document-document-1')),
-      findsOneWidget,
-    );
-    final icon = tester.widget<SvgPicture>(
-      find.byKey(const Key('diagnostic-aid-document-icon-document-1')),
-    );
-    expect(icon.width, 30);
-    expect(icon.height, 30);
-    final documentCardRect = tester.getRect(
-      find.byKey(const Key('diagnostic-aid-document-document-1')),
-    );
-    expect(documentCardRect.left, 24);
-    expect(documentCardRect.right, 390 - 24);
-    final shadowBox = tester.widget<DecoratedBox>(
-      find.byKey(const Key('diagnostic-aid-document-shadow-document-1')),
-    );
-    final shadowDecoration = shadowBox.decoration as BoxDecoration;
-    expect(shadowDecoration.boxShadow, const [AppShadows.card]);
-    expect(find.byKey(const Key('animal-document-upload-menu')), findsNothing);
-
-    await tester.tap(
-      find.byKey(const Key('diagnostic-aid-document-menu-document-1')),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('Descargar archivo'), findsOneWidget);
-    await tester.tap(
-      find.byKey(const Key('download-diagnostic-aid-document-1')),
-    );
-    await tester.pumpAndSettle();
+    await tester.pump();
 
     verify(() => downloadUriUseCase('document-1')).called(1);
-    final saveRequest =
-        verify(() => saveOriginalUseCase(captureAny())).captured.single
-            as MedicalDocumentFileSaveRequest;
-    expect(saveRequest.fileName, 'diagnostico-1.pdf');
-    expect(saveRequest.remoteUri, originalUri);
+    expect(find.text('Carpeta 1'), findsNothing);
   });
 }
 
 MedicalDocumentEntity _document({
   required String id,
   required String fileName,
+  String mimeType = 'application/pdf',
   required DateTime updatedAt,
 }) {
   return MedicalDocumentEntity(
     id: id,
     animalIds: const ['animal-1'],
     originalFileName: fileName,
-    mimeType: 'application/pdf',
+    mimeType: mimeType,
     fileSize: 100,
     status: MedicalDocumentStatus.accepted,
     finalCategory: MedicalDocumentCategory.other,

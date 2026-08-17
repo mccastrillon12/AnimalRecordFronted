@@ -258,12 +258,20 @@ class _MedicalDocumentCard extends StatelessWidget {
   }
 
   Future<void> _showDetail(BuildContext context) async {
+    final closeIconKey = GlobalKey();
+    final actionIconKey = GlobalKey();
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
         builder: (detailContext) => SharedFileSendScreen(
           analysis: medicalDocumentToPdfAnalysis(document: document),
-          onViewOriginal: () => _showOriginal(detailContext),
+          closeIconKey: closeIconKey,
+          actionIconKey: actionIconKey,
+          onViewOriginal: () => _showOriginal(
+            detailContext,
+            closeIconKey: closeIconKey,
+            downloadIconKey: actionIconKey,
+          ),
           resolveOriginalUri: () =>
               di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
           actionLabel: medicalDocumentSendActionLabel(category),
@@ -272,7 +280,11 @@ class _MedicalDocumentCard extends StatelessWidget {
     );
   }
 
-  Future<void> _showOriginal(BuildContext context) async {
+  Future<void> _showOriginal(
+    BuildContext context, {
+    required GlobalKey closeIconKey,
+    GlobalKey? downloadIconKey,
+  }) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
       saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
@@ -283,6 +295,8 @@ class _MedicalDocumentCard extends StatelessWidget {
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        closeIconKey: closeIconKey,
+        downloadIconKey: downloadIconKey,
       );
     } catch (error) {
       if (context.mounted) ErrorDisplay.showError(context, error.toString());

@@ -28,6 +28,7 @@ class AnimalDiaryScreen extends StatefulWidget {
 }
 
 class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
+  final _closeIconKey = GlobalKey();
   bool _showSuccessSnackbar = false;
   String _snackbarMessage = 'Nota guardada exitosamente.';
   final Set<String> _expandedEntryIds = {};
@@ -142,9 +143,15 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     DiaryEntryEntity entry,
   ) {
     if (attachment.fileType == 'image') {
+      final closeIconRect = _globalRect(_closeIconKey);
       showDialog(
         context: context,
-        builder: (_) => ImagePreviewDialog(imageUrl: attachment.url),
+        barrierColor: AppColors.overlayBlack,
+        useSafeArea: false,
+        builder: (_) => ImagePreviewDialog(
+          imageUrl: attachment.url,
+          closeIconRect: closeIconRect,
+        ),
       );
     } else if (attachment.fileType == 'audio') {
       setState(() {
@@ -236,7 +243,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                     : null,
                 trailingIcon: IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close),
+                  icon: Icon(key: _closeIconKey, Icons.close, size: 20),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
@@ -594,7 +601,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
               // ALL attachments list
               if (entry.attachments.isNotEmpty) ...[
                 const SizedBox(height: 8),
-                ...entry.attachments.map((att) => _buildAttachmentLink(att, entry)),
+                ...entry.attachments.map(
+                  (att) => _buildAttachmentLink(att, entry),
+                ),
               ],
 
               const SizedBox(height: 8),
@@ -792,4 +801,10 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       ),
     );
   }
+}
+
+Rect? _globalRect(GlobalKey key) {
+  final renderObject = key.currentContext?.findRenderObject();
+  if (renderObject is! RenderBox || !renderObject.hasSize) return null;
+  return renderObject.localToGlobal(Offset.zero) & renderObject.size;
 }

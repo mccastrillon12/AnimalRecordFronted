@@ -24,6 +24,9 @@ class MedicalDocumentReviewScreen extends StatefulWidget {
 class _MedicalDocumentReviewScreenState
     extends State<MedicalDocumentReviewScreen> {
   late final MedicalDocumentOriginalPreview _originalPreview;
+  final _reviewCloseIconKey = GlobalKey();
+  final _sendCloseIconKey = GlobalKey();
+  final _sendActionIconKey = GlobalKey();
   bool _completionHandled = false;
   bool _canPop = false;
   bool _isDiscarding = false;
@@ -75,8 +78,9 @@ class _MedicalDocumentReviewScreenState
             isSubmitting: state.phase == MedicalDocumentFlowPhase.submitting,
             onSubmit: () => context.read<MedicalDocumentFlowCubit>().accept(),
             onDoNotUpload: _showRejectionDialog,
-            onViewOriginal: _showOriginal,
+            onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
             onClose: _discardAndClose,
+            closeIconKey: _reviewCloseIconKey,
           );
         },
       ),
@@ -123,7 +127,12 @@ class _MedicalDocumentReviewScreenState
       MaterialPageRoute(
         builder: (_) => SharedFileSendScreen(
           analysis: medicalDocumentToPdfAnalysis(document: document),
-          onViewOriginal: _showOriginal,
+          closeIconKey: _sendCloseIconKey,
+          actionIconKey: _sendActionIconKey,
+          onViewOriginal: () => _showOriginal(
+            _sendCloseIconKey,
+            downloadIconKey: _sendActionIconKey,
+          ),
           resolveOriginalUri: () =>
               di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
           actionLabel: medicalDocumentSendActionLabel(
@@ -135,7 +144,10 @@ class _MedicalDocumentReviewScreenState
     if (mounted) _popWithResult(true);
   }
 
-  Future<void> _showOriginal() async {
+  Future<void> _showOriginal(
+    GlobalKey closeIconKey, {
+    GlobalKey? downloadIconKey,
+  }) async {
     final state = context.read<MedicalDocumentFlowCubit>().state;
     final document = state.remoteDocument!;
     try {
@@ -147,6 +159,8 @@ class _MedicalDocumentReviewScreenState
             : null,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        closeIconKey: closeIconKey,
+        downloadIconKey: downloadIconKey,
       );
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());

@@ -107,6 +107,7 @@ void main() {
         medications: [
           MedicalDocumentItemEntity(
             id: 'medication-1',
+            confidence: 0.869140625,
             fields: {'name': 'ProtectionPets', 'route': 'oral'},
           ),
         ],
@@ -138,6 +139,11 @@ void main() {
       });
       expect(validated['diagnoses'], isEmpty);
       expect(validated['vaccinations'], isEmpty);
+      expect(validated, containsPair('warnings', isEmpty));
+      expect(
+        (validated['medications'] as List).single,
+        containsPair('confidence', 0.869140625),
+      );
       expect((payload['assignments'] as List), hasLength(2));
       expect(
         (payload['assignments'] as List).last['extractedItemIds'],

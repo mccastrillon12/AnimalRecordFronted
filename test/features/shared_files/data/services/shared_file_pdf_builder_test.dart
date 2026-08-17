@@ -60,7 +60,7 @@ void main() {
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
     expect(
       latin1.decode(bytes),
-      contains('https://api.example.test/original/document-1'),
+      isNot(contains('https://api.example.test/original/document-1')),
     );
   });
 
@@ -101,7 +101,7 @@ void main() {
     expect(combined.length, greaterThan(single.length));
   });
 
-  test('includes an original link for every vaccination dose', () async {
+  test('does not include original links for vaccination doses', () async {
     const firstUrl = 'https://api.example.test/vaccines/dose-1.pdf';
     const secondUrl = 'https://api.example.test/vaccines/dose-2.pdf';
     const analysis = SharedFileAnalysisEntity(
@@ -167,8 +167,8 @@ void main() {
     final pdfText = latin1.decode(bytes);
 
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
-    expect(pdfText, contains(firstUrl));
-    expect(pdfText, contains(secondUrl));
+    expect(pdfText, isNot(contains(firstUrl)));
+    expect(pdfText, isNot(contains(secondUrl)));
   });
 
   test('uses the vaccination layout for certificates too', () async {
@@ -226,7 +226,7 @@ void main() {
     final pdfText = latin1.decode(bytes);
 
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
-    expect(pdfText, contains('https://example.test/rabies.pdf'));
+    expect(pdfText, isNot(contains('https://example.test/rabies.pdf')));
     expect(pdfText, isNot(contains('https://example.test/label.png')));
     expect(pdfText, isNot(contains('https://example.test/signature.png')));
   });

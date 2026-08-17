@@ -15,7 +15,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-class DiagnosticAidFolderScreen extends StatelessWidget {
+class DiagnosticAidFolderScreen extends StatefulWidget {
   final int folderNumber;
   final List<MedicalDocumentEntity> documents;
 
@@ -24,6 +24,14 @@ class DiagnosticAidFolderScreen extends StatelessWidget {
     required this.folderNumber,
     required this.documents,
   });
+
+  @override
+  State<DiagnosticAidFolderScreen> createState() =>
+      _DiagnosticAidFolderScreenState();
+}
+
+class _DiagnosticAidFolderScreenState extends State<DiagnosticAidFolderScreen> {
+  final _closeIconKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -90,8 +98,10 @@ class DiagnosticAidFolderScreen extends StatelessWidget {
                                 width: AppSpacing.iconSizeSmall,
                                 height: AppSpacing.iconSizeSmall,
                               ),
-                              icon: const Icon(
+                              icon: Icon(
+                                key: _closeIconKey,
                                 Icons.close,
+                                size: 20,
                                 color: AppColors.greyIconos,
                               ),
                             ),
@@ -108,7 +118,7 @@ class DiagnosticAidFolderScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: AppSpacing.xs),
                       Text(
-                        'Carpeta $folderNumber',
+                        'Carpeta ${widget.folderNumber}',
                         style: AppTypography.body6.copyWith(
                           color: AppColors.greyBordes,
                         ),
@@ -123,18 +133,20 @@ class DiagnosticAidFolderScreen extends StatelessWidget {
                             AppSpacing.l,
                             AppSpacing.xl,
                           ),
-                          itemCount: documents.length,
+                          itemCount: widget.documents.length,
                           separatorBuilder: (_, _) =>
                               const SizedBox(height: AppSpacing.m),
                           itemBuilder: (context, index) =>
                               _DiagnosticAidDocumentCard(
                                 index: index,
-                                document: documents[index],
-                                onTap: () =>
-                                    _showOriginal(context, documents[index]),
+                                document: widget.documents[index],
+                                onTap: () => _showOriginal(
+                                  context,
+                                  widget.documents[index],
+                                ),
                                 onDownload: () => _downloadOriginal(
                                   context,
-                                  documents[index],
+                                  widget.documents[index],
                                 ),
                               ),
                         ),
@@ -168,6 +180,7 @@ class DiagnosticAidFolderScreen extends StatelessWidget {
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        closeIconKey: _closeIconKey,
       );
     } catch (error) {
       if (context.mounted) ErrorDisplay.showError(context, error.toString());

@@ -15,7 +15,6 @@ class SharedFilePdfBuilder {
   static final _text = PdfColor.fromHex('#2E3949');
   static final _secondary = PdfColor.fromHex('#A8AFBD');
   static final _blue = PdfColor.fromHex('#67C1FF');
-  static final _linkBlue = PdfColor.fromHex('#0072BB');
   static final _divider = PdfColor.fromHex('#E8E9EC');
 
   Future<Uint8List> build({
@@ -226,7 +225,7 @@ class SharedFilePdfBuilder {
     for (final section in regularSections) {
       widgets.addAll([
         pw.SizedBox(height: _sectionGap),
-        _analysisSection(section, analysis.originalUrl),
+        _analysisSection(section),
       ]);
     }
 
@@ -247,18 +246,14 @@ class SharedFilePdfBuilder {
     if (analysis.observations?.trim().isNotEmpty ?? false) {
       widgets.addAll([
         pw.SizedBox(height: _sectionGap),
-        _textSection(
-          'Observaciones',
-          analysis.observations!.trim(),
-          analysis.originalUrl,
-        ),
+        _textSection('Observaciones', analysis.observations!.trim()),
       ]);
     }
 
     for (final section in additionalInformationSections) {
       widgets.addAll([
         pw.SizedBox(height: _sectionGap),
-        _analysisSection(section, analysis.originalUrl),
+        _analysisSection(section),
       ]);
     }
     return widgets;
@@ -419,10 +414,6 @@ class SharedFilePdfBuilder {
             details: veterinarianValues,
             columns: 2,
           ),
-        ],
-        if (_isWebUrl(dose.originalUrl)) ...[
-          pw.SizedBox(height: 8),
-          _originalLink(dose.originalUrl!),
         ],
         if (tutorName != null || tutorValues.isNotEmpty) ...[
           pw.SizedBox(height: 22),
@@ -662,10 +653,7 @@ class SharedFilePdfBuilder {
     );
   }
 
-  pw.Widget _analysisSection(
-    SharedFileAnalysisSectionEntity section,
-    String? originalUrl,
-  ) {
+  pw.Widget _analysisSection(SharedFileAnalysisSectionEntity section) {
     final details = section.details
         .where((detail) => detail.hasData)
         .map((detail) => (detail.label, detail.value))
@@ -679,10 +667,6 @@ class SharedFilePdfBuilder {
         if (details.isNotEmpty) _detailGrid(details, columns: 1),
         if (details.isNotEmpty && body.isNotEmpty) pw.SizedBox(height: 6),
         if (body.isNotEmpty) _bodyText(body),
-        if (_isWebUrl(originalUrl)) ...[
-          pw.SizedBox(height: 7),
-          _originalLink(originalUrl!),
-        ],
       ],
     );
   }
@@ -729,25 +713,17 @@ class SharedFilePdfBuilder {
               columns: 1,
             ),
           ),
-        if (_isWebUrl(item.originalUrl)) ...[
-          pw.SizedBox(height: 7),
-          _originalLink(item.originalUrl!),
-        ],
       ],
     );
   }
 
-  pw.Widget _textSection(String title, String value, String? originalUrl) {
+  pw.Widget _textSection(String title, String value) {
     return pw.Column(
       crossAxisAlignment: pw.CrossAxisAlignment.start,
       children: [
         _sectionTitle(title),
         pw.SizedBox(height: 10),
         _bodyText(value),
-        if (_isWebUrl(originalUrl)) ...[
-          pw.SizedBox(height: 7),
-          _originalLink(originalUrl!),
-        ],
       ],
     );
   }
@@ -793,19 +769,6 @@ class SharedFilePdfBuilder {
     );
   }
 
-  pw.Widget _originalLink(String url) {
-    return pw.Align(
-      alignment: pw.Alignment.centerRight,
-      child: pw.UrlLink(
-        destination: url.trim(),
-        child: pw.Text(
-          'Ver original',
-          style: pw.TextStyle(fontSize: _smallSize, color: _linkBlue),
-        ),
-      ),
-    );
-  }
-
   pw.Widget _pageFooter({required int pageNumber, required int pagesCount}) {
     return pw.Align(
       alignment: pw.Alignment.centerRight,
@@ -819,13 +782,6 @@ class SharedFilePdfBuilder {
   bool _isAdditionalInformation(SharedFileAnalysisSectionEntity section) {
     final title = section.title.trim().toLowerCase();
     return title == 'información adicional' || title == 'informacion adicional';
-  }
-
-  bool _isWebUrl(String? value) {
-    final uri = Uri.tryParse(value?.trim() ?? '');
-    return uri != null &&
-        (uri.scheme == 'https' || uri.scheme == 'http') &&
-        uri.host.isNotEmpty;
   }
 
   String _dateLabel(String documentType) {

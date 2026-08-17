@@ -18,6 +18,8 @@ void main() {
   testWidgets('opens local images with the same viewer used by the diary', (
     tester,
   ) async {
+    final closeIconKey = GlobalKey();
+    final downloadIconKey = GlobalKey();
     final fileSaver = _RecordingFileSaver();
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: GetMedicalDocumentDownloadUriUseCase(
@@ -39,30 +41,81 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => preview.show(
-                context,
-                localFile: image,
-                mimeType: image.mimeType,
+          body: Stack(
+            children: [
+              Positioned(
+                top: 83,
+                left: 311,
+                child: Icon(key: closeIconKey, Icons.close, size: 20),
               ),
-              child: const Text('Ver original'),
-            ),
+              Positioned(
+                top: 83,
+                left: 24,
+                child: SizedBox.square(key: downloadIconKey, dimension: 20),
+              ),
+              Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => preview.show(
+                    context,
+                    localFile: image,
+                    mimeType: image.mimeType,
+                    closeIconKey: closeIconKey,
+                    downloadIconKey: downloadIconKey,
+                  ),
+                  child: const Text('Ver original'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
 
+    final sourceCloseRect = tester.getRect(find.byKey(closeIconKey));
+    final sourceDownloadRect = tester.getRect(find.byKey(downloadIconKey));
     await tester.tap(find.text('Ver original'));
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 300));
 
     expect(find.byType(ImagePreviewDialog), findsOneWidget);
     expect(find.byType(InteractiveViewer), findsOneWidget);
+    expect(find.byType(PreviewOverlayControls), findsOneWidget);
+    expect(find.byTooltip('Descargar imagen'), findsOneWidget);
+    expect(find.byTooltip('Cerrar'), findsOneWidget);
+    expect(tester.getRect(find.byTooltip('Cerrar')), sourceCloseRect);
+    _expectHeaderDownloadPosition(tester, sourceDownloadRect);
+    _expectDocumentImmediatelyBelowControls(
+      tester,
+      find.byType(InteractiveViewer),
+    );
+    final imageWidget = tester.widget<Image>(find.byType(Image));
+    expect(imageWidget.fit, BoxFit.contain);
+    expect(imageWidget.alignment, Alignment.center);
+    final dialogRect = tester.getRect(find.byType(Dialog));
+    expect(dialogRect.topLeft, Offset.zero);
+    expect(
+      dialogRect.size,
+      tester.view.physicalSize / tester.view.devicePixelRatio,
+    );
+    final barriers = tester.widgetList<ModalBarrier>(find.byType(ModalBarrier));
+    expect(
+      barriers.any((barrier) => barrier.color == AppColors.overlayBlack),
+      isTrue,
+    );
+
+    await tester.tap(find.byTooltip('Descargar imagen'));
+    await tester.pump();
+
+    expect(fileSaver.request?.fileName, 'formula.png');
+    expect(fileSaver.request?.bytes, image.bytes);
+    expect(fileSaver.request?.remoteUri, isNull);
   });
 
   testWidgets('opens PDFs over the modal overlay and fits the white page', (
     tester,
   ) async {
+    final closeIconKey = GlobalKey();
+    final downloadIconKey = GlobalKey();
     final fileSaver = _RecordingFileSaver();
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: GetMedicalDocumentDownloadUriUseCase(
@@ -74,21 +127,39 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => preview.show(
-                context,
-                acceptedDocumentId: 'document-1',
-                fileName: 'formula.pdf',
-                mimeType: 'application/pdf',
+          body: Stack(
+            children: [
+              Positioned(
+                top: 37,
+                left: 327,
+                child: Icon(key: closeIconKey, Icons.close, size: 24),
               ),
-              child: const Text('Ver PDF'),
-            ),
+              Positioned(
+                top: 37,
+                left: 24,
+                child: SizedBox.square(key: downloadIconKey, dimension: 20),
+              ),
+              Builder(
+                builder: (context) => TextButton(
+                  onPressed: () => preview.show(
+                    context,
+                    acceptedDocumentId: 'document-1',
+                    fileName: 'formula.pdf',
+                    mimeType: 'application/pdf',
+                    closeIconKey: closeIconKey,
+                    downloadIconKey: downloadIconKey,
+                  ),
+                  child: const Text('Ver PDF'),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
 
+    final sourceCloseRect = tester.getRect(find.byKey(closeIconKey));
+    final sourceDownloadRect = tester.getRect(find.byKey(downloadIconKey));
     await tester.tap(find.text('Ver PDF'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -104,16 +175,26 @@ void main() {
     expect(viewer.params.backgroundColor, Colors.transparent);
     expect(viewer.params.margin, AppSpacing.s);
     expect(viewer.params.pageDropShadow, isNull);
+    expect(viewer.params.layoutPages, isNull);
     expect(viewer.params.calculateInitialZoom, isNotNull);
     expect(find.byTooltip('Descargar PDF'), findsOneWidget);
     expect(find.byTooltip('Cerrar'), findsOneWidget);
+    expect(find.byType(PreviewOverlayControls), findsOneWidget);
+    expect(tester.getRect(find.byTooltip('Cerrar')), sourceCloseRect);
+    _expectHeaderDownloadPosition(tester, sourceDownloadRect);
+    _expectDocumentImmediatelyBelowControls(tester, find.byType(PdfViewer));
     expect(
       find.byKey(const Key('pdf-preview-header-background')),
       findsNothing,
     );
     final closeRect = tester.getRect(find.byTooltip('Cerrar'));
-    expect(closeRect.top, AppSpacing.xl);
-    final closeIcon = tester.widget<Icon>(find.byIcon(Icons.close));
+    expect(closeRect.top, greaterThanOrEqualTo(AppSpacing.xl));
+    final closeIcon = tester.widget<Icon>(
+      find.descendant(
+        of: find.byTooltip('Cerrar'),
+        matching: find.byIcon(Icons.close),
+      ),
+    );
     expect(closeIcon.color, AppColors.white);
 
     await tester.tap(find.byTooltip('Descargar PDF'));
@@ -125,6 +206,36 @@ void main() {
       Uri.parse('https://example.test/original'),
     );
   });
+}
+
+void _expectHeaderDownloadPosition(
+  WidgetTester tester,
+  Rect sourceDownloadRect,
+) {
+  final buttonRect = tester.getRect(
+    find.byKey(const Key('preview-download-button')),
+  );
+  expect(buttonRect, sourceDownloadRect);
+  expect(
+    tester.widget(find.byKey(const Key('preview-download-button'))),
+    isA<SizedBox>(),
+  );
+  expect(find.byKey(const Key('preview-download-icon')), findsOneWidget);
+}
+
+void _expectDocumentImmediatelyBelowControls(
+  WidgetTester tester,
+  Finder documentFinder,
+) {
+  final documentRect = tester.getRect(documentFinder);
+  final downloadRect = tester.getRect(
+    find.byKey(const Key('preview-download-button')),
+  );
+  final closeRect = tester.getRect(find.byTooltip('Cerrar'));
+  final controlsBottom = downloadRect.bottom > closeRect.bottom
+      ? downloadRect.bottom
+      : closeRect.bottom;
+  expect(documentRect.top, controlsBottom + 20);
 }
 
 class _RecordingFileSaver implements MedicalDocumentFileSaver {

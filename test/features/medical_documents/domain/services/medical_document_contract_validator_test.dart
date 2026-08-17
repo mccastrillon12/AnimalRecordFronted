@@ -160,7 +160,10 @@ void main() {
       'schedule': <String, dynamic>{'frequency': 'daily'},
     };
     final originalAdditional = <String, dynamic>{
-      'metadata': <String, dynamic>{'reviewed': false},
+      'metadata': <String, dynamic>{
+        'reviewed': false,
+        'warnings': <String>['Do not persist'],
+      },
     };
     final extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.prescription,
@@ -168,6 +171,7 @@ void main() {
         MedicalDocumentItemEntity(id: 'medication-1', fields: originalFields),
       ],
       additionalFields: originalAdditional,
+      warnings: const ['Do not persist'],
     );
 
     final draft = extraction.sanitizedFor(MedicalDocumentCategory.prescription);
@@ -184,6 +188,11 @@ void main() {
     expect(
       (originalAdditional['metadata'] as Map<String, dynamic>)['reviewed'],
       isFalse,
+    );
+    expect(draft.warnings, ['Do not persist']);
+    expect(
+      draft.additionalFields['metadata'],
+      containsPair('warnings', ['Do not persist']),
     );
   });
 }

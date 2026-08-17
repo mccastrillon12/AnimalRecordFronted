@@ -28,6 +28,7 @@ class AnimalDiagnosticAidsScreen extends StatefulWidget {
 class _AnimalDiagnosticAidsScreenState
     extends State<AnimalDiagnosticAidsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final _closeIconKey = GlobalKey();
   bool _ascending = false;
 
   @override
@@ -187,6 +188,7 @@ class _AnimalDiagnosticAidsScreenState
                               animalId: widget.animal.id,
                               query: _searchController.text,
                               ascending: _ascending,
+                              closeIconKey: _closeIconKey,
                             ),
                           ),
                         ],
@@ -197,8 +199,10 @@ class _AnimalDiagnosticAidsScreenState
                         child: IconButton(
                           key: const Key('close-diagnostic-aids-button'),
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
+                          icon: Icon(
+                            key: _closeIconKey,
                             Icons.close,
+                            size: 20,
                             color: AppColors.greyIconos,
                           ),
                           padding: EdgeInsets.zero,

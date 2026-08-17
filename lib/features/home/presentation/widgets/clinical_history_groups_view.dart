@@ -129,18 +129,30 @@ class ClinicalHistoryGroupScreen extends StatefulWidget {
       _ClinicalHistoryGroupScreenState();
 }
 
-class ClinicalHistoryDocumentScreen extends StatelessWidget {
+class ClinicalHistoryDocumentScreen extends StatefulWidget {
   final MedicalDocumentEntity document;
 
   const ClinicalHistoryDocumentScreen({super.key, required this.document});
 
   @override
+  State<ClinicalHistoryDocumentScreen> createState() =>
+      _ClinicalHistoryDocumentScreenState();
+}
+
+class _ClinicalHistoryDocumentScreenState
+    extends State<ClinicalHistoryDocumentScreen> {
+  final _closeIconKey = GlobalKey();
+  final _actionIconKey = GlobalKey();
+
+  @override
   Widget build(BuildContext context) {
     return SharedFileSendScreen(
-      analysis: medicalDocumentToPdfAnalysis(document: document),
+      analysis: medicalDocumentToPdfAnalysis(document: widget.document),
+      closeIconKey: _closeIconKey,
+      actionIconKey: _actionIconKey,
       onViewOriginal: () => _showOriginal(context),
       resolveOriginalUri: () =>
-          di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
+          di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
       actionLabel: medicalDocumentSendActionLabel(
         MedicalDocumentCategory.clinicalHistory,
       ),
@@ -154,9 +166,11 @@ class ClinicalHistoryDocumentScreen extends StatelessWidget {
     );
     await preview.show(
       context,
-      acceptedDocumentId: document.id,
-      fileName: document.originalFileName,
-      mimeType: document.mimeType,
+      acceptedDocumentId: widget.document.id,
+      fileName: widget.document.originalFileName,
+      mimeType: widget.document.mimeType,
+      closeIconKey: _closeIconKey,
+      downloadIconKey: _actionIconKey,
     );
   }
 }

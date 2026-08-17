@@ -146,7 +146,13 @@ void main() {
       analysis.sections
           .firstWhere((section) => section.title == 'Información adicional')
           .body,
-      'Confirmar peso antes de administrar.\nMantener refrigerado.',
+      isNull,
+    );
+    expect(
+      analysis.sections
+          .expand((section) => section.details)
+          .map((detail) => detail.value),
+      isNot(contains(contains('Confirmar peso'))),
     );
     expect(analysis.observations, isNull);
   });
@@ -193,12 +199,14 @@ void main() {
       'Destination',
       'Specialty',
       'Clinical Summary',
+      'Confidence',
     ]);
     expect(referral.details.map((detail) => detail.value), [
       'Evaluación cardiológica',
       'Dr. Alejandro Torres',
       'Cardiología Veterinaria',
       'Paciente con soplo grado III/VI',
+      '0.94',
     ]);
 
     final additional = analysis.sections.singleWhere(
@@ -209,7 +217,7 @@ void main() {
       'Studies performed',
       'Referral number',
     ]);
-    expect(additional.body, isEmpty);
+    expect(additional.body, isNull);
     expect(analysis.observations, isNull);
   });
 
@@ -381,7 +389,9 @@ void main() {
     );
     expect(
       analysis.medications.single.instructions,
-      'Quantity: una caja\nInstructions: Administrar según indicación',
+      'Id: medication-value\n'
+      'Quantity: una caja\n'
+      'Instructions: Administrar según indicación',
     );
   });
 
@@ -419,6 +429,7 @@ void main() {
 
     expect(
       analysis.medications.single.instructions,
+      'Id: medication-lines\n'
       'Presentation: Suspensión\n'
       'Dose: 0,3 ml\n'
       'Route: oral\n'
@@ -433,6 +444,11 @@ void main() {
       vaccinations: [
         MedicalDocumentItemEntity(
           id: 'vaccine-1',
+          confidence: 0.869140625,
+          source: MedicalDocumentSourceEntity(
+            page: 2,
+            text: 'Rabies vaccination record',
+          ),
           fields: {
             'name': 'Rabies',
             'diseasesCovered': ['Rabies'],
@@ -462,16 +478,78 @@ void main() {
     expect(vaccine.name, 'Rabies');
     expect(vaccine.instructions, isEmpty);
     expect(vaccine.details.map((detail) => detail.label), [
+      'Id',
       'Diseases Covered',
       'Manufacturer',
       'Vaccine Type',
       'Lot Expiration Date',
+      'Confidence',
     ]);
     expect(vaccine.details.map((detail) => detail.value), [
+      'vaccine-1',
       'Rabies',
       'Zoetis Vanguard',
       'Killed',
       '7/18/2026',
+      '0.869140625',
+    ]);
+  });
+
+  test('organizes preserved mismatch content as additional sections', () {
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      additionalFields: {
+        'vaccinations': [
+          {
+            'id': 'vaccination-1',
+            'name': 'Canine Combination',
+            'applicationDate': 'February 23, 2023',
+            'manufacturer': 'Nobivac',
+            'route': 'INTRANASAL',
+            'confidence': 0.869140625,
+            'source': {'page': 1},
+            'warnings': ['Must not be displayed'],
+          },
+        ],
+      },
+    );
+    const document = MedicalDocumentEntity(
+      id: 'mismatch-document',
+      animalIds: ['animal-1'],
+      originalFileName: 'vaccination-record.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.reviewPending,
+      version: 1,
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: document,
+      extraction: extraction,
+    );
+
+    expect(analysis.documentType, 'Historia clínica');
+    expect(analysis.sections, hasLength(1));
+    expect(analysis.sections.single.title, 'Vaccinations 1');
+    expect(analysis.sections.single.details, [
+      const SharedFileAnalysisDetailEntity(label: 'Id', value: 'vaccination-1'),
+      const SharedFileAnalysisDetailEntity(
+        label: 'Name',
+        value: 'Canine Combination',
+      ),
+      const SharedFileAnalysisDetailEntity(
+        label: 'Application Date',
+        value: 'February 23, 2023',
+      ),
+      const SharedFileAnalysisDetailEntity(
+        label: 'Manufacturer',
+        value: 'Nobivac',
+      ),
+      const SharedFileAnalysisDetailEntity(label: 'Route', value: 'INTRANASAL'),
+      const SharedFileAnalysisDetailEntity(
+        label: 'Confidence',
+        value: '0.869140625',
+      ),
     ]);
   });
 

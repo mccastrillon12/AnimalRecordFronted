@@ -1,24 +1,29 @@
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
-import 'package:animal_record/features/home/presentation/pages/diagnostic_aid_folder_screen.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class DiagnosticAidFoldersView extends StatelessWidget {
   final String animalId;
   final String query;
   final bool ascending;
+  final GlobalKey? closeIconKey;
 
   const DiagnosticAidFoldersView({
     super.key,
     required this.animalId,
     required this.query,
     required this.ascending,
+    this.closeIconKey,
   });
 
   @override
@@ -102,14 +107,10 @@ class DiagnosticAidFoldersView extends StatelessWidget {
                   .map(
                     (folder) => _DiagnosticAidFolderTile(
                       folder: folder,
-                      onTap: () => Navigator.push<void>(
+                      onTap: () => _showOriginal(
                         context,
-                        MaterialPageRoute(
-                          builder: (_) => DiagnosticAidFolderScreen(
-                            folderNumber: folder.position,
-                            documents: [folder.document],
-                          ),
-                        ),
+                        folder.document,
+                        closeIconKey: closeIconKey,
                       ),
                     ),
                   )
@@ -125,6 +126,28 @@ class DiagnosticAidFoldersView extends StatelessWidget {
       document.updatedAt ??
       document.createdAt ??
       DateTime.fromMillisecondsSinceEpoch(0);
+
+  Future<void> _showOriginal(
+    BuildContext context,
+    MedicalDocumentEntity document, {
+    GlobalKey? closeIconKey,
+  }) async {
+    final preview = MedicalDocumentOriginalPreview(
+      getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
+      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
+    );
+    try {
+      await preview.show(
+        context,
+        acceptedDocumentId: document.id,
+        fileName: document.originalFileName,
+        mimeType: document.mimeType,
+        closeIconKey: closeIconKey,
+      );
+    } catch (error) {
+      if (context.mounted) ErrorDisplay.showError(context, error.toString());
+    }
+  }
 }
 
 class _DiagnosticAidFolder {
@@ -154,11 +177,11 @@ class _DiagnosticAidFolderTile extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              SvgPicture.asset(
-                'assets/icons/Grupo 844.svg',
-                key: Key('diagnostic-aid-folder-icon-${folder.document.id}'),
+              SizedBox(
+                key: Key('diagnostic-aid-file-preview-${folder.document.id}'),
                 width: 75,
                 height: 64,
+                child: _DiagnosticAidFilePreview(document: folder.document),
               ),
               const SizedBox(height: AppSpacing.s),
               Text(
@@ -175,6 +198,92 @@ class _DiagnosticAidFolderTile extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _DiagnosticAidFilePreview extends StatefulWidget {
+  final MedicalDocumentEntity document;
+
+  const _DiagnosticAidFilePreview({required this.document});
+
+  @override
+  State<_DiagnosticAidFilePreview> createState() =>
+      _DiagnosticAidFilePreviewState();
+}
+
+class _DiagnosticAidFilePreviewState extends State<_DiagnosticAidFilePreview> {
+  late Future<Uri>? _imageUri;
+
+  @override
+  void initState() {
+    super.initState();
+    _imageUri = _isImage(widget.document)
+        ? di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id)
+        : null;
+  }
+
+  @override
+  void didUpdateWidget(covariant _DiagnosticAidFilePreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document.id != widget.document.id ||
+        oldWidget.document.mimeType != widget.document.mimeType) {
+      _imageUri = _isImage(widget.document)
+          ? di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id)
+          : null;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isPdf(widget.document)) return _pdfThumbnail();
+    if (!_isImage(widget.document)) return _fallbackThumbnail();
+
+    return FutureBuilder<Uri>(
+      future: _imageUri,
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return _fallbackThumbnail();
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: CachedNetworkImage(
+            imageUrl: snapshot.data.toString(),
+            fit: BoxFit.cover,
+            fadeInDuration: Duration.zero,
+            fadeOutDuration: Duration.zero,
+            errorWidget: (_, _, _) => _fallbackThumbnail(),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _pdfThumbnail() => ColoredBox(
+    color: AppColors.white,
+    child: Padding(
+      padding: const EdgeInsets.all(4),
+      child: Image.asset('assets/icons/pdf.png', fit: BoxFit.contain),
+    ),
+  );
+
+  Widget _fallbackThumbnail() => const ColoredBox(
+    color: Color(0xFFD9D9D9),
+    child: Center(
+      child: Icon(
+        Icons.insert_drive_file_outlined,
+        size: AppSpacing.iconSizeSmall,
+        color: AppColors.greyBordes,
+      ),
+    ),
+  );
+
+  bool _isPdf(MedicalDocumentEntity document) =>
+      document.mimeType.toLowerCase() == 'application/pdf' ||
+      document.originalFileName.toLowerCase().endsWith('.pdf');
+
+  bool _isImage(MedicalDocumentEntity document) {
+    if (document.mimeType.toLowerCase().startsWith('image/')) return true;
+    const extensions = ['.jpeg', '.jpg', '.png', '.tif', '.tiff', '.webp'];
+    final name = document.originalFileName.toLowerCase();
+    return extensions.any(name.endsWith);
   }
 }
 

@@ -31,6 +31,8 @@ class VaccinationGroupDetailScreen extends StatefulWidget {
 
 class _VaccinationGroupDetailScreenState
     extends State<VaccinationGroupDetailScreen> {
+  final _closeIconKey = GlobalKey();
+
   @override
   Widget build(BuildContext context) {
     final detail = vaccinationDetailViewData(widget.group);
@@ -44,7 +46,12 @@ class _VaccinationGroupDetailScreenState
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
         onPressed: () => Navigator.pop(context),
-        icon: const Icon(Icons.close, size: 20, color: AppColors.greyIconos),
+        icon: Icon(
+          key: _closeIconKey,
+          Icons.close,
+          size: 20,
+          color: AppColors.greyIconos,
+        ),
         padding: EdgeInsets.zero,
         constraints: const BoxConstraints(),
       ),
@@ -102,6 +109,7 @@ class _VaccinationGroupDetailScreenState
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        closeIconKey: _closeIconKey,
       );
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());

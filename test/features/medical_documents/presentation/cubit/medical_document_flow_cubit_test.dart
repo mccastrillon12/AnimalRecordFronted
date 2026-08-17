@@ -328,6 +328,158 @@ void main() {
       expect(extraction?.clinicalHistory, isNull);
     },
   );
+
+  test(
+    'preserves detected content only when the user selects another category',
+    () async {
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: [_mismatchedVaccinationDocument()],
+        reviewResponse: _document(MedicalDocumentStatus.accepted, version: 2),
+      );
+      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+      addTearDown(cubit.close);
+
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+        requestedCategory: MedicalDocumentCategory.clinicalHistory,
+      );
+      cubit.selectFinalCategory(MedicalDocumentCategory.clinicalHistory);
+
+      final draft = cubit.state.draftExtraction!;
+      expect(draft.documentType, MedicalDocumentCategory.clinicalHistory);
+      expect(draft.vaccinations, isEmpty);
+      expect(draft.patient?.name, 'Chuleta');
+      expect(draft.additionalFields['vaccinations'], [
+        {
+          'id': 'vaccination-1',
+          'name': 'Canine Combination',
+          'applicationDate': 'February 23, 2023',
+          'manufacturer': 'Nobivac',
+          'route': 'INTRANASAL',
+          'confidence': 0.869140625,
+          'source': {'page': 1, 'text': 'Vaccination row'},
+        },
+      ]);
+      expect(draft.warnings, ['Do not display or persist']);
+
+      await cubit.accept();
+
+      final request = repository.lastReviewRequest!;
+      expect(request.finalCategory, MedicalDocumentCategory.clinicalHistory);
+      expect(request.validatedExtraction?.vaccinations, isEmpty);
+      expect(
+        request.validatedExtraction?.additionalFields['vaccinations'],
+        draft.additionalFields['vaccinations'],
+      );
+      expect(request.validatedExtraction?.warnings, [
+        'Do not display or persist',
+      ]);
+    },
+  );
+
+  test('preserves every structured block across category mismatches', () async {
+    final cases =
+        <
+          ({
+            MedicalDocumentCategory detected,
+            MedicalDocumentCategory selected,
+            MedicalDocumentExtractionEntity extraction,
+            String preservedKey,
+          })
+        >[
+          (
+            detected: MedicalDocumentCategory.prescription,
+            selected: MedicalDocumentCategory.other,
+            extraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.prescription,
+              diagnoses: [
+                MedicalDocumentItemEntity(
+                  id: 'diagnosis-1',
+                  fields: {'name': 'Otitis'},
+                ),
+              ],
+              medications: [
+                MedicalDocumentItemEntity(
+                  id: 'medication-1',
+                  fields: {'name': 'Medication A', 'dose': '5 ml'},
+                ),
+              ],
+            ),
+            preservedKey: 'medications',
+          ),
+          (
+            detected: MedicalDocumentCategory.clinicalHistory,
+            selected: MedicalDocumentCategory.vaccinationCard,
+            extraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.clinicalHistory,
+              clinicalHistory: {'reasonForConsultation': 'Annual control'},
+              diagnosticResults: [
+                MedicalDocumentItemEntity(
+                  id: 'result-1',
+                  fields: {'test': 'CBC', 'result': 'Normal'},
+                ),
+              ],
+            ),
+            preservedKey: 'clinicalHistory',
+          ),
+          (
+            detected: MedicalDocumentCategory.medicalOrder,
+            selected: MedicalDocumentCategory.referral,
+            extraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.medicalOrder,
+              medicalOrders: [
+                MedicalDocumentItemEntity(
+                  id: 'order-1',
+                  fields: {'procedure': 'Ultrasound'},
+                ),
+              ],
+            ),
+            preservedKey: 'medicalOrders',
+          ),
+          (
+            detected: MedicalDocumentCategory.referral,
+            selected: MedicalDocumentCategory.prescription,
+            extraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.referral,
+              referral: {'destination': 'Cardiology'},
+            ),
+            preservedKey: 'referral',
+          ),
+        ];
+
+    for (final testCase in cases) {
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: [
+          _mismatchedDocument(
+            detected: testCase.detected,
+            selected: testCase.selected,
+            extraction: testCase.extraction,
+          ),
+        ],
+      );
+      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+        requestedCategory: testCase.selected,
+      );
+      cubit.selectFinalCategory(testCase.selected);
+
+      expect(cubit.state.draftExtraction?.documentType, testCase.selected);
+      expect(
+        cubit.state.draftExtraction?.additionalFields[testCase.preservedKey],
+        isNotNull,
+        reason:
+            '${testCase.detected.wireValue} -> '
+            '${testCase.selected.wireValue}',
+      );
+      await cubit.close();
+    }
+  });
 }
 
 MedicalDocumentFlowCubit _buildCubit(
@@ -441,6 +593,81 @@ MedicalDocumentEntity _multipleDocument() {
           ),
         ],
       ),
+    },
+    version: 1,
+  );
+}
+
+MedicalDocumentEntity _mismatchedVaccinationDocument() {
+  return const MedicalDocumentEntity(
+    id: 'document-1',
+    animalIds: [animal1Id, animal2Id],
+    originalFileName: 'vaccination-record.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 2048,
+    status: MedicalDocumentStatus.reviewPending,
+    requestedCategory: MedicalDocumentCategory.clinicalHistory,
+    primaryDetectedCategory: MedicalDocumentCategory.vaccinationCard,
+    detectedCategories: [
+      DetectedMedicalDocumentCategoryEntity(
+        category: MedicalDocumentCategory.vaccinationCard,
+      ),
+    ],
+    classificationOutcome: MedicalDocumentClassificationOutcome.mismatch,
+    extractionsByCategory: {
+      MedicalDocumentCategory.clinicalHistory: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.clinicalHistory,
+      ),
+      MedicalDocumentCategory.vaccinationCard: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.vaccinationCard,
+        patient: MedicalDocumentPatientEntity(
+          name: 'Chuleta',
+          species: 'Canine',
+        ),
+        vaccinations: [
+          MedicalDocumentItemEntity(
+            id: 'vaccination-1',
+            confidence: 0.869140625,
+            source: MedicalDocumentSourceEntity(
+              page: 1,
+              text: 'Vaccination row',
+            ),
+            fields: {
+              'name': 'Canine Combination',
+              'applicationDate': 'February 23, 2023',
+              'manufacturer': 'Nobivac',
+              'route': 'INTRANASAL',
+            },
+          ),
+        ],
+        warnings: ['Do not display or persist'],
+      ),
+    },
+    version: 1,
+  );
+}
+
+MedicalDocumentEntity _mismatchedDocument({
+  required MedicalDocumentCategory detected,
+  required MedicalDocumentCategory selected,
+  required MedicalDocumentExtractionEntity extraction,
+}) {
+  return MedicalDocumentEntity(
+    id: 'document-1',
+    animalIds: const [animal1Id, animal2Id],
+    originalFileName: 'mismatched-document.pdf',
+    mimeType: 'application/pdf',
+    fileSize: 2048,
+    status: MedicalDocumentStatus.reviewPending,
+    requestedCategory: selected,
+    primaryDetectedCategory: detected,
+    detectedCategories: [
+      DetectedMedicalDocumentCategoryEntity(category: detected),
+    ],
+    classificationOutcome: MedicalDocumentClassificationOutcome.mismatch,
+    extractionsByCategory: {
+      selected: MedicalDocumentExtractionEntity.empty(selected),
+      detected: extraction,
     },
     version: 1,
   );

@@ -219,10 +219,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     MedicalDocumentEntity document,
     MedicalDocumentCategory category,
   ) {
-    final extraction =
-        document.extractionsByCategory[category] ??
-        MedicalDocumentExtractionEntity.empty(category);
-    final sanitized = extraction.sanitizedFor(category);
+    final sanitized = _reviewExtraction(document, category);
     emit(
       state.copyWith(
         phase: MedicalDocumentFlowPhase.reviewing,
@@ -237,6 +234,127 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         versionConflict: false,
       ),
     );
+  }
+
+  MedicalDocumentExtractionEntity _reviewExtraction(
+    MedicalDocumentEntity document,
+    MedicalDocumentCategory category,
+  ) {
+    final matchingExtraction = document.extractionsByCategory[category];
+    if (matchingExtraction != null &&
+        _hasExtractionContent(matchingExtraction)) {
+      return matchingExtraction.sanitizedFor(category);
+    }
+
+    final detectedCategory =
+        document.primaryDetectedCategory ??
+        document.detectedCategories
+            .map((detected) => detected.category)
+            .where(document.extractionsByCategory.containsKey)
+            .firstOrNull;
+    final detectedExtraction = detectedCategory == null
+        ? null
+        : document.extractionsByCategory[detectedCategory];
+    if (detectedExtraction == null || detectedCategory == category) {
+      return MedicalDocumentExtractionEntity.empty(category);
+    }
+
+    return _reclassifyPreservingDetectedData(detectedExtraction, category);
+  }
+
+  bool _hasExtractionContent(MedicalDocumentExtractionEntity extraction) {
+    return _hasPreservedValue(extraction.summary) ||
+        _hasPreservedValue(extraction.documentDate) ||
+        _hasPreservedValue(extraction.issuer) ||
+        (extraction.patient?.hasData ?? false) ||
+        (extraction.owner?.hasData ?? false) ||
+        extraction.patientHints.isNotEmpty ||
+        extraction.diagnoses.isNotEmpty ||
+        extraction.medications.isNotEmpty ||
+        extraction.vaccinations.isNotEmpty ||
+        extraction.medicalOrders.isNotEmpty ||
+        _hasPreservedValue(extraction.clinicalHistory) ||
+        extraction.diagnosticResults.isNotEmpty ||
+        _hasPreservedValue(extraction.referral) ||
+        extraction.additionalFields.isNotEmpty ||
+        extraction.warnings.isNotEmpty;
+  }
+
+  MedicalDocumentExtractionEntity _reclassifyPreservingDetectedData(
+    MedicalDocumentExtractionEntity extraction,
+    MedicalDocumentCategory category,
+  ) {
+    final sanitized = extraction
+        .copyWith(documentType: category)
+        .sanitizedFor(category);
+    final additionalFields = Map<String, dynamic>.from(
+      sanitized.additionalFields,
+    );
+
+    void preserve(String key, Object? value) {
+      if (!_hasPreservedValue(value)) return;
+      final current = additionalFields[key];
+      if (!_hasPreservedValue(current)) {
+        additionalFields[key] = value;
+      } else if (current != value) {
+        additionalFields[key] = [
+          if (current is Iterable) ...current else current,
+          if (value is Iterable) ...value else value,
+        ];
+      }
+    }
+
+    if (sanitized.diagnoses.isEmpty) {
+      preserve('diagnoses', _preservedItems(extraction.diagnoses));
+    }
+    if (sanitized.medications.isEmpty) {
+      preserve('medications', _preservedItems(extraction.medications));
+    }
+    if (sanitized.vaccinations.isEmpty) {
+      preserve('vaccinations', _preservedItems(extraction.vaccinations));
+    }
+    if (sanitized.medicalOrders.isEmpty) {
+      preserve('medicalOrders', _preservedItems(extraction.medicalOrders));
+    }
+    if (sanitized.clinicalHistory == null) {
+      preserve('clinicalHistory', extraction.clinicalHistory);
+    }
+    if (sanitized.diagnosticResults.isEmpty) {
+      preserve(
+        'diagnosticResults',
+        _preservedItems(extraction.diagnosticResults),
+      );
+    }
+    if (sanitized.referral == null) {
+      preserve('referral', extraction.referral);
+    }
+
+    return sanitized.copyWith(additionalFields: additionalFields);
+  }
+
+  List<Map<String, dynamic>> _preservedItems(
+    List<MedicalDocumentItemEntity> items,
+  ) => items
+      .map(
+        (item) => <String, dynamic>{
+          'id': item.id,
+          ...item.fields,
+          if (item.confidence != null) 'confidence': item.confidence,
+          if (item.source != null)
+            'source': {
+              if (item.source!.page != null) 'page': item.source!.page,
+              if (item.source!.text != null) 'text': item.source!.text,
+            },
+        },
+      )
+      .toList(growable: false);
+
+  bool _hasPreservedValue(Object? value) {
+    if (value == null) return false;
+    if (value is String) return value.trim().isNotEmpty;
+    if (value is Iterable) return value.isNotEmpty;
+    if (value is Map) return value.isNotEmpty;
+    return true;
   }
 
   void updateDraft(MedicalDocumentExtractionEntity extraction) {

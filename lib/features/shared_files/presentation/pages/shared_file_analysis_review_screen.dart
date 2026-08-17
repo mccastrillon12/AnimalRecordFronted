@@ -21,6 +21,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
   final VoidCallback? onClose;
+  final GlobalKey? closeIconKey;
   final String submitLabel;
   final bool isSubmitting;
 
@@ -31,6 +32,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
     this.onDoNotUpload,
     this.onViewOriginal,
     this.onClose,
+    this.closeIconKey,
     this.submitLabel = 'Subir documento',
     this.isSubmitting = false,
   });
@@ -44,6 +46,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
       onDoNotUpload: onDoNotUpload,
       onViewOriginal: onViewOriginal,
       onClose: onClose,
+      closeIconKey: closeIconKey,
       submitLabel: submitLabel,
       isSubmitting: isSubmitting,
     );
@@ -55,6 +58,8 @@ class SharedFileSendScreen extends StatelessWidget {
   final VoidCallback? onViewOriginal;
   final SharedFileOriginalUriResolver? resolveOriginalUri;
   final String actionLabel;
+  final GlobalKey? closeIconKey;
+  final GlobalKey? actionIconKey;
 
   const SharedFileSendScreen({
     super.key,
@@ -62,6 +67,8 @@ class SharedFileSendScreen extends StatelessWidget {
     this.onViewOriginal,
     this.resolveOriginalUri,
     this.actionLabel = 'Enviar fórmula',
+    this.closeIconKey,
+    this.actionIconKey,
   });
 
   @override
@@ -72,6 +79,8 @@ class SharedFileSendScreen extends StatelessWidget {
       onViewOriginal: onViewOriginal,
       resolveOriginalUri: resolveOriginalUri,
       actionLabel: actionLabel,
+      closeIconKey: closeIconKey,
+      actionIconKey: actionIconKey,
     );
   }
 }
@@ -85,6 +94,8 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
   final VoidCallback? onClose;
+  final GlobalKey? closeIconKey;
+  final GlobalKey? actionIconKey;
   final SharedFileOriginalUriResolver? resolveOriginalUri;
   final String actionLabel;
   final String submitLabel;
@@ -97,6 +108,8 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.onDoNotUpload,
     this.onViewOriginal,
     this.onClose,
+    this.closeIconKey,
+    this.actionIconKey,
     this.resolveOriginalUri,
     this.actionLabel = 'Enviar fórmula',
     this.submitLabel = 'Subir documento',
@@ -133,7 +146,8 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
         onPressed: widget.onClose ?? () => Navigator.pop(context),
-        icon: const Icon(
+        icon: Icon(
+          key: widget.closeIconKey,
           Icons.close,
           size: _headerActionIconSize,
           color: AppColors.greyIconos,
@@ -154,18 +168,17 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        if (_isExporting)
-                          const SizedBox(
-                            width: _headerActionIconSize,
-                            height: _headerActionIconSize,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
-                        else
-                          SvgPicture.asset(
-                            AppIcons.export,
-                            width: _headerActionIconSize,
-                            height: _headerActionIconSize,
-                          ),
+                        SizedBox.square(
+                          key: widget.actionIconKey,
+                          dimension: _headerActionIconSize,
+                          child: _isExporting
+                              ? const CircularProgressIndicator(strokeWidth: 2)
+                              : SvgPicture.asset(
+                                  AppIcons.export,
+                                  width: _headerActionIconSize,
+                                  height: _headerActionIconSize,
+                                ),
+                        ),
                         const SizedBox(width: AppSpacing.xs),
                         Text(
                           widget.actionLabel,
