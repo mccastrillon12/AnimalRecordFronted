@@ -22,12 +22,15 @@ extension MedicalDocumentRejectionReasonLabel
 
 Future<MedicalDocumentRejectionReason?> showMedicalDocumentRejectionDialog({
   required BuildContext context,
+  Future<void> Function()? onCancel,
 }) async {
   MedicalDocumentRejectionReason? selectedReason;
   MedicalDocumentRejectionReason? confirmedReason;
+  Future<void>? cancellation;
 
   await showDialog<void>(
     context: context,
+    barrierDismissible: false,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => ConfirmDialog(
         title: '¿Qué estuvo mal?',
@@ -54,10 +57,12 @@ Future<MedicalDocumentRejectionReason?> showMedicalDocumentRejectionDialog({
         confirmColor: AppColors.aiViolet,
         isConfirmEnabled: selectedReason != null,
         onConfirm: () => confirmedReason = selectedReason,
+        onCancel: () => cancellation = onCancel?.call(),
       ),
     ),
   );
 
+  await cancellation;
   return confirmedReason;
 }
 

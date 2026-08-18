@@ -5,6 +5,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/menus/app_single_action_popup_menu.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -83,6 +84,11 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
         if (requestedCategory != null) 'requestedCategory': requestedCategory,
       },
     );
-    if (uploaded == true && context.mounted) onUploaded?.call();
+    if (!context.mounted) return;
+    if (uploaded == true) {
+      onUploaded?.call();
+    } else if (uploaded == false) {
+      ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+    }
   }
 }

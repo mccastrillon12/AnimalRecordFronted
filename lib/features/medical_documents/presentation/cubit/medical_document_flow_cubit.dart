@@ -519,17 +519,22 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   /// Discards a user-cancelled flow before another document can be analyzed.
   /// A document awaiting review is rejected remotely; earlier phases are only
   /// removed locally because the API does not expose an analysis-cancel action.
-  Future<bool> discardCurrentFlow() async {
+  Future<bool> discardCurrentFlow({
+    bool showSubmittingState = true,
+    bool resetStateAfterDiscard = true,
+  }) async {
     _pollGeneration++;
     final document = state.remoteDocument;
     if (document?.status == MedicalDocumentStatus.reviewPending) {
       final documentId = document!.id;
-      emit(
-        state.copyWith(
-          phase: MedicalDocumentFlowPhase.submitting,
-          clearMessage: true,
-        ),
-      );
+      if (showSubmittingState) {
+        emit(
+          state.copyWith(
+            phase: MedicalDocumentFlowPhase.submitting,
+            clearMessage: true,
+          ),
+        );
+      }
       try {
         final request = ReviewMedicalDocumentRequest.reject(
           documentVersion: document.version,
@@ -562,7 +567,9 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       }
     }
     await pendingLocalDataSource.clear();
-    emit(const MedicalDocumentFlowState());
+    if (resetStateAfterDiscard) {
+      emit(const MedicalDocumentFlowState());
+    }
     return true;
   }
 

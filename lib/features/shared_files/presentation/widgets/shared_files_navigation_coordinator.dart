@@ -1,8 +1,10 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -42,8 +44,13 @@ class _SharedFilesNavigationCoordinatorState
     final navigator = widget.navigatorKey.currentState;
     if (navigator == null) return;
     _isPresenting = true;
-    await navigator.pushNamed(AppRoutes.sharedFileUpload);
-    if (mounted) _isPresenting = false;
+    final uploaded = await navigator.pushNamed(AppRoutes.sharedFileUpload);
+    if (!mounted) return;
+    _isPresenting = false;
+    final overlay = widget.navigatorKey.currentState?.overlay;
+    if (uploaded == false && overlay != null) {
+      ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+    }
   }
 
   @override

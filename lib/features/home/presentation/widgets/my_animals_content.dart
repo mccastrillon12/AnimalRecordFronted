@@ -15,11 +15,15 @@ import 'package:animal_record/features/home/presentation/widgets/animal_filter_m
 import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 
 /// Full "Mis Animales" page with search bar, grid/list toggle, filter, and
 /// animals grouped by species (family).
 class MyAnimalsContent extends StatefulWidget {
-  const MyAnimalsContent({super.key});
+  final VoidCallback? onUploadCancelled;
+
+  const MyAnimalsContent({super.key, this.onUploadCancelled});
 
   @override
   State<MyAnimalsContent> createState() => _MyAnimalsContentState();
@@ -570,15 +574,22 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
   Widget _buildFab(BuildContext context) {
     return PopupMenuButton<String>(
-      onSelected: (value) {
+      onSelected: (value) async {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
         } else if (value == 'subir_documento') {
-          Navigator.pushNamed(
+          final uploaded = await Navigator.pushNamed(
             context,
             AppRoutes.sharedFileUpload,
             arguments: const {'manualUpload': true},
           );
+          if (!context.mounted || uploaded != false) return;
+          final onUploadCancelled = widget.onUploadCancelled;
+          if (onUploadCancelled != null) {
+            onUploadCancelled();
+          } else {
+            ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+          }
         } else if (value == 'transferir') {
           // TODO: Implement transfer
         }

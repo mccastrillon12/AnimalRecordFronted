@@ -164,6 +164,37 @@ void main() {
     expect(pending.value, isNull);
   });
 
+  test('discards a review without exposing the submitting phase', () async {
+    final repository = _FakeMedicalDocumentsRepository(
+      analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+      getResponses: [_document(MedicalDocumentStatus.reviewPending)],
+      reviewResponse: _document(MedicalDocumentStatus.rejected, version: 2),
+    );
+    final pending = _MemoryPendingDataSource();
+    final cubit = _buildCubit(repository, pending);
+    addTearDown(cubit.close);
+
+    await cubit.startAnalysis(
+      file: file,
+      animalIds: const [animal1Id, animal2Id],
+    );
+    final emittedPhases = <MedicalDocumentFlowPhase>[];
+    final subscription = cubit.stream.listen(
+      (state) => emittedPhases.add(state.phase),
+    );
+    addTearDown(subscription.cancel);
+
+    final discarded = await cubit.discardCurrentFlow(
+      showSubmittingState: false,
+      resetStateAfterDiscard: false,
+    );
+
+    expect(discarded, isTrue);
+    expect(emittedPhases, isNot(contains(MedicalDocumentFlowPhase.submitting)));
+    expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
+    expect(pending.value, isNull);
+  });
+
   test(
     'keeps the pending id after a polling error and resumes with GET',
     () async {

@@ -12,6 +12,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import '../widgets/user_header.dart';
 import '../widgets/navigation_menu.dart';
 import '../widgets/animals_section.dart';
@@ -61,6 +62,15 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  void _handleExternalUploadCancelled() {
+    setState(() => _activeSection = null);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -107,7 +117,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildContent() {
     switch (_activeSection) {
       case 'mis_animales':
-        return const MyAnimalsContent();
+        return MyAnimalsContent(
+          onUploadCancelled: _handleExternalUploadCancelled,
+        );
       case 'vaccination_cards':
         return const VaccinationCardsContent();
       default:

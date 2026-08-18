@@ -70,4 +70,50 @@ void main() {
 
     expect(result, MedicalDocumentRejectionReason.incorrectInformation);
   });
+
+  testWidgets('reports an explicit cancellation from the Cancelar button', (
+    tester,
+  ) async {
+    var wasCancelled = false;
+    var dialogFutureCompleted = false;
+    final cancellation = Completer<void>();
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () {
+                unawaited(
+                  showMedicalDocumentRejectionDialog(
+                    context: context,
+                    onCancel: () async {
+                      wasCancelled = true;
+                      await cancellation.future;
+                    },
+                  ).then((_) => dialogFutureCompleted = true),
+                );
+              },
+              child: const Text('Abrir'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar'));
+    await tester.pumpAndSettle();
+
+    expect(wasCancelled, isTrue);
+    expect(find.text('¿Qué estuvo mal?'), findsNothing);
+    expect(dialogFutureCompleted, isFalse);
+
+    cancellation.complete();
+    await tester.pumpAndSettle();
+
+    expect(dialogFutureCompleted, isTrue);
+    expect(find.text('¿Qué estuvo mal?'), findsNothing);
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
@@ -10,6 +11,8 @@ import 'package:animal_record/features/medical_documents/presentation/widgets/me
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+
+enum MedicalDocumentReviewOutcome { accepted, cancelled, dismissed, rejected }
 
 /// Adapts the medical-document state to the existing analysis design.
 /// Backend flow and UI remain separated: this page only coordinates them.
@@ -30,6 +33,7 @@ class _MedicalDocumentReviewScreenState
   bool _completionHandled = false;
   bool _canPop = false;
   bool _isDiscarding = false;
+  bool _showCancellationOverlay = false;
 
   @override
   void initState() {
@@ -56,7 +60,7 @@ class _MedicalDocumentReviewScreenState
             ErrorDisplay.showError(context, state.message!);
           }
           if (state.phase == MedicalDocumentFlowPhase.rejected) {
-            _popWithResult(false);
+            _popWithResult(MedicalDocumentReviewOutcome.rejected);
           }
           if (state.phase == MedicalDocumentFlowPhase.completed) {
             _showAcceptedDocument(state);
@@ -70,45 +74,84 @@ class _MedicalDocumentReviewScreenState
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return SharedFileAnalysisReviewScreen(
-            analysis: medicalDocumentToAnalysis(
-              document: document,
-              extraction: extraction,
-            ),
-            isSubmitting: state.phase == MedicalDocumentFlowPhase.submitting,
-            onSubmit: () => context.read<MedicalDocumentFlowCubit>().accept(),
-            onDoNotUpload: _showRejectionDialog,
-            onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
-            onClose: _discardAndClose,
-            closeIconKey: _reviewCloseIconKey,
+          return Stack(
+            children: [
+              SharedFileAnalysisReviewScreen(
+                analysis: medicalDocumentToAnalysis(
+                  document: document,
+                  extraction: extraction,
+                ),
+                isSubmitting:
+                    state.phase == MedicalDocumentFlowPhase.submitting,
+                onSubmit: () =>
+                    context.read<MedicalDocumentFlowCubit>().accept(),
+                onDoNotUpload: _showRejectionDialog,
+                onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+                onClose: _discardAndClose,
+                closeIconKey: _reviewCloseIconKey,
+              ),
+              if (_showCancellationOverlay) ...[
+                const Positioned.fill(
+                  child: ModalBarrier(
+                    dismissible: false,
+                    color: AppColors.overlayBlack,
+                  ),
+                ),
+                const Positioned.fill(
+                  child: Center(
+                    child: CircularProgressIndicator(color: AppColors.white),
+                  ),
+                ),
+              ],
+            ],
           );
         },
       ),
     );
   }
 
-  Future<void> _discardAndClose() async {
+  void _discardAndClose() {
     if (_isDiscarding) return;
     _isDiscarding = true;
-    final discarded = await context
-        .read<MedicalDocumentFlowCubit>()
-        .discardCurrentFlow();
-    if (!mounted) return;
-    _isDiscarding = false;
-    if (discarded) _popWithResult(false);
+    _popWithResult(MedicalDocumentReviewOutcome.dismissed);
   }
 
   Future<void> _showRejectionDialog() async {
-    final reason = await showMedicalDocumentRejectionDialog(context: context);
-    if (!mounted || reason == null) return;
+    var cancelRequested = false;
+    final reason = await showMedicalDocumentRejectionDialog(
+      context: context,
+      onCancel: () async {
+        cancelRequested = true;
+        if (!mounted) return;
+        setState(() => _showCancellationOverlay = true);
+        await _discardForCancellation();
+      },
+    );
+    if (!mounted) return;
+    if (cancelRequested) {
+      _popWithResult(MedicalDocumentReviewOutcome.cancelled);
+      return;
+    }
+    if (reason == null) return;
     await context.read<MedicalDocumentFlowCubit>().reject();
   }
 
-  void _popWithResult(bool result) {
+  Future<void> _discardForCancellation() async {
+    if (_isDiscarding) return;
+    _isDiscarding = true;
+    await context.read<MedicalDocumentFlowCubit>().discardCurrentFlow(
+      showSubmittingState: false,
+      resetStateAfterDiscard: false,
+    );
+    if (!mounted) return;
+    _isDiscarding = false;
+  }
+
+  void _popWithResult(MedicalDocumentReviewOutcome result) {
     if (!mounted) return;
     setState(() => _canPop = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) Navigator.pop(context, result);
+      if (mounted) Navigator.pop<MedicalDocumentReviewOutcome>(context, result);
     });
   }
 
@@ -119,7 +162,7 @@ class _MedicalDocumentReviewScreenState
     if (document == null ||
         document.finalCategory != MedicalDocumentCategory.prescription ||
         document.validatedExtraction == null) {
-      if (mounted) _popWithResult(true);
+      if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
       return;
     }
     await Navigator.push<void>(
@@ -141,7 +184,7 @@ class _MedicalDocumentReviewScreenState
         ),
       ),
     );
-    if (mounted) _popWithResult(true);
+    if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
   }
 
   Future<void> _showOriginal(

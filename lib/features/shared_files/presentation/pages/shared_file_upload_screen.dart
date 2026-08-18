@@ -19,6 +19,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/medi
 import 'package:animal_record/features/medical_documents/presentation/pages/medical_document_review_screen.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_classification_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
@@ -336,7 +337,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         ),
       );
     }
-    final accepted = await Navigator.push<bool>(
+    final outcome = await Navigator.push<MedicalDocumentReviewOutcome>(
       context,
       MaterialPageRoute(
         builder: (_) => BlocProvider.value(
@@ -346,10 +347,30 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       ),
     );
     if (!mounted) return;
-    _reviewPresented = false;
-    if (accepted == true) {
-      context.read<SharedFilesCubit>().clear();
-      Navigator.pop(context, true);
+    switch (outcome) {
+      case MedicalDocumentReviewOutcome.accepted:
+        _reviewPresented = false;
+        context.read<SharedFilesCubit>().clear();
+        Navigator.pop(context, true);
+      case MedicalDocumentReviewOutcome.cancelled:
+        _reviewPresented = false;
+        if (!_isManualUpload) context.read<SharedFilesCubit>().clear();
+        Navigator.pop(context, false);
+      case MedicalDocumentReviewOutcome.dismissed:
+        final discarded = await flow.discardCurrentFlow(
+          showSubmittingState: false,
+        );
+        if (!discarded) await flow.reset();
+        if (!mounted) return;
+        _reviewPresented = false;
+        if (!discarded) {
+          ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+        }
+      case MedicalDocumentReviewOutcome.rejected:
+        _reviewPresented = false;
+      case null:
+        _reviewPresented = false;
+        break;
     }
   }
 
@@ -373,7 +394,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
           ErrorDisplay.showError(context, state.message!);
         } else if (state.phase == MedicalDocumentFlowPhase.failed &&
             (state.message?.isNotEmpty ?? false)) {
-          ErrorDisplay.showError(context, state.message!);
+          ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
         }
       },
       builder: (context, flowState) => Stack(

@@ -64,92 +64,95 @@ class ConfirmDialog extends StatelessWidget {
                       textAlign: TextAlign.center,
                     ),
                   ),
-              const SizedBox(height: 16),
-              // Description
-              if (description != null)
-                Text(
-                  description!,
-                  style: AppTypography.body6.copyWith(
-                    color: AppColors.greyTextos,
-                    height: 1.6,
-                  ),
-                  textAlign: TextAlign.left,
-                )
-              else if (richDescription != null)
-                RichText(
-                  text: TextSpan(
-                    style: AppTypography.body6.copyWith(
-                      color: AppColors.greyTextos,
-                      height: 1.6,
+                  const SizedBox(height: 16),
+                  // Description
+                  if (description != null)
+                    Text(
+                      description!,
+                      style: AppTypography.body6.copyWith(
+                        color: AppColors.greyTextos,
+                        height: 1.6,
+                      ),
+                      textAlign: TextAlign.left,
+                    )
+                  else if (richDescription != null)
+                    RichText(
+                      text: TextSpan(
+                        style: AppTypography.body6.copyWith(
+                          color: AppColors.greyTextos,
+                          height: 1.6,
+                        ),
+                        children: [richDescription!],
+                      ),
+                      textAlign: TextAlign.left,
                     ),
-                    children: [richDescription!],
+                  if (description != null || richDescription != null)
+                    const SizedBox(height: 16),
+                  // Custom Content
+                  if (content != null) ...[
+                    content!,
+                    const SizedBox(height: 16),
+                  ],
+                  // Buttons row
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            onCancel?.call();
+                          },
+                          style: TextButton.styleFrom(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            minimumSize: const Size(double.infinity, 40),
+                          ),
+                          child: Text(
+                            cancelLabel,
+                            style: AppTypography.body3.copyWith(
+                              color: const Color(0xFF0072BB),
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: isConfirmEnabled
+                              ? () {
+                                  Navigator.of(context).pop();
+                                  onConfirm();
+                                }
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: confirmColor,
+                            foregroundColor: Colors.white,
+                            disabledBackgroundColor: AppColors.greyDelineante,
+                            disabledForegroundColor: AppColors.greyMedio,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            minimumSize: const Size(double.infinity, 40),
+                            padding: const EdgeInsets.symmetric(horizontal: 6),
+                          ),
+                          child: Text(
+                            confirmLabel,
+                            style: AppTypography.body3.copyWith(
+                              color: isConfirmEnabled
+                                  ? Colors.white
+                                  : AppColors.greyMedio,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                            softWrap: true,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  textAlign: TextAlign.left,
-                ),
-              if (description != null || richDescription != null)
-                const SizedBox(height: 16),
-              // Custom Content
-              if (content != null) ...[content!, const SizedBox(height: 16)],
-              // Buttons row
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.of(context).pop();
-                        onCancel?.call();
-                      },
-                      style: TextButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        minimumSize: const Size(double.infinity, 40),
-                      ),
-                      child: Text(
-                        cancelLabel,
-                        style: AppTypography.body3.copyWith(
-                          color: const Color(0xFF0072BB),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: isConfirmEnabled
-                          ? () {
-                              Navigator.of(context).pop();
-                              onConfirm();
-                            }
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: confirmColor,
-                        foregroundColor: Colors.white,
-                        disabledBackgroundColor: AppColors.greyDelineante,
-                        disabledForegroundColor: AppColors.greyMedio,
-                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        minimumSize: const Size(double.infinity, 40),
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
-                      ),
-                      child: Text(
-                        confirmLabel,
-                        style: AppTypography.body3.copyWith(
-                          color: isConfirmEnabled
-                              ? Colors.white
-                              : AppColors.greyMedio,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        textAlign: TextAlign.center,
-                        softWrap: true,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
                 ],
               ),
             ),
