@@ -64,7 +64,7 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(
-      find.text('¿La ayuda de la IA te fue útil\npara leer tu documento?'),
+      find.text('¿La ayuda de la IA te fue útil\npara leer tu archivo?'),
       findsOneWidget,
     );
     expect(find.text('Adjunto: Fórmula médica N° 7d22ffa7'), findsOneWidget);
@@ -227,7 +227,7 @@ void main() {
     );
 
     expect(
-      find.text('¿La ayuda de la IA te fue útil\npara leer tu documento?'),
+      find.text('¿La ayuda de la IA te fue útil\npara leer tu archivo?'),
       findsNothing,
     );
     expect(find.text('Ver detalle'), findsOneWidget);
@@ -283,7 +283,7 @@ void main() {
     await tester.pump();
 
     expect(
-      find.text('¿La ayuda de la IA te fue útil\npara leer tu documento?'),
+      find.text('¿La ayuda de la IA te fue útil\npara leer tu archivo?'),
       findsOneWidget,
     );
     expect(find.textContaining('Gracias por tu respuesta'), findsNothing);

@@ -35,6 +35,8 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    expect(find.text('Ayudas diagnósticas'), findsNothing);
+
     final historyItem = find.byKey(
       const Key('animal-clinical-history-menu-item'),
     );

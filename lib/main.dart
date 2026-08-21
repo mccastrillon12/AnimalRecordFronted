@@ -34,7 +34,6 @@ import 'package:animal_record/features/home/presentation/pages/animal_detail_scr
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
-import 'package:animal_record/features/home/presentation/pages/animal_diagnostic_aids_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
@@ -165,16 +164,6 @@ class MyApp extends StatelessWidget {
                   category: MedicalDocumentCategory.vaccinationCard,
                 ),
               child: AnimalVaccinationsScreen(animal: animal),
-            );
-          },
-          AppRoutes.animalDiagnosticAids: (context) {
-            final animal =
-                ModalRoute.of(context)!.settings.arguments as AnimalModel;
-            return BlocProvider(
-              create: (_) =>
-                  di.sl<AnimalMedicalDocumentsCubit>()
-                    ..load(animal.id, category: MedicalDocumentCategory.other),
-              child: AnimalDiagnosticAidsScreen(animal: animal),
             );
           },
           AppRoutes.animalDiary: (context) {

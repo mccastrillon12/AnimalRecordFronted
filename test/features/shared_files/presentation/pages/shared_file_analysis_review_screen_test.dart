@@ -176,7 +176,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.text('Subir documento'), findsOneWidget);
+    expect(find.text('Subir archivo'), findsOneWidget);
     expect(find.text('No subir'), findsOneWidget);
 
     await tester.tap(find.text('No subir'));
@@ -301,7 +301,7 @@ void main() {
     expect(find.text('Destino'), findsOneWidget);
     expect(find.text('Clínica Cardiovet'), findsOneWidget);
     expect(find.text('Observación variable del backend.'), findsOneWidget);
-    expect(find.text('Subir documento'), findsOneWidget);
+    expect(find.text('Subir archivo'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final dateLabel = tester.widget<Text>(find.text('Fecha'));
@@ -343,12 +343,12 @@ void main() {
       find.text(
         'Análisis realizado con IA. Verifica los datos antes de subir el '
         'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
-        'seleccionó múltiples animales este será el documento que se le '
+        'seleccionó múltiples animales este será el archivo que se le '
         'asociará a cada uno de ellos.',
       ),
       findsOneWidget,
     );
-    expect(find.text('Subir documento'), findsOneWidget);
+    expect(find.text('Subir archivo'), findsOneWidget);
     expect(tester.takeException(), isNull);
 
     final gradientContainers = tester.widgetList<Container>(
@@ -408,7 +408,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('Subir documento'));
+    await tester.tap(find.text('Subir archivo'));
     await tester.pumpAndSettle();
 
     expect(find.text('Enviar fórmula'), findsOneWidget);

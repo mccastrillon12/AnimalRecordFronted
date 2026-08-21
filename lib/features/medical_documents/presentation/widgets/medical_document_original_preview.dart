@@ -309,7 +309,7 @@ class _PdfLoadError extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            'No fue posible abrir el documento.',
+            'No fue posible abrir el archivo.',
             style: TextStyle(color: AppColors.white),
           ),
           const SizedBox(height: AppSpacing.s),

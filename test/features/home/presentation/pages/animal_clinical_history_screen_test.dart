@@ -183,9 +183,9 @@ void main() {
 
     await tester.tap(find.byKey(const Key('animal-document-upload-menu')));
     await tester.pumpAndSettle();
-    expect(find.text('Subir documentos'), findsOneWidget);
+    expect(find.text('Subir archivos'), findsOneWidget);
 
-    await tester.tap(find.text('Subir documentos'));
+    await tester.tap(find.text('Subir archivos'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 150));
 
@@ -271,7 +271,7 @@ void main() {
 
     expect(find.text('Barbara James'), findsOneWidget);
     expect(find.text('Marc Doe'), findsNothing);
-    expect(find.text('Documentos:'), findsOneWidget);
+    expect(find.text('Archivos:'), findsOneWidget);
     final documentCountBadge = find.byKey(
       const Key('clinical-history-document-count-Barbara James'),
     );

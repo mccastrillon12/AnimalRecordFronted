@@ -15,7 +15,13 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
 }) async {
   final detectedCategories = _detectedCategories(document, initialCategory);
   final detectedCategoriesLabel = _categoryListLabel(detectedCategories);
-  var selectedCategory = initialCategory;
+  final isUnidentified =
+      detectedCategories.length == 1 &&
+      detectedCategories.single == MedicalDocumentCategory.other;
+  MedicalDocumentCategory? selectedCategory =
+      isUnidentified || initialCategory == MedicalDocumentCategory.other
+      ? null
+      : initialCategory;
   MedicalDocumentCategory? confirmedCategory;
 
   await showDialog<void>(
@@ -55,10 +61,10 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
             const SizedBox(height: AppSpacing.m),
             AppDropdown<MedicalDocumentCategory>(
               label: 'Tipo de contenido',
-              hint: 'Seleccione el tipo de contenido',
+              hint: 'Tipo de contenido',
               value: selectedCategory,
-              items: MedicalDocumentCategory.values,
-              itemAsString: (category) => category.label,
+              items: _selectableCategories,
+              itemAsString: _categoryLabel,
               preserveOrder: true,
               showClearOption: false,
               isInline: true,
@@ -72,6 +78,7 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
         ),
         confirmLabel: 'Continuar',
         confirmColor: AppColors.aiViolet,
+        isConfirmEnabled: selectedCategory != null,
         onConfirm: () => confirmedCategory = selectedCategory,
       ),
     ),
@@ -99,11 +106,24 @@ List<MedicalDocumentCategory> _detectedCategories(
 }
 
 String _categoryListLabel(List<MedicalDocumentCategory> categories) {
-  final labels = categories.map((category) => category.label).toList();
+  final labels = categories.map(_categoryLabel).toList();
   if (labels.length < 2) return labels.single;
   if (labels.length == 2) return '${labels.first} y ${labels.last}';
   return '${labels.take(labels.length - 1).join(', ')} y ${labels.last}';
 }
+
+String _categoryLabel(MedicalDocumentCategory category) =>
+    category == MedicalDocumentCategory.other
+    ? 'Archivo no identificado'
+    : category.label;
+
+const _selectableCategories = [
+  MedicalDocumentCategory.prescription,
+  MedicalDocumentCategory.medicalOrder,
+  MedicalDocumentCategory.referral,
+  MedicalDocumentCategory.vaccinationCard,
+  MedicalDocumentCategory.clinicalHistory,
+];
 
 class _AiIndicator extends StatelessWidget {
   const _AiIndicator();

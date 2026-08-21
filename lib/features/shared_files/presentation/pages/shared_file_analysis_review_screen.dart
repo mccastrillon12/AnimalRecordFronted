@@ -33,7 +33,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
     this.onViewOriginal,
     this.onClose,
     this.closeIconKey,
-    this.submitLabel = 'Subir documento',
+    this.submitLabel = 'Subir archivo',
     this.isSubmitting = false,
   });
 
@@ -112,7 +112,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.actionIconKey,
     this.resolveOriginalUri,
     this.actionLabel = 'Enviar fórmula',
-    this.submitLabel = 'Subir documento',
+    this.submitLabel = 'Subir archivo',
     this.isSubmitting = false,
   });
 
@@ -299,7 +299,7 @@ class _AnalysisNoticeHeader extends StatelessWidget {
   static const _reviewMessage =
       'Análisis realizado con IA. Verifica los datos antes de subir el '
       'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
-      'seleccionó múltiples animales este será el documento que se le '
+      'seleccionó múltiples animales este será el archivo que se le '
       'asociará a cada uno de ellos.';
 
   final bool isSendMode;

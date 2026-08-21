@@ -9,7 +9,7 @@ String medicalDocumentSendActionLabel(MedicalDocumentCategory category) {
     MedicalDocumentCategory.referral => 'Enviar remisión',
     MedicalDocumentCategory.vaccinationCard => 'Enviar carné',
     MedicalDocumentCategory.clinicalHistory => 'Enviar historia clínica',
-    MedicalDocumentCategory.other => 'Enviar documento',
+    MedicalDocumentCategory.other => 'Enviar archivo',
   };
 }
 

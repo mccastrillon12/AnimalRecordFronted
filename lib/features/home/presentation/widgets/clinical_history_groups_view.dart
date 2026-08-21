@@ -462,7 +462,7 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         _GroupValue(
-                          label: 'Documentos:',
+                          label: 'Archivos:',
                           value: '${group.documents.length}',
                         ),
                       ],

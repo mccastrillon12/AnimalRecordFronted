@@ -151,6 +151,6 @@ class MedicalDocumentsRemoteDataSourceImpl
     if (value is Map) {
       return value.map((key, item) => MapEntry(key.toString(), item));
     }
-    throw const FormatException('Respuesta de documentos médicos inválida.');
+    throw const FormatException('Respuesta de archivos médicos inválida.');
   }
 }

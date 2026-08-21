@@ -574,14 +574,24 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
   Widget _buildFab(BuildContext context) {
     return PopupMenuButton<String>(
+      key: const Key('my-animals-actions-menu'),
       onSelected: (value) async {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
         } else if (value == 'subir_documento') {
+          final activeAnimals = context
+              .read<AnimalCubit>()
+              .animals
+              .where((animal) => animal.isActive)
+              .toList(growable: false);
           final uploaded = await Navigator.pushNamed(
             context,
             AppRoutes.sharedFileUpload,
-            arguments: const {'manualUpload': true},
+            arguments: {
+              'manualUpload': true,
+              if (activeAnimals.length == 1)
+                'preselectedAnimal': activeAnimals.single,
+            },
           );
           if (!context.mounted || uploaded != false) return;
           final onUploadCancelled = widget.onUploadCancelled;
@@ -636,7 +646,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Subir documento',
+                'Subir archivo',
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                 ),

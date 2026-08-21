@@ -185,7 +185,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
           state.copyWith(
             phase: MedicalDocumentFlowPhase.failed,
             remoteDocument: document,
-            message: 'No fue posible analizar el documento.',
+            message: 'No fue posible analizar el archivo.',
           ),
         );
       case MedicalDocumentStatus.pendingUpload:
@@ -456,7 +456,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
             remoteDocument: current,
             versionConflict: true,
             message:
-                'El documento cambió en el servidor. Revisa los datos y confirma nuevamente.',
+                'El archivo cambió en el servidor. Revisa los datos y confirma nuevamente.',
           ),
         );
       } else {
@@ -598,7 +598,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         400 => 'El archivo o los datos enviados no son válidos.',
         401 => 'Tu sesión expiró. Inicia sesión nuevamente para continuar.',
         403 => 'No tienes acceso a uno o más animales seleccionados.',
-        404 => 'El documento o uno de los animales ya no existe.',
+        404 => 'El archivo o uno de los animales ya no existe.',
         413 => 'El archivo debe pesar máximo 10 MB.',
         502 =>
           'El servicio de análisis no está disponible. Inténtalo nuevamente.',

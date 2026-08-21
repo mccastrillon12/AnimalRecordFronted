@@ -27,7 +27,7 @@ void main() {
     );
     expect(
       medicalDocumentSendActionLabel(MedicalDocumentCategory.other),
-      'Enviar documento',
+      'Enviar archivo',
     );
   });
 

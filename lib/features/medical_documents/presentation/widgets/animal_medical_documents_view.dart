@@ -173,7 +173,7 @@ class _MedicalDocumentCard extends StatelessWidget {
     final description = _documentDescription(document);
     final number = _documentNumber(document);
     final title = [
-      'Adjunto: ${document.finalCategory?.label ?? 'Documento médico'}',
+      'Adjunto: ${document.finalCategory?.label ?? 'Archivo médico'}',
       if (number.isNotEmpty) number,
     ].join(' ');
     return Container(
@@ -415,7 +415,7 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
         children: [
           Expanded(
             child: Text(
-              '¿La ayuda de la IA te fue útil\npara leer tu documento?',
+              '¿La ayuda de la IA te fue útil\npara leer tu archivo?',
               style: AppTypography.body6.copyWith(
                 color: const Color.fromARGB(255, 0, 0, 0),
                 height: 1.5,

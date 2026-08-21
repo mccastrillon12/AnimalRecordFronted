@@ -400,7 +400,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       builder: (context, flowState) => Stack(
         children: [
           ModalPageLayout(
-            title: 'Subir documento',
+            title: 'Subir archivo',
             fixedTitle: true,
             fixedHeaderHeight: 126,
             titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
@@ -416,7 +416,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                 MedicalDocumentFlowPhase.analyzing => 'Analizando con IA...',
                 MedicalDocumentFlowPhase.pollingPaused => 'Reanudar análisis',
                 MedicalDocumentFlowPhase.reviewing => 'Revisar análisis',
-                _ => 'Subir documento',
+                _ => 'Subir archivo',
               },
               onPressed:
                   !hasFile || _selectedAnimals.isEmpty || flowState.isBusy
@@ -452,7 +452,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                   ] else ...[
                     Text(
                       'Los archivos cargados estarán disponibles en la sección '
-                      'correspondiente a su tipo de documento.',
+                      'correspondiente a su tipo de archivo.',
                       style: AppTypography.body4.copyWith(
                         color: AppColors.greyTextos,
                       ),
@@ -522,8 +522,26 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
             Positioned.fill(
               child: ColoredBox(
                 color: AppColors.white.withValues(alpha: 0.72),
-                child: const Center(
-                  child: CircularProgressIndicator(color: AppColors.aiViolet),
+                child: Center(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const CircularProgressIndicator(
+                        color: AppColors.aiViolet,
+                      ),
+                      if (flowState.phase ==
+                          MedicalDocumentFlowPhase.analyzing) ...[
+                        const SizedBox(height: AppSpacing.s),
+                        Text(
+                          'Analizando archivo...',
+                          style: AppTypography.body4.copyWith(
+                            color: AppColors.aiViolet,
+                            decoration: TextDecoration.none,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -29,7 +29,7 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
       menuKey: const Key('animal-document-upload-menu'),
       itemKey: const Key('upload-animal-document-menu-item'),
       value: 'subir_documento',
-      label: 'Subir documentos',
+      label: 'Subir archivos',
       iconAsset: 'assets/icons/document-upload.svg',
       offset: const Offset(0, -68),
       onSelected: (value) => _handleSelection(context, value),

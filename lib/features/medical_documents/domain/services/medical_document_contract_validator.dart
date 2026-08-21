@@ -63,7 +63,7 @@ abstract final class MedicalDocumentContractValidator {
   }) {
     if (request.documentVersion < 1) {
       throw const MedicalDocumentContractException(
-        'No se recibió una versión válida del documento.',
+        'No se recibió una versión válida del archivo.',
       );
     }
     if (request.decision == MedicalDocumentReviewDecision.reject) return;

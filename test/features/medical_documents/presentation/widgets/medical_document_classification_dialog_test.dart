@@ -73,4 +73,79 @@ void main() {
       expect(result, MedicalDocumentCategory.clinicalHistory);
     },
   );
+
+  testWidgets('requires an explicit selection when the file is unidentified', (
+    tester,
+  ) async {
+    MedicalDocumentCategory? result;
+    const document = MedicalDocumentEntity(
+      id: 'unidentified-document',
+      animalIds: ['animal-1'],
+      originalFileName: 'archivo.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.reviewPending,
+      primaryDetectedCategory: MedicalDocumentCategory.other,
+      detectedCategories: [
+        DetectedMedicalDocumentCategoryEntity(
+          category: MedicalDocumentCategory.other,
+        ),
+      ],
+      classificationOutcome: MedicalDocumentClassificationOutcome.unclassified,
+      version: 1,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () {
+                unawaited(
+                  showMedicalDocumentClassificationDialog(
+                    context: context,
+                    document: document,
+                    initialCategory: MedicalDocumentCategory.other,
+                  ).then((value) => result = value),
+                );
+              },
+              child: const Text('Abrir'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.textContaining('Archivo no identificado.', findRichText: true),
+      findsOneWidget,
+    );
+    final dropdown = tester.widget<AppDropdown<MedicalDocumentCategory>>(
+      find.byType(AppDropdown<MedicalDocumentCategory>),
+    );
+    expect(dropdown.value, isNull);
+    expect(dropdown.hint, 'Tipo de contenido');
+    expect(dropdown.items, isNot(contains(MedicalDocumentCategory.other)));
+
+    ElevatedButton continueButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Continuar'),
+    );
+    expect(continueButton.onPressed, isNull);
+
+    dropdown.onChanged?.call(MedicalDocumentCategory.prescription);
+    await tester.pump();
+
+    continueButton = tester.widget<ElevatedButton>(
+      find.widgetWithText(ElevatedButton, 'Continuar'),
+    );
+    expect(continueButton.onPressed, isNotNull);
+
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+
+    expect(result, MedicalDocumentCategory.prescription);
+  });
 }
