@@ -129,13 +129,20 @@ void main() {
     expect(dropdown.value, isNull);
     expect(dropdown.hint, 'Tipo de contenido');
     expect(dropdown.items, isNot(contains(MedicalDocumentCategory.other)));
+    expect(
+      dropdown.items,
+      containsAll(const [
+        MedicalDocumentCategory.diagnosticImage,
+        MedicalDocumentCategory.laboratoryResult,
+      ]),
+    );
 
     ElevatedButton continueButton = tester.widget<ElevatedButton>(
       find.widgetWithText(ElevatedButton, 'Continuar'),
     );
     expect(continueButton.onPressed, isNull);
 
-    dropdown.onChanged?.call(MedicalDocumentCategory.prescription);
+    dropdown.onChanged?.call(MedicalDocumentCategory.laboratoryResult);
     await tester.pump();
 
     continueButton = tester.widget<ElevatedButton>(
@@ -146,6 +153,6 @@ void main() {
     await tester.tap(find.text('Continuar'));
     await tester.pumpAndSettle();
 
-    expect(result, MedicalDocumentCategory.prescription);
+    expect(result, MedicalDocumentCategory.laboratoryResult);
   });
 }

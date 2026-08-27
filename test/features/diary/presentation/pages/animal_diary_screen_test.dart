@@ -5,14 +5,52 @@ import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mocktail/mocktail.dart';
 
 class MockDiaryCubit extends Mock implements DiaryCubit {}
 
 void main() {
+  testWidgets('always shows the family icon in the empty diary state', (
+    tester,
+  ) async {
+    final cubit = MockDiaryCubit();
+    when(() => cubit.state).thenReturn(DiaryLoaded(const []));
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => cubit.getDiaryEntries(any())).thenAnswer((_) async {});
+
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    await tester.pumpWidget(
+      BlocProvider<DiaryCubit>.value(
+        value: cubit,
+        child: const MaterialApp(
+          home: AnimalDiaryScreen(
+            animal: AnimalModel(
+              id: 'animal-1',
+              name: 'Luna',
+              code: 'AR-001',
+              family: 'Canino',
+              imageUrl: 'https://example.test/animal-photo.png',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final familyIconBox = find.byType(AnimalFamilyIconBox);
+    expect(familyIconBox, findsOneWidget);
+    expect(
+      find.descendant(of: familyIconBox, matching: find.byType(SvgPicture)),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('aligns the image preview close icon with the diary close icon', (
     tester,
   ) async {

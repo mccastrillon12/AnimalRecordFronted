@@ -4,6 +4,43 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('supports the diagnostic image and laboratory result categories', () {
+    expect(
+      MedicalDocumentCategory.tryParse('DIAGNOSTIC_IMAGE'),
+      MedicalDocumentCategory.diagnosticImage,
+    );
+    expect(
+      MedicalDocumentCategory.tryParse('LABORATORY_RESULT'),
+      MedicalDocumentCategory.laboratoryResult,
+    );
+    expect(
+      MedicalDocumentCategory.diagnosticImage.wireValue,
+      'DIAGNOSTIC_IMAGE',
+    );
+    expect(
+      MedicalDocumentCategory.laboratoryResult.wireValue,
+      'LABORATORY_RESULT',
+    );
+  });
+
+  test('keeps laboratory results when that category is selected', () {
+    const result = MedicalDocumentItemEntity(
+      id: 'result-1',
+      fields: {'test': 'Hemograma', 'result': 'Normal'},
+    );
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      diagnosticResults: [result],
+    );
+
+    final sanitized = extraction.sanitizedFor(
+      MedicalDocumentCategory.laboratoryResult,
+    );
+
+    expect(sanitized.documentType, MedicalDocumentCategory.laboratoryResult);
+    expect(sanitized.diagnosticResults, const [result]);
+  });
+
   test('parses the complete backend response without losing category data', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-1',

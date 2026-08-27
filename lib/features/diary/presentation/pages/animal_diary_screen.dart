@@ -12,11 +12,11 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
 import 'package:animal_record/core/widgets/media/audio_inline_player.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
 
 class AnimalDiaryScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -183,8 +183,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           // Don't rebuild for save-related states — the create screen handles those
           if (current is DiaryEntrySaving ||
               current is DiaryEntrySaved ||
-              current is DiaryEntryUpdated)
+              current is DiaryEntryUpdated) {
             return false;
+          }
           return true;
         },
         builder: (context, state) {
@@ -351,25 +352,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         const SizedBox(height: 100),
-        Container(
-          width: 200,
-          height: 200,
-          decoration: BoxDecoration(
-            color: AppColors.greyDelineante,
-            // borderRadius: BorderRadius.circular(8),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child:
-              widget.animal.imageUrl != null &&
-                  widget.animal.imageUrl!.isNotEmpty
-              ? CachedNetworkImage(
-                  imageUrl: widget.animal.imageUrl!,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => _buildPlaceholderIcon(),
-                  errorWidget: (context, url, error) => _buildPlaceholderIcon(),
-                )
-              : _buildPlaceholderIcon(),
-        ),
+        AnimalFamilyIconBox(family: widget.animal.family),
         const SizedBox(height: 48),
         SizedBox(
           width: 249,
@@ -405,37 +388,6 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         const SizedBox(height: 40),
       ],
     );
-  }
-
-  Widget _buildPlaceholderIcon() {
-    return Center(
-      child: SvgPicture.asset(
-        _getFamilyIconPath(widget.animal.family),
-        width: 80,
-        height: 80,
-        colorFilter: const ColorFilter.mode(
-          AppColors.greyBordes,
-          BlendMode.srcIn,
-        ),
-      ),
-    );
-  }
-
-  String _getFamilyIconPath(String family) {
-    final lowerFamily = family.toLowerCase();
-    if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
-      return 'assets/illustrations/cat_icon.svg';
-    } else if (lowerFamily.contains('canino') ||
-        lowerFamily.contains('perro')) {
-      return 'assets/illustrations/dog_icon.svg';
-    } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
-      return 'assets/illustrations/bovino_icon.svg';
-    } else if (lowerFamily.contains('equino') ||
-        lowerFamily.contains('caballo')) {
-      return 'assets/illustrations/equino_icon.svg';
-    }
-    // Fallback to dog if unknown
-    return 'assets/illustrations/dog_icon.svg';
   }
 
   // ── Entries list (grouped by month) ──────────────────────────

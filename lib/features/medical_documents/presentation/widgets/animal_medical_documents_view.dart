@@ -22,6 +22,8 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final String emptyTitle;
   final String emptyDescription;
   final String searchQuery;
+  final bool Function(MedicalDocumentEntity document)? documentFilter;
+  final bool? alphabeticalSortAscending;
   final double emptyBottomOffset;
   final bool showAiFeedback;
   final int aiFeedbackRequestId;
@@ -34,6 +36,8 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     required this.emptyTitle,
     required this.emptyDescription,
     this.searchQuery = '',
+    this.documentFilter,
+    this.alphabeticalSortAscending,
     this.emptyBottomOffset = 100,
     this.showAiFeedback = false,
     this.aiFeedbackRequestId = 0,
@@ -83,12 +87,21 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
 
         final query = searchQuery.trim().toLowerCase();
         final documents = state.documents
+            .where((document) => documentFilter?.call(document) ?? true)
             .where(
               (document) =>
                   query.isEmpty ||
                   _searchableDocumentText(document).contains(query),
             )
-            .toList(growable: false);
+            .toList();
+        if (alphabeticalSortAscending case final ascending?) {
+          documents.sort((left, right) {
+            final comparison = left.originalFileName.toLowerCase().compareTo(
+              right.originalFileName.toLowerCase(),
+            );
+            return ascending ? comparison : -comparison;
+          });
+        }
         if (documents.isEmpty && !showAiFeedback) {
           return _EmptyState(
             title: emptyTitle,
@@ -107,7 +120,10 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                 )
               : _MedicalDocumentCard(
                   document: documents[index - (showAiFeedback ? 1 : 0)],
-                  category: category,
+                  category:
+                      documents[index - (showAiFeedback ? 1 : 0)]
+                          .finalCategory ??
+                      category,
                 ),
         );
       },

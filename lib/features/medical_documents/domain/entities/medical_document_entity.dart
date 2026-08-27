@@ -8,6 +8,8 @@ enum MedicalDocumentCategory {
   referral('REFERRAL', 'Remisión médica'),
   vaccinationCard('VACCINATION_CARD', 'Carné de vacunas'),
   clinicalHistory('CLINICAL_HISTORY', 'Historia clínica'),
+  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imágenes diagnósticas'),
+  laboratoryResult('LABORATORY_RESULT', 'Resultados de laboratorio'),
   other('OTHER', 'Otro');
 
   final String wireValue;
@@ -429,7 +431,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
           : null,
       diagnosticResults:
           category == MedicalDocumentCategory.referral ||
-              category == MedicalDocumentCategory.clinicalHistory
+              category == MedicalDocumentCategory.clinicalHistory ||
+              category == MedicalDocumentCategory.laboratoryResult
           ? _copyItems(diagnosticResults)
           : const [],
       referral: category == MedicalDocumentCategory.referral && referral != null

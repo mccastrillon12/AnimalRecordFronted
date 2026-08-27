@@ -123,6 +123,8 @@ const _selectableCategories = [
   MedicalDocumentCategory.referral,
   MedicalDocumentCategory.vaccinationCard,
   MedicalDocumentCategory.clinicalHistory,
+  MedicalDocumentCategory.diagnosticImage,
+  MedicalDocumentCategory.laboratoryResult,
 ];
 
 class _AiIndicator extends StatelessWidget {

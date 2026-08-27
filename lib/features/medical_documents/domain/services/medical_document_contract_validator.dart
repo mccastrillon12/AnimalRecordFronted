@@ -137,7 +137,8 @@ abstract final class MedicalDocumentContractValidator {
         category == MedicalDocumentCategory.referral;
     final diagnosticResultsAllowed =
         category == MedicalDocumentCategory.referral ||
-        category == MedicalDocumentCategory.clinicalHistory;
+        category == MedicalDocumentCategory.clinicalHistory ||
+        category == MedicalDocumentCategory.laboratoryResult;
 
     return (!diagnosesAllowed && extraction.diagnoses.isNotEmpty) ||
         (!medicationsAllowed && extraction.medications.isNotEmpty) ||

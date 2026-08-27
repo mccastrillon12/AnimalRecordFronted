@@ -35,6 +35,7 @@ import 'package:animal_record/features/home/presentation/pages/animal_info_scree
 import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_file_records_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
@@ -209,6 +210,36 @@ class MyApp extends StatelessWidget {
                   category: MedicalDocumentCategory.prescription,
                 ),
               child: AnimalDocumentsScreen(animalId: animalId),
+            );
+          },
+          AppRoutes.animalDiagnosticImages: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.diagnosticImage,
+                ),
+              child: AnimalFileRecordsScreen(
+                animal: animal,
+                section: AnimalFileRecordSection.diagnosticImages,
+              ),
+            );
+          },
+          AppRoutes.animalLaboratoryResults: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.laboratoryResult,
+                ),
+              child: AnimalFileRecordsScreen(
+                animal: animal,
+                section: AnimalFileRecordSection.laboratoryResults,
+              ),
             );
           },
         },

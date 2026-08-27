@@ -9,6 +9,9 @@ String medicalDocumentSendActionLabel(MedicalDocumentCategory category) {
     MedicalDocumentCategory.referral => 'Enviar remisión',
     MedicalDocumentCategory.vaccinationCard => 'Enviar carné',
     MedicalDocumentCategory.clinicalHistory => 'Enviar historia clínica',
+    MedicalDocumentCategory.diagnosticImage => 'Enviar imagen diagnóstica',
+    MedicalDocumentCategory.laboratoryResult =>
+      'Enviar resultado de laboratorio',
     MedicalDocumentCategory.other => 'Enviar archivo',
   };
 }
@@ -265,6 +268,8 @@ List<MedicalDocumentItemEntity> _visibleItems(
   ],
   MedicalDocumentCategory.vaccinationCard => extraction.vaccinations,
   MedicalDocumentCategory.clinicalHistory => extraction.diagnosticResults,
+  MedicalDocumentCategory.diagnosticImage => const [],
+  MedicalDocumentCategory.laboratoryResult => extraction.diagnosticResults,
   MedicalDocumentCategory.other => const [],
 };
 
@@ -274,6 +279,8 @@ String? _itemsTitle(MedicalDocumentCategory category) => switch (category) {
   MedicalDocumentCategory.referral => 'Resultados diagnósticos',
   MedicalDocumentCategory.vaccinationCard => 'Vacunas',
   MedicalDocumentCategory.clinicalHistory => 'Resultados diagnósticos',
+  MedicalDocumentCategory.diagnosticImage => null,
+  MedicalDocumentCategory.laboratoryResult => 'Resultados de laboratorio',
   MedicalDocumentCategory.other => null,
 };
 

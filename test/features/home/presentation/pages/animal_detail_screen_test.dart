@@ -1,12 +1,15 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockAnimalCubit extends Mock implements AnimalCubit {}
@@ -46,6 +49,122 @@ void main() {
 
     expect(find.text('Ventana de historias clínicas'), findsOneWidget);
     expect(find.text('Enviar historia clínica'), findsNothing);
+  });
+
+  testWidgets('opens the reusable empty pages for diagnostic records', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(
+      () => animalCubit.state,
+    ).thenReturn(const AnimalsLoaded([_animalEntity]));
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          routes: {
+            AppRoutes.animalDiagnosticImages: (context) => Scaffold(
+              body: Column(
+                children: [
+                  const Text('Listado de imágenes diagnósticas'),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cerrar listado'),
+                  ),
+                ],
+              ),
+            ),
+            AppRoutes.animalLaboratoryResults: (_) =>
+                const Scaffold(body: Text('Listado de resultados')),
+          },
+          home: const AnimalDetailScreen(animal: _animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final diagnosticImages = find.text('Imágenes diagnósticas');
+    await tester.ensureVisible(diagnosticImages);
+    await tester.tap(diagnosticImages);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Actualmente no tiene archivos subidos'), findsOneWidget);
+    expect(
+      find.text(
+        'Recopila todas las imágenes\n'
+        'diagnósticas importantes del animal.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Continuar'), findsOneWidget);
+    final familyIconBox = find.byType(AnimalFamilyIconBox);
+    expect(familyIconBox, findsOneWidget);
+    expect(
+      find.descendant(of: familyIconBox, matching: find.byType(SvgPicture)),
+      findsOneWidget,
+    );
+
+    final placeholder = tester.widget<Container>(
+      find.byKey(const Key('animal-empty-feature-placeholder')),
+    );
+    final copy = tester.widget<ConstrainedBox>(
+      find.byKey(const Key('animal-empty-feature-copy')),
+    );
+    final contentGap = tester.widget<SizedBox>(
+      find.byKey(const Key('animal-empty-feature-content-gap')),
+    );
+    final textGap = tester.widget<SizedBox>(
+      find.byKey(const Key('animal-empty-feature-text-gap')),
+    );
+    final mainText = tester.widget<Text>(
+      find.text('Actualmente no tiene archivos subidos'),
+    );
+    final subText = tester.widget<Text>(
+      find.text(
+        'Recopila todas las imágenes\n'
+        'diagnósticas importantes del animal.',
+      ),
+    );
+
+    expect(placeholder.constraints?.maxWidth, 200);
+    expect(copy.constraints.maxWidth, 360);
+    expect(copy.constraints.maxWidth, isNot(placeholder.constraints?.maxWidth));
+    expect(contentGap.height, 48);
+    expect(textGap.height, 16);
+    expect(mainText.style?.fontSize, AppTypography.body3.fontSize);
+    expect(subText.style?.fontSize, AppTypography.body4.fontSize);
+
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listado de imágenes diagnósticas'), findsOneWidget);
+    await tester.tap(find.text('Cerrar listado'));
+    await tester.pumpAndSettle();
+
+    final labResults = find.text('Resultados de laboratorio');
+    await tester.ensureVisible(labResults);
+    await tester.tap(labResults);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Actualmente no tiene registros'), findsOneWidget);
+    expect(
+      find.text(
+        'Aquí podrá encontrar todos los resultados de laboratorio que se '
+        'suban del animal.',
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('Continuar'), findsOneWidget);
+
+    await tester.tap(find.text('Continuar'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listado de resultados'), findsOneWidget);
+    expect(tester.takeException(), isNull);
   });
 }
 

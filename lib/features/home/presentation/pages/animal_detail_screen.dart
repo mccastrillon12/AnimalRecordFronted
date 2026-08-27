@@ -11,6 +11,7 @@ import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_empty_feature_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -328,30 +329,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
           enabled: currentAnimal.isActive,
-          onTap: () {
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                opaque: false,
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    AnimalDiaryScreen(animal: currentAnimal),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      const begin = Offset(0.0, 1.0);
-                      const end = Offset.zero;
-                      const curve = Curves.ease;
-                      final tween = Tween(
-                        begin: begin,
-                        end: end,
-                      ).chain(CurveTween(curve: curve));
-                      return SlideTransition(
-                        position: animation.drive(tween),
-                        child: child,
-                      );
-                    },
-              ),
-            );
-          },
+          onTap: () => _openModalPage(AnimalDiaryScreen(animal: currentAnimal)),
         ),
         const SizedBox(width: 74),
         _buildActionButton(
@@ -449,9 +427,11 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       'Información',
       'Historia clínica',
       'Carné de vacunas',
+      'Peso',
       'Desparasitaciones',
       'Órdenes, fórmulas y remisiones',
-      'Peso',
+      'Imágenes diagnósticas',
+      'Resultados de laboratorio',
       'Genealogía',
     ];
 
@@ -471,7 +451,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: options.asMap().entries.map((entry) {
-          final isClinicalHistory = entry.key == 1;
+          final isClinicalHistory = entry.value == 'Historia clínica';
           return MenuItemRow(
             key: isClinicalHistory
                 ? const Key('animal-clinical-history-menu-item')
@@ -498,6 +478,27 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   AppRoutes.animalDocuments,
                   arguments: animal.id,
                 );
+              } else if (entry.value == 'Imágenes diagnósticas') {
+                _openEmptyFeature(
+                  animal: animal,
+                  title: 'Imágenes diagnósticas',
+                  continueRoute: AppRoutes.animalDiagnosticImages,
+                  mainText: 'Actualmente no tiene archivos subidos',
+                  subText:
+                      'Recopila todas las imágenes\n'
+                      'diagnósticas importantes '
+                      'del animal.',
+                );
+              } else if (entry.value == 'Resultados de laboratorio') {
+                _openEmptyFeature(
+                  animal: animal,
+                  title: 'Resultados de laboratorio',
+                  continueRoute: AppRoutes.animalLaboratoryResults,
+                  mainText: 'Actualmente no tiene registros',
+                  subText:
+                      'Aquí podrá encontrar todos los resultados de '
+                      'laboratorio que se suban del animal.',
+                );
               }
             },
             showArrow: true,
@@ -512,6 +513,48 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       context,
       AppRoutes.animalClinicalHistory,
       arguments: animal,
+    );
+  }
+
+  void _openEmptyFeature({
+    required AnimalModel animal,
+    required String title,
+    required String continueRoute,
+    required String mainText,
+    required String subText,
+  }) {
+    _openModalPage(
+      AnimalEmptyFeatureScreen(
+        animalFamily: animal.family,
+        title: title,
+        mainText: mainText,
+        subText: subText,
+        onContinue: () => Navigator.pushReplacementNamed(
+          context,
+          continueRoute,
+          arguments: animal,
+        ),
+      ),
+    );
+  }
+
+  void _openModalPage(Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder<void>(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final tween = Tween(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.ease));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
+      ),
     );
   }
 
