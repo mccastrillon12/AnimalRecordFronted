@@ -1,5 +1,7 @@
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_contract_validator.dart';
@@ -21,6 +23,24 @@ class GetMedicalDocumentUseCase {
   const GetMedicalDocumentUseCase(this.repository);
   Future<MedicalDocumentEntity> call(String documentId) =>
       repository.getById(documentId);
+}
+
+class GetMedicalDocumentRejectionReasonsUseCase {
+  final MedicalDocumentsRepository repository;
+
+  const GetMedicalDocumentRejectionReasonsUseCase(this.repository);
+
+  Future<List<MedicalDocumentRejectionReasonEntity>> call() =>
+      repository.getRejectionReasons();
+}
+
+class SubmitMedicalDocumentAiFeedbackUseCase {
+  final MedicalDocumentsRepository repository;
+
+  const SubmitMedicalDocumentAiFeedbackUseCase(this.repository);
+
+  Future<void> call(MedicalDocumentAiFeedback feedback) =>
+      repository.submitAiFeedback(feedback);
 }
 
 class ReviewMedicalDocumentUseCase {

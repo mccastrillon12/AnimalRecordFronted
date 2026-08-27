@@ -18,6 +18,8 @@ enum MedicalDocumentReviewDecision { accept, reject }
 class ReviewMedicalDocumentRequest {
   final MedicalDocumentReviewDecision decision;
   final int documentVersion;
+  final String? rejectionReasonCode;
+  final String? rejectionComment;
   final MedicalDocumentCategory? finalCategory;
   final MedicalDocumentExtractionEntity? validatedExtraction;
   final List<MedicalDocumentAssignmentEntity> assignments;
@@ -25,6 +27,8 @@ class ReviewMedicalDocumentRequest {
   const ReviewMedicalDocumentRequest._({
     required this.decision,
     required this.documentVersion,
+    this.rejectionReasonCode,
+    this.rejectionComment,
     this.finalCategory,
     this.validatedExtraction,
     this.assignments = const [],
@@ -43,9 +47,14 @@ class ReviewMedicalDocumentRequest {
     assignments: assignments,
   );
 
-  factory ReviewMedicalDocumentRequest.reject({required int documentVersion}) =>
-      ReviewMedicalDocumentRequest._(
-        decision: MedicalDocumentReviewDecision.reject,
-        documentVersion: documentVersion,
-      );
+  factory ReviewMedicalDocumentRequest.reject({
+    required int documentVersion,
+    String? rejectionReasonCode,
+    String? rejectionComment,
+  }) => ReviewMedicalDocumentRequest._(
+    decision: MedicalDocumentReviewDecision.reject,
+    documentVersion: documentVersion,
+    rejectionReasonCode: rejectionReasonCode,
+    rejectionComment: rejectionComment,
+  );
 }

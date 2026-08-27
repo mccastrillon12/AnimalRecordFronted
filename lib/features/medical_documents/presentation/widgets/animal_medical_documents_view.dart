@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
@@ -28,6 +29,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final bool showAiFeedback;
   final int aiFeedbackRequestId;
   final VoidCallback? onAiFeedbackDismissed;
+  final Future<void> Function(MedicalDocumentAiFeedback feedback)? onAiFeedback;
+  final bool initialAiFeedbackResponded;
+  final Future<void> Function()? onAiFeedbackSubmitted;
 
   const AnimalMedicalDocumentsView({
     super.key,
@@ -42,6 +46,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     this.showAiFeedback = false,
     this.aiFeedbackRequestId = 0,
     this.onAiFeedbackDismissed,
+    this.onAiFeedback,
+    this.initialAiFeedbackResponded = false,
+    this.onAiFeedbackSubmitted,
   });
 
   @override
@@ -117,6 +124,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
               ? _AiFeedbackBanner(
                   key: ValueKey(aiFeedbackRequestId),
                   onDismissed: onAiFeedbackDismissed,
+                  onSubmit: onAiFeedback ?? _submitAiFeedback,
+                  initialHasResponded: initialAiFeedbackResponded,
+                  onSubmitted: onAiFeedbackSubmitted,
                 )
               : _MedicalDocumentCard(
                   document: documents[index - (showAiFeedback ? 1 : 0)],
@@ -129,6 +139,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
       },
     );
   }
+
+  Future<void> _submitAiFeedback(MedicalDocumentAiFeedback feedback) =>
+      di.sl<SubmitMedicalDocumentAiFeedbackUseCase>()(feedback);
 }
 
 class _EmptyState extends StatelessWidget {
@@ -365,16 +378,40 @@ class _DocumentCardValue extends StatelessWidget {
 
 class _AiFeedbackBanner extends StatefulWidget {
   final VoidCallback? onDismissed;
+  final Future<void> Function(MedicalDocumentAiFeedback feedback) onSubmit;
+  final bool initialHasResponded;
+  final Future<void> Function()? onSubmitted;
 
-  const _AiFeedbackBanner({super.key, this.onDismissed});
+  const _AiFeedbackBanner({
+    super.key,
+    this.onDismissed,
+    required this.onSubmit,
+    this.initialHasResponded = false,
+    this.onSubmitted,
+  });
 
   @override
   State<_AiFeedbackBanner> createState() => _AiFeedbackBannerState();
 }
 
 class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
-  bool _hasResponded = false;
+  late bool _hasResponded;
   bool _isDismissed = false;
+  bool _isSubmitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _hasResponded = widget.initialHasResponded;
+  }
+
+  @override
+  void didUpdateWidget(covariant _AiFeedbackBanner oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!_hasResponded && widget.initialHasResponded) {
+      _hasResponded = true;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -442,21 +479,39 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
           _AiFeedbackButton(
             key: const Key('medical-document-ai-not-useful'),
             icon: Icons.thumb_down_alt,
-            onTap: _submitFeedback,
+            onTap: _isSubmitting
+                ? null
+                : () => _submitFeedback(MedicalDocumentAiFeedback.dislike),
           ),
           const SizedBox(width: AppSpacing.m),
           _AiFeedbackButton(
             key: const Key('medical-document-ai-useful'),
             icon: Icons.thumb_up_alt,
-            onTap: _submitFeedback,
+            onTap: _isSubmitting
+                ? null
+                : () => _submitFeedback(MedicalDocumentAiFeedback.like),
           ),
         ],
       ),
     );
   }
 
-  void _submitFeedback() {
-    setState(() => _hasResponded = true);
+  Future<void> _submitFeedback(MedicalDocumentAiFeedback feedback) async {
+    if (_isSubmitting || _hasResponded) return;
+    setState(() => _isSubmitting = true);
+    try {
+      await widget.onSubmit(feedback);
+      await widget.onSubmitted?.call();
+      if (!mounted) return;
+      setState(() {
+        _isSubmitting = false;
+        _hasResponded = true;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _isSubmitting = false);
+      ErrorDisplay.showError(context, error.toString());
+    }
   }
 
   void _dismiss() {
@@ -467,7 +522,7 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
 
 class _AiFeedbackButton extends StatelessWidget {
   final IconData icon;
-  final VoidCallback onTap;
+  final VoidCallback? onTap;
 
   const _AiFeedbackButton({super.key, required this.icon, required this.onTap});
 
@@ -498,25 +553,12 @@ class _AiFeedbackButton extends StatelessWidget {
 }
 
 String _documentNumber(MedicalDocumentEntity document) {
-  final additionalFields =
-      document.validatedExtraction?.additionalFields ??
-      const <String, dynamic>{};
-  for (final entry in additionalFields.entries) {
-    if (const {
-      'documentnumber',
-      'prescriptionnumber',
-      'formulanumber',
-      'numeroformula',
-      'numerodocumento',
-    }.contains(_normalizedFieldKey(entry.key))) {
-      final value = _valueText(entry.value).trim();
-      if (value.isNotEmpty) return value.startsWith('N°') ? value : 'N° $value';
-    }
+  if (document.finalCategory == MedicalDocumentCategory.vaccinationCard) {
+    return '';
   }
-  final value = document.id.replaceAll('-', '').trim();
+  final value = document.documentCode.trim();
   if (value.isEmpty) return '';
-  final end = value.length < 8 ? value.length : 8;
-  return 'N° ${value.substring(0, end)}';
+  return value.startsWith('N°') ? value : 'N° $value';
 }
 
 String _documentDescription(MedicalDocumentEntity document) {

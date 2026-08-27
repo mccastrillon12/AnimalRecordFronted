@@ -101,6 +101,7 @@ import 'package:animal_record/features/shared_files/domain/usecases/export_share
 import 'package:animal_record/features/shared_files/data/datasources/manual_file_picker_datasource.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/medical_documents_remote_datasource.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
@@ -405,6 +406,10 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(() => AnalyzeMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(() => GetMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(
+    () => GetMedicalDocumentRejectionReasonsUseCase(sl()),
+  );
+  sl.registerLazySingleton(() => SubmitMedicalDocumentAiFeedbackUseCase(sl()));
   sl.registerLazySingleton(() => ReviewMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(() => GetMedicalDocumentDownloadUriUseCase(sl()));
@@ -424,6 +429,9 @@ Future<void> init() async {
   sl.registerLazySingleton(() => MedicalDocumentResponseLogger(logger: sl()));
   sl.registerLazySingleton<PendingMedicalDocumentLocalDataSource>(
     () => PendingMedicalDocumentLocalDataSourceImpl(sharedPreferences: sl()),
+  );
+  sl.registerLazySingleton<MedicalDocumentAiFeedbackLocalDataSource>(
+    () => MedicalDocumentAiFeedbackLocalDataSourceImpl(sharedPreferences: sl()),
   );
 
   sl.registerLazySingleton<TokenStorage>(

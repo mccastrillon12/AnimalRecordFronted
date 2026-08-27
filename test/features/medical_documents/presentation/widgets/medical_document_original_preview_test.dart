@@ -4,7 +4,9 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
@@ -263,6 +265,14 @@ class _DownloadOnlyRepository implements MedicalDocumentsRepository {
 
   @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons() =>
+      throw UnimplementedError();
+
+  @override
+  Future<void> submitAiFeedback(MedicalDocumentAiFeedback feedback) =>
       throw UnimplementedError();
 
   @override

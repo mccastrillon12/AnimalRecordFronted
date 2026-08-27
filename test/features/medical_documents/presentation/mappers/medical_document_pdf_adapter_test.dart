@@ -62,6 +62,7 @@ void main() {
     );
     const document = MedicalDocumentEntity(
       id: '60366a51-document',
+      documentCode: '57-001',
       animalIds: ['backend-animal'],
       animalDetails: [
         MedicalDocumentAnimalEntity(
@@ -95,6 +96,7 @@ void main() {
     );
 
     expect(analysis.patient.name, 'Brownie backend');
+    expect(analysis.documentNumber, 'N° 57-001');
     expect(analysis.patient.recordId, isEmpty);
     expect(analysis.patient.species, isEmpty);
     expect(
@@ -461,6 +463,7 @@ void main() {
     );
     const document = MedicalDocumentEntity(
       id: 'vaccination-document',
+      documentCode: 'VAC-0042',
       animalIds: ['animal-1'],
       originalFileName: 'vaccination.pdf',
       mimeType: 'application/pdf',
@@ -475,6 +478,7 @@ void main() {
     );
     final vaccine = analysis.medications.single;
 
+    expect(analysis.documentNumber, isEmpty);
     expect(vaccine.name, 'Rabies');
     expect(vaccine.instructions, isEmpty);
     expect(vaccine.details.map((detail) => detail.label), [

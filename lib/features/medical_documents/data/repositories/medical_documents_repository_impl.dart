@@ -1,6 +1,8 @@
 import 'package:animal_record/features/medical_documents/data/datasources/medical_documents_remote_datasource.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
@@ -10,6 +12,8 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   final Map<_MedicalDocumentsCacheKey, Future<List<MedicalDocumentEntity>>>
   _inFlight = {};
   final Map<_MedicalDocumentsCacheKey, int> _cacheGenerations = {};
+  List<MedicalDocumentRejectionReasonEntity>? _rejectionReasons;
+  Future<List<MedicalDocumentRejectionReasonEntity>>? _rejectionReasonsLoad;
 
   MedicalDocumentsRepositoryImpl({required this.remoteDataSource});
 
@@ -21,6 +25,35 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
       remoteDataSource.getById(documentId);
+
+  @override
+  Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons() {
+    final cached = _rejectionReasons;
+    if (cached != null) return Future.value(cached);
+    final pending = _rejectionReasonsLoad;
+    if (pending != null) return pending;
+
+    late final Future<List<MedicalDocumentRejectionReasonEntity>> request;
+    request = remoteDataSource
+        .getRejectionReasons()
+        .then((reasons) {
+          final immutable =
+              List<MedicalDocumentRejectionReasonEntity>.unmodifiable(reasons);
+          _rejectionReasons = immutable;
+          return immutable;
+        })
+        .whenComplete(() {
+          if (identical(_rejectionReasonsLoad, request)) {
+            _rejectionReasonsLoad = null;
+          }
+        });
+    _rejectionReasonsLoad = request;
+    return request;
+  }
+
+  @override
+  Future<void> submitAiFeedback(MedicalDocumentAiFeedback feedback) =>
+      remoteDataSource.submitAiFeedback(feedback);
 
   @override
   Future<MedicalDocumentEntity> review(
@@ -85,6 +118,8 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     }
     _cache.clear();
     _inFlight.clear();
+    _rejectionReasons = null;
+    _rejectionReasonsLoad = null;
   }
 
   @override

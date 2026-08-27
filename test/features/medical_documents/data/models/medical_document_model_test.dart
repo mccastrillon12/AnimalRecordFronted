@@ -44,6 +44,7 @@ void main() {
   test('parses the complete backend response without losing category data', () {
     final model = MedicalDocumentModel.fromJson({
       'id': 'document-1',
+      'documentCode': '57-001',
       'animalIds': ['animal-1', 'animal-2'],
       'originalFileName': 'formula.pdf',
       'mimeType': 'application/pdf',
@@ -106,6 +107,7 @@ void main() {
     });
 
     expect(model.id, 'document-1');
+    expect(model.documentCode, '57-001');
     expect(model.animalIds, ['animal-1', 'animal-2']);
     expect(model.status, MedicalDocumentStatus.reviewPending);
     expect(
@@ -188,6 +190,23 @@ void main() {
       );
     },
   );
+
+  test('serializes a rejected review with its selected reason', () {
+    final payload = MedicalDocumentModel.reviewRequestToJson(
+      ReviewMedicalDocumentRequest.reject(
+        documentVersion: 5,
+        rejectionReasonCode: 'OTHER',
+        rejectionComment: 'La imagen está borrosa',
+      ),
+    );
+
+    expect(payload, {
+      'decision': 'REJECT',
+      'documentVersion': 5,
+      'rejectionReasonCode': 'OTHER',
+      'rejectionComment': 'La imagen está borrosa',
+    });
+  });
 
   test(
     'normalizes the filename and parses animal data returned by backend',

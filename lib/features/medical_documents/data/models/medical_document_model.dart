@@ -5,6 +5,7 @@ import 'package:animal_record/features/medical_documents/data/models/medical_doc
 class MedicalDocumentModel extends MedicalDocumentEntity {
   const MedicalDocumentModel({
     required super.id,
+    super.documentCode,
     required super.animalIds,
     required super.originalFileName,
     required super.mimeType,
@@ -45,6 +46,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
 
     return MedicalDocumentModel(
       id: json['id']?.toString() ?? '',
+      documentCode: json['documentCode']?.toString().trim() ?? '',
       animalIds: _strings(json['animalIds']),
       originalFileName: normalizeMedicalDocumentFileName(
         json['originalFileName'],
@@ -219,7 +221,14 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     ReviewMedicalDocumentRequest request,
   ) {
     if (request.decision == MedicalDocumentReviewDecision.reject) {
-      return {'decision': 'REJECT', 'documentVersion': request.documentVersion};
+      return {
+        'decision': 'REJECT',
+        'documentVersion': request.documentVersion,
+        if (request.rejectionReasonCode != null)
+          'rejectionReasonCode': request.rejectionReasonCode,
+        if (request.rejectionComment != null)
+          'rejectionComment': request.rejectionComment,
+      };
     }
     return {
       'decision': 'ACCEPT',

@@ -472,7 +472,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     }
   }
 
-  Future<void> reject() async {
+  Future<void> reject({String? reasonCode, String? comment}) async {
     final document = state.remoteDocument;
     if (document == null ||
         document.status != MedicalDocumentStatus.reviewPending) {
@@ -482,6 +482,8 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     try {
       final request = ReviewMedicalDocumentRequest.reject(
         documentVersion: document.version,
+        rejectionReasonCode: reasonCode,
+        rejectionComment: comment,
       );
       final reviewed = await reviewUseCase(
         document.id,

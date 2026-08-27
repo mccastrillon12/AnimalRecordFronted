@@ -36,7 +36,10 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   return SharedFileAnalysisEntity(
     documentType:
         document.finalCategory?.label ?? extraction.documentType.label,
-    documentNumber: _documentNumber(document.id),
+    documentNumber:
+        extraction.documentType == MedicalDocumentCategory.vaccinationCard
+        ? ''
+        : _documentNumber(document.documentCode),
     date: parseMedicalDocumentDate(extraction.documentDate),
     sourceDateText: extraction.documentDate,
     sourceDateLabel: _displayKey('documentDate'),
@@ -145,10 +148,10 @@ bool _isTutorNameKey(String key) {
   }.contains(normalized);
 }
 
-String _documentNumber(String id) {
-  final value = id.trim();
+String _documentNumber(String documentCode) {
+  final value = documentCode.trim();
   if (value.isEmpty) return '';
-  return 'N° ${value.length > 8 ? value.substring(0, 8) : value}';
+  return value.startsWith('N°') ? value : 'N° $value';
 }
 
 ({

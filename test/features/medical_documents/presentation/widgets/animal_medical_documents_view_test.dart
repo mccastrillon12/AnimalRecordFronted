@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
@@ -21,6 +22,7 @@ void main() {
 
     const document = MedicalDocumentEntity(
       id: '7d22ffa7-7927-46bb-b6b1-0f0232243b84',
+      documentCode: 'FORM-007',
       animalIds: ['animal-1'],
       originalFileName: 'JAKE 2025-05-15 Formula médica.pdf',
       mimeType: 'application/pdf',
@@ -42,6 +44,7 @@ void main() {
     );
     when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
     var feedbackDismissed = false;
+    MedicalDocumentAiFeedback? submittedFeedback;
 
     await tester.pumpWidget(
       BlocProvider<AnimalMedicalDocumentsCubit>.value(
@@ -56,6 +59,7 @@ void main() {
               showAiFeedback: true,
               aiFeedbackRequestId: 1,
               onAiFeedbackDismissed: () => feedbackDismissed = true,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
             ),
           ),
         ),
@@ -67,7 +71,7 @@ void main() {
       find.text('¿La ayuda de la IA te fue útil\npara leer tu archivo?'),
       findsOneWidget,
     );
-    expect(find.text('Adjunto: Fórmula médica N° 7d22ffa7'), findsOneWidget);
+    expect(find.text('Adjunto: Fórmula médica N° FORM-007'), findsOneWidget);
     expect(
       find.text('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
       findsOneWidget,
@@ -99,7 +103,8 @@ void main() {
 
     expectWhiteFeedbackButtons();
     await tester.tap(find.byKey(const Key('medical-document-ai-useful')));
-    await tester.pump();
+    await tester.pumpAndSettle();
+    expect(submittedFeedback, MedicalDocumentAiFeedback.like);
     expect(
       find.text(
         'Gracias por tu respuesta, la tendremos en cuenta para seguir '
@@ -155,11 +160,12 @@ void main() {
       ], category: MedicalDocumentCategory.prescription),
     );
     when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    MedicalDocumentAiFeedback? submittedFeedback;
 
     await tester.pumpWidget(
       BlocProvider<AnimalMedicalDocumentsCubit>.value(
         value: cubit,
-        child: const MaterialApp(
+        child: MaterialApp(
           home: Scaffold(
             body: AnimalMedicalDocumentsView(
               animalId: 'animal-1',
@@ -168,6 +174,7 @@ void main() {
               emptyDescription: 'Sin documentos',
               showAiFeedback: true,
               aiFeedbackRequestId: 1,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
             ),
           ),
         ),
@@ -176,8 +183,9 @@ void main() {
     await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key('medical-document-ai-not-useful')));
-    await tester.pump();
+    await tester.pumpAndSettle();
 
+    expect(submittedFeedback, MedicalDocumentAiFeedback.dislike);
     expect(
       find.byKey(const Key('medical-document-ai-feedback-thanks')),
       findsOneWidget,
@@ -269,6 +277,7 @@ void main() {
                 emptyDescription: 'Sin documentos',
                 showAiFeedback: true,
                 aiFeedbackRequestId: requestId,
+                onAiFeedback: (_) async {},
               ),
             ),
           ),
@@ -287,5 +296,46 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Gracias por tu respuesta'), findsNothing);
+  });
+
+  testWidgets('restores the thank-you state without showing voting buttons', (
+    tester,
+  ) async {
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        [],
+        category: MedicalDocumentCategory.prescription,
+      ),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin formulas',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              initialAiFeedbackResponded: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-not-useful')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('medical-document-ai-useful')), findsNothing);
   });
 }

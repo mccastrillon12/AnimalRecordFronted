@@ -4,13 +4,19 @@ import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/medical_documents/data/models/medical_document_model.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:dio/dio.dart';
 
 abstract interface class MedicalDocumentsRemoteDataSource {
   Future<MedicalDocumentModel> analyze(AnalyzeMedicalDocumentRequest request);
 
   Future<MedicalDocumentModel> getById(String documentId);
+
+  Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons();
+
+  Future<void> submitAiFeedback(MedicalDocumentAiFeedback feedback);
 
   Future<MedicalDocumentModel> review(
     String documentId,
@@ -86,6 +92,49 @@ class MedicalDocumentsRemoteDataSourceImpl
       response: response.data,
     );
     return MedicalDocumentModel.fromJson(_responseMap(response.data));
+  }
+
+  @override
+  Future<List<MedicalDocumentRejectionReasonEntity>>
+  getRejectionReasons() async {
+    final response = await apiClient.get<List<dynamic>>(
+      '/medical-documents/rejection-reasons',
+    );
+    responseLogger.logResponse(
+      operation: 'REJECTION_REASONS',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    return (response.data ?? const [])
+        .map((item) {
+          final json = _responseMap(item);
+          final code = json['code']?.toString().trim() ?? '';
+          final label = json['label']?.toString().trim() ?? '';
+          if (code.isEmpty || label.isEmpty) {
+            throw const FormatException(
+              'El servidor devolvió un motivo de rechazo inválido.',
+            );
+          }
+          return MedicalDocumentRejectionReasonEntity(
+            code: code,
+            label: label,
+            requiresComment: json['requiresComment'] == true,
+          );
+        })
+        .toList(growable: false);
+  }
+
+  @override
+  Future<void> submitAiFeedback(MedicalDocumentAiFeedback feedback) async {
+    final response = await apiClient.post<Object?>(
+      '/medical-documents/ai-feedback',
+      data: {'value': feedback.wireValue},
+    );
+    responseLogger.logResponse(
+      operation: 'AI_FEEDBACK',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
   }
 
   @override

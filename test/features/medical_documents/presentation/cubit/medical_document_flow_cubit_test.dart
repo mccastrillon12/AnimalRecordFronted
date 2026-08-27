@@ -1,7 +1,9 @@
 import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
@@ -162,6 +164,29 @@ void main() {
     expect(cubit.state.phase, MedicalDocumentFlowPhase.selecting);
     expect(cubit.state.remoteDocument, isNull);
     expect(pending.value, isNull);
+  });
+
+  test('sends the selected reason when rejecting an AI review', () async {
+    final repository = _FakeMedicalDocumentsRepository(
+      analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+      getResponses: [_document(MedicalDocumentStatus.reviewPending)],
+      reviewResponse: _document(MedicalDocumentStatus.rejected, version: 2),
+    );
+    final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+    addTearDown(cubit.close);
+
+    await cubit.startAnalysis(
+      file: file,
+      animalIds: const [animal1Id, animal2Id],
+    );
+    await cubit.reject(reasonCode: 'OTHER', comment: 'La imagen está borrosa');
+
+    expect(repository.lastReviewRequest?.rejectionReasonCode, 'OTHER');
+    expect(
+      repository.lastReviewRequest?.rejectionComment,
+      'La imagen está borrosa',
+    );
+    expect(cubit.state.phase, MedicalDocumentFlowPhase.rejected);
   });
 
   test('discards a review without exposing the submitting phase', () async {
@@ -735,6 +760,13 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
     if (getResponses.isEmpty) throw StateError('No GET response configured');
     return getResponses.removeAt(0);
   }
+
+  @override
+  Future<List<MedicalDocumentRejectionReasonEntity>>
+  getRejectionReasons() async => const [];
+
+  @override
+  Future<void> submitAiFeedback(MedicalDocumentAiFeedback feedback) async {}
 
   @override
   Future<MedicalDocumentEntity> review(

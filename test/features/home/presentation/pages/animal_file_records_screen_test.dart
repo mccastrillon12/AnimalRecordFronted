@@ -84,6 +84,7 @@ void main() {
 
     const document = MedicalDocumentEntity(
       id: '8c268acf-1111-2222-3333-444444444444',
+      documentCode: 'LAB-001',
       animalIds: ['animal-1'],
       originalFileName: 'historia clinica 2.png',
       mimeType: 'image/png',
@@ -117,7 +118,7 @@ void main() {
     );
 
     expect(
-      find.text('Adjunto: Resultados de laboratorio N° 8c268acf'),
+      find.text('Adjunto: Resultados de laboratorio N° LAB-001'),
       findsOneWidget,
     );
     expect(find.text('Fecha:'), findsOneWidget);

@@ -3,6 +3,7 @@ import 'dart:typed_data';
 import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/medical_documents_remote_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
@@ -106,6 +107,84 @@ void main() {
       ),
     ).called(2);
   });
+
+  test('loads the rejection reasons used by the review dropdown', () async {
+    when(() => apiClient.get<List<dynamic>>(any())).thenAnswer(
+      (_) async => Response<List<dynamic>>(
+        data: const [
+          {
+            'code': 'INCORRECT_INFORMATION',
+            'label': 'Información incorrecta',
+            'requiresComment': false,
+          },
+          {'code': 'OTHER', 'label': 'Otros', 'requiresComment': true},
+        ],
+        requestOptions: RequestOptions(
+          path: '/medical-documents/rejection-reasons',
+        ),
+        statusCode: 200,
+      ),
+    );
+
+    final reasons = await dataSource.getRejectionReasons();
+
+    verify(
+      () =>
+          apiClient.get<List<dynamic>>('/medical-documents/rejection-reasons'),
+    ).called(1);
+    expect(reasons.map((reason) => reason.code), [
+      'INCORRECT_INFORMATION',
+      'OTHER',
+    ]);
+    expect(reasons.last.requiresComment, isTrue);
+    verify(
+      () => responseLogger.logResponse(
+        operation: 'REJECTION_REASONS',
+        statusCode: 200,
+        response: any(named: 'response'),
+      ),
+    ).called(1);
+  });
+
+  test(
+    'submits LIKE and DISLIKE using the backend feedback contract',
+    () async {
+      when(
+        () => apiClient.post<Object?>(any(), data: any(named: 'data')),
+      ).thenAnswer(
+        (_) async => Response<Object?>(
+          data: const {'count': 1},
+          requestOptions: RequestOptions(
+            path: '/medical-documents/ai-feedback',
+          ),
+          statusCode: 201,
+        ),
+      );
+
+      await dataSource.submitAiFeedback(MedicalDocumentAiFeedback.like);
+      await dataSource.submitAiFeedback(MedicalDocumentAiFeedback.dislike);
+
+      verify(
+        () => apiClient.post<Object?>(
+          '/medical-documents/ai-feedback',
+          data: {'value': 'LIKE'},
+        ),
+      ).called(1);
+      verify(
+        () => apiClient.post<Object?>(
+          '/medical-documents/ai-feedback',
+          data: {'value': 'DISLIKE'},
+        ),
+      ).called(1);
+      verify(
+        () => responseLogger.logResponse(
+          operation: 'AI_FEEDBACK',
+          statusCode: 201,
+          response: any(named: 'response'),
+        ),
+      ).called(2);
+    },
+  );
 
   test('rejects an analyze response that does not use HTTP 202', () async {
     when(

@@ -120,6 +120,7 @@ class _MedicalDocumentReviewScreenState
     var cancelRequested = false;
     final reason = await showMedicalDocumentRejectionDialog(
       context: context,
+      loadReasons: di.sl<GetMedicalDocumentRejectionReasonsUseCase>(),
       onCancel: () async {
         cancelRequested = true;
         if (!mounted) return;
@@ -133,7 +134,10 @@ class _MedicalDocumentReviewScreenState
       return;
     }
     if (reason == null) return;
-    await context.read<MedicalDocumentFlowCubit>().reject();
+    await context.read<MedicalDocumentFlowCubit>().reject(
+      reasonCode: reason.reason.code,
+      comment: reason.comment,
+    );
   }
 
   Future<void> _discardForCancellation() async {
