@@ -119,7 +119,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                                     borderColor: AppColors.greyBordes,
                                   ),
                                 ),
-                                const SizedBox(width: AppSpacing.xs),
+                                const SizedBox(width: AppSpacing.s),
                                 _RecordSortButton(
                                   sortAscending: _sortAscending,
                                   onTap: () => setState(
@@ -131,7 +131,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                           ),
                           const SizedBox(
                             key: Key('animal-file-records-list-gap'),
-                            height: AppSpacing.m,
+                            height: AppSpacing.l,
                           ),
                           Expanded(
                             child: AnimalMedicalDocumentsView(

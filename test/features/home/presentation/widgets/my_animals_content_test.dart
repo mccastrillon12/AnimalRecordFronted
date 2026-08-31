@@ -63,6 +63,10 @@ void main() {
       final actionsMenu = tester.widget<PopupMenuButton<String>>(
         find.byKey(const Key('my-animals-actions-menu')),
       );
+      expect(
+        (actionsMenu.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.zero,
+      );
       actionsMenu.onSelected?.call('subir_documento');
       await tester.pumpAndSettle();
 

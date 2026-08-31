@@ -56,8 +56,8 @@ class AnimalRecordSearchField extends StatelessWidget {
             padding: const EdgeInsets.only(left: AppSpacing.m, right: 10),
             child: SvgPicture.asset(
               'assets/icons/vuesax-linear-search-2.svg',
-              width: 20,
-              height: 20,
+              width: 24,
+              height: 24,
               colorFilter: const ColorFilter.mode(
                 AppColors.greyMedio,
                 BlendMode.srcIn,

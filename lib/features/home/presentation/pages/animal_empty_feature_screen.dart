@@ -30,25 +30,35 @@ class AnimalEmptyFeatureScreen extends StatelessWidget {
       titlePadding: const EdgeInsets.only(top: 96, bottom: 0),
       fixedTitle: true,
       fixedHeaderHeight: 120,
+      expandFixedBody: true,
       onClose: () => Navigator.of(context).pop(),
+      trailingIcon: IconButton(
+        key: const Key('close-animal-empty-feature'),
+        onPressed: () => Navigator.of(context).pop(),
+        icon: const Icon(Icons.close, size: 20),
+        padding: EdgeInsets.zero,
+        constraints: const BoxConstraints(),
+      ),
       bottomChild: CustomButton(
         text: 'Continuar',
         onPressed: onContinue ?? () => Navigator.of(context).pop(),
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 100),
-          AnimalFamilyIconBox(
-            family: animalFamily,
-            boxKey: const Key('animal-empty-feature-placeholder'),
-          ),
-          const SizedBox(
-            key: Key('animal-empty-feature-content-gap'),
-            height: 48,
-          ),
-          _EmptyFeatureCopy(mainText: mainText, subText: subText),
-          const SizedBox(height: 40),
-        ],
+      child: Center(
+        key: const Key('animal-empty-feature-content'),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimalFamilyIconBox(
+              family: animalFamily,
+              boxKey: const Key('animal-empty-feature-placeholder'),
+            ),
+            const SizedBox(
+              key: Key('animal-empty-feature-content-gap'),
+              height: 48,
+            ),
+            _EmptyFeatureCopy(mainText: mainText, subText: subText),
+          ],
+        ),
       ),
     );
   }

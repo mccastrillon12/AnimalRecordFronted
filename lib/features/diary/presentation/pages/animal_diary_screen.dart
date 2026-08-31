@@ -210,6 +210,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                 titlePadding: const EdgeInsets.only(top: 96, bottom: 0),
                 fixedTitle: true,
                 fixedHeaderHeight: hasEntries ? 180 : 120,
+                expandFixedBody: !hasEntries,
                 fixedHeaderChild: hasEntries
                     ? Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -348,45 +349,46 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   // ── Empty state ──────────────────────────────────────────────
 
   Widget _buildEmptyState() {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const SizedBox(height: 100),
-        AnimalFamilyIconBox(family: widget.animal.family),
-        const SizedBox(height: 48),
-        SizedBox(
-          width: 249,
-          child: Column(
-            children: [
-              Text(
-                'Crea la primer nota en tu diario',
-                style: AppTypography.body3,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              RichText(
-                textAlign: TextAlign.center,
-                text: TextSpan(
-                  style: AppTypography.body4,
-                  children: [
-                    const TextSpan(
-                      text:
-                          'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
-                    ),
-                    TextSpan(
-                      text: 'Max 15 notas.',
-                      style: AppTypography.body4.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
+    return Center(
+      key: const Key('diary-empty-content'),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimalFamilyIconBox(family: widget.animal.family),
+          const SizedBox(height: 48),
+          SizedBox(
+            width: 249,
+            child: Column(
+              children: [
+                Text(
+                  'Crea la primer nota en tu diario',
+                  style: AppTypography.body3,
+                  textAlign: TextAlign.center,
                 ),
-              ),
-            ],
+                const SizedBox(height: 16),
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: AppTypography.body4,
+                    children: [
+                      const TextSpan(
+                        text:
+                            'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
+                      ),
+                      TextSpan(
+                        text: 'Max 15 notas.',
+                        style: AppTypography.body4.copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        const SizedBox(height: 40),
-      ],
+        ],
+      ),
     );
   }
 

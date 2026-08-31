@@ -181,6 +181,13 @@ void main() {
       find.byKey(const Key('vaccination-card-footer-logo')),
       findsOneWidget,
     );
+    final sendMenu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('vaccination-card-menu')),
+    );
+    expect(
+      (sendMenu.shape! as RoundedRectangleBorder).borderRadius,
+      BorderRadius.zero,
+    );
     await tester.drag(
       find.byType(SingleChildScrollView),
       const Offset(0, -300),

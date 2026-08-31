@@ -20,6 +20,12 @@ import 'package:flutter_svg/flutter_svg.dart';
 typedef MedicalDocumentThumbnailUriLoader =
     Future<Uri> Function(String documentId);
 
+const _diagnosticThumbnailCacheLifetime = Duration(minutes: 5);
+final _diagnosticThumbnailUriCache = _DiagnosticThumbnailUriCache();
+
+Future<Uri> _loadMedicalDocumentThumbnailUri(String documentId) =>
+    di.sl<GetMedicalDocumentDownloadUriUseCase>()(documentId);
+
 class AnimalMedicalDocumentsView extends StatelessWidget {
   final String animalId;
   final MedicalDocumentCategory category;
@@ -127,8 +133,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             documents: documents,
             loadThumbnailUri:
                 diagnosticThumbnailUriLoader ??
-                (documentId) =>
-                    di.sl<GetMedicalDocumentDownloadUriUseCase>()(documentId),
+                _loadMedicalDocumentThumbnailUri,
           );
         }
         return ListView.separated(
@@ -331,13 +336,14 @@ class _DiagnosticImagesGrid extends StatelessWidget {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
       child: Align(
-        alignment: Alignment.topCenter,
+        alignment: Alignment.topLeft,
         child: Wrap(
           spacing: AppSpacing.l,
           runSpacing: AppSpacing.l,
           children: [
             for (final document in documents)
               _DiagnosticImageTile(
+                key: ValueKey(document.id),
                 document: document,
                 loadThumbnailUri: loadThumbnailUri,
               ),
@@ -353,6 +359,7 @@ class _DiagnosticImageTile extends StatefulWidget {
   final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
 
   const _DiagnosticImageTile({
+    super.key,
     required this.document,
     required this.loadThumbnailUri,
   });
@@ -367,15 +374,29 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
   @override
   void initState() {
     super.initState();
-    _thumbnailUri = widget.loadThumbnailUri(widget.document.id);
+    _loadThumbnail();
   }
 
   @override
   void didUpdateWidget(covariant _DiagnosticImageTile oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.document.id != widget.document.id) {
-      _thumbnailUri = widget.loadThumbnailUri(widget.document.id);
+    if (oldWidget.document.id != widget.document.id ||
+        !identical(oldWidget.loadThumbnailUri, widget.loadThumbnailUri)) {
+      _loadThumbnail();
     }
+  }
+
+  Uri? _initialThumbnailUri;
+
+  void _loadThumbnail() {
+    _initialThumbnailUri = _diagnosticThumbnailUriCache.peek(
+      widget.document.id,
+      widget.loadThumbnailUri,
+    );
+    _thumbnailUri = _diagnosticThumbnailUriCache.load(
+      widget.document.id,
+      widget.loadThumbnailUri,
+    );
   }
 
   @override
@@ -406,6 +427,7 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
               ),
               child: FutureBuilder<Uri>(
                 future: _thumbnailUri,
+                initialData: _initialThumbnailUri,
                 builder: (context, snapshot) {
                   if (snapshot.hasData) {
                     return Image.network(
@@ -439,6 +461,80 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
       ),
     );
   }
+}
+
+class _DiagnosticThumbnailUriCache {
+  final Map<_DiagnosticThumbnailUriCacheKey, _DiagnosticThumbnailUriCacheEntry>
+  _entries = {};
+
+  Uri? peek(
+    String documentId,
+    MedicalDocumentThumbnailUriLoader loader,
+  ) {
+    final key = _DiagnosticThumbnailUriCacheKey(documentId, loader);
+    final entry = _validEntry(key);
+    return entry?.uri;
+  }
+
+  Future<Uri> load(
+    String documentId,
+    MedicalDocumentThumbnailUriLoader loader,
+  ) async {
+    final key = _DiagnosticThumbnailUriCacheKey(documentId, loader);
+    final cached = _validEntry(key);
+    if (cached != null) return cached.future;
+
+    final entry = _DiagnosticThumbnailUriCacheEntry(DateTime.now());
+    final request = loader(documentId);
+    entry.future = request;
+    _entries[key] = entry;
+
+    try {
+      final uri = await request;
+      if (identical(_entries[key], entry)) entry.uri = uri;
+      return uri;
+    } catch (_) {
+      if (identical(_entries[key], entry)) _entries.remove(key);
+      rethrow;
+    }
+  }
+
+  _DiagnosticThumbnailUriCacheEntry? _validEntry(
+    _DiagnosticThumbnailUriCacheKey key,
+  ) {
+    final entry = _entries[key];
+    if (entry == null) return null;
+    if (DateTime.now().difference(entry.cachedAt) <
+        _diagnosticThumbnailCacheLifetime) {
+      return entry;
+    }
+    _entries.remove(key);
+    return null;
+  }
+}
+
+class _DiagnosticThumbnailUriCacheEntry {
+  final DateTime cachedAt;
+  late final Future<Uri> future;
+  Uri? uri;
+
+  _DiagnosticThumbnailUriCacheEntry(this.cachedAt);
+}
+
+class _DiagnosticThumbnailUriCacheKey {
+  final String documentId;
+  final MedicalDocumentThumbnailUriLoader loader;
+
+  const _DiagnosticThumbnailUriCacheKey(this.documentId, this.loader);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _DiagnosticThumbnailUriCacheKey &&
+      documentId == other.documentId &&
+      identical(loader, other.loader);
+
+  @override
+  int get hashCode => Object.hash(documentId, identityHashCode(loader));
 }
 
 class _ThumbnailFallback extends StatelessWidget {

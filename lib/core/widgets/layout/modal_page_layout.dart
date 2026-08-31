@@ -34,6 +34,7 @@ class ModalPageLayout extends StatelessWidget {
   /// Altura total del área fija del header (título + fixedHeaderChild) para calcular el padding del scroll.
   final double fixedHeaderHeight;
   final ScrollController? scrollController;
+  final bool expandFixedBody;
 
   const ModalPageLayout({
     super.key,
@@ -55,6 +56,7 @@ class ModalPageLayout extends StatelessWidget {
     this.fixedHeaderChild,
     this.fixedHeaderHeight = 0,
     this.scrollController,
+    this.expandFixedBody = false,
   });
 
   Widget _buildTrailingBackground(BuildContext context) {
@@ -160,19 +162,38 @@ class ModalPageLayout extends StatelessWidget {
                         FixedBottomActionLayout(
                           padding: bottomPadding,
                           bottomChild: bottomChild!,
-                          child: SingleChildScrollView(
-                            controller: scrollController,
-                            physics: physics,
-                            child: SizedBox(
-                              width: double.infinity,
-                              child: Column(
-                                children: [
-                                  if (!fixedTitle) _buildHeaderTitle(),
-                                  if (fixedTitle) SizedBox(height: fixedHeaderHeight),
-                                  child,
-                                ],
-                              ),
-                            ),
+                          child: LayoutBuilder(
+                            builder: (context, viewportConstraints) {
+                              Widget content = SizedBox(
+                                width: double.infinity,
+                                child: Column(
+                                  children: [
+                                    if (!fixedTitle) _buildHeaderTitle(),
+                                    if (fixedTitle)
+                                      SizedBox(height: fixedHeaderHeight),
+                                    if (expandFixedBody)
+                                      Expanded(child: child)
+                                    else
+                                      child,
+                                  ],
+                                ),
+                              );
+
+                              if (expandFixedBody) {
+                                content = ConstrainedBox(
+                                  constraints: BoxConstraints(
+                                    minHeight: viewportConstraints.maxHeight,
+                                  ),
+                                  child: IntrinsicHeight(child: content),
+                                );
+                              }
+
+                              return SingleChildScrollView(
+                                controller: scrollController,
+                                physics: physics,
+                                child: content,
+                              );
+                            },
                           ),
                         ),
                         if (fixedTitle)

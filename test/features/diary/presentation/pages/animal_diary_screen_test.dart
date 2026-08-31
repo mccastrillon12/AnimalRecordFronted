@@ -49,6 +49,20 @@ void main() {
       find.descendant(of: familyIconBox, matching: find.byType(SvgPicture)),
       findsOneWidget,
     );
+
+    final contentRect = tester.getRect(
+      find.byKey(const Key('diary-empty-content')),
+    );
+    final titleRect = tester.getRect(find.text('Diario'));
+    final buttonRect = tester.getRect(
+      find.ancestor(
+        of: find.text('+ Nueva nota'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    final topGap = contentRect.top - titleRect.bottom;
+    final bottomGap = buttonRect.top - contentRect.bottom;
+    expect((topGap - bottomGap).abs(), lessThanOrEqualTo(8));
   });
 
   testWidgets('aligns the image preview close icon with the diary close icon', (

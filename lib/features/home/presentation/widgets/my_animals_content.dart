@@ -5,7 +5,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -605,9 +604,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         }
       },
       offset: const Offset(0, -162),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
-      ),
+      shape: const RoundedRectangleBorder(),
       constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
       color: AppColors.white,
       elevation: 4,

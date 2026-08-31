@@ -48,6 +48,13 @@ void main() {
       find.byKey(const Key('animal-document-upload-menu')),
       findsOneWidget,
     );
+    final uploadMenu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('animal-document-upload-menu')),
+    );
+    expect(
+      (uploadMenu.shape! as RoundedRectangleBorder).borderRadius,
+      BorderRadius.zero,
+    );
   });
 
   testWidgets('shows the laboratory results records layout', (tester) async {
@@ -131,7 +138,7 @@ void main() {
     final listGap = tester.widget<SizedBox>(
       find.byKey(const Key('animal-file-records-list-gap')),
     );
-    expect(listGap.height, 16);
+    expect(listGap.height, 24);
   });
 
   testWidgets('shows diagnostic images as 140 by 100 thumbnails', (
@@ -185,6 +192,83 @@ void main() {
       ),
       findsOneWidget,
     );
+  });
+
+  testWidgets('keeps diagnostic thumbnails when sorting and reopening', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const documents = [
+      MedicalDocumentEntity(
+        id: 'diagnostic-cache-a',
+        animalIds: ['animal-1'],
+        originalFileName: 'zeta.png',
+        mimeType: 'image/png',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        validatedExtraction: MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.diagnosticImage,
+        ),
+        version: 1,
+      ),
+      MedicalDocumentEntity(
+        id: 'diagnostic-cache-b',
+        animalIds: ['animal-1'],
+        originalFileName: 'alfa.png',
+        mimeType: 'image/png',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        validatedExtraction: MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.diagnosticImage,
+        ),
+        version: 1,
+      ),
+    ];
+    final loads = <String, int>{};
+    Future<Uri> loadThumbnail(String documentId) async {
+      loads.update(documentId, (count) => count + 1, ifAbsent: () => 1);
+      return Uri.parse('https://example.test/$documentId.png');
+    }
+
+    await _pumpRecordsScreen(
+      tester,
+      section: AnimalFileRecordSection.diagnosticImages,
+      documents: documents,
+      diagnosticThumbnailUriLoader: loadThumbnail,
+    );
+    expect(loads, {
+      'diagnostic-cache-a': 1,
+      'diagnostic-cache-b': 1,
+    });
+
+    await tester.tap(
+      find.byKey(const Key('animal-file-records-sort-button')),
+    );
+    await tester.pump();
+
+    expect(loads, {
+      'diagnostic-cache-a': 1,
+      'diagnostic-cache-b': 1,
+    });
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+
+    await _pumpRecordsScreen(
+      tester,
+      section: AnimalFileRecordSection.diagnosticImages,
+      documents: documents,
+      diagnosticThumbnailUriLoader: loadThumbnail,
+      settle: false,
+    );
+
+    expect(loads, {
+      'diagnostic-cache-a': 1,
+      'diagnostic-cache-b': 1,
+    });
+    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   testWidgets('reuses the existing animal document upload flow', (
@@ -258,6 +342,7 @@ Future<void> _pumpRecordsScreen(
   required AnimalFileRecordSection section,
   List<MedicalDocumentEntity> documents = const [],
   MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader,
+  bool settle = true,
 }) async {
   final documentsCubit = _MockAnimalMedicalDocumentsCubit();
   final category = switch (section) {
@@ -283,7 +368,7 @@ Future<void> _pumpRecordsScreen(
       ),
     ),
   );
-  await tester.pumpAndSettle();
+  if (settle) await tester.pumpAndSettle();
 }
 
 const _animal = AnimalModel(

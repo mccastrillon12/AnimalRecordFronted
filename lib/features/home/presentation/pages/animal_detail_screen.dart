@@ -570,7 +570,6 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     final documents = await di.sl<GetAnimalMedicalDocumentsUseCase>()(
       animalId,
       category: category,
-      forceRefresh: true,
     );
     return documents.isNotEmpty;
   }

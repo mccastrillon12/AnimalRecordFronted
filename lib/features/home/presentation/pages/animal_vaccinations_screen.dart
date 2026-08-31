@@ -157,12 +157,12 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                       const Icon(
                                         Icons.visibility,
                                         color: AppColors.greyMedio,
-                                        size: 16,
+                                        size: 20,
                                       ),
                                       const SizedBox(width: AppSpacing.xs),
                                       Text(
                                         'Ver carné',
-                                        style: AppTypography.body6.copyWith(
+                                        style: AppTypography.body4.copyWith(
                                           color: AppColors.greyMedio,
                                         ),
                                       ),
@@ -255,7 +255,7 @@ class _VaccinationsHeader extends StatelessWidget {
                     color: AppColors.greyTextos,
                   ),
                 ),
-                const TextSpan(text: '  -  '),
+                const TextSpan(text: ' - '),
                 TextSpan(text: animal.code),
               ],
             ),

@@ -104,12 +104,31 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Continuar'), findsOneWidget);
+    expect(find.text('Cancelar'), findsNothing);
+    expect(
+      find.byKey(const Key('close-animal-empty-feature')),
+      findsOneWidget,
+    );
     final familyIconBox = find.byType(AnimalFamilyIconBox);
     expect(familyIconBox, findsOneWidget);
     expect(
       find.descendant(of: familyIconBox, matching: find.byType(SvgPicture)),
       findsOneWidget,
     );
+
+    final contentRect = tester.getRect(
+      find.byKey(const Key('animal-empty-feature-content')),
+    );
+    final titleRect = tester.getRect(find.text('Imágenes diagnósticas').last);
+    final buttonRect = tester.getRect(
+      find.ancestor(
+        of: find.text('Continuar'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    final topGap = contentRect.top - titleRect.bottom;
+    final bottomGap = buttonRect.top - contentRect.bottom;
+    expect((topGap - bottomGap).abs(), lessThanOrEqualTo(8));
 
     final placeholder = tester.widget<Container>(
       find.byKey(const Key('animal-empty-feature-placeholder')),
@@ -162,6 +181,27 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Continuar'), findsOneWidget);
+    expect(find.text('Cancelar'), findsNothing);
+    expect(
+      find.byKey(const Key('close-animal-empty-feature')),
+      findsOneWidget,
+    );
+
+    final labContentRect = tester.getRect(
+      find.byKey(const Key('animal-empty-feature-content')),
+    );
+    final labTitleRect = tester.getRect(
+      find.text('Resultados de laboratorio').last,
+    );
+    final labButtonRect = tester.getRect(
+      find.ancestor(
+        of: find.text('Continuar'),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    final labTopGap = labContentRect.top - labTitleRect.bottom;
+    final labBottomGap = labButtonRect.top - labContentRect.bottom;
+    expect((labTopGap - labBottomGap).abs(), lessThanOrEqualTo(8));
 
     await tester.tap(find.text('Continuar'));
     await tester.pumpAndSettle();

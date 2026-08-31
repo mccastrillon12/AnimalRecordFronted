@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -50,9 +49,7 @@ class AppSingleActionPopupMenu extends StatelessWidget {
         position: position,
         offset: offset,
         menuPadding: menuPadding,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
-        ),
+        shape: const RoundedRectangleBorder(),
         constraints: BoxConstraints(minWidth: menuWidth, maxWidth: menuWidth),
         color: AppColors.white,
         elevation: 4,
