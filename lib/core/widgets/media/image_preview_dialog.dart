@@ -8,7 +8,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 const _controlsDocumentGap = 20.0;
-const previewControlSize = 20.0;
+const previewControlSize = 24.0;
 
 class ImagePreviewDialog extends StatefulWidget {
   final String imageUrl;
@@ -50,13 +50,15 @@ class _ImagePreviewDialogState extends State<ImagePreviewDialog> {
         );
     final downloadButtonRect = widget.onDownload == null
         ? null
-        : widget.downloadIconRect ??
-              Rect.fromLTWH(
-                AppSpacing.l,
-                closeButtonRect.top,
-                previewControlSize,
-                previewControlSize,
-              );
+        : previewDownloadControlRect(
+            widget.downloadIconRect ??
+                Rect.fromLTWH(
+                  AppSpacing.l,
+                  closeButtonRect.top,
+                  previewControlSize,
+                  previewControlSize,
+                ),
+          );
     final controlsBottom = _maxValue(
       closeButtonRect.bottom,
       downloadButtonRect?.bottom ?? closeButtonRect.bottom,
@@ -188,8 +190,8 @@ class PreviewDownloadButton extends StatelessWidget {
             : SvgPicture.asset(
                 AppIcons.receiveSquare,
                 key: const Key('preview-download-icon'),
-                width: size?.shortestSide ?? 32,
-                height: size?.shortestSide ?? 32,
+                width: previewControlSize,
+                height: previewControlSize,
                 colorFilter: const ColorFilter.mode(
                   Color.fromARGB(255, 243, 240, 240),
                   BlendMode.srcIn,
@@ -250,3 +252,10 @@ class PreviewOverlayControls extends StatelessWidget {
 
 double _maxValue(double first, double second) =>
     first > second ? first : second;
+
+Rect previewDownloadControlRect(Rect rect) => Rect.fromLTWH(
+  rect.left,
+  rect.top,
+  rect.width < previewControlSize ? previewControlSize : rect.width,
+  rect.height < previewControlSize ? previewControlSize : rect.height,
+);

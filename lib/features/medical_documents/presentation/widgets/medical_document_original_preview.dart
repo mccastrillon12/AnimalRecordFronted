@@ -169,14 +169,16 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
         previewControlSize,
       ),
     );
-    final downloadButtonRect = _localPreviewRect(
-      widget.downloadIconRect,
-      safeAreaTop: safeAreaTop,
-      fallback: Rect.fromLTWH(
-        AppSpacing.l,
-        closeButtonRect.top,
-        previewControlSize,
-        previewControlSize,
+    final downloadButtonRect = previewDownloadControlRect(
+      _localPreviewRect(
+        widget.downloadIconRect,
+        safeAreaTop: safeAreaTop,
+        fallback: Rect.fromLTWH(
+          AppSpacing.l,
+          closeButtonRect.top,
+          previewControlSize,
+          previewControlSize,
+        ),
       ),
     );
     final controlsBottom = _maxValue(

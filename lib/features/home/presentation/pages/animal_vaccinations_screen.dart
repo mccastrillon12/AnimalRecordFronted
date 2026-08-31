@@ -80,7 +80,7 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                       Column(
                         children: [
                           _VaccinationsHeader(animal: widget.animal),
-                          const SizedBox(height: AppSpacing.l),
+                          const SizedBox(height: AppSpacing.xl),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.l,
@@ -110,6 +110,10 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                 ),
                               ],
                             ),
+                          ),
+                          const SizedBox(
+                            key: Key('vaccinations-list-gap'),
+                            height: AppSpacing.l,
                           ),
                           Expanded(
                             child: VaccinationGroupsView(

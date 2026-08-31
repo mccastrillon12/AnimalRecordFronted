@@ -73,12 +73,7 @@ class VaccinationGroupsView extends StatelessWidget {
         if (groups.isEmpty) return const _VaccinationNoResultsState();
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.l,
-            AppSpacing.m,
-            AppSpacing.l,
-            88,
-          ),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
           itemCount: groups.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) => _VaccinationGroupCard(
@@ -155,22 +150,21 @@ class _VaccinationGroupCard extends StatelessWidget {
                 children: [
                   SvgPicture.asset(
                     AppIcons.vaccineShield,
-                    width: 17,
-                    height: 21,
+                    width: 24,
+                    height: 24,
                   ),
                   const SizedBox(width: AppSpacing.m),
                   Expanded(
                     child: Text(
-                      group.title,
+                      vaccinationDisplayName(group.title),
                       style: AppTypography.body3.copyWith(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.w700,
+                        color: AppColors.greyTextos,
                       ),
                     ),
                   ),
                   Container(
                     constraints: const BoxConstraints(
-                      minWidth: 22,
+                      minWidth: 21,
                       minHeight: 22,
                     ),
                     alignment: Alignment.center,
@@ -190,7 +184,7 @@ class _VaccinationGroupCard extends StatelessWidget {
                       '${group.count}',
                       style: AppTypography.body6.copyWith(
                         color: AppColors.primaryFrances,
-                        fontWeight: FontWeight.w700,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),

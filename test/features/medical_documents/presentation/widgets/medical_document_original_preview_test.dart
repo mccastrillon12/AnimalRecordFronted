@@ -13,6 +13,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pdfrx/pdfrx.dart';
 
@@ -217,12 +218,17 @@ void _expectHeaderDownloadPosition(
   final buttonRect = tester.getRect(
     find.byKey(const Key('preview-download-button')),
   );
-  expect(buttonRect, sourceDownloadRect);
+  expect(buttonRect.topLeft, sourceDownloadRect.topLeft);
+  expect(buttonRect.size, const Size.square(24));
   expect(
     tester.widget(find.byKey(const Key('preview-download-button'))),
     isA<SizedBox>(),
   );
-  expect(find.byKey(const Key('preview-download-icon')), findsOneWidget);
+  final icon = tester.widget<SvgPicture>(
+    find.byKey(const Key('preview-download-icon')),
+  );
+  expect(icon.width, 24);
+  expect(icon.height, 24);
 }
 
 void _expectDocumentImmediatelyBelowControls(

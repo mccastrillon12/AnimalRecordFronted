@@ -41,15 +41,15 @@ void main() {
     const user = UserEntity(
       id: 'user-1',
       name: 'Barbara James',
-      identificationType: 'C.C.',
-      identificationNumber: '1152234567',
+      identificationType: 'cc',
+      identificationNumber: '1037238455',
       country: 'Colombia',
       countryId: 'CO',
       departmentId: 'ANT',
       city: 'Medellín',
       cityId: 'MED',
       email: 'barbara@example.com',
-      cellPhone: '3124567890',
+      cellPhone: '+573504643322',
       animalTypes: [],
       services: [],
       isHomeDelivery: false,
@@ -154,7 +154,10 @@ void main() {
       find.textContaining('Propietario Barbara James', findRichText: true),
       findsOneWidget,
     );
-    expect(find.text('C.C. 1152234567'), findsOneWidget);
+    expect(find.text('C.C. ******8455'), findsOneWidget);
+    expect(find.text('cc 1037238455'), findsNothing);
+    expect(find.text('(+57) 3504643322'), findsOneWidget);
+    expect(find.text('+573504643322'), findsNothing);
     expect(find.text('barbara@example.com'), findsOneWidget);
     expect(find.text('Vacuna'), findsNWidgets(2));
     expect(find.text('Dosis 1'), findsNWidgets(2));

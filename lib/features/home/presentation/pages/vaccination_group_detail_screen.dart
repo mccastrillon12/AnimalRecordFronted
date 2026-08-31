@@ -49,7 +49,7 @@ class _VaccinationGroupDetailScreenState
         icon: Icon(
           key: _closeIconKey,
           Icons.close,
-          size: 20,
+          size: 24,
           color: AppColors.greyIconos,
         ),
         padding: EdgeInsets.zero,
@@ -237,14 +237,6 @@ class _VaccinationRecordBlock extends StatelessWidget {
               dose: dose,
               onViewOriginal: onViewOriginal,
             ),
-            if (dose.tutor.hasData) ...[
-              const SizedBox(height: AppSpacing.xl),
-              _TutorSection(tutor: dose.tutor),
-            ],
-            if (dose.patient.hasData) ...[
-              const SizedBox(height: AppSpacing.xl),
-              _PatientSection(patient: dose.patient),
-            ],
           ],
         ),
       ),
@@ -317,7 +309,7 @@ class _DoseSection extends StatelessWidget {
                 ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
-                  vaccineName,
+                  vaccinationDisplayName(vaccineName),
                   style: AppTypography.body4.copyWith(
                     color: AppColors.greyTextos,
                   ),
@@ -458,68 +450,6 @@ class _VeterinarianSection extends StatelessWidget {
             value: veterinarian.professionalId,
           ),
         ...veterinarian.additionalDetails,
-      ],
-    );
-  }
-}
-
-class _TutorSection extends StatelessWidget {
-  final SharedFileTutorAnalysisEntity tutor;
-
-  const _TutorSection({required this.tutor});
-
-  @override
-  Widget build(BuildContext context) {
-    return _PartySection(
-      label: 'Propietario',
-      name: tutor.name,
-      details: [
-        if (tutor.identification.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(
-            label: 'Identificación',
-            value: tutor.identification,
-          ),
-        if (tutor.phoneNumber.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(
-            label: 'Número celular',
-            value: tutor.phoneNumber,
-          ),
-        ...tutor.additionalDetails,
-      ],
-    );
-  }
-}
-
-class _PatientSection extends StatelessWidget {
-  final SharedFilePatientAnalysisEntity patient;
-
-  const _PatientSection({required this.patient});
-
-  @override
-  Widget build(BuildContext context) {
-    return _PartySection(
-      label: 'Paciente',
-      name: patient.name,
-      details: [
-        if (patient.recordId.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(
-            label: 'Animal Record ID',
-            value: patient.recordId,
-          ),
-        if (patient.species.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(
-            label: 'Especie',
-            value: patient.species,
-          ),
-        if (patient.breed.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(label: 'Raza', value: patient.breed),
-        if (patient.sex.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(label: 'Sexo', value: patient.sex),
-        if (patient.age.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(label: 'Edad', value: patient.age),
-        if (patient.weight.trim().isNotEmpty)
-          SharedFileAnalysisDetailEntity(label: 'Peso', value: patient.weight),
-        ...patient.additionalDetails,
       ],
     );
   }

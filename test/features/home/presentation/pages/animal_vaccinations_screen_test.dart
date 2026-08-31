@@ -84,6 +84,10 @@ void main() {
     expect(identification.maxLines, 1);
     expect(find.byKey(const Key('vaccinations-search-field')), findsOneWidget);
     expect(find.byKey(const Key('vaccinations-sort-button')), findsOneWidget);
+    final listGap = tester.widget<SizedBox>(
+      find.byKey(const Key('vaccinations-list-gap')),
+    );
+    expect(listGap.height, 24);
     expect(find.text('El registro de vacunas está vacío'), findsOneWidget);
     expect(
       find.text('Aquí se podrán visualizar las vacunas que se creen.'),
@@ -130,7 +134,7 @@ void main() {
           id: 'distemper-en',
           vaccinationId: 'distemper-1',
           fields: const {
-            'name': 'Canine Distemper',
+            'name': 'CANINE DISTEMPER',
             'applicationDate': 'May 1, 2025',
           },
         ),
@@ -149,7 +153,8 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Rabia'), findsOneWidget);
-    expect(find.text('Canine Distemper'), findsOneWidget);
+    expect(find.text('Canine distemper'), findsOneWidget);
+    expect(find.text('CANINE DISTEMPER'), findsNothing);
     expect(find.text('10/27/2025'), findsOneWidget);
     expect(find.text('10/27/2028'), findsOneWidget);
     expect(find.text('Application Date:'), findsNWidgets(2));
@@ -267,36 +272,29 @@ void main() {
       findsOneWidget,
     );
 
-    await tester.ensureVisible(
-      find.textContaining('John Doe', findRichText: true),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      find.textContaining('Barbara James', findRichText: true),
-      findsOneWidget,
-    );
-    expect(find.textContaining('Brownie', findRichText: true), findsOneWidget);
-    expect(find.textContaining('John Doe', findRichText: true), findsOneWidget);
-    expect(find.textContaining('Max', findRichText: true), findsOneWidget);
     final firstRecord = find.byKey(
       const Key('vaccination-record-rabies-new-0'),
     );
     final secondRecord = find.byKey(
       const Key('vaccination-record-rabies-old-1'),
     );
+    await tester.ensureVisible(secondRecord);
+    await tester.pumpAndSettle();
+    expect(
+      find.textContaining('Barbara James', findRichText: true),
+      findsNothing,
+    );
+    expect(find.textContaining('Brownie', findRichText: true), findsNothing);
+    expect(find.textContaining('John Doe', findRichText: true), findsNothing);
+    expect(find.textContaining('Max', findRichText: true), findsNothing);
+    expect(
+      find.textContaining('Propietario', findRichText: true),
+      findsNothing,
+    );
+    expect(find.textContaining('Paciente', findRichText: true), findsNothing);
     expect(
       tester.getTopLeft(secondRecord).dy - tester.getBottomLeft(firstRecord).dy,
       AppSpacing.xl,
-    );
-    expect(
-      tester.getTopLeft(find.text('Detalle de vacunación').first).dy,
-      lessThan(
-        tester
-            .getTopLeft(
-              find.textContaining('Barbara James', findRichText: true),
-            )
-            .dy,
-      ),
     );
     await tester.tap(find.byKey(const Key('export-vaccination-group')));
     await tester.pumpAndSettle();
@@ -328,14 +326,14 @@ void main() {
           id: 'shared-vaccine-document',
           vaccinationId: 'bordetella-1',
           fields: const {
-            'name': 'Bordetella',
+            'name': 'BORDETELLA',
             'applicationDate': 'January 24, 2023',
           },
           additionalVaccinations: const [
             MedicalDocumentItemEntity(
               id: 'bordetella-2',
               fields: {
-                'name': 'Bordetella',
+                'name': 'BORDETELLA',
                 'applicationDate': 'January 24, 2024',
               },
             ),
@@ -358,6 +356,8 @@ void main() {
     await tester.tap(find.byKey(const Key('vaccination-group-bordetella')));
     await tester.pumpAndSettle();
 
+    expect(find.text('Bordetella'), findsNWidgets(2));
+    expect(find.text('BORDETELLA'), findsNothing);
     expect(
       find.byKey(const Key('vaccination-record-shared-vaccine-document-0')),
       findsOneWidget,

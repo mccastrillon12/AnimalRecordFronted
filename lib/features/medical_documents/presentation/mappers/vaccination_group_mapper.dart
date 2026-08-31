@@ -4,6 +4,12 @@ import 'package:animal_record/features/medical_documents/presentation/mappers/me
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:equatable/equatable.dart';
 
+String vaccinationDisplayName(String value) {
+  final normalized = value.trim().toLowerCase();
+  if (normalized.isEmpty) return normalized;
+  return '${normalized[0].toUpperCase()}${normalized.substring(1)}';
+}
+
 class VaccinationApplicationViewData extends Equatable {
   final MedicalDocumentEntity document;
   final MedicalDocumentItemEntity vaccination;

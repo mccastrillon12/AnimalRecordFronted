@@ -290,9 +290,12 @@ class _AppProfileInformation extends StatelessWidget {
     final ownerDetails = <(String, String)>[
       (
         'Identificación',
-        _joinValues([user?.identificationType, user?.identificationNumber]),
+        _maskedIdentification(
+          user?.identificationType,
+          user?.identificationNumber,
+        ),
       ),
-      ('Número celular', user?.cellPhone.trim() ?? ''),
+      ('Número celular', _colombianPhone(user?.cellPhone)),
       ('Correo electrónico', user?.email.trim() ?? ''),
     ].where((detail) => detail.$2.isNotEmpty).toList(growable: false);
     final animalDetails = <(String, String)>[
@@ -529,11 +532,11 @@ SharedFilePatientAnalysisEntity _patient(AnimalModel animal) {
 SharedFileTutorAnalysisEntity _tutor(UserEntity? user, AnimalModel animal) {
   return SharedFileTutorAnalysisEntity(
     name: _firstNotEmpty([user?.name, animal.ownerName]),
-    identification: _joinValues([
+    identification: _maskedIdentification(
       user?.identificationType,
       user?.identificationNumber,
-    ]),
-    phoneNumber: user?.cellPhone.trim() ?? '',
+    ),
+    phoneNumber: _colombianPhone(user?.cellPhone),
     additionalDetails: [
       if (user?.email.trim().isNotEmpty ?? false)
         SharedFileAnalysisDetailEntity(
@@ -581,3 +584,35 @@ String _joinValues(List<String?> values) => values
     .map((value) => value?.trim() ?? '')
     .where((value) => value.isNotEmpty)
     .join(' ');
+
+String _maskedIdentification(String? rawType, String? rawNumber) {
+  final type = _normalizedIdentificationType(rawType);
+  final number = (rawNumber ?? '').replaceAll(RegExp(r'[^a-zA-Z0-9]'), '');
+  if (number.isEmpty) return type;
+
+  final hiddenLength = number.length > 4 ? number.length - 4 : 0;
+  final maskedNumber =
+      '${List.filled(hiddenLength, '*').join()}${number.substring(hiddenLength)}';
+  return _joinValues([type, maskedNumber]);
+}
+
+String _normalizedIdentificationType(String? value) {
+  final raw = value?.trim() ?? '';
+  final normalized = raw.replaceAll(RegExp(r'[.\s]'), '').toUpperCase();
+  return switch (normalized) {
+    'CC' => 'C.C.',
+    'CE' => 'C.E.',
+    'TI' => 'T.I.',
+    _ => raw.toUpperCase(),
+  };
+}
+
+String _colombianPhone(String? value) {
+  var digits = (value ?? '').replaceAll(RegExp(r'\D'), '');
+  if (digits.startsWith('0057') && digits.length > 10) {
+    digits = digits.substring(4);
+  } else if (digits.startsWith('57') && digits.length > 10) {
+    digits = digits.substring(2);
+  }
+  return digits.isEmpty ? '' : '(+57) $digits';
+}
