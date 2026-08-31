@@ -271,8 +271,8 @@ List<MedicalDocumentItemEntity> _visibleItems(
   ],
   MedicalDocumentCategory.vaccinationCard => extraction.vaccinations,
   MedicalDocumentCategory.clinicalHistory => extraction.diagnosticResults,
-  MedicalDocumentCategory.diagnosticImage => const [],
-  MedicalDocumentCategory.laboratoryResult => extraction.diagnosticResults,
+  MedicalDocumentCategory.diagnosticImage => extraction.diagnosticImages,
+  MedicalDocumentCategory.laboratoryResult => extraction.laboratoryResults,
   MedicalDocumentCategory.other => const [],
 };
 
@@ -282,7 +282,7 @@ String? _itemsTitle(MedicalDocumentCategory category) => switch (category) {
   MedicalDocumentCategory.referral => 'Resultados diagnósticos',
   MedicalDocumentCategory.vaccinationCard => 'Vacunas',
   MedicalDocumentCategory.clinicalHistory => 'Resultados diagnósticos',
-  MedicalDocumentCategory.diagnosticImage => null,
+  MedicalDocumentCategory.diagnosticImage => 'Imágenes diagnósticas',
   MedicalDocumentCategory.laboratoryResult => 'Resultados de laboratorio',
   MedicalDocumentCategory.other => null,
 };
@@ -384,6 +384,11 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
         title: 'Referral',
         details: _detailsFromMap(extraction.referral!),
       ),
+    if (_hasValue(extraction.laboratoryReport))
+      SharedFileAnalysisSectionEntity(
+        title: 'Informe de laboratorio',
+        details: _detailsFromMap(extraction.laboratoryReport!),
+      ),
     ..._additionalFieldSections(
       extraction.additionalFields,
       allowedStructuredKeys: {
@@ -394,6 +399,9 @@ List<SharedFileAnalysisSectionEntity> _structuredSections(
         if (extraction.clinicalHistory == null) 'clinicalHistory',
         if (extraction.diagnosticResults.isEmpty) 'diagnosticResults',
         if (extraction.referral == null) 'referral',
+        if (extraction.diagnosticImages.isEmpty) 'diagnosticImages',
+        if (extraction.laboratoryReport == null) 'laboratoryReport',
+        if (extraction.laboratoryResults.isEmpty) 'laboratoryResults',
       },
     ),
   ];
@@ -542,6 +550,9 @@ bool _isStructuredExtractionKey(String key) {
     'clinicalHistory',
     'diagnosticResults',
     'referral',
+    'diagnosticImages',
+    'laboratoryReport',
+    'laboratoryResults',
     'warnings',
   }.contains(key);
 }

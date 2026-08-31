@@ -318,6 +318,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
   final Map<String, dynamic>? clinicalHistory;
   final List<MedicalDocumentItemEntity> diagnosticResults;
   final Map<String, dynamic>? referral;
+  final List<MedicalDocumentItemEntity> diagnosticImages;
+  final Map<String, dynamic>? laboratoryReport;
+  final List<MedicalDocumentItemEntity> laboratoryResults;
   final Map<String, dynamic> additionalFields;
   final List<String> warnings;
 
@@ -337,6 +340,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
     this.clinicalHistory,
     this.diagnosticResults = const [],
     this.referral,
+    this.diagnosticImages = const [],
+    this.laboratoryReport,
+    this.laboratoryResults = const [],
     this.additionalFields = const {},
     this.warnings = const [],
   });
@@ -351,6 +357,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
     ...vaccinations.map((item) => item.id),
     ...medicalOrders.map((item) => item.id),
     ...diagnosticResults.map((item) => item.id),
+    ...diagnosticImages.map((item) => item.id),
+    ...laboratoryResults.map((item) => item.id),
   ];
 
   MedicalDocumentExtractionEntity copyWith({
@@ -369,6 +377,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
     Map<String, dynamic>? clinicalHistory,
     List<MedicalDocumentItemEntity>? diagnosticResults,
     Map<String, dynamic>? referral,
+    List<MedicalDocumentItemEntity>? diagnosticImages,
+    Map<String, dynamic>? laboratoryReport,
+    List<MedicalDocumentItemEntity>? laboratoryResults,
     Map<String, dynamic>? additionalFields,
     List<String>? warnings,
   }) {
@@ -389,6 +400,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
       clinicalHistory: clinicalHistory ?? this.clinicalHistory,
       diagnosticResults: diagnosticResults ?? this.diagnosticResults,
       referral: referral ?? this.referral,
+      diagnosticImages: diagnosticImages ?? this.diagnosticImages,
+      laboratoryReport: laboratoryReport ?? this.laboratoryReport,
+      laboratoryResults: laboratoryResults ?? this.laboratoryResults,
       additionalFields: additionalFields ?? this.additionalFields,
       warnings: warnings ?? this.warnings,
     );
@@ -431,13 +445,23 @@ class MedicalDocumentExtractionEntity extends Equatable {
           : null,
       diagnosticResults:
           category == MedicalDocumentCategory.referral ||
-              category == MedicalDocumentCategory.clinicalHistory ||
-              category == MedicalDocumentCategory.laboratoryResult
+              category == MedicalDocumentCategory.clinicalHistory
           ? _copyItems(diagnosticResults)
           : const [],
       referral: category == MedicalDocumentCategory.referral && referral != null
           ? _deepCopyMap(referral!)
           : null,
+      diagnosticImages: category == MedicalDocumentCategory.diagnosticImage
+          ? _copyItems(diagnosticImages)
+          : const [],
+      laboratoryReport:
+          category == MedicalDocumentCategory.laboratoryResult &&
+              laboratoryReport != null
+          ? _deepCopyMap(laboratoryReport!)
+          : null,
+      laboratoryResults: category == MedicalDocumentCategory.laboratoryResult
+          ? _copyItems(laboratoryResults)
+          : const [],
       additionalFields: _deepCopyMap(additionalFields),
       warnings: List.unmodifiable(warnings),
     );
@@ -460,6 +484,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
     clinicalHistory,
     diagnosticResults,
     referral,
+    diagnosticImages,
+    laboratoryReport,
+    laboratoryResults,
     additionalFields,
     warnings,
   ];

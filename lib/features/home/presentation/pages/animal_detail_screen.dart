@@ -6,6 +6,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
@@ -16,6 +17,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+
+typedef MedicalDocumentAvailabilityLoader =
+    Future<bool> Function(String animalId, MedicalDocumentCategory category);
 
 /// Detail screen for a single animal.
 ///
@@ -27,8 +33,13 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_scr
 /// - Top menu overlay accessible via trigger
 class AnimalDetailScreen extends StatefulWidget {
   final AnimalModel animal;
+  final MedicalDocumentAvailabilityLoader? hasMedicalDocuments;
 
-  const AnimalDetailScreen({super.key, required this.animal});
+  const AnimalDetailScreen({
+    super.key,
+    required this.animal,
+    this.hasMedicalDocuments,
+  });
 
   @override
   State<AnimalDetailScreen> createState() => _AnimalDetailScreenState();
@@ -479,8 +490,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   arguments: animal.id,
                 );
               } else if (entry.value == 'Imágenes diagnósticas') {
-                _openEmptyFeature(
+                _openMedicalFileSection(
                   animal: animal,
+                  category: MedicalDocumentCategory.diagnosticImage,
                   title: 'Imágenes diagnósticas',
                   continueRoute: AppRoutes.animalDiagnosticImages,
                   mainText: 'Actualmente no tiene archivos subidos',
@@ -490,8 +502,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                       'del animal.',
                 );
               } else if (entry.value == 'Resultados de laboratorio') {
-                _openEmptyFeature(
+                _openMedicalFileSection(
                   animal: animal,
+                  category: MedicalDocumentCategory.laboratoryResult,
                   title: 'Resultados de laboratorio',
                   continueRoute: AppRoutes.animalLaboratoryResults,
                   mainText: 'Actualmente no tiene registros',
@@ -514,6 +527,52 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       AppRoutes.animalClinicalHistory,
       arguments: animal,
     );
+  }
+
+  Future<void> _openMedicalFileSection({
+    required AnimalModel animal,
+    required MedicalDocumentCategory category,
+    required String title,
+    required String continueRoute,
+    required String mainText,
+    required String subText,
+  }) async {
+    late final bool hasDocuments;
+    try {
+      hasDocuments =
+          await (widget.hasMedicalDocuments?.call(animal.id, category) ??
+              _hasMedicalDocuments(animal.id, category));
+    } catch (_) {
+      if (mounted) {
+        await Navigator.pushNamed(context, continueRoute, arguments: animal);
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    if (hasDocuments) {
+      await Navigator.pushNamed(context, continueRoute, arguments: animal);
+      return;
+    }
+    _openEmptyFeature(
+      animal: animal,
+      title: title,
+      continueRoute: continueRoute,
+      mainText: mainText,
+      subText: subText,
+    );
+  }
+
+  Future<bool> _hasMedicalDocuments(
+    String animalId,
+    MedicalDocumentCategory category,
+  ) async {
+    final documents = await di.sl<GetAnimalMedicalDocumentsUseCase>()(
+      animalId,
+      category: category,
+      forceRefresh: true,
+    );
+    return documents.isNotEmpty;
   }
 
   void _openEmptyFeature({

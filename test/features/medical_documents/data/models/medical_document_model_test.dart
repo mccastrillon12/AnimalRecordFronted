@@ -23,14 +23,14 @@ void main() {
     );
   });
 
-  test('keeps laboratory results when that category is selected', () {
+  test('keeps only laboratory results when that category is selected', () {
     const result = MedicalDocumentItemEntity(
       id: 'result-1',
-      fields: {'test': 'Hemograma', 'result': 'Normal'},
+      fields: {'name': 'Hemograma', 'result': '15', 'flag': '*'},
     );
     const extraction = MedicalDocumentExtractionEntity(
-      documentType: MedicalDocumentCategory.clinicalHistory,
-      diagnosticResults: [result],
+      documentType: MedicalDocumentCategory.laboratoryResult,
+      laboratoryResults: [result],
     );
 
     final sanitized = extraction.sanitizedFor(
@@ -38,8 +38,79 @@ void main() {
     );
 
     expect(sanitized.documentType, MedicalDocumentCategory.laboratoryResult);
-    expect(sanitized.diagnosticResults, const [result]);
+    expect(sanitized.diagnosticResults, isEmpty);
+    expect(sanitized.laboratoryResults, const [result]);
   });
+
+  test(
+    'parses and serializes diagnostic images and laboratory fields verbatim',
+    () {
+      final model = MedicalDocumentModel.fromJson({
+        'id': 'laboratory-document',
+        'animalIds': ['animal-1'],
+        'originalFileName': 'laboratorio.pdf',
+        'mimeType': 'application/pdf',
+        'fileSize': 100,
+        'status': 'REVIEW_PENDING',
+        'extractionsByCategory': {
+          'LABORATORY_RESULT': {
+            'documentType': 'LABORATORY_RESULT',
+            'laboratoryReport': {
+              'orderNumber': '21010685',
+              'reportedComments': ['* Resultado confirmado'],
+            },
+            'laboratoryResults': [
+              {
+                'id': 'laboratory-result-1',
+                'panel': 'QUIMICA SANGUINEA',
+                'name': 'Urea',
+                'result': '15',
+                'unit': 'mg/dl',
+                'referenceRange': '24,0 60,0',
+                'flag': '*',
+              },
+            ],
+          },
+          'DIAGNOSTIC_IMAGE': {
+            'documentType': 'DIAGNOSTIC_IMAGE',
+            'diagnosticImages': [
+              {
+                'id': 'image-1',
+                'name': 'Radiografía lateral',
+                'modality': 'RX',
+              },
+            ],
+          },
+        },
+        'detectedCategories': [],
+        'assignments': [],
+        'version': 1,
+      });
+
+      final laboratory = model
+          .extractionsByCategory[MedicalDocumentCategory.laboratoryResult]!;
+      expect(laboratory.laboratoryReport?['reportedComments'], [
+        '* Resultado confirmado',
+      ]);
+      expect(laboratory.laboratoryResults.single.fields['flag'], '*');
+      expect(
+        laboratory.laboratoryResults.single.fields['referenceRange'],
+        '24,0 60,0',
+      );
+      expect(
+        model
+            .extractionsByCategory[MedicalDocumentCategory.diagnosticImage]
+            ?.diagnosticImages
+            .single
+            .fields['modality'],
+        'RX',
+      );
+
+      final payload = MedicalDocumentModel.extractionToJson(laboratory);
+      expect((payload['laboratoryResults'] as List).single['result'], '15');
+      expect((payload['laboratoryResults'] as List).single['flag'], '*');
+    },
+  );
 
   test('parses the complete backend response without losing category data', () {
     final model = MedicalDocumentModel.fromJson({
@@ -203,7 +274,7 @@ void main() {
     expect(payload, {
       'decision': 'REJECT',
       'documentVersion': 5,
-      'rejectionReasonCode': 'OTHER',
+      'rejectionReason': 'OTHER',
       'rejectionComment': 'La imagen está borrosa',
     });
   });

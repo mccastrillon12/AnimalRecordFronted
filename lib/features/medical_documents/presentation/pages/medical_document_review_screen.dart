@@ -1,5 +1,4 @@
 import 'package:animal_record/core/injection_container.dart' as di;
-import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
@@ -33,7 +32,6 @@ class _MedicalDocumentReviewScreenState
   bool _completionHandled = false;
   bool _canPop = false;
   bool _isDiscarding = false;
-  bool _showCancellationOverlay = false;
 
   @override
   void initState() {
@@ -74,36 +72,17 @@ class _MedicalDocumentReviewScreenState
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return Stack(
-            children: [
-              SharedFileAnalysisReviewScreen(
-                analysis: medicalDocumentToAnalysis(
-                  document: document,
-                  extraction: extraction,
-                ),
-                isSubmitting:
-                    state.phase == MedicalDocumentFlowPhase.submitting,
-                onSubmit: () =>
-                    context.read<MedicalDocumentFlowCubit>().accept(),
-                onDoNotUpload: _showRejectionDialog,
-                onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
-                onClose: _discardAndClose,
-                closeIconKey: _reviewCloseIconKey,
-              ),
-              if (_showCancellationOverlay) ...[
-                const Positioned.fill(
-                  child: ModalBarrier(
-                    dismissible: false,
-                    color: AppColors.overlayBlack,
-                  ),
-                ),
-                const Positioned.fill(
-                  child: Center(
-                    child: CircularProgressIndicator(color: AppColors.white),
-                  ),
-                ),
-              ],
-            ],
+          return SharedFileAnalysisReviewScreen(
+            analysis: medicalDocumentToAnalysis(
+              document: document,
+              extraction: extraction,
+            ),
+            isSubmitting: state.phase == MedicalDocumentFlowPhase.submitting,
+            onSubmit: () => context.read<MedicalDocumentFlowCubit>().accept(),
+            onDoNotUpload: _showRejectionDialog,
+            onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+            onClose: _discardAndClose,
+            closeIconKey: _reviewCloseIconKey,
           );
         },
       ),
@@ -117,38 +96,16 @@ class _MedicalDocumentReviewScreenState
   }
 
   Future<void> _showRejectionDialog() async {
-    var cancelRequested = false;
     final reason = await showMedicalDocumentRejectionDialog(
       context: context,
       loadReasons: di.sl<GetMedicalDocumentRejectionReasonsUseCase>(),
-      onCancel: () async {
-        cancelRequested = true;
-        if (!mounted) return;
-        setState(() => _showCancellationOverlay = true);
-        await _discardForCancellation();
-      },
     );
     if (!mounted) return;
-    if (cancelRequested) {
-      _popWithResult(MedicalDocumentReviewOutcome.cancelled);
-      return;
-    }
     if (reason == null) return;
     await context.read<MedicalDocumentFlowCubit>().reject(
       reasonCode: reason.reason.code,
       comment: reason.comment,
     );
-  }
-
-  Future<void> _discardForCancellation() async {
-    if (_isDiscarding) return;
-    _isDiscarding = true;
-    await context.read<MedicalDocumentFlowCubit>().discardCurrentFlow(
-      showSubmittingState: false,
-      resetStateAfterDiscard: false,
-    );
-    if (!mounted) return;
-    _isDiscarding = false;
   }
 
   void _popWithResult(MedicalDocumentReviewOutcome result) {

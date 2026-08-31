@@ -154,6 +154,128 @@ void main() {
     );
   });
 
+  test(
+    'keeps diagnostic images and laboratory results in their own categories',
+    () {
+      final diagnosticImageRequest = ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        validatedExtraction: const MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.diagnosticImage,
+          diagnosticImages: [
+            MedicalDocumentItemEntity(id: 'image-1', fields: {'name': 'RX'}),
+          ],
+        ),
+        assignments: const [
+          MedicalDocumentAssignmentEntity(
+            animalId: animal1,
+            extractedItemIds: ['image-1'],
+          ),
+          MedicalDocumentAssignmentEntity(animalId: animal2),
+        ],
+      );
+      final laboratoryRequest = ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.laboratoryResult,
+        validatedExtraction: const MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.laboratoryResult,
+          laboratoryReport: {
+            'reportedComments': ['* Resultado confirmado'],
+          },
+          laboratoryResults: [
+            MedicalDocumentItemEntity(
+              id: 'laboratory-result-1',
+              fields: {'name': 'Urea', 'result': '15', 'flag': '*'},
+            ),
+          ],
+        ),
+        assignments: const [
+          MedicalDocumentAssignmentEntity(
+            animalId: animal1,
+            extractedItemIds: ['laboratory-result-1'],
+          ),
+          MedicalDocumentAssignmentEntity(animalId: animal2),
+        ],
+      );
+
+      expect(
+        () => MedicalDocumentContractValidator.validateReview(
+          request: diagnosticImageRequest,
+          originalAnimalIds: const [animal1, animal2],
+        ),
+        returnsNormally,
+      );
+      expect(
+        () => MedicalDocumentContractValidator.validateReview(
+          request: laboratoryRequest,
+          originalAnimalIds: const [animal1, animal2],
+        ),
+        returnsNormally,
+      );
+    },
+  );
+
+  test('rejects laboratory fields mixed into another final category', () {
+    final request = ReviewMedicalDocumentRequest.accept(
+      documentVersion: 2,
+      finalCategory: MedicalDocumentCategory.diagnosticImage,
+      validatedExtraction: const MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.diagnosticImage,
+        diagnosticImages: [MedicalDocumentItemEntity(id: 'image-1')],
+        laboratoryResults: [MedicalDocumentItemEntity(id: 'result-1')],
+      ),
+      assignments: const [
+        MedicalDocumentAssignmentEntity(animalId: animal1),
+        MedicalDocumentAssignmentEntity(animalId: animal2),
+      ],
+    );
+
+    expect(
+      () => MedicalDocumentContractValidator.validateReview(
+        request: request,
+        originalAnimalIds: const [animal1, animal2],
+      ),
+      throwsA(isA<MedicalDocumentContractException>()),
+    );
+  });
+
+  test('requires a backend rejection reason and comment for OTHER', () {
+    final withoutReason = ReviewMedicalDocumentRequest.reject(
+      documentVersion: 2,
+    );
+    final otherWithoutComment = ReviewMedicalDocumentRequest.reject(
+      documentVersion: 2,
+      rejectionReasonCode: 'OTHER',
+    );
+    final valid = ReviewMedicalDocumentRequest.reject(
+      documentVersion: 2,
+      rejectionReasonCode: 'OTHER',
+      rejectionComment: 'El archivo no corresponde al animal.',
+    );
+
+    expect(
+      () => MedicalDocumentContractValidator.validateReview(
+        request: withoutReason,
+        originalAnimalIds: const [animal1, animal2],
+      ),
+      throwsA(isA<MedicalDocumentContractException>()),
+    );
+    expect(
+      () => MedicalDocumentContractValidator.validateReview(
+        request: otherWithoutComment,
+        originalAnimalIds: const [animal1, animal2],
+      ),
+      throwsA(isA<MedicalDocumentContractException>()),
+    );
+    expect(
+      () => MedicalDocumentContractValidator.validateReview(
+        request: valid,
+        originalAnimalIds: const [animal1, animal2],
+      ),
+      returnsNormally,
+    );
+  });
+
   test('creates a detached category draft without sharing mutable maps', () {
     final originalFields = <String, dynamic>{
       'name': 'Medicine',

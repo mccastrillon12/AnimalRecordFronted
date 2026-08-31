@@ -6,6 +6,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/animal_file_records_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -133,6 +134,59 @@ void main() {
     expect(listGap.height, 16);
   });
 
+  testWidgets('shows diagnostic images as 140 by 100 thumbnails', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const document = MedicalDocumentEntity(
+      id: 'diagnostic-image-1',
+      documentCode: 'I-57-01',
+      animalIds: ['animal-1'],
+      originalFileName: 'radiografia-lateral.png',
+      mimeType: 'image/png',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.diagnosticImage,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.diagnosticImage,
+        diagnosticImages: [
+          MedicalDocumentItemEntity(
+            id: 'image-1',
+            fields: {'name': 'Radiografía lateral'},
+          ),
+        ],
+      ),
+      version: 2,
+    );
+
+    await _pumpRecordsScreen(
+      tester,
+      section: AnimalFileRecordSection.diagnosticImages,
+      documents: const [document],
+      diagnosticThumbnailUriLoader: (_) async =>
+          Uri.parse('https://example.test/radiografia-lateral.png'),
+    );
+
+    final thumbnail = tester.widget<Container>(
+      find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+    );
+    expect(thumbnail.constraints?.maxWidth, 140);
+    expect(thumbnail.constraints?.maxHeight, 100);
+    expect(find.text('radiografia-lateral.png'), findsOneWidget);
+    expect(find.textContaining('Adjunto:'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(
+          const Key('diagnostic-image-thumbnail-diagnostic-image-1'),
+        ),
+        matching: find.byType(Image),
+      ),
+      findsOneWidget,
+    );
+  });
+
   testWidgets('reuses the existing animal document upload flow', (
     tester,
   ) async {
@@ -203,6 +257,7 @@ Future<void> _pumpRecordsScreen(
   WidgetTester tester, {
   required AnimalFileRecordSection section,
   List<MedicalDocumentEntity> documents = const [],
+  MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader,
 }) async {
   final documentsCubit = _MockAnimalMedicalDocumentsCubit();
   final category = switch (section) {
@@ -220,7 +275,11 @@ Future<void> _pumpRecordsScreen(
     BlocProvider<AnimalMedicalDocumentsCubit>.value(
       value: documentsCubit,
       child: MaterialApp(
-        home: AnimalFileRecordsScreen(animal: _animal, section: section),
+        home: AnimalFileRecordsScreen(
+          animal: _animal,
+          section: section,
+          diagnosticThumbnailUriLoader: diagnosticThumbnailUriLoader,
+        ),
       ),
     ),
   );

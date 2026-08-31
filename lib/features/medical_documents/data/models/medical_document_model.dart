@@ -148,6 +148,9 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       clinicalHistory: _nullableMap(json['clinicalHistory']),
       diagnosticResults: items(json['diagnosticResults']),
       referral: _nullableMap(json['referral']),
+      diagnosticImages: items(json['diagnosticImages']),
+      laboratoryReport: _nullableMap(json['laboratoryReport']),
+      laboratoryResults: items(json['laboratoryResults']),
       additionalFields: additionalFields,
       warnings: _strings(json['warnings']),
     );
@@ -212,6 +215,16 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
             .map(itemToJson)
             .toList(),
       if (extraction.referral != null) 'referral': extraction.referral,
+      if (extraction.diagnosticImages.isNotEmpty)
+        'diagnosticImages': extraction.diagnosticImages
+            .map(itemToJson)
+            .toList(),
+      if (extraction.laboratoryReport != null)
+        'laboratoryReport': extraction.laboratoryReport,
+      if (extraction.laboratoryResults.isNotEmpty)
+        'laboratoryResults': extraction.laboratoryResults
+            .map(itemToJson)
+            .toList(),
       'additionalFields': extraction.additionalFields,
       'warnings': extraction.warnings,
     };
@@ -225,7 +238,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
         'decision': 'REJECT',
         'documentVersion': request.documentVersion,
         if (request.rejectionReasonCode != null)
-          'rejectionReasonCode': request.rejectionReasonCode,
+          'rejectionReason': request.rejectionReasonCode,
         if (request.rejectionComment != null)
           'rejectionComment': request.rejectionComment,
       };

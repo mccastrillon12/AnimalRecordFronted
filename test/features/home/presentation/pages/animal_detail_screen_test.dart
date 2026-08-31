@@ -81,7 +81,10 @@ void main() {
             AppRoutes.animalLaboratoryResults: (_) =>
                 const Scaffold(body: Text('Listado de resultados')),
           },
-          home: const AnimalDetailScreen(animal: _animal),
+          home: AnimalDetailScreen(
+            animal: _animal,
+            hasMedicalDocuments: (_, _) async => false,
+          ),
         ),
       ),
     );
@@ -165,6 +168,59 @@ void main() {
 
     expect(find.text('Listado de resultados'), findsOneWidget);
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('opens saved diagnostic and laboratory records directly', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(
+      () => animalCubit.state,
+    ).thenReturn(const AnimalsLoaded([_animalEntity]));
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          routes: {
+            AppRoutes.animalDiagnosticImages: (_) =>
+                const Scaffold(body: Text('Listado diagnóstico guardado')),
+            AppRoutes.animalLaboratoryResults: (_) =>
+                const Scaffold(body: Text('Listado laboratorio guardado')),
+          },
+          home: AnimalDetailScreen(
+            animal: _animal,
+            hasMedicalDocuments: (_, _) async => true,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final diagnosticImages = find.text('Imágenes diagnósticas');
+    await tester.ensureVisible(diagnosticImages);
+    await tester.tap(diagnosticImages);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listado diagnóstico guardado'), findsOneWidget);
+    expect(find.text('Actualmente no tiene archivos subidos'), findsNothing);
+
+    Navigator.of(
+      tester.element(find.text('Listado diagnóstico guardado')),
+    ).pop();
+    await tester.pumpAndSettle();
+
+    final laboratoryResults = find.text('Resultados de laboratorio');
+    await tester.ensureVisible(laboratoryResults);
+    await tester.tap(laboratoryResults);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Listado laboratorio guardado'), findsOneWidget);
+    expect(find.text('Actualmente no tiene registros'), findsNothing);
   });
 }
 

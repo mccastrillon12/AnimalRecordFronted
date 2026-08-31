@@ -66,7 +66,27 @@ abstract final class MedicalDocumentContractValidator {
         'No se recibió una versión válida del archivo.',
       );
     }
-    if (request.decision == MedicalDocumentReviewDecision.reject) return;
+    if (request.decision == MedicalDocumentReviewDecision.reject) {
+      const validReasons = {'INCORRECT_INFORMATION', 'WRONG_ANIMAL', 'OTHER'};
+      final reason = request.rejectionReasonCode?.trim();
+      if (reason == null || !validReasons.contains(reason)) {
+        throw const MedicalDocumentContractException(
+          'Selecciona un motivo válido para no subir el archivo.',
+        );
+      }
+      final comment = request.rejectionComment?.trim() ?? '';
+      if (reason == 'OTHER' && comment.isEmpty) {
+        throw const MedicalDocumentContractException(
+          'Describe el motivo por el cual no deseas subir el archivo.',
+        );
+      }
+      if (comment.length > 500) {
+        throw const MedicalDocumentContractException(
+          'El comentario del rechazo no puede superar 500 caracteres.',
+        );
+      }
+      return;
+    }
 
     final category = request.finalCategory;
     final extraction = request.validatedExtraction;
@@ -137,8 +157,7 @@ abstract final class MedicalDocumentContractValidator {
         category == MedicalDocumentCategory.referral;
     final diagnosticResultsAllowed =
         category == MedicalDocumentCategory.referral ||
-        category == MedicalDocumentCategory.clinicalHistory ||
-        category == MedicalDocumentCategory.laboratoryResult;
+        category == MedicalDocumentCategory.clinicalHistory;
 
     return (!diagnosesAllowed && extraction.diagnoses.isNotEmpty) ||
         (!medicationsAllowed && extraction.medications.isNotEmpty) ||
@@ -151,6 +170,12 @@ abstract final class MedicalDocumentContractValidator {
         (!diagnosticResultsAllowed &&
             extraction.diagnosticResults.isNotEmpty) ||
         (category != MedicalDocumentCategory.referral &&
-            extraction.referral != null);
+            extraction.referral != null) ||
+        (category != MedicalDocumentCategory.diagnosticImage &&
+            extraction.diagnosticImages.isNotEmpty) ||
+        (category != MedicalDocumentCategory.laboratoryResult &&
+            extraction.laboratoryReport != null) ||
+        (category != MedicalDocumentCategory.laboratoryResult &&
+            extraction.laboratoryResults.isNotEmpty);
   }
 }

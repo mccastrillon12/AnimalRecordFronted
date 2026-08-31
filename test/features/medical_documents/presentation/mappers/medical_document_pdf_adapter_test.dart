@@ -582,4 +582,79 @@ void main() {
     expect(analysis.sourceDateLabel, 'Document Date');
     expect(analysis.originalFileNameLabel, 'Original File Name');
   });
+
+  test(
+    'renders diagnostic images and laboratory values without interpretation',
+    () {
+      const diagnosticExtraction = MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.diagnosticImage,
+        diagnosticImages: [
+          MedicalDocumentItemEntity(
+            id: 'image-1',
+            fields: {
+              'name': 'Radiografía lateral',
+              'modality': 'RX',
+              'reportedDiagnosis': 'Hallazgo descrito en el informe',
+            },
+          ),
+        ],
+      );
+      const laboratoryExtraction = MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.laboratoryResult,
+        laboratoryReport: {
+          'reportNumber': 'LAB-1',
+          'reportedComments': ['* Resultado confirmado'],
+        },
+        laboratoryResults: [
+          MedicalDocumentItemEntity(
+            id: 'laboratory-result-1',
+            fields: {
+              'panel': 'QUÍMICA SANGUÍNEA',
+              'name': 'Urea',
+              'result': '15',
+              'unit': 'mg/dl',
+              'referenceRange': '24,0 60,0',
+              'flag': '*',
+            },
+          ),
+        ],
+      );
+      const document = MedicalDocumentEntity(
+        id: 'diagnostic-document',
+        animalIds: ['animal-1'],
+        originalFileName: 'documento.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        version: 2,
+      );
+
+      final images = medicalDocumentToAnalysis(
+        document: document,
+        extraction: diagnosticExtraction,
+      );
+      final laboratory = medicalDocumentToAnalysis(
+        document: document,
+        extraction: laboratoryExtraction,
+      );
+
+      expect(images.itemsTitle, 'Imágenes diagnósticas');
+      expect(images.medications.single.name, 'Radiografía lateral');
+      expect(images.medications.single.instructions, contains('RX'));
+      expect(laboratory.itemsTitle, 'Resultados de laboratorio');
+      expect(laboratory.medications.single.name, 'Urea');
+      expect(
+        laboratory.medications.single.instructions,
+        contains('Result: 15'),
+      );
+      expect(laboratory.medications.single.instructions, contains('Flag: *'));
+      expect(
+        laboratory.sections
+            .singleWhere((section) => section.title == 'Informe de laboratorio')
+            .details
+            .map((detail) => detail.value),
+        ['LAB-1', '* Resultado confirmado'],
+      );
+    },
+  );
 }

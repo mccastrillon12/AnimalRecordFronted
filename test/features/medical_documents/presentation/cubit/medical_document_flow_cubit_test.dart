@@ -138,7 +138,7 @@ void main() {
     },
   );
 
-  test('rejects and clears a review cancelled by the user', () async {
+  test('clears a cancelled review locally without rejecting it', () async {
     final repository = _FakeMedicalDocumentsRepository(
       analyzeResponse: _document(MedicalDocumentStatus.analyzing),
       getResponses: [_document(MedicalDocumentStatus.reviewPending)],
@@ -157,10 +157,7 @@ void main() {
     final discarded = await cubit.discardCurrentFlow();
 
     expect(discarded, isTrue);
-    expect(
-      repository.lastReviewRequest?.decision,
-      MedicalDocumentReviewDecision.reject,
-    );
+    expect(repository.lastReviewRequest, isNull);
     expect(cubit.state.phase, MedicalDocumentFlowPhase.selecting);
     expect(cubit.state.remoteDocument, isNull);
     expect(pending.value, isNull);
@@ -215,6 +212,7 @@ void main() {
     );
 
     expect(discarded, isTrue);
+    expect(repository.lastReviewRequest, isNull);
     expect(emittedPhases, isNot(contains(MedicalDocumentFlowPhase.submitting)));
     expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
     expect(pending.value, isNull);
@@ -315,10 +313,12 @@ void main() {
         cubit.state.remoteDocument?.classificationOutcome,
         MedicalDocumentClassificationOutcome.unclassified,
       );
+      expect(cubit.state.selectedFinalCategory, MedicalDocumentCategory.other);
       expect(
-        cubit.state.selectedFinalCategory,
-        MedicalDocumentCategory.prescription,
+        cubit.state.draftExtraction?.documentType,
+        MedicalDocumentCategory.other,
       );
+      cubit.selectFinalCategory(MedicalDocumentCategory.prescription);
       expect(
         cubit.state.draftExtraction?.documentType,
         MedicalDocumentCategory.prescription,
@@ -346,7 +346,7 @@ void main() {
       file: file,
       animalIds: const [animal1Id, animal2Id],
     );
-    await cubit.reject();
+    await cubit.reject(reasonCode: 'WRONG_ANIMAL');
 
     expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
     expect(cubit.state.remoteDocument?.version, 5);
@@ -386,7 +386,7 @@ void main() {
   );
 
   test(
-    'preserves detected content only when the user selects another category',
+    'creates a clean category draft when the user selects another category',
     () async {
       final repository = _FakeMedicalDocumentsRepository(
         analyzeResponse: _document(MedicalDocumentStatus.analyzing),
@@ -406,36 +406,21 @@ void main() {
       final draft = cubit.state.draftExtraction!;
       expect(draft.documentType, MedicalDocumentCategory.clinicalHistory);
       expect(draft.vaccinations, isEmpty);
-      expect(draft.patient?.name, 'Chuleta');
-      expect(draft.additionalFields['vaccinations'], [
-        {
-          'id': 'vaccination-1',
-          'name': 'Canine Combination',
-          'applicationDate': 'February 23, 2023',
-          'manufacturer': 'Nobivac',
-          'route': 'INTRANASAL',
-          'confidence': 0.869140625,
-          'source': {'page': 1, 'text': 'Vaccination row'},
-        },
-      ]);
-      expect(draft.warnings, ['Do not display or persist']);
+      expect(draft.patient, isNull);
+      expect(draft.additionalFields, isEmpty);
+      expect(draft.warnings, isEmpty);
 
       await cubit.accept();
 
       final request = repository.lastReviewRequest!;
       expect(request.finalCategory, MedicalDocumentCategory.clinicalHistory);
       expect(request.validatedExtraction?.vaccinations, isEmpty);
-      expect(
-        request.validatedExtraction?.additionalFields['vaccinations'],
-        draft.additionalFields['vaccinations'],
-      );
-      expect(request.validatedExtraction?.warnings, [
-        'Do not display or persist',
-      ]);
+      expect(request.validatedExtraction?.additionalFields, isEmpty);
+      expect(request.validatedExtraction?.warnings, isEmpty);
     },
   );
 
-  test('preserves every structured block across category mismatches', () async {
+  test('does not carry structured blocks across category mismatches', () async {
     final cases =
         <
           ({
@@ -528,7 +513,7 @@ void main() {
       expect(cubit.state.draftExtraction?.documentType, testCase.selected);
       expect(
         cubit.state.draftExtraction?.additionalFields[testCase.preservedKey],
-        isNotNull,
+        isNull,
         reason:
             '${testCase.detected.wireValue} -> '
             '${testCase.selected.wireValue}',

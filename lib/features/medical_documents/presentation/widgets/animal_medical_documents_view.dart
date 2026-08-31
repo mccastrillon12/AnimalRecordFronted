@@ -17,6 +17,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
+typedef MedicalDocumentThumbnailUriLoader =
+    Future<Uri> Function(String documentId);
+
 class AnimalMedicalDocumentsView extends StatelessWidget {
   final String animalId;
   final MedicalDocumentCategory category;
@@ -32,6 +35,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final Future<void> Function(MedicalDocumentAiFeedback feedback)? onAiFeedback;
   final bool initialAiFeedbackResponded;
   final Future<void> Function()? onAiFeedbackSubmitted;
+  final MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader;
 
   const AnimalMedicalDocumentsView({
     super.key,
@@ -49,6 +53,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     this.onAiFeedback,
     this.initialAiFeedbackResponded = false,
     this.onAiFeedbackSubmitted,
+    this.diagnosticThumbnailUriLoader,
   });
 
   @override
@@ -114,6 +119,16 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             title: emptyTitle,
             description: emptyDescription,
             bottomOffset: emptyBottomOffset,
+          );
+        }
+        if (category == MedicalDocumentCategory.diagnosticImage &&
+            !showAiFeedback) {
+          return _DiagnosticImagesGrid(
+            documents: documents,
+            loadThumbnailUri:
+                diagnosticThumbnailUriLoader ??
+                (documentId) =>
+                    di.sl<GetMedicalDocumentDownloadUriUseCase>()(documentId),
           );
         }
         return ListView.separated(
@@ -264,7 +279,13 @@ class _MedicalDocumentCard extends StatelessWidget {
             alignment: Alignment.centerRight,
             child: InkWell(
               key: Key('medical-document-detail-${document.id}'),
-              onTap: extraction == null ? null : () => _showDetail(context),
+              onTap: extraction == null
+                  ? null
+                  : () => _showMedicalDocumentDetail(
+                      context,
+                      document: document,
+                      category: category,
+                    ),
               child: Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: AppSpacing.xxs,
@@ -294,51 +315,192 @@ class _MedicalDocumentCard extends StatelessWidget {
       ),
     );
   }
+}
 
-  Future<void> _showDetail(BuildContext context) async {
-    final closeIconKey = GlobalKey();
-    final actionIconKey = GlobalKey();
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (detailContext) => SharedFileSendScreen(
-          analysis: medicalDocumentToPdfAnalysis(document: document),
-          closeIconKey: closeIconKey,
-          actionIconKey: actionIconKey,
-          onViewOriginal: () => _showOriginal(
-            detailContext,
-            closeIconKey: closeIconKey,
-            downloadIconKey: actionIconKey,
-          ),
-          resolveOriginalUri: () =>
-              di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
-          actionLabel: medicalDocumentSendActionLabel(category),
+class _DiagnosticImagesGrid extends StatelessWidget {
+  final List<MedicalDocumentEntity> documents;
+  final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
+
+  const _DiagnosticImagesGrid({
+    required this.documents,
+    required this.loadThumbnailUri,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Wrap(
+          spacing: AppSpacing.l,
+          runSpacing: AppSpacing.l,
+          children: [
+            for (final document in documents)
+              _DiagnosticImageTile(
+                document: document,
+                loadThumbnailUri: loadThumbnailUri,
+              ),
+          ],
         ),
       ),
     );
   }
+}
 
-  Future<void> _showOriginal(
-    BuildContext context, {
-    required GlobalKey closeIconKey,
-    GlobalKey? downloadIconKey,
-  }) async {
-    final preview = MedicalDocumentOriginalPreview(
-      getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
-      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
-    );
-    try {
-      await preview.show(
-        context,
-        acceptedDocumentId: document.id,
-        fileName: document.originalFileName,
-        mimeType: document.mimeType,
-        closeIconKey: closeIconKey,
-        downloadIconKey: downloadIconKey,
-      );
-    } catch (error) {
-      if (context.mounted) ErrorDisplay.showError(context, error.toString());
+class _DiagnosticImageTile extends StatefulWidget {
+  final MedicalDocumentEntity document;
+  final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
+
+  const _DiagnosticImageTile({
+    required this.document,
+    required this.loadThumbnailUri,
+  });
+
+  @override
+  State<_DiagnosticImageTile> createState() => _DiagnosticImageTileState();
+}
+
+class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
+  late Future<Uri> _thumbnailUri;
+
+  @override
+  void initState() {
+    super.initState();
+    _thumbnailUri = widget.loadThumbnailUri(widget.document.id);
+  }
+
+  @override
+  void didUpdateWidget(covariant _DiagnosticImageTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document.id != widget.document.id) {
+      _thumbnailUri = widget.loadThumbnailUri(widget.document.id);
     }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 140,
+      child: InkWell(
+        key: Key('diagnostic-image-${widget.document.id}'),
+        onTap: widget.document.validatedExtraction == null
+            ? null
+            : () => _showMedicalDocumentDetail(
+                context,
+                document: widget.document,
+                category: MedicalDocumentCategory.diagnosticImage,
+              ),
+        borderRadius: AppBorders.small(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              key: Key('diagnostic-image-thumbnail-${widget.document.id}'),
+              width: 140,
+              height: 100,
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                color: AppColors.bgBlancoAntiFlash,
+                border: Border.all(color: AppColors.greyDelineante),
+              ),
+              child: FutureBuilder<Uri>(
+                future: _thumbnailUri,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData) {
+                    return Image.network(
+                      snapshot.data.toString(),
+                      width: 140,
+                      height: 100,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const _ThumbnailFallback(),
+                    );
+                  }
+                  if (snapshot.hasError) return const _ThumbnailFallback();
+                  return const Center(
+                    child: SizedBox.square(
+                      dimension: 22,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: AppSpacing.xs),
+            Text(
+              widget.document.originalFileName,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ThumbnailFallback extends StatelessWidget {
+  const _ThumbnailFallback();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Center(
+      child: Icon(Icons.image_outlined, color: AppColors.greyIconos, size: 28),
+    );
+  }
+}
+
+Future<void> _showMedicalDocumentDetail(
+  BuildContext context, {
+  required MedicalDocumentEntity document,
+  required MedicalDocumentCategory category,
+}) async {
+  final closeIconKey = GlobalKey();
+  final actionIconKey = GlobalKey();
+  await Navigator.push<void>(
+    context,
+    MaterialPageRoute(
+      builder: (detailContext) => SharedFileSendScreen(
+        analysis: medicalDocumentToPdfAnalysis(document: document),
+        closeIconKey: closeIconKey,
+        actionIconKey: actionIconKey,
+        onViewOriginal: () => _showMedicalDocumentOriginal(
+          detailContext,
+          document: document,
+          closeIconKey: closeIconKey,
+          downloadIconKey: actionIconKey,
+        ),
+        resolveOriginalUri: () =>
+            di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
+        actionLabel: medicalDocumentSendActionLabel(category),
+      ),
+    ),
+  );
+}
+
+Future<void> _showMedicalDocumentOriginal(
+  BuildContext context, {
+  required MedicalDocumentEntity document,
+  required GlobalKey closeIconKey,
+  GlobalKey? downloadIconKey,
+}) async {
+  final preview = MedicalDocumentOriginalPreview(
+    getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
+    saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
+  );
+  try {
+    await preview.show(
+      context,
+      acceptedDocumentId: document.id,
+      fileName: document.originalFileName,
+      mimeType: document.mimeType,
+      closeIconKey: closeIconKey,
+      downloadIconKey: downloadIconKey,
+    );
+  } catch (error) {
+    if (context.mounted) ErrorDisplay.showError(context, error.toString());
   }
 }
 
@@ -600,8 +762,11 @@ String _searchableDocumentText(MedicalDocumentEntity document) {
     ...?extraction?.vaccinations.expand(_itemSearchValues),
     ...?extraction?.medicalOrders.expand(_itemSearchValues),
     ...?extraction?.diagnosticResults.expand(_itemSearchValues),
+    ...?extraction?.diagnosticImages.expand(_itemSearchValues),
+    ...?extraction?.laboratoryResults.expand(_itemSearchValues),
     ...?extraction?.clinicalHistory?.values,
     ...?extraction?.referral?.values,
+    ...?extraction?.laboratoryReport?.values,
     ...?extraction?.additionalFields.values,
   ].whereType<Object>().map(_valueText).join(' ').toLowerCase();
 }

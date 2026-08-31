@@ -204,7 +204,6 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       _ =>
         document.primaryDetectedCategory ??
             document.detectedCategories.firstOrNull?.category ??
-            document.requestedCategory ??
             MedicalDocumentCategory.other,
     };
   }
@@ -246,20 +245,10 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       return matchingExtraction.sanitizedFor(category);
     }
 
-    final detectedCategory =
-        document.primaryDetectedCategory ??
-        document.detectedCategories
-            .map((detected) => detected.category)
-            .where(document.extractionsByCategory.containsKey)
-            .firstOrNull;
-    final detectedExtraction = detectedCategory == null
-        ? null
-        : document.extractionsByCategory[detectedCategory];
-    if (detectedExtraction == null || detectedCategory == category) {
-      return MedicalDocumentExtractionEntity.empty(category);
-    }
-
-    return _reclassifyPreservingDetectedData(detectedExtraction, category);
+    // A manually selected category has no inferred structure. The backend
+    // contract requires a clean, category-specific draft instead of reusing
+    // fields detected for a different category.
+    return MedicalDocumentExtractionEntity.empty(category);
   }
 
   bool _hasExtractionContent(MedicalDocumentExtractionEntity extraction) {
@@ -276,78 +265,12 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         _hasPreservedValue(extraction.clinicalHistory) ||
         extraction.diagnosticResults.isNotEmpty ||
         _hasPreservedValue(extraction.referral) ||
+        extraction.diagnosticImages.isNotEmpty ||
+        _hasPreservedValue(extraction.laboratoryReport) ||
+        extraction.laboratoryResults.isNotEmpty ||
         extraction.additionalFields.isNotEmpty ||
         extraction.warnings.isNotEmpty;
   }
-
-  MedicalDocumentExtractionEntity _reclassifyPreservingDetectedData(
-    MedicalDocumentExtractionEntity extraction,
-    MedicalDocumentCategory category,
-  ) {
-    final sanitized = extraction
-        .copyWith(documentType: category)
-        .sanitizedFor(category);
-    final additionalFields = Map<String, dynamic>.from(
-      sanitized.additionalFields,
-    );
-
-    void preserve(String key, Object? value) {
-      if (!_hasPreservedValue(value)) return;
-      final current = additionalFields[key];
-      if (!_hasPreservedValue(current)) {
-        additionalFields[key] = value;
-      } else if (current != value) {
-        additionalFields[key] = [
-          if (current is Iterable) ...current else current,
-          if (value is Iterable) ...value else value,
-        ];
-      }
-    }
-
-    if (sanitized.diagnoses.isEmpty) {
-      preserve('diagnoses', _preservedItems(extraction.diagnoses));
-    }
-    if (sanitized.medications.isEmpty) {
-      preserve('medications', _preservedItems(extraction.medications));
-    }
-    if (sanitized.vaccinations.isEmpty) {
-      preserve('vaccinations', _preservedItems(extraction.vaccinations));
-    }
-    if (sanitized.medicalOrders.isEmpty) {
-      preserve('medicalOrders', _preservedItems(extraction.medicalOrders));
-    }
-    if (sanitized.clinicalHistory == null) {
-      preserve('clinicalHistory', extraction.clinicalHistory);
-    }
-    if (sanitized.diagnosticResults.isEmpty) {
-      preserve(
-        'diagnosticResults',
-        _preservedItems(extraction.diagnosticResults),
-      );
-    }
-    if (sanitized.referral == null) {
-      preserve('referral', extraction.referral);
-    }
-
-    return sanitized.copyWith(additionalFields: additionalFields);
-  }
-
-  List<Map<String, dynamic>> _preservedItems(
-    List<MedicalDocumentItemEntity> items,
-  ) => items
-      .map(
-        (item) => <String, dynamic>{
-          'id': item.id,
-          ...item.fields,
-          if (item.confidence != null) 'confidence': item.confidence,
-          if (item.source != null)
-            'source': {
-              if (item.source!.page != null) 'page': item.source!.page,
-              if (item.source!.text != null) 'text': item.source!.text,
-            },
-        },
-      )
-      .toList(growable: false);
 
   bool _hasPreservedValue(Object? value) {
     if (value == null) return false;
@@ -518,56 +441,13 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     emit(state.copyWith(phase: MedicalDocumentFlowPhase.pollingPaused));
   }
 
-  /// Discards a user-cancelled flow before another document can be analyzed.
-  /// A document awaiting review is rejected remotely; earlier phases are only
-  /// removed locally because the API does not expose an analysis-cancel action.
+  /// Removes a flow from this device without turning a close/cancel action into
+  /// a backend rejection. Rejection is only sent by [reject] with a reason.
   Future<bool> discardCurrentFlow({
     bool showSubmittingState = true,
     bool resetStateAfterDiscard = true,
   }) async {
     _pollGeneration++;
-    final document = state.remoteDocument;
-    if (document?.status == MedicalDocumentStatus.reviewPending) {
-      final documentId = document!.id;
-      if (showSubmittingState) {
-        emit(
-          state.copyWith(
-            phase: MedicalDocumentFlowPhase.submitting,
-            clearMessage: true,
-          ),
-        );
-      }
-      try {
-        final request = ReviewMedicalDocumentRequest.reject(
-          documentVersion: document.version,
-        );
-        await reviewUseCase(
-          documentId,
-          request,
-          originalAnimalIds: document.animalIds,
-        );
-      } on ApiException catch (error) {
-        if (error.statusCode == 409) {
-          await _handleVersionConflict(documentId);
-        } else {
-          emit(
-            state.copyWith(
-              phase: MedicalDocumentFlowPhase.reviewing,
-              message: error.message,
-            ),
-          );
-        }
-        return false;
-      } catch (error) {
-        emit(
-          state.copyWith(
-            phase: MedicalDocumentFlowPhase.reviewing,
-            message: _message(error),
-          ),
-        );
-        return false;
-      }
-    }
     await pendingLocalDataSource.clear();
     if (resetStateAfterDiscard) {
       emit(const MedicalDocumentFlowState());
