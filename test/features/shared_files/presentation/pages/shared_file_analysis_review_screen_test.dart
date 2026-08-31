@@ -422,6 +422,19 @@ void main() {
     );
     expect(find.text('C.C. 1152234567'), findsOneWidget);
     expect(find.text('(+57) 312 456 78 90'), findsOneWidget);
+    final headerAction = find.byKey(
+      const Key('analysis-header-action-content'),
+    );
+    final notice = find.byKey(const Key('analysis-ai-notice'));
+    final documentCard = find.byKey(const Key('analysis-document-card'));
+    expect(
+      tester.getTopLeft(notice).dy - tester.getBottomLeft(headerAction).dy,
+      AppSpacing.l,
+    );
+    expect(
+      tester.getTopLeft(documentCard).dy - tester.getBottomLeft(notice).dy,
+      AppSpacing.l,
+    );
     expect(tester.takeException(), isNull);
   });
 

@@ -87,6 +87,16 @@ class SharedFileSendScreen extends StatelessWidget {
 
 enum _SharedFileAnalysisMode { review, send }
 
+const _analysisHeaderActionIconSize = 20.0;
+const _analysisHeaderActionHeight = 48.0;
+const _analysisHeaderTop = AppSpacing.l;
+const _analysisNoticeGap = AppSpacing.l;
+const _analysisNoticeTopPadding =
+    _analysisHeaderTop +
+    ((_analysisHeaderActionHeight - _analysisHeaderActionIconSize) / 2) +
+    _analysisHeaderActionIconSize +
+    _analysisNoticeGap;
+
 class _SharedFileAnalysisLayout extends StatefulWidget {
   final SharedFileAnalysisEntity analysis;
   final _SharedFileAnalysisMode mode;
@@ -122,9 +132,6 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
 }
 
 class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
-  static const _headerActionIconSize = 20.0;
-  static const _headerActionHeight = 48.0;
-
   bool _isExporting = false;
 
   bool get _isSendMode => widget.mode == _SharedFileAnalysisMode.send;
@@ -149,7 +156,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
         icon: Icon(
           key: widget.closeIconKey,
           Icons.close,
-          size: _headerActionIconSize,
+          size: _analysisHeaderActionIconSize,
           color: AppColors.greyIconos,
         ),
         padding: EdgeInsets.zero,
@@ -158,35 +165,44 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       headerChildren: _isSendMode
           ? [
               Positioned(
-                top: AppSpacing.l,
+                top: _analysisHeaderTop,
                 left: AppSpacing.l,
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: _isExporting ? null : _exportDocument,
                   child: SizedBox(
-                    height: _headerActionHeight,
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        SizedBox.square(
-                          key: widget.actionIconKey,
-                          dimension: _headerActionIconSize,
-                          child: _isExporting
-                              ? const CircularProgressIndicator(strokeWidth: 2)
-                              : SvgPicture.asset(
-                                  AppIcons.export,
-                                  width: _headerActionIconSize,
-                                  height: _headerActionIconSize,
-                                ),
+                    height: _analysisHeaderActionHeight,
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: SizedBox(
+                        key: const Key('analysis-header-action-content'),
+                        height: _analysisHeaderActionIconSize,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            SizedBox.square(
+                              key: widget.actionIconKey,
+                              dimension: _analysisHeaderActionIconSize,
+                              child: _isExporting
+                                  ? const CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    )
+                                  : SvgPicture.asset(
+                                      AppIcons.export,
+                                      width: _analysisHeaderActionIconSize,
+                                      height: _analysisHeaderActionIconSize,
+                                    ),
+                            ),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text(
+                              widget.actionLabel,
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.greyMedio,
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: AppSpacing.xs),
-                        Text(
-                          widget.actionLabel,
-                          style: AppTypography.body4.copyWith(
-                            color: AppColors.greyMedio,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
@@ -293,7 +309,6 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 }
 
 class _AnalysisNoticeHeader extends StatelessWidget {
-  static const _topPadding = 72.0;
   static const _sendContainerHeight = 68.0;
   static const _reviewMinimumContainerHeight = 84.0;
   static const _reviewMessage =
@@ -342,18 +357,19 @@ class _AnalysisNoticeHeader extends StatelessWidget {
   }
 
   static double totalHeightFor(double containerHeight) =>
-      _topPadding + containerHeight + AppSpacing.l;
+      _analysisNoticeTopPadding + containerHeight + _analysisNoticeGap;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.l,
-        _topPadding,
+        _analysisNoticeTopPadding,
         AppSpacing.l,
-        AppSpacing.l,
+        _analysisNoticeGap,
       ),
       child: Container(
+        key: const Key('analysis-ai-notice'),
         height: containerHeight,
         padding: const EdgeInsets.all(AppSpacing.m),
         decoration: BoxDecoration(
@@ -426,6 +442,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
         analysis.originalFileName.trim().isNotEmpty &&
         !hasDetailedOriginalLinks;
     return Container(
+      key: const Key('analysis-document-card'),
       width: double.infinity,
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -517,8 +534,8 @@ class _AnalysisDocumentCard extends StatelessWidget {
               if (analysis.itemsTitle?.trim().isNotEmpty ?? false) ...[
                 Text(
                   analysis.itemsTitle!,
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.greyTextos,
+                  style: AppTypography.body6.copyWith(
+                    color: AppColors.greyBordes,
                   ),
                 ),
                 const SizedBox(height: AppSpacing.m),
@@ -668,17 +685,13 @@ class _PatientDetails extends StatelessWidget {
         if (patient.name.trim().isNotEmpty)
           RichText(
             text: TextSpan(
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
               children: [
                 const TextSpan(text: 'Paciente '),
                 TextSpan(
                   text: patient.name,
-                  style: AppTypography.body4.copyWith(
+                  style: AppTypography.body5.copyWith(
                     color: AppColors.primaryAzulClaro,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -719,17 +732,13 @@ class _TutorDetails extends StatelessWidget {
         if (tutor.name.trim().isNotEmpty)
           RichText(
             text: TextSpan(
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
               children: [
                 const TextSpan(text: 'Tutor '),
                 TextSpan(
                   text: tutor.name,
-                  style: AppTypography.body4.copyWith(
+                  style: AppTypography.body5.copyWith(
                     color: AppColors.primaryAzulClaro,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -770,17 +779,13 @@ class _VeterinarianDetails extends StatelessWidget {
         if (veterinarian.name.trim().isNotEmpty)
           RichText(
             text: TextSpan(
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.bold,
-              ),
+              style: AppTypography.body5.copyWith(color: AppColors.greyTextos),
               children: [
                 const TextSpan(text: 'Veterinario '),
                 TextSpan(
                   text: veterinarian.name,
-                  style: AppTypography.body4.copyWith(
+                  style: AppTypography.body5.copyWith(
                     color: AppColors.primaryAzulClaro,
-                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -864,7 +869,7 @@ class _AnalysisSectionDetails extends StatelessWidget {
           section.title,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
+          style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
         ),
         if (body.isNotEmpty || details.isNotEmpty)
           const SizedBox(height: AppSpacing.m),
@@ -992,7 +997,7 @@ class _OriginalLink extends StatelessWidget {
         onTap: onTap,
         child: Text(
           'Ver original',
-          style: AppTypography.body4.copyWith(color: AppColors.primaryFrances),
+          style: AppTypography.body6.copyWith(color: AppColors.primaryFrances),
         ),
       ),
     );

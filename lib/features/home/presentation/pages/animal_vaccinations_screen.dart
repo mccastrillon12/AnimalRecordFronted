@@ -6,6 +6,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/vaccination_card_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_record_sort_button.dart';
 import 'package:animal_record/features/home/presentation/widgets/vaccination_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
@@ -98,7 +99,8 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.xs),
-                                _VaccinationSortButton(
+                                AnimalRecordSortButton(
+                                  key: const Key('vaccinations-sort-button'),
                                   sortAscending:
                                       _alphabeticalSortAscending ?? true,
                                   onTap: () => setState(() {
@@ -268,43 +270,6 @@ class _VaccinationsHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _VaccinationSortButton extends StatelessWidget {
-  final bool sortAscending;
-  final VoidCallback onTap;
-
-  const _VaccinationSortButton({
-    required this.sortAscending,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: AppBorders.small(),
-      elevation: 2,
-      shadowColor: AppColors.greyNegro.withValues(alpha: 0.12),
-      child: InkWell(
-        key: const Key('vaccinations-sort-button'),
-        onTap: onTap,
-        borderRadius: AppBorders.small(),
-        child: SizedBox(
-          width: AppSpacing.iconSizeMedium,
-          height: AppSpacing.iconSizeMedium,
-          child: Icon(
-            Icons.sort_by_alpha_rounded,
-            color: AppColors.greyMedio,
-            size: 22,
-            semanticLabel: sortAscending
-                ? 'Orden ascendente'
-                : 'Orden descendente',
-          ),
-        ),
       ),
     );
   }

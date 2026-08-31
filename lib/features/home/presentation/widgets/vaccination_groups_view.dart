@@ -73,7 +73,12 @@ class VaccinationGroupsView extends StatelessWidget {
         if (groups.isEmpty) return const _VaccinationNoResultsState();
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.l,
+            0,
+            AppSpacing.l,
+            88,
+          ),
           itemCount: groups.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) => _VaccinationGroupCard(

@@ -5,6 +5,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_record_sort_button.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
@@ -120,7 +121,10 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.s),
-                                _RecordSortButton(
+                                AnimalRecordSortButton(
+                                  key: const Key(
+                                    'animal-file-records-sort-button',
+                                  ),
                                   sortAscending: _sortAscending,
                                   onTap: () => setState(
                                     () => _sortAscending = !_sortAscending,
@@ -225,38 +229,4 @@ extension on AnimalFileRecordSection {
       'Aquí se podrán visualizar los resultados\n'
           'de laboratorio que se suban.',
   };
-}
-
-class _RecordSortButton extends StatelessWidget {
-  final bool sortAscending;
-  final VoidCallback onTap;
-
-  const _RecordSortButton({required this.sortAscending, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: AppBorders.small(),
-      elevation: 2,
-      shadowColor: AppColors.greyNegro.withValues(alpha: 0.12),
-      child: InkWell(
-        key: const Key('animal-file-records-sort-button'),
-        onTap: onTap,
-        borderRadius: AppBorders.small(),
-        child: SizedBox(
-          width: AppSpacing.iconSizeMedium,
-          height: AppSpacing.iconSizeMedium,
-          child: Icon(
-            Icons.sort_by_alpha_rounded,
-            color: AppColors.greyMedio,
-            size: 22,
-            semanticLabel: sortAscending
-                ? 'Orden ascendente'
-                : 'Orden descendente',
-          ),
-        ),
-      ),
-    );
-  }
 }

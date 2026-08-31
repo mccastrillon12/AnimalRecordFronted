@@ -7,7 +7,8 @@ import 'fixed_bottom_action_layout.dart';
 
 const _statusBarStyle = SystemUiOverlayStyle(
   statusBarColor: Colors.transparent,
-  statusBarIconBrightness: Brightness.light, // iconos blancos sobre fondo oscuro
+  statusBarIconBrightness:
+      Brightness.light, // iconos blancos sobre fondo oscuro
   statusBarBrightness: Brightness.dark,
 );
 
@@ -19,6 +20,7 @@ class ModalPageLayout extends StatelessWidget {
   final List<Widget>? headerChildren;
   final Widget? bottomChild;
   final EdgeInsetsGeometry? bottomPadding;
+
   /// Si es true, el scroll solo se habilita cuando el teclado está visible.
   final bool scrollOnlyWithKeyboard;
   final TextStyle? titleStyle;
@@ -27,10 +29,13 @@ class ModalPageLayout extends StatelessWidget {
   final double? trailingRight;
   final Color? bottomSafeAreaColor;
   final Color? backgroundColor;
+
   /// Si es true, el título se fija en su posición y no hace scroll.
   final bool fixedTitle;
+
   /// Widget adicional fijo debajo del título (solo cuando fixedTitle es true).
   final Widget? fixedHeaderChild;
+
   /// Altura total del área fija del header (título + fixedHeaderChild) para calcular el padding del scroll.
   final double fixedHeaderHeight;
   final ScrollController? scrollController;
@@ -109,14 +114,13 @@ class ModalPageLayout extends StatelessWidget {
   }
 
   Widget _buildHeaderTitle() {
+    if (title.isEmpty && titleStyle?.fontSize == 0) {
+      return const SizedBox.shrink();
+    }
     return Padding(
       padding: titlePadding ?? const EdgeInsets.only(top: 96, bottom: 24),
       child: Center(
-        child: Text(
-          title,
-          style: titleStyle ??
-              AppTypography.heading1
-        ),
+        child: Text(title, style: titleStyle ?? AppTypography.heading1),
       ),
     );
   }
@@ -207,7 +211,8 @@ class ModalPageLayout extends StatelessWidget {
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   _buildHeaderTitle(),
-                                  if (fixedHeaderChild != null) fixedHeaderChild!,
+                                  if (fixedHeaderChild != null)
+                                    fixedHeaderChild!,
                                 ],
                               ),
                             ),
@@ -271,7 +276,8 @@ class ModalPageLayout extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 if (!fixedTitle) _buildHeaderTitle(),
-                                if (fixedTitle) SizedBox(height: fixedHeaderHeight),
+                                if (fixedTitle)
+                                  SizedBox(height: fixedHeaderHeight),
                                 child,
                               ],
                             ),

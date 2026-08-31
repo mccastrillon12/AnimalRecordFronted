@@ -1,4 +1,5 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
@@ -44,6 +45,17 @@ void main() {
       find.byKey(const Key('animal-file-records-sort-button')),
       findsOneWidget,
     );
+    final sortButton = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byKey(const Key('animal-file-records-sort-button')),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect((sortButton.decoration! as BoxDecoration).boxShadow, const [
+      AppShadows.card,
+    ]);
     expect(
       find.byKey(const Key('animal-document-upload-menu')),
       findsOneWidget,
@@ -127,6 +139,14 @@ void main() {
 
     expect(
       find.text('Adjunto: Resultados de laboratorio N° LAB-001'),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(
+        const Key(
+          'medical-document-card-icon-8c268acf-1111-2222-3333-444444444444',
+        ),
+      ),
       findsOneWidget,
     );
     expect(find.text('Fecha:'), findsOneWidget);
@@ -240,20 +260,12 @@ void main() {
       documents: documents,
       diagnosticThumbnailUriLoader: loadThumbnail,
     );
-    expect(loads, {
-      'diagnostic-cache-a': 1,
-      'diagnostic-cache-b': 1,
-    });
+    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
 
-    await tester.tap(
-      find.byKey(const Key('animal-file-records-sort-button')),
-    );
+    await tester.tap(find.byKey(const Key('animal-file-records-sort-button')));
     await tester.pump();
 
-    expect(loads, {
-      'diagnostic-cache-a': 1,
-      'diagnostic-cache-b': 1,
-    });
+    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
     expect(find.byType(CircularProgressIndicator), findsNothing);
 
     await _pumpRecordsScreen(
@@ -264,10 +276,7 @@ void main() {
       settle: false,
     );
 
-    expect(loads, {
-      'diagnostic-cache-a': 1,
-      'diagnostic-cache-b': 1,
-    });
+    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
     expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 

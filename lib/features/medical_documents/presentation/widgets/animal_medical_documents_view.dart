@@ -2,6 +2,7 @@ import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -226,10 +227,12 @@ class _MedicalDocumentCard extends StatelessWidget {
       if (number.isNotEmpty) number,
     ].join(' ');
     return Container(
+      key: Key('medical-document-card-${document.id}'),
       padding: const EdgeInsets.all(AppSpacing.m),
       decoration: BoxDecoration(
         color: AppColors.bgBlancoAntiFlash,
-        borderRadius: AppBorders.small(),
+        borderRadius: AppBorders.medium(),
+        boxShadow: const [AppShadows.card],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -239,6 +242,7 @@ class _MedicalDocumentCard extends StatelessWidget {
             children: [
               SvgPicture.asset(
                 AppIcons.clipboardImport,
+                key: Key('medical-document-card-icon-${document.id}'),
                 width: AppSpacing.iconSizeSmall,
                 height: AppSpacing.iconSizeSmall,
               ),
@@ -467,10 +471,7 @@ class _DiagnosticThumbnailUriCache {
   final Map<_DiagnosticThumbnailUriCacheKey, _DiagnosticThumbnailUriCacheEntry>
   _entries = {};
 
-  Uri? peek(
-    String documentId,
-    MedicalDocumentThumbnailUriLoader loader,
-  ) {
+  Uri? peek(String documentId, MedicalDocumentThumbnailUriLoader loader) {
     final key = _DiagnosticThumbnailUriCacheKey(documentId, loader);
     final entry = _validEntry(key);
     return entry?.uri;

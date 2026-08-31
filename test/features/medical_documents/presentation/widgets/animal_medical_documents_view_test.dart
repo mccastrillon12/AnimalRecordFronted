@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
@@ -79,6 +80,14 @@ void main() {
     expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
     expect(find.text('Control hepático'), findsOneWidget);
     expect(find.text('Ver detalle'), findsOneWidget);
+    final documentCard = tester.widget<Container>(
+      find.byKey(
+        const Key('medical-document-card-7d22ffa7-7927-46bb-b6b1-0f0232243b84'),
+      ),
+    );
+    expect((documentCard.decoration! as BoxDecoration).boxShadow, const [
+      AppShadows.card,
+    ]);
     expect(
       find.byKey(const Key('medical-document-ai-not-useful')),
       findsOneWidget,

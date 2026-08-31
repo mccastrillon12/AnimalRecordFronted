@@ -1,5 +1,6 @@
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
@@ -84,6 +85,17 @@ void main() {
     expect(identification.maxLines, 1);
     expect(find.byKey(const Key('vaccinations-search-field')), findsOneWidget);
     expect(find.byKey(const Key('vaccinations-sort-button')), findsOneWidget);
+    final sortButton = tester.widget<Container>(
+      find
+          .descendant(
+            of: find.byKey(const Key('vaccinations-sort-button')),
+            matching: find.byType(Container),
+          )
+          .first,
+    );
+    expect((sortButton.decoration! as BoxDecoration).boxShadow, const [
+      AppShadows.card,
+    ]);
     final listGap = tester.widget<SizedBox>(
       find.byKey(const Key('vaccinations-list-gap')),
     );
