@@ -279,6 +279,18 @@ void main() {
 
     expect(find.byKey(const Key('export-vaccination-group')), findsOneWidget);
     expect(find.text('Enviar'), findsOneWidget);
+    expect(find.byKey(const Key('vaccination-ai-notice')), findsOneWidget);
+    expect(
+      find.textContaining('Análisis realizado con IA.', findRichText: true),
+      findsOneWidget,
+    );
+    expect(
+      find.textContaining(
+        'Verifica siempre los datos con el archivo original.',
+        findRichText: true,
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Detalle de vacunación'), findsNWidgets(2));
     expect(find.text('Next Dose Date'), findsOneWidget);
     expect(find.text('10/27/2028'), findsOneWidget);

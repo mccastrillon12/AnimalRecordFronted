@@ -16,6 +16,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
@@ -545,113 +546,87 @@ class _ClinicalHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
+    return MedicalDocumentCard(
       key: Key('clinical-history-shadow-${document.id}'),
-      decoration: BoxDecoration(
-        borderRadius: AppBorders.large(),
-        boxShadow: const [AppShadows.card],
+      interactionKey: Key('clinical-history-${document.id}'),
+      onTap: onTap,
+      borderRadius: AppBorders.large(),
+      headerCrossAxisAlignment: CrossAxisAlignment.center,
+      trailingSpacing: 0,
+      leading: SvgPicture.asset(
+        AppIcons.documentUpload,
+        width: 24,
+        height: 24,
+        colorFilter: const ColorFilter.mode(
+          AppColors.primaryAzulClaro,
+          BlendMode.srcIn,
+        ),
       ),
-      child: Material(
-        color: AppColors.bgBlancoAntiFlash,
-        borderRadius: AppBorders.large(),
-        child: InkWell(
-          key: Key('clinical-history-${document.id}'),
-          onTap: onTap,
-          borderRadius: AppBorders.large(),
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.m),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  AppIcons.folderFavorite,
-                  width: AppSpacing.iconSizeMedium,
-                  height: AppSpacing.iconSizeMedium,
-                ),
-                const SizedBox(width: AppSpacing.m),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Historia clínica ${index + 1}',
-                        style: AppTypography.body3.copyWith(
-                          color: AppColors.textPrimary,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.xs),
-                      Text(
-                        _documentDate(document),
-                        style: AppTypography.body6.copyWith(
-                          color: AppColors.greyBordes,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Theme(
-                  data: Theme.of(context).copyWith(
-                    splashColor: Colors.transparent,
-                    highlightColor: Colors.transparent,
-                  ),
-                  child: PopupMenuButton<String>(
-                    key: Key('clinical-history-menu-${document.id}'),
-                    padding: EdgeInsets.zero,
-                    offset: const Offset(-175, 42),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        AppBorders.radiusMedium,
-                      ),
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 203,
-                      maxWidth: 203,
-                    ),
-                    color: AppColors.white,
-                    elevation: 4,
-                    icon: const Icon(
-                      Icons.more_vert,
-                      color: AppColors.primaryFrances,
-                    ),
-                    onSelected: (_) => onDownload(),
-                    itemBuilder: (_) => [
-                      PopupMenuItem<String>(
-                        value: 'download',
-                        height: 47,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: AppSpacing.m,
-                        ),
-                        child: Row(
-                          children: [
-                            SvgPicture.asset(
-                              AppIcons.receiveSquare,
-                              width: AppSpacing.iconSizeSmall,
-                              height: AppSpacing.iconSizeSmall,
-                              colorFilter: const ColorFilter.mode(
-                                AppColors.greyMedio,
-                                BlendMode.srcIn,
-                              ),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Text(
-                                'Descargar historia',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: AppTypography.body4.copyWith(
-                                  color: AppColors.greyTextos,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+      title: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Historia clínica ${index + 1}',
+            style: AppTypography.body3.copyWith(
+              color: AppColors.textPrimary,
+           
             ),
           ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            _documentDate(document),
+            style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+          ),
+        ],
+      ),
+      trailing: Theme(
+        data: Theme.of(context).copyWith(
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+        ),
+        child: PopupMenuButton<String>(
+          key: Key('clinical-history-menu-${document.id}'),
+          padding: EdgeInsets.zero,
+          offset: const Offset(-175, 42),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
+          ),
+          constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
+          color: AppColors.white,
+          elevation: 4,
+          icon: const Icon(Icons.more_vert, color: AppColors.primaryFrances),
+          onSelected: (_) => onDownload(),
+          itemBuilder: (_) => [
+            PopupMenuItem<String>(
+              value: 'download',
+              height: 47,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
+              child: Row(
+                children: [
+                  SvgPicture.asset(
+                    AppIcons.receiveSquare,
+                    width: AppSpacing.iconSizeSmall,
+                    height: AppSpacing.iconSizeSmall,
+                    colorFilter: const ColorFilter.mode(
+                      AppColors.greyMedio,
+                      BlendMode.srcIn,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Descargar historia',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTypography.body4.copyWith(
+                        color: AppColors.greyTextos,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

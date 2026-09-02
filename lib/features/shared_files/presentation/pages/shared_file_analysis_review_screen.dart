@@ -9,6 +9,7 @@ import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -309,7 +310,6 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 }
 
 class _AnalysisNoticeHeader extends StatelessWidget {
-  static const _sendContainerHeight = 68.0;
   static const _reviewMinimumContainerHeight = 84.0;
   static const _reviewMessage =
       'Análisis realizado con IA. Verifica los datos antes de subir el '
@@ -329,7 +329,7 @@ class _AnalysisNoticeHeader extends StatelessWidget {
     BuildContext context, {
     required bool isSendMode,
   }) {
-    if (isSendMode) return _sendContainerHeight;
+    if (isSendMode) return AnalysisAiNotice.sendHeight;
 
     final availableTextWidth =
         (MediaQuery.sizeOf(context).width -
@@ -368,59 +368,43 @@ class _AnalysisNoticeHeader extends StatelessWidget {
         AppSpacing.l,
         _analysisNoticeGap,
       ),
-      child: Container(
-        key: const Key('analysis-ai-notice'),
-        height: containerHeight,
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          gradient: AppColors.aiAnalysisGradient,
-          borderRadius: AppBorders.small(),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(top: 0),
-              child: SvgPicture.asset(
-                AppIcons.magicStar,
-                width: 12,
-                height: 12,
+      child: isSendMode
+          ? AnalysisAiNotice(
+              key: const Key('analysis-ai-notice'),
+              height: containerHeight,
+            )
+          : Container(
+              key: const Key('analysis-ai-notice'),
+              height: containerHeight,
+              padding: const EdgeInsets.all(AppSpacing.m),
+              decoration: BoxDecoration(
+                gradient: AppColors.aiAnalysisGradient,
+                borderRadius: AppBorders.small(),
               ),
-            ),
-            const SizedBox(width: AppSpacing.s),
-            Expanded(
-              child: isSendMode
-                  ? RichText(
-                      text: TextSpan(
-                        style: AppTypography.body6.copyWith(
-                          color: AppColors.greyNegro,
-                          height: 1.4,
-                        ),
-                        children: [
-                          const TextSpan(text: 'Análisis realizado con IA. '),
-                          TextSpan(
-                            text:
-                                'Verifica siempre los datos con el archivo original.',
-                            style: AppTypography.body6.copyWith(
-                              color: AppColors.greyNegro,
-                              height: 1.4,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                  : Text(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(top: 0),
+                    child: SvgPicture.asset(
+                      AppIcons.magicStar,
+                      width: 12,
+                      height: 12,
+                    ),
+                  ),
+                  const SizedBox(width: AppSpacing.s),
+                  Expanded(
+                    child: Text(
                       _reviewMessage,
                       style: AppTypography.body6.copyWith(
                         color: const Color.fromARGB(255, 0, 0, 0),
                         height: 1.4,
                       ),
                     ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ),
-      ),
     );
   }
 }

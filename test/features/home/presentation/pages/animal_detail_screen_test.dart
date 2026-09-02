@@ -6,6 +6,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -262,6 +263,83 @@ void main() {
     expect(find.text('Listado laboratorio guardado'), findsOneWidget);
     expect(find.text('Actualmente no tiene registros'), findsNothing);
   });
+
+  testWidgets(
+    'shows the empty documents screen until a formula, order, or referral exists',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(600, 1000));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      when(
+        () => animalCubit.state,
+      ).thenReturn(const AnimalsLoaded([_animalEntity]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      var hasDocuments = false;
+      await tester.pumpWidget(
+        BlocProvider<AnimalCubit>.value(
+          value: animalCubit,
+          child: MaterialApp(
+            routes: {
+              AppRoutes.animalDocuments: (_) => const Scaffold(
+                body: Text('Listado de fórmulas, órdenes y remisiones'),
+              ),
+            },
+            home: AnimalDetailScreen(
+              animal: _animal,
+              hasMedicalDocuments: (_, category) async =>
+                  hasDocuments &&
+                  category == MedicalDocumentCategory.medicalOrder,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final documents = find.text('Órdenes, fórmulas y remisiones');
+      await tester.ensureVisible(documents);
+      await tester.tap(documents);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Fórmulas, órdenes y remisiones'),
+        findsOneWidget,
+      );
+      expect(find.text('Actualmente no tiene registros'), findsOneWidget);
+      expect(
+        find.text(
+          'Aquí podrá encontrar todas las fórmulas, órdenes y remisiones '
+          'médicas que se le han realizado al animal.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('Continuar'), findsOneWidget);
+
+      await tester.tap(find.text('Continuar'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Listado de fórmulas, órdenes y remisiones'),
+        findsOneWidget,
+      );
+
+      Navigator.of(
+        tester.element(find.text('Listado de fórmulas, órdenes y remisiones')),
+      ).pop();
+      await tester.pumpAndSettle();
+
+      hasDocuments = true;
+      final documentsAgain = find.text('Órdenes, fórmulas y remisiones');
+      await tester.ensureVisible(documentsAgain);
+      await tester.tap(documentsAgain);
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('Listado de fórmulas, órdenes y remisiones'),
+        findsOneWidget,
+      );
+      expect(find.text('Actualmente no tiene registros'), findsNothing);
+    },
+  );
 }
 
 const _animal = AnimalModel(

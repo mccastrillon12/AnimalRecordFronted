@@ -228,34 +228,25 @@ class _MedicalDocumentCard extends StatelessWidget {
     ].join(' ');
     return MedicalDocumentCard(
       key: Key('medical-document-card-${document.id}'),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SvgPicture.asset(
-                AppIcons.clipboardImport,
-                key: Key('medical-document-card-icon-${document.id}'),
-                width: AppSpacing.iconSizeSmall,
-                height: AppSpacing.iconSizeSmall,
-              ),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Text(
-                  title,
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.greyTextos,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (date.isNotEmpty ||
+      leading: SvgPicture.asset(
+        AppIcons.documentUpload,
+        key: Key('medical-document-card-icon-${document.id}'),
+        width: AppSpacing.iconSizeSmall,
+        height: AppSpacing.iconSizeSmall,
+        colorFilter: const ColorFilter.mode(
+          AppColors.primaryAzulClaro,
+          BlendMode.srcIn,
+        ),
+      ),
+      title: Text(
+        title,
+        style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
+      ),
+      body:
+          date.isNotEmpty ||
               document.originalFileName.trim().isNotEmpty ||
-              description.isNotEmpty) ...[
-            const SizedBox(height: AppSpacing.l),
-            Padding(
+              description.isNotEmpty
+          ? Padding(
               padding: const EdgeInsets.only(
                 left: AppSpacing.iconSizeSmall + AppSpacing.m,
               ),
@@ -275,46 +266,40 @@ class _MedicalDocumentCard extends StatelessWidget {
                     ),
                 ],
               ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: InkWell(
-              key: Key('medical-document-detail-${document.id}'),
-              onTap: extraction == null
-                  ? null
-                  : () => _showMedicalDocumentDetail(
-                      context,
-                      document: document,
-                      category: category,
-                    ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.xxs,
-                  vertical: AppSpacing.xs,
+            )
+          : null,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: InkWell(
+          key: Key('medical-document-detail-${document.id}'),
+          onTap: extraction == null
+              ? null
+              : () => _showMedicalDocumentDetail(
+                  context,
+                  document: document,
+                  category: category,
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Ver detalle',
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyMedio,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    SvgPicture.asset(
-                      AppIcons.arrowRight,
-                      width: AppSpacing.iconSizeSmall,
-                      height: AppSpacing.iconSizeSmall,
-                    ),
-                  ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Ver detalle',
+                  style: AppTypography.body3.copyWith(
+                    color: AppColors.greyMedio,
+                  ),
                 ),
-              ),
+                const SizedBox(width: AppSpacing.xs),
+                SvgPicture.asset(
+                  AppIcons.arrowRight,
+                  width: AppSpacing.iconSizeSmall,
+                  height: AppSpacing.iconSizeSmall,
+                ),
+              ],
             ),
           ),
-        ],
+        ),
       ),
     );
   }

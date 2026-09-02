@@ -484,11 +484,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   arguments: animal,
                 );
               } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalDocuments,
-                  arguments: animal.id,
-                );
+                _openDocumentsSection(animal);
               } else if (entry.value == 'Imágenes diagnósticas') {
                 _openMedicalFileSection(
                   animal: animal,
@@ -526,6 +522,49 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       context,
       AppRoutes.animalClinicalHistory,
       arguments: animal,
+    );
+  }
+
+  Future<void> _openDocumentsSection(AnimalModel animal) async {
+    late final bool hasDocuments;
+    try {
+      hasDocuments = await _hasAnyDocuments(
+        animal.id,
+        const [
+          MedicalDocumentCategory.prescription,
+          MedicalDocumentCategory.medicalOrder,
+          MedicalDocumentCategory.referral,
+        ],
+      );
+    } catch (_) {
+      if (mounted) {
+        await Navigator.pushNamed(
+          context,
+          AppRoutes.animalDocuments,
+          arguments: animal.id,
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    if (hasDocuments) {
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.animalDocuments,
+        arguments: animal.id,
+      );
+      return;
+    }
+    _openEmptyFeature(
+      animal: animal,
+      title: 'Fórmulas, órdenes y remisiones',
+      continueRoute: AppRoutes.animalDocuments,
+      mainText: 'Actualmente no tiene registros',
+      subText:
+          'Aquí podrá encontrar todas las fórmulas, órdenes y remisiones '
+          'médicas que se le han realizado al animal.',
+      continueArguments: animal.id,
     );
   }
 
@@ -574,12 +613,27 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     return documents.isNotEmpty;
   }
 
+  Future<bool> _hasAnyDocuments(
+    String animalId,
+    List<MedicalDocumentCategory> categories,
+  ) async {
+    final availability = await Future.wait(
+      categories.map(
+        (category) =>
+            widget.hasMedicalDocuments?.call(animalId, category) ??
+            _hasMedicalDocuments(animalId, category),
+      ),
+    );
+    return availability.any((hasDocuments) => hasDocuments);
+  }
+
   void _openEmptyFeature({
     required AnimalModel animal,
     required String title,
     required String continueRoute,
     required String mainText,
     required String subText,
+    Object? continueArguments,
   }) {
     _openModalPage(
       AnimalEmptyFeatureScreen(
@@ -590,7 +644,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         onContinue: () => Navigator.pushReplacementNamed(
           context,
           continueRoute,
-          arguments: animal,
+          arguments: continueArguments ?? animal,
         ),
       ),
     );

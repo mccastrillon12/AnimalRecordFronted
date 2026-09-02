@@ -126,49 +126,46 @@ class _VaccinationGroupCard extends StatelessWidget {
     return MedicalDocumentCard(
       key: Key('vaccination-group-${group.key}'),
       onTap: onDetail,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              SvgPicture.asset(AppIcons.vaccineShield, width: 24, height: 24),
-              const SizedBox(width: AppSpacing.m),
-              Expanded(
-                child: Text(
-                  vaccinationDisplayName(group.title),
-                  style: AppTypography.body3.copyWith(
-                    color: AppColors.greyTextos,
-                  ),
-                ),
-              ),
-              Container(
-                constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(horizontal: 6),
-                decoration: const BoxDecoration(
-                  color: AppColors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Text(
-                  '${group.count}',
-                  style: AppTypography.body6.copyWith(
-                    color: AppColors.primaryFrances,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
+      headerCrossAxisAlignment: CrossAxisAlignment.center,
+      trailingSpacing: 0,
+      leading: SvgPicture.asset(
+        AppIcons.documentUpload,
+        width: 24,
+        height: 24,
+        colorFilter: const ColorFilter.mode(
+          AppColors.primaryAzulClaro,
+          BlendMode.srcIn,
+        ),
+      ),
+      title: Text(
+        vaccinationDisplayName(group.title),
+        style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
+      ),
+      trailing: Container(
+        constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
+        alignment: Alignment.center,
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        decoration: const BoxDecoration(
+          color: AppColors.white,
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: Color(0x14000000),
+              blurRadius: 5,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Text(
+          '${group.count}',
+          style: AppTypography.body6.copyWith(
+            color: AppColors.primaryFrances,
+            fontWeight: FontWeight.w600,
           ),
-          if (hasDates) ...[
-            const SizedBox(height: AppSpacing.l),
-            Padding(
+        ),
+      ),
+      body: hasDates
+          ? Padding(
               padding: const EdgeInsets.only(left: 29),
               child: Column(
                 children: [
@@ -184,34 +181,31 @@ class _VaccinationGroupCard extends StatelessWidget {
                     ),
                 ],
               ),
-            ),
-          ],
-          const SizedBox(height: AppSpacing.m),
-          Align(
-            alignment: Alignment.centerRight,
-            child: Padding(
-              key: Key('vaccination-group-detail-${group.key}'),
-              padding: const EdgeInsets.all(AppSpacing.xs),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Ver detalle',
-                    style: AppTypography.body3.copyWith(
-                      color: AppColors.greyMedio,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.xs),
-                  const Icon(
-                    Icons.chevron_right,
-                    size: AppSpacing.iconSizeSmall,
-                    color: AppColors.greyIconos,
-                  ),
-                ],
+            )
+          : null,
+      footer: Align(
+        alignment: Alignment.centerRight,
+        child: Padding(
+          key: Key('vaccination-group-detail-${group.key}'),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Ver detalle',
+                style: AppTypography.body3.copyWith(
+                  color: AppColors.greyMedio,
+                ),
               ),
-            ),
+              const SizedBox(width: AppSpacing.xs),
+              const Icon(
+                Icons.chevron_right,
+                size: AppSpacing.iconSizeSmall,
+                color: AppColors.greyIconos,
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }

@@ -11,8 +11,23 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+
+const _vaccinationHeaderActionHeight = 48.0;
+const _vaccinationHeaderActionIconSize = 20.0;
+const _vaccinationHeaderActionTop = AppSpacing.l;
+const _vaccinationNoticeGap = AppSpacing.l;
+const _vaccinationNoticeTopPadding =
+    _vaccinationHeaderActionTop +
+    ((_vaccinationHeaderActionHeight - _vaccinationHeaderActionIconSize) / 2) +
+    _vaccinationHeaderActionIconSize +
+    _vaccinationNoticeGap;
+const _vaccinationFixedHeaderHeight =
+    _vaccinationNoticeTopPadding +
+    AnalysisAiNotice.sendHeight +
+    _vaccinationNoticeGap;
 
 class VaccinationGroupDetailScreen extends StatefulWidget {
   final VaccinationGroupViewData group;
@@ -41,7 +56,7 @@ class _VaccinationGroupDetailScreenState
       titlePadding: EdgeInsets.zero,
       titleStyle: const TextStyle(fontSize: 0, height: 0),
       fixedTitle: true,
-      fixedHeaderHeight: 76,
+      fixedHeaderHeight: _vaccinationFixedHeaderHeight,
       trailingTop: AppSpacing.l,
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
@@ -57,31 +72,47 @@ class _VaccinationGroupDetailScreenState
       ),
       headerChildren: [
         Positioned(
-          top: AppSpacing.l,
+          top: _vaccinationHeaderActionTop,
           left: AppSpacing.l,
           child: GestureDetector(
             key: const Key('export-vaccination-group'),
             behavior: HitTestBehavior.opaque,
             onTap: widget.onSend,
             child: SizedBox(
-              height: 48,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  SvgPicture.asset(AppIcons.export, width: 20, height: 20),
-                  const SizedBox(width: AppSpacing.xs),
-                  Text(
-                    'Enviar',
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyMedio,
+              height: _vaccinationHeaderActionHeight,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    SvgPicture.asset(
+                      AppIcons.export,
+                      width: _vaccinationHeaderActionIconSize,
+                      height: _vaccinationHeaderActionIconSize,
                     ),
-                  ),
-                ],
+                    const SizedBox(width: AppSpacing.xs),
+                    Text(
+                      'Enviar',
+                      style: AppTypography.body4.copyWith(
+                        color: AppColors.greyMedio,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
         ),
       ],
+      fixedHeaderChild: const Padding(
+        padding: EdgeInsets.fromLTRB(
+          AppSpacing.l,
+          _vaccinationNoticeTopPadding,
+          AppSpacing.l,
+          _vaccinationNoticeGap,
+        ),
+        child: AnalysisAiNotice(key: Key('vaccination-ai-notice')),
+      ),
       bottomSafeAreaColor: AppColors.white,
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
@@ -298,7 +329,15 @@ class _DoseSection extends StatelessWidget {
           Center(
             child: Column(
               children: [
-                SvgPicture.asset(AppIcons.vaccineShield, width: 17, height: 21),
+                SvgPicture.asset(
+                  AppIcons.clipboardImport,
+                  width: 17,
+                  height: 21,
+                  colorFilter: const ColorFilter.mode(
+                    AppColors.primaryAzulClaro,
+                    BlendMode.srcIn,
+                  ),
+                ),
                 const SizedBox(height: AppSpacing.xs),
                 Text(
                   headerTitle,

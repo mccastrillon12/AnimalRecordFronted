@@ -4,6 +4,7 @@ class AppIcons {
   static const String close = 'assets/icons/close.svg'; // If it exists
   static const String magicStar = 'assets/icons/magic-star.svg';
   static const String clipboardImport = 'assets/icons/clipboard-import.svg';
+  static const String documentUpload = 'assets/icons/document-upload.svg';
   static const String export = 'assets/icons/export.svg';
   static const String receiveSquare =
       'assets/icons/vuesax-bold-receive-square.svg';
