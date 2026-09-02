@@ -1,5 +1,4 @@
 import 'package:animal_record/core/constants/app_icons.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -9,6 +8,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -73,12 +73,7 @@ class VaccinationGroupsView extends StatelessWidget {
         if (groups.isEmpty) return const _VaccinationNoResultsState();
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.l,
-            0,
-            AppSpacing.l,
-            88,
-          ),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
           itemCount: groups.length,
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) => _VaccinationGroupCard(
@@ -128,121 +123,95 @@ class _VaccinationGroupCard extends StatelessWidget {
     final latest = group.latest;
     final hasDates =
         latest.applicationDate.isNotEmpty || latest.nextDoseDate.isNotEmpty;
-    final borderRadius = AppBorders.small();
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        key: Key('vaccination-group-${group.key}'),
-        onTap: onDetail,
-        borderRadius: borderRadius,
-        child: Ink(
-          padding: const EdgeInsets.all(AppSpacing.m),
-          decoration: BoxDecoration(
-            color: AppColors.bgBlancoAntiFlash,
-            borderRadius: borderRadius,
-            boxShadow: const [
-              BoxShadow(
-                color: Color(0x0D000000),
-                blurRadius: 8,
-                offset: Offset(0, 3),
+    return MedicalDocumentCard(
+      key: Key('vaccination-group-${group.key}'),
+      onTap: onDetail,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              SvgPicture.asset(AppIcons.vaccineShield, width: 24, height: 24),
+              const SizedBox(width: AppSpacing.m),
+              Expanded(
+                child: Text(
+                  vaccinationDisplayName(group.title),
+                  style: AppTypography.body3.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
+                ),
+              ),
+              Container(
+                constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
+                alignment: Alignment.center,
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                decoration: const BoxDecoration(
+                  color: AppColors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x14000000),
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  '${group.count}',
+                  style: AppTypography.body6.copyWith(
+                    color: AppColors.primaryFrances,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ],
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+          if (hasDates) ...[
+            const SizedBox(height: AppSpacing.l),
+            Padding(
+              padding: const EdgeInsets.only(left: 29),
+              child: Column(
                 children: [
-                  SvgPicture.asset(
-                    AppIcons.vaccineShield,
-                    width: 24,
-                    height: 24,
-                  ),
-                  const SizedBox(width: AppSpacing.m),
-                  Expanded(
-                    child: Text(
-                      vaccinationDisplayName(group.title),
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyTextos,
-                      ),
+                  if (latest.applicationDate.isNotEmpty)
+                    _VaccinationValue(
+                      label: '${latest.applicationDateLabel}:',
+                      value: latest.applicationDate,
+                    ),
+                  if (latest.nextDoseDate.isNotEmpty)
+                    _VaccinationValue(
+                      label: '${latest.nextDoseDateLabel}:',
+                      value: latest.nextDoseDate,
+                    ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: AppSpacing.m),
+          Align(
+            alignment: Alignment.centerRight,
+            child: Padding(
+              key: Key('vaccination-group-detail-${group.key}'),
+              padding: const EdgeInsets.all(AppSpacing.xs),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Ver detalle',
+                    style: AppTypography.body3.copyWith(
+                      color: AppColors.greyMedio,
                     ),
                   ),
-                  Container(
-                    constraints: const BoxConstraints(
-                      minWidth: 21,
-                      minHeight: 22,
-                    ),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    decoration: const BoxDecoration(
-                      color: AppColors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(0x14000000),
-                          blurRadius: 5,
-                          offset: Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      '${group.count}',
-                      style: AppTypography.body6.copyWith(
-                        color: AppColors.primaryFrances,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
+                  const SizedBox(width: AppSpacing.xs),
+                  const Icon(
+                    Icons.chevron_right,
+                    size: AppSpacing.iconSizeSmall,
+                    color: AppColors.greyIconos,
                   ),
                 ],
               ),
-              if (hasDates) ...[
-                const SizedBox(height: AppSpacing.l),
-                Padding(
-                  padding: const EdgeInsets.only(left: 29),
-                  child: Column(
-                    children: [
-                      if (latest.applicationDate.isNotEmpty)
-                        _VaccinationValue(
-                          label: '${latest.applicationDateLabel}:',
-                          value: latest.applicationDate,
-                        ),
-                      if (latest.nextDoseDate.isNotEmpty)
-                        _VaccinationValue(
-                          label: '${latest.nextDoseDateLabel}:',
-                          value: latest.nextDoseDate,
-                        ),
-                    ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: AppSpacing.m),
-              Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  key: Key('vaccination-group-detail-${group.key}'),
-                  padding: const EdgeInsets.all(AppSpacing.xs),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Ver detalle',
-                        style: AppTypography.body3.copyWith(
-                          color: AppColors.greyMedio,
-                        ),
-                      ),
-                      const SizedBox(width: AppSpacing.xs),
-                      const Icon(
-                        Icons.chevron_right,
-                        size: AppSpacing.iconSizeSmall,
-                        color: AppColors.greyIconos,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

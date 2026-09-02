@@ -5,6 +5,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -176,6 +177,16 @@ void main() {
       find.byKey(const Key('vaccination-group-distemper')),
       findsOneWidget,
     );
+    final vaccineCardFinder = find.byKey(const Key('vaccination-group-rabies'));
+    expect(tester.widget(vaccineCardFinder), isA<MedicalDocumentCard>());
+    final vaccineCard = tester.widget<Container>(
+      find
+          .descendant(of: vaccineCardFinder, matching: find.byType(Container))
+          .first,
+    );
+    expect((vaccineCard.decoration! as BoxDecoration).boxShadow, const [
+      AppShadows.card,
+    ]);
     final rabiesCard = find.byKey(const Key('vaccination-group-rabies'));
     final distemperCard = find.byKey(const Key('vaccination-group-distemper'));
     expect(

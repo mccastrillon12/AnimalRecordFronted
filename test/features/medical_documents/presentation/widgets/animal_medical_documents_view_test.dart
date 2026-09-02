@@ -4,6 +4,7 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -80,10 +81,14 @@ void main() {
     expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
     expect(find.text('Control hepático'), findsOneWidget);
     expect(find.text('Ver detalle'), findsOneWidget);
+    final documentCardFinder = find.byKey(
+      const Key('medical-document-card-7d22ffa7-7927-46bb-b6b1-0f0232243b84'),
+    );
+    expect(tester.widget(documentCardFinder), isA<MedicalDocumentCard>());
     final documentCard = tester.widget<Container>(
-      find.byKey(
-        const Key('medical-document-card-7d22ffa7-7927-46bb-b6b1-0f0232243b84'),
-      ),
+      find
+          .descendant(of: documentCardFinder, matching: find.byType(Container))
+          .first,
     );
     expect((documentCard.decoration! as BoxDecoration).boxShadow, const [
       AppShadows.card,

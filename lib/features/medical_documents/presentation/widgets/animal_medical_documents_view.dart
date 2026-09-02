@@ -2,7 +2,6 @@ import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_shadows.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -12,6 +11,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
@@ -226,14 +226,8 @@ class _MedicalDocumentCard extends StatelessWidget {
       'Adjunto: ${document.finalCategory?.label ?? 'Archivo médico'}',
       if (number.isNotEmpty) number,
     ].join(' ');
-    return Container(
+    return MedicalDocumentCard(
       key: Key('medical-document-card-${document.id}'),
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        color: AppColors.bgBlancoAntiFlash,
-        borderRadius: AppBorders.medium(),
-        boxShadow: const [AppShadows.card],
-      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
