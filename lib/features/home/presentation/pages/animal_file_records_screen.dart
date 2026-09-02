@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -9,6 +12,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_record_s
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -35,14 +39,48 @@ class AnimalFileRecordsScreen extends StatefulWidget {
 class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool _sortAscending = true;
+  MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
+  bool _showAiFeedback = false;
+  bool _hasAnsweredAiFeedback = false;
+  int _aiFeedbackRequestId = 0;
 
   @override
   void initState() {
     super.initState();
+    if (di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
+      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+      _showAiFeedback = _aiFeedbackStore!.isPending(
+        widget.animal.id,
+        widget.section.category,
+      );
+    }
     _searchController.addListener(_refreshSearch);
   }
 
   void _refreshSearch() => setState(() {});
+
+  void _handleUploadedDocument() {
+    final category = widget.section.category;
+    setState(() {
+      _showAiFeedback = true;
+      _hasAnsweredAiFeedback = false;
+      _aiFeedbackRequestId++;
+    });
+    final store = _aiFeedbackStore;
+    if (store != null) unawaited(store.markPending(widget.animal.id, category));
+    context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+      widget.animal.id,
+      category: category,
+    );
+  }
+
+  Future<void> _markAiFeedbackAnswered() async {
+    await _aiFeedbackStore?.clearPending(
+      widget.animal.id,
+      widget.section.category,
+    );
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
 
   @override
   void dispose() {
@@ -148,6 +186,13 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                               alphabeticalSortAscending: _sortAscending,
                               emptyTitle: widget.section.emptyTitle,
                               emptyDescription: widget.section.emptyDescription,
+                              showAiFeedback: _showAiFeedback,
+                              aiFeedbackRequestId: _aiFeedbackRequestId,
+                              initialAiFeedbackResponded: _hasAnsweredAiFeedback,
+                              onAiFeedbackSubmitted: _markAiFeedbackAnswered,
+                              onAiFeedbackDismissed: () => setState(
+                                () => _showAiFeedback = false,
+                              ),
                               diagnosticThumbnailUriLoader:
                                   widget.diagnosticThumbnailUriLoader,
                             ),
@@ -178,12 +223,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                         child: AnimalDocumentUploadMenu(
                           animalId: widget.animal.id,
                           requestedCategory: widget.section.category,
-                          onUploaded: () => context
-                              .read<AnimalMedicalDocumentsCubit>()
-                              .refreshAfterUpload(
-                                widget.animal.id,
-                                category: widget.section.category,
-                              ),
+                          onUploaded: _handleUploadedDocument,
                         ),
                       ),
                     ],

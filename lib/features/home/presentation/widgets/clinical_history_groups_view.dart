@@ -17,6 +17,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/anim
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
@@ -27,11 +28,21 @@ import 'package:flutter_svg/flutter_svg.dart';
 class ClinicalHistoryGroupsView extends StatelessWidget {
   final AnimalModel animal;
   final String searchQuery;
+  final bool showAiFeedback;
+  final int aiFeedbackRequestId;
+  final bool initialAiFeedbackResponded;
+  final VoidCallback? onAiFeedbackDismissed;
+  final Future<void> Function()? onAiFeedbackSubmitted;
 
   const ClinicalHistoryGroupsView({
     super.key,
     required this.animal,
     this.searchQuery = '',
+    this.showAiFeedback = false,
+    this.aiFeedbackRequestId = 0,
+    this.initialAiFeedbackResponded = false,
+    this.onAiFeedbackDismissed,
+    this.onAiFeedbackSubmitted,
   });
 
   @override
@@ -73,7 +84,9 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                     : 'Usuario'),
           currentUserPicture: currentUser.picture,
         );
-        if (allGroups.isEmpty) return const _ClinicalHistoryEmptyState();
+        if (allGroups.isEmpty && !showAiFeedback) {
+          return const _ClinicalHistoryEmptyState();
+        }
         final groups = allGroups
             .where(
               (group) =>
@@ -81,7 +94,9 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                   group.searchText.toLowerCase().contains(query),
             )
             .toList(growable: false);
-        if (groups.isEmpty) return const _ClinicalHistoryNoResultsState();
+        if (groups.isEmpty && !showAiFeedback) {
+          return const _ClinicalHistoryNoResultsState();
+        }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.l,
@@ -89,10 +104,18 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
             AppSpacing.l,
             88,
           ),
-          itemCount: groups.length,
+          itemCount: groups.length + (showAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
-            final group = groups[index];
+            if (showAiFeedback && index == 0) {
+              return MedicalDocumentAiFeedbackBanner(
+                key: ValueKey(aiFeedbackRequestId),
+                initialHasResponded: initialAiFeedbackResponded,
+                onDismissed: onAiFeedbackDismissed,
+                onSubmitted: onAiFeedbackSubmitted,
+              );
+            }
+            final group = groups[index - (showAiFeedback ? 1 : 0)];
             return _ClinicalHistoryGroupCard(
               group: group,
               onTap: () {
@@ -554,7 +577,7 @@ class _ClinicalHistoryCard extends StatelessWidget {
       headerCrossAxisAlignment: CrossAxisAlignment.center,
       trailingSpacing: 0,
       leading: SvgPicture.asset(
-        AppIcons.documentUpload,
+                  AppIcons.folderFavorite,
         width: 24,
         height: 24,
         colorFilter: const ColorFilter.mode(

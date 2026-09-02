@@ -12,6 +12,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/anim
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
@@ -142,7 +143,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           itemCount: documents.length + (showAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) => showAiFeedback && index == 0
-              ? _AiFeedbackBanner(
+              ? MedicalDocumentAiFeedbackBanner(
                   key: ValueKey(aiFeedbackRequestId),
                   onDismissed: onAiFeedbackDismissed,
                   onSubmit: onAiFeedback ?? _submitAiFeedback,

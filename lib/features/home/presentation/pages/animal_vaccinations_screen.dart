@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -10,6 +13,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_record_s
 import 'package:animal_record/features/home/presentation/widgets/vaccination_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -27,14 +31,50 @@ class AnimalVaccinationsScreen extends StatefulWidget {
 class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool? _alphabeticalSortAscending;
+  MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
+  bool _showAiFeedback = false;
+  bool _hasAnsweredAiFeedback = false;
+  int _aiFeedbackRequestId = 0;
 
   @override
   void initState() {
     super.initState();
+    if (di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
+      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+      _showAiFeedback = _aiFeedbackStore!.isPending(
+        widget.animal.id,
+        MedicalDocumentCategory.vaccinationCard,
+      );
+    }
     _searchController.addListener(_refreshSearch);
   }
 
   void _refreshSearch() => setState(() {});
+
+  void _handleUploadedDocument() {
+    setState(() {
+      _showAiFeedback = true;
+      _hasAnsweredAiFeedback = false;
+      _aiFeedbackRequestId++;
+    });
+    final store = _aiFeedbackStore;
+    if (store != null) unawaited(store.markPending(
+      widget.animal.id,
+      MedicalDocumentCategory.vaccinationCard,
+    ));
+    context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+      widget.animal.id,
+      category: MedicalDocumentCategory.vaccinationCard,
+    );
+  }
+
+  Future<void> _markAiFeedbackAnswered() async {
+    await _aiFeedbackStore?.clearPending(
+      widget.animal.id,
+      MedicalDocumentCategory.vaccinationCard,
+    );
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
 
   @override
   void dispose() {
@@ -123,6 +163,14 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                               searchQuery: _searchController.text,
                               alphabeticalSortAscending:
                                   _alphabeticalSortAscending,
+                              showAiFeedback: _showAiFeedback,
+                              aiFeedbackRequestId: _aiFeedbackRequestId,
+                              initialAiFeedbackResponded:
+                                  _hasAnsweredAiFeedback,
+                              onAiFeedbackSubmitted: _markAiFeedbackAnswered,
+                              onAiFeedbackDismissed: () => setState(
+                                () => _showAiFeedback = false,
+                              ),
                             ),
                           ),
                         ],
@@ -201,13 +249,7 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.vaccinationCard,
-                          onUploaded: () => context
-                              .read<AnimalMedicalDocumentsCubit>()
-                              .refreshAfterUpload(
-                                widget.animal.id,
-                                category:
-                                    MedicalDocumentCategory.vaccinationCard,
-                              ),
+                          onUploaded: _handleUploadedDocument,
                         ),
                       ),
                     ],

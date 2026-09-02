@@ -9,6 +9,7 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -17,12 +18,22 @@ class VaccinationGroupsView extends StatelessWidget {
   final AnimalModel animal;
   final String searchQuery;
   final bool? alphabeticalSortAscending;
+  final bool showAiFeedback;
+  final int aiFeedbackRequestId;
+  final bool initialAiFeedbackResponded;
+  final VoidCallback? onAiFeedbackDismissed;
+  final Future<void> Function()? onAiFeedbackSubmitted;
 
   const VaccinationGroupsView({
     super.key,
     required this.animal,
     this.searchQuery = '',
     this.alphabeticalSortAscending,
+    this.showAiFeedback = false,
+    this.aiFeedbackRequestId = 0,
+    this.initialAiFeedbackResponded = false,
+    this.onAiFeedbackDismissed,
+    this.onAiFeedbackSubmitted,
   });
 
   @override
@@ -54,7 +65,9 @@ class VaccinationGroupsView extends StatelessWidget {
         }
 
         final allGroups = groupVaccinations(state.documents);
-        if (allGroups.isEmpty) return const _VaccinationEmptyState();
+        if (allGroups.isEmpty && !showAiFeedback) {
+          return const _VaccinationEmptyState();
+        }
 
         final query = searchQuery.trim().toLowerCase();
         final filteredGroups = allGroups
@@ -70,16 +83,28 @@ class VaccinationGroupsView extends StatelessWidget {
                 : (left, right) => right.title.compareTo(left.title),
           );
         }
-        if (groups.isEmpty) return const _VaccinationNoResultsState();
+        if (groups.isEmpty && !showAiFeedback) {
+          return const _VaccinationNoResultsState();
+        }
 
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-          itemCount: groups.length,
+          itemCount: groups.length + (showAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => _VaccinationGroupCard(
-            group: groups[index],
-            onDetail: () => _showDetail(context, groups[index]),
-          ),
+          itemBuilder: (context, index) => showAiFeedback && index == 0
+              ? MedicalDocumentAiFeedbackBanner(
+                  key: ValueKey(aiFeedbackRequestId),
+                  initialHasResponded: initialAiFeedbackResponded,
+                  onDismissed: onAiFeedbackDismissed,
+                  onSubmitted: onAiFeedbackSubmitted,
+                )
+              : _VaccinationGroupCard(
+                  group: groups[index - (showAiFeedback ? 1 : 0)],
+                  onDetail: () => _showDetail(
+                    context,
+                    groups[index - (showAiFeedback ? 1 : 0)],
+                  ),
+                ),
         );
       },
     );

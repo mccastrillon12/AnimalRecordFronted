@@ -48,7 +48,27 @@ class ErrorDisplay {
   }) {
     _removeCurrentOverlay();
 
-    final overlayState = Overlay.of(context);
+    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlayState == null) {
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              behavior: SnackBarBehavior.floating,
+              content: CustomSnackBar(
+                message: message,
+                isError: isError,
+                onClose: messenger.hideCurrentSnackBar,
+              ),
+            ),
+          );
+      }
+      return;
+    }
 
     _currentEntry = OverlayEntry(
       builder: (context) => Positioned(
@@ -103,7 +123,8 @@ class ErrorDisplay {
   }) {
     _removeSecondaryOverlay();
 
-    final overlayState = Overlay.of(context);
+    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlayState == null) return;
 
     _secondaryEntry = OverlayEntry(
       builder: (context) => Positioned(

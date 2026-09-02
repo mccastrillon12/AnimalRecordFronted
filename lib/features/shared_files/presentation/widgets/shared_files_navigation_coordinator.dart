@@ -48,8 +48,15 @@ class _SharedFilesNavigationCoordinatorState
     if (!mounted) return;
     _isPresenting = false;
     final overlay = widget.navigatorKey.currentState?.overlay;
-    if (uploaded == false && overlay != null) {
-      ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+    if (overlay != null) {
+      if (uploaded == true) {
+        ErrorDisplay.showSuccess(
+          overlay.context,
+          'El archivo ha sido subido exitosamente.',
+        );
+      } else if (uploaded == false) {
+        ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+      }
     }
   }
 

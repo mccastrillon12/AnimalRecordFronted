@@ -592,7 +592,19 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 'preselectedAnimal': activeAnimals.single,
             },
           );
-          if (!context.mounted || uploaded != false) return;
+          if (!context.mounted) return;
+          if (uploaded == true) {
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (context.mounted) {
+                ErrorDisplay.showSuccess(
+                  context,
+                  'El archivo ha sido subido exitosamente.',
+                );
+              }
+            });
+            return;
+          }
+          if (uploaded != false) return;
           final onUploadCancelled = widget.onUploadCancelled;
           if (onUploadCancelled != null) {
             onUploadCancelled();

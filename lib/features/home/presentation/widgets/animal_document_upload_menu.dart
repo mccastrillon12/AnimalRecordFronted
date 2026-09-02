@@ -87,6 +87,13 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
     if (!context.mounted) return;
     if (uploaded == true) {
       onUploaded?.call();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!context.mounted) return;
+        ErrorDisplay.showSuccess(
+          context,
+          'El archivo ha sido subido exitosamente.',
+        );
+      });
     } else if (uploaded == false) {
       ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
     }

@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -8,6 +11,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_record_s
 import 'package:animal_record/features/home/presentation/widgets/clinical_history_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -25,14 +29,50 @@ class AnimalClinicalHistoryScreen extends StatefulWidget {
 class _AnimalClinicalHistoryScreenState
     extends State<AnimalClinicalHistoryScreen> {
   final TextEditingController _searchController = TextEditingController();
+  MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
+  bool _showAiFeedback = false;
+  bool _hasAnsweredAiFeedback = false;
+  int _aiFeedbackRequestId = 0;
 
   @override
   void initState() {
     super.initState();
+    if (di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
+      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+      _showAiFeedback = _aiFeedbackStore!.isPending(
+        widget.animal.id,
+        MedicalDocumentCategory.clinicalHistory,
+      );
+    }
     _searchController.addListener(_refreshSearch);
   }
 
   void _refreshSearch() => setState(() {});
+
+  void _handleUploadedDocument() {
+    setState(() {
+      _showAiFeedback = true;
+      _hasAnsweredAiFeedback = false;
+      _aiFeedbackRequestId++;
+    });
+    final store = _aiFeedbackStore;
+    if (store != null) unawaited(store.markPending(
+      widget.animal.id,
+      MedicalDocumentCategory.clinicalHistory,
+    ));
+    context.read<AnimalMedicalDocumentsCubit>().load(
+      widget.animal.id,
+      category: MedicalDocumentCategory.clinicalHistory,
+    );
+  }
+
+  Future<void> _markAiFeedbackAnswered() async {
+    await _aiFeedbackStore?.clearPending(
+      widget.animal.id,
+      MedicalDocumentCategory.clinicalHistory,
+    );
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
 
   @override
   void dispose() {
@@ -135,6 +175,14 @@ class _AnimalClinicalHistoryScreenState
                             child: ClinicalHistoryGroupsView(
                               animal: widget.animal,
                               searchQuery: _searchController.text,
+                              showAiFeedback: _showAiFeedback,
+                              aiFeedbackRequestId: _aiFeedbackRequestId,
+                              initialAiFeedbackResponded:
+                                  _hasAnsweredAiFeedback,
+                              onAiFeedbackSubmitted: _markAiFeedbackAnswered,
+                              onAiFeedbackDismissed: () => setState(
+                                () => _showAiFeedback = false,
+                              ),
                             ),
                           ),
                         ],
@@ -159,12 +207,7 @@ class _AnimalClinicalHistoryScreenState
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.clinicalHistory,
-                          onUploaded: () =>
-                              context.read<AnimalMedicalDocumentsCubit>().load(
-                                widget.animal.id,
-                                category:
-                                    MedicalDocumentCategory.clinicalHistory,
-                              ),
+                          onUploaded: _handleUploadedDocument,
                         ),
                       ),
                     ],
