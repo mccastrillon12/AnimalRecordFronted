@@ -122,7 +122,8 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             return ascending ? comparison : -comparison;
           });
         }
-        if (documents.isEmpty && !showAiFeedback) {
+        final shouldShowAiFeedback = showAiFeedback && documents.isNotEmpty;
+        if (documents.isEmpty && !shouldShowAiFeedback) {
           return _EmptyState(
             title: emptyTitle,
             description: emptyDescription,
@@ -130,7 +131,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           );
         }
         if (category == MedicalDocumentCategory.diagnosticImage &&
-            !showAiFeedback) {
+            !shouldShowAiFeedback) {
           return _DiagnosticImagesGrid(
             documents: documents,
             loadThumbnailUri:
@@ -140,9 +141,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
         }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-          itemCount: documents.length + (showAiFeedback ? 1 : 0),
+          itemCount: documents.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => showAiFeedback && index == 0
+          itemBuilder: (context, index) => shouldShowAiFeedback && index == 0
               ? MedicalDocumentAiFeedbackBanner(
                   key: ValueKey(aiFeedbackRequestId),
                   onDismissed: onAiFeedbackDismissed,
@@ -151,9 +152,10 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                   onSubmitted: onAiFeedbackSubmitted,
                 )
               : _MedicalDocumentCard(
-                  document: documents[index - (showAiFeedback ? 1 : 0)],
+                  document:
+                      documents[index - (shouldShowAiFeedback ? 1 : 0)],
                   category:
-                      documents[index - (showAiFeedback ? 1 : 0)]
+                      documents[index - (shouldShowAiFeedback ? 1 : 0)]
                           .finalCategory ??
                       category,
                 ),

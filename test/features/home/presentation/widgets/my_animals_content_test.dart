@@ -1,5 +1,6 @@
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -78,7 +79,7 @@ void main() {
     },
   );
 
-  testWidgets('shows the disabled single selector and analysis status', (
+  testWidgets('shows analysis status immediately while uploading', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -97,7 +98,7 @@ void main() {
     when(() => sharedFilesCubit.stream).thenAnswer((_) => const Stream.empty());
     when(() => sharedFilesCubit.pendingFiles).thenReturn(const []);
     when(() => medicalDocumentFlowCubit.state).thenReturn(
-      const MedicalDocumentFlowState(phase: MedicalDocumentFlowPhase.analyzing),
+      const MedicalDocumentFlowState(phase: MedicalDocumentFlowPhase.uploading),
     );
     when(
       () => medicalDocumentFlowCubit.stream,
@@ -149,6 +150,10 @@ void main() {
     );
     expect(analysisLabel.style?.color, AppColors.aiViolet);
     expect(analysisLabel.style?.decoration, TextDecoration.none);
+    expect(
+      tester.widget<CustomButton>(find.byType(CustomButton)).text,
+      'Subir archivo',
+    );
     expect(tester.takeException(), isNull);
   });
 }

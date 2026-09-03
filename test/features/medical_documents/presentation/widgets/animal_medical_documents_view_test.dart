@@ -312,7 +312,7 @@ void main() {
     expect(find.textContaining('Gracias por tu respuesta'), findsNothing);
   });
 
-  testWidgets('restores the thank-you state without showing voting buttons', (
+  testWidgets('does not show AI feedback when there are no documents', (
     tester,
   ) async {
     final cubit = _MockAnimalMedicalDocumentsCubit();
@@ -342,10 +342,7 @@ void main() {
       ),
     );
 
-    expect(
-      find.byKey(const Key('medical-document-ai-feedback-thanks')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('medical-document-ai-feedback-thanks')), findsNothing);
     expect(
       find.byKey(const Key('medical-document-ai-not-useful')),
       findsNothing,

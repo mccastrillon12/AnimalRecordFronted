@@ -84,7 +84,8 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                     : 'Usuario'),
           currentUserPicture: currentUser.picture,
         );
-        if (allGroups.isEmpty && !showAiFeedback) {
+        final shouldShowAiFeedback = showAiFeedback && allGroups.isNotEmpty;
+        if (allGroups.isEmpty && !shouldShowAiFeedback) {
           return const _ClinicalHistoryEmptyState();
         }
         final groups = allGroups
@@ -94,7 +95,7 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                   group.searchText.toLowerCase().contains(query),
             )
             .toList(growable: false);
-        if (groups.isEmpty && !showAiFeedback) {
+        if (groups.isEmpty && !shouldShowAiFeedback) {
           return const _ClinicalHistoryNoResultsState();
         }
         return ListView.separated(
@@ -104,10 +105,10 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
             AppSpacing.l,
             88,
           ),
-          itemCount: groups.length + (showAiFeedback ? 1 : 0),
+          itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
-            if (showAiFeedback && index == 0) {
+            if (shouldShowAiFeedback && index == 0) {
               return MedicalDocumentAiFeedbackBanner(
                 key: ValueKey(aiFeedbackRequestId),
                 initialHasResponded: initialAiFeedbackResponded,
@@ -115,7 +116,7 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                 onSubmitted: onAiFeedbackSubmitted,
               );
             }
-            final group = groups[index - (showAiFeedback ? 1 : 0)];
+            final group = groups[index - (shouldShowAiFeedback ? 1 : 0)];
             return _ClinicalHistoryGroupCard(
               group: group,
               onTap: () {

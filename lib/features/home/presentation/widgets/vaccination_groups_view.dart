@@ -65,7 +65,8 @@ class VaccinationGroupsView extends StatelessWidget {
         }
 
         final allGroups = groupVaccinations(state.documents);
-        if (allGroups.isEmpty && !showAiFeedback) {
+        final shouldShowAiFeedback = showAiFeedback && allGroups.isNotEmpty;
+        if (allGroups.isEmpty && !shouldShowAiFeedback) {
           return const _VaccinationEmptyState();
         }
 
@@ -83,15 +84,15 @@ class VaccinationGroupsView extends StatelessWidget {
                 : (left, right) => right.title.compareTo(left.title),
           );
         }
-        if (groups.isEmpty && !showAiFeedback) {
+        if (groups.isEmpty && !shouldShowAiFeedback) {
           return const _VaccinationNoResultsState();
         }
 
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-          itemCount: groups.length + (showAiFeedback ? 1 : 0),
+          itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => showAiFeedback && index == 0
+          itemBuilder: (context, index) => shouldShowAiFeedback && index == 0
               ? MedicalDocumentAiFeedbackBanner(
                   key: ValueKey(aiFeedbackRequestId),
                   initialHasResponded: initialAiFeedbackResponded,
@@ -99,10 +100,10 @@ class VaccinationGroupsView extends StatelessWidget {
                   onSubmitted: onAiFeedbackSubmitted,
                 )
               : _VaccinationGroupCard(
-                  group: groups[index - (showAiFeedback ? 1 : 0)],
+                  group: groups[index - (shouldShowAiFeedback ? 1 : 0)],
                   onDetail: () => _showDetail(
                     context,
-                    groups[index - (showAiFeedback ? 1 : 0)],
+                    groups[index - (shouldShowAiFeedback ? 1 : 0)],
                   ),
                 ),
         );

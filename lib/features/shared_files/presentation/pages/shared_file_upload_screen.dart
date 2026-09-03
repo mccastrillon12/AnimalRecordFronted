@@ -1,4 +1,5 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -14,6 +15,7 @@ import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
 import 'package:animal_record/features/medical_documents/presentation/pages/medical_document_review_screen.dart';
@@ -349,6 +351,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     if (!mounted) return;
     switch (outcome) {
       case MedicalDocumentReviewOutcome.accepted:
+        await _markAiFeedbackPendingForAcceptedDocument(flow.state);
+        if (!mounted) return;
         _reviewPresented = false;
         context.read<SharedFilesCubit>().clear();
         Navigator.pop(context, true);
@@ -371,6 +375,29 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       case null:
         _reviewPresented = false;
         break;
+    }
+  }
+
+  Future<void> _markAiFeedbackPendingForAcceptedDocument(
+    MedicalDocumentFlowState state,
+  ) async {
+    final document = state.remoteDocument;
+    final category = document?.finalCategory;
+    if (document == null || category == null ||
+        !di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
+      return;
+    }
+
+    final store = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+    try {
+      await Future.wait(
+        document.animalIds.toSet().map(
+          (animalId) => store.markPending(animalId, category),
+        ),
+      );
+    } catch (_) {
+      // The document was already accepted; a local feedback prompt failure
+      // must not prevent the user from returning to the animal's records.
     }
   }
 
@@ -412,8 +439,6 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
             bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
             bottomChild: CustomButton(
               text: switch (flowState.phase) {
-                MedicalDocumentFlowPhase.uploading => 'Subiendo...',
-                MedicalDocumentFlowPhase.analyzing => 'Analizando con IA...',
                 MedicalDocumentFlowPhase.pollingPaused => 'Reanudar análisis',
                 MedicalDocumentFlowPhase.reviewing => 'Revisar análisis',
                 _ => 'Subir archivo',
@@ -529,17 +554,14 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                       const CircularProgressIndicator(
                         color: AppColors.aiViolet,
                       ),
-                      if (flowState.phase ==
-                          MedicalDocumentFlowPhase.analyzing) ...[
-                        const SizedBox(height: AppSpacing.s),
-                        Text(
-                          'Analizando archivo...',
-                          style: AppTypography.body4.copyWith(
-                            color: AppColors.aiViolet,
-                            decoration: TextDecoration.none,
-                          ),
+                      const SizedBox(height: AppSpacing.s),
+                      Text(
+                        'Analizando archivo...',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.aiViolet,
+                          decoration: TextDecoration.none,
                         ),
-                      ],
+                      ),
                     ],
                   ),
                 ),
