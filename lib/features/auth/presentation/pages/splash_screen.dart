@@ -74,12 +74,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   } else {
                     final sharedFiles = context.read<SharedFilesCubit>();
                     sharedFiles.grantAccess();
-                    Navigator.pushReplacementNamed(
-                      context,
-                      sharedFiles.hasPendingFiles
-                          ? AppRoutes.sharedFileUpload
-                          : AppRoutes.home,
-                    );
+                    Navigator.pushReplacementNamed(context, AppRoutes.home);
                   }
                 }
               } else {

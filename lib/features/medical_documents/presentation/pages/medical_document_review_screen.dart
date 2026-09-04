@@ -1,5 +1,6 @@
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/feedback/process_cancellation_dialog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
@@ -27,8 +28,6 @@ class _MedicalDocumentReviewScreenState
     extends State<MedicalDocumentReviewScreen> {
   late final MedicalDocumentOriginalPreview _originalPreview;
   final _reviewCloseIconKey = GlobalKey();
-  final _sendCloseIconKey = GlobalKey();
-  final _sendActionIconKey = GlobalKey();
   bool _completionHandled = false;
   bool _canPop = false;
   bool _isDiscarding = false;
@@ -61,7 +60,7 @@ class _MedicalDocumentReviewScreenState
             _popWithResult(MedicalDocumentReviewOutcome.rejected);
           }
           if (state.phase == MedicalDocumentFlowPhase.completed) {
-            _showAcceptedDocument(state);
+            _finishAcceptedDocument();
           }
         },
         builder: (context, state) {
@@ -89,10 +88,16 @@ class _MedicalDocumentReviewScreenState
     );
   }
 
-  void _discardAndClose() {
+  Future<void> _discardAndClose() async {
     if (_isDiscarding) return;
     _isDiscarding = true;
-    _popWithResult(MedicalDocumentReviewOutcome.dismissed);
+    final confirmed = await showProcessCancellationDialog(context);
+    if (!mounted) return;
+    if (confirmed) {
+      _popWithResult(MedicalDocumentReviewOutcome.cancelled);
+    } else {
+      _isDiscarding = false;
+    }
   }
 
   Future<void> _showRejectionDialog() async {
@@ -116,35 +121,9 @@ class _MedicalDocumentReviewScreenState
     });
   }
 
-  Future<void> _showAcceptedDocument(MedicalDocumentFlowState state) async {
+  void _finishAcceptedDocument() {
     if (_completionHandled) return;
     _completionHandled = true;
-    final document = state.remoteDocument;
-    if (document == null ||
-        document.finalCategory != MedicalDocumentCategory.prescription ||
-        document.validatedExtraction == null) {
-      if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
-      return;
-    }
-    await Navigator.push<void>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => SharedFileSendScreen(
-          analysis: medicalDocumentToPdfAnalysis(document: document),
-          closeIconKey: _sendCloseIconKey,
-          actionIconKey: _sendActionIconKey,
-          onViewOriginal: () => _showOriginal(
-            _sendCloseIconKey,
-            downloadIconKey: _sendActionIconKey,
-          ),
-          resolveOriginalUri: () =>
-              di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
-          actionLabel: medicalDocumentSendActionLabel(
-            document.finalCategory ?? MedicalDocumentCategory.prescription,
-          ),
-        ),
-      ),
-    );
     if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
   }
 

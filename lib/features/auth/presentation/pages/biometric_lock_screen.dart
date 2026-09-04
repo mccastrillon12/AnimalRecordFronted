@@ -94,12 +94,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       if (didAuthenticate && mounted) {
         final sharedFiles = context.read<SharedFilesCubit>();
         sharedFiles.grantAccess();
-        Navigator.pushReplacementNamed(
-          context,
-          sharedFiles.hasPendingFiles
-              ? AppRoutes.sharedFileUpload
-              : AppRoutes.home,
-        );
+        Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } on PlatformException catch (e) {
       if (e.code == auth_error.notAvailable ||

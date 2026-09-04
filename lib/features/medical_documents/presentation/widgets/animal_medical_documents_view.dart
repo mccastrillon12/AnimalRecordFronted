@@ -152,8 +152,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                   onSubmitted: onAiFeedbackSubmitted,
                 )
               : _MedicalDocumentCard(
-                  document:
-                      documents[index - (shouldShowAiFeedback ? 1 : 0)],
+                  document: documents[index - (shouldShowAiFeedback ? 1 : 0)],
                   category:
                       documents[index - (shouldShowAiFeedback ? 1 : 0)]
                           .finalCategory ??
@@ -709,7 +708,7 @@ class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
         children: [
           Expanded(
             child: Text(
-              '¿La ayuda de la IA te fue útil\npara leer tu archivo?',
+              '¿La ayuda de la IA te fue útil para leer tu archivo?',
               style: AppTypography.body6.copyWith(
                 color: const Color.fromARGB(255, 0, 0, 0),
                 height: 1.5,

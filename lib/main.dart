@@ -7,6 +7,7 @@ import 'package:pdfrx/pdfrx.dart';
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
@@ -109,7 +110,13 @@ class MyApp extends StatelessWidget {
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
-          AppRoutes.home: (context) => const HomeScreen(),
+          AppRoutes.home: (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            final initialSection = arguments is Map
+                ? arguments[homeInitialSectionArgument] as String?
+                : null;
+            return HomeScreen(initialSection: initialSection);
+          },
           AppRoutes.profile: (context) => const ProfileScreen(),
           AppRoutes.editProfile: (context) => const EditProfileScreen(),
           AppRoutes.myAccount: (context) => const MyAccountScreen(),
@@ -201,15 +208,23 @@ class MyApp extends StatelessWidget {
             return SharedFileSendScreen(analysis: analysis);
           },
           AppRoutes.animalDocuments: (context) {
-            final animalId =
-                ModalRoute.of(context)!.settings.arguments as String;
+            final arguments = ModalRoute.of(context)!.settings.arguments;
+            final animalId = arguments is String
+                ? arguments
+                : (arguments as Map)['animalId'] as String;
+            final initialCategory =
+                arguments is Map &&
+                    arguments['initialCategory'] is MedicalDocumentCategory
+                ? arguments['initialCategory'] as MedicalDocumentCategory
+                : MedicalDocumentCategory.prescription;
             return BlocProvider(
-              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
-                ..load(
-                  animalId,
-                  category: MedicalDocumentCategory.prescription,
-                ),
-              child: AnimalDocumentsScreen(animalId: animalId),
+              create: (_) =>
+                  di.sl<AnimalMedicalDocumentsCubit>()
+                    ..load(animalId, category: initialCategory),
+              child: AnimalDocumentsScreen(
+                animalId: animalId,
+                initialCategory: initialCategory,
+              ),
             );
           },
           AppRoutes.animalDiagnosticImages: (context) {

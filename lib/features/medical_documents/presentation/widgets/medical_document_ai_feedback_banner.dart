@@ -95,11 +95,31 @@ class _ThanksFeedback extends StatelessWidget {
       gradient: AppColors.aiAnalysisGradient,
       borderRadius: AppBorders.large(),
     ),
-    child: Row(children: [
-      Expanded(child: Text('Gracias por tu respuesta, la tendremos en cuenta para seguir entrenando la IA.', style: AppTypography.body6.copyWith(color: AppColors.greyNegro, height: 1.5))),
-      const SizedBox(width: AppSpacing.m),
-      IconButton(key: const Key('medical-document-ai-feedback-close'), onPressed: onDismissed, icon: const Icon(Icons.close, color: AppColors.greyIconos, size: 24), tooltip: 'Cerrar', padding: EdgeInsets.zero, constraints: const BoxConstraints(minWidth: AppSpacing.xl, minHeight: AppSpacing.xl)),
-    ]),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            'Gracias por tu respuesta, la tendremos en cuenta para seguir entrenando la IA.',
+            style: AppTypography.body6.copyWith(
+              color: AppColors.greyNegro,
+              height: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.m),
+        IconButton(
+          key: const Key('medical-document-ai-feedback-close'),
+          onPressed: onDismissed,
+          icon: const Icon(Icons.close, color: AppColors.greyIconos, size: 24),
+          tooltip: 'Cerrar',
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(
+            minWidth: AppSpacing.xl,
+            minHeight: AppSpacing.xl,
+          ),
+        ),
+      ],
+    ),
   );
 }
 
@@ -107,19 +127,44 @@ class _FeedbackPrompt extends StatelessWidget {
   final bool isSubmitting;
   final VoidCallback onDislike;
   final VoidCallback onLike;
-  const _FeedbackPrompt({required this.isSubmitting, required this.onDislike, required this.onLike});
+  const _FeedbackPrompt({
+    required this.isSubmitting,
+    required this.onDislike,
+    required this.onLike,
+  });
 
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.all(AppSpacing.m),
-    decoration: BoxDecoration(gradient: AppColors.aiAnalysisGradient, borderRadius: AppBorders.small()),
-    child: Row(children: [
-      Expanded(child: Text('¿La ayuda de la IA te fue útil\npara leer tu archivo?', style: AppTypography.body6.copyWith(color: const Color.fromARGB(255, 0, 0, 0), height: 1.5))),
-      const SizedBox(width: AppSpacing.s),
-      _FeedbackButton(key: const Key('medical-document-ai-not-useful'), icon: Icons.thumb_down_alt, onTap: isSubmitting ? null : onDislike),
-      const SizedBox(width: AppSpacing.m),
-      _FeedbackButton(key: const Key('medical-document-ai-useful'), icon: Icons.thumb_up_alt, onTap: isSubmitting ? null : onLike),
-    ]),
+    decoration: BoxDecoration(
+      gradient: AppColors.aiAnalysisGradient,
+      borderRadius: AppBorders.small(),
+    ),
+    child: Row(
+      children: [
+        Expanded(
+          child: Text(
+            '¿La ayuda de la IA te fue útil para leer tu archivo?',
+            style: AppTypography.body6.copyWith(
+              color: const Color.fromARGB(255, 0, 0, 0),
+              height: 1.5,
+            ),
+          ),
+        ),
+        const SizedBox(width: AppSpacing.s),
+        _FeedbackButton(
+          key: const Key('medical-document-ai-not-useful'),
+          icon: Icons.thumb_down_alt,
+          onTap: isSubmitting ? null : onDislike,
+        ),
+        const SizedBox(width: AppSpacing.m),
+        _FeedbackButton(
+          key: const Key('medical-document-ai-useful'),
+          icon: Icons.thumb_up_alt,
+          onTap: isSubmitting ? null : onLike,
+        ),
+      ],
+    ),
   );
 }
 

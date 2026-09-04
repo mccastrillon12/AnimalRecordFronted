@@ -131,8 +131,13 @@ void main() {
     expect(dropdown.items, isNot(contains(MedicalDocumentCategory.other)));
     expect(
       dropdown.items,
-      containsAll(const [
+      orderedEquals(const [
+        MedicalDocumentCategory.vaccinationCard,
+        MedicalDocumentCategory.prescription,
+        MedicalDocumentCategory.clinicalHistory,
         MedicalDocumentCategory.diagnosticImage,
+        MedicalDocumentCategory.medicalOrder,
+        MedicalDocumentCategory.referral,
         MedicalDocumentCategory.laboratoryResult,
       ]),
     );
@@ -154,5 +159,70 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(result, MedicalDocumentCategory.laboratoryResult);
+  });
+
+  testWidgets('asks before cancelling the process from the close icon', (
+    tester,
+  ) async {
+    var cancellationConfirmed = false;
+    const document = MedicalDocumentEntity(
+      id: 'document-to-cancel',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.reviewPending,
+      primaryDetectedCategory: MedicalDocumentCategory.prescription,
+      classificationOutcome: MedicalDocumentClassificationOutcome.match,
+      version: 1,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () {
+                unawaited(
+                  showMedicalDocumentClassificationDialog(
+                    context: context,
+                    document: document,
+                    initialCategory: MedicalDocumentCategory.prescription,
+                    onProcessCancellationConfirmed: () {
+                      cancellationConfirmed = true;
+                    },
+                  ),
+                );
+              },
+              child: const Text('Abrir'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+
+    expect(find.text('¿Desea cancelar el proceso?'), findsOneWidget);
+    expect(
+      find.text('Perderá los datos diligenciados al momento.'),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.text('No'));
+    await tester.pumpAndSettle();
+    expect(find.text('Análisis de archivo adjunto'), findsOneWidget);
+    expect(cancellationConfirmed, isFalse);
+
+    await tester.tap(find.byIcon(Icons.close));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Si'));
+    await tester.pumpAndSettle();
+
+    expect(cancellationConfirmed, isTrue);
+    expect(find.text('Análisis de archivo adjunto'), findsNothing);
   });
 }

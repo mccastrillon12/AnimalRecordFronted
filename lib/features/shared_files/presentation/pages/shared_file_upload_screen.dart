@@ -7,6 +7,7 @@ import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
+import 'package:animal_record/core/widgets/feedback/process_cancellation_dialog.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -22,6 +23,7 @@ import 'package:animal_record/features/medical_documents/presentation/pages/medi
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_classification_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/shared_files/domain/entities/manual_file_source.dart';
@@ -30,6 +32,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'dart:io' as io;
 
 class SharedFileUploadScreen extends StatefulWidget {
@@ -48,6 +51,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   DateTime? _manualFileSelectedAt;
   bool _reviewPresented = false;
   bool _pendingResumeChecked = false;
+  bool _classificationCancellationConfirmed = false;
+  bool _isClosing = false;
 
   @override
   void initState() {
@@ -116,6 +121,33 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   }
 
   Future<void> _close() async {
+    if (_isClosing) return;
+    _isClosing = true;
+    if (_hasEnteredData) {
+      final confirmed = await showProcessCancellationDialog(context);
+      if (!mounted) return;
+      if (!confirmed) {
+        _isClosing = false;
+        return;
+      }
+    }
+    await _cancelAndClose();
+  }
+
+  bool get _hasEnteredData {
+    final sharedFiles = context.read<SharedFilesCubit>();
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    final hasSourceFile = _isManualUpload
+        ? _manualFile != null
+        : sharedFiles.pendingFiles.isNotEmpty;
+    return hasSourceFile ||
+        _selectedAnimals.isNotEmpty ||
+        _descriptionController.text.trim().isNotEmpty ||
+        flow.state.phase != MedicalDocumentFlowPhase.selecting ||
+        flow.pendingFlow != null;
+  }
+
+  Future<void> _cancelAndClose() async {
     if (!await _discardPendingFlow() || !mounted) return;
     if (!_isManualUpload) {
       context.read<SharedFilesCubit>().clear();
@@ -131,6 +163,12 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   bool get _isManualUpload {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     return arguments is Map && arguments['manualUpload'] == true;
+  }
+
+  bool get _isExternalShare {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    return arguments is Map &&
+        arguments[sharedFileExternalUploadArgument] == true;
   }
 
   AnimalEntity? get _preselectedAnimal {
@@ -312,14 +350,23 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   Future<void> _presentReview(MedicalDocumentFlowState state) async {
     if (_reviewPresented || state.remoteDocument == null) return;
     _reviewPresented = true;
+    _classificationCancellationConfirmed = false;
     final selected = await showMedicalDocumentClassificationDialog(
       context: context,
       document: state.remoteDocument!,
       initialCategory:
           state.selectedFinalCategory ?? MedicalDocumentCategory.other,
+      onProcessCancellationConfirmed: () {
+        _classificationCancellationConfirmed = true;
+      },
     );
     if (!mounted) return;
     if (selected == null) {
+      if (_classificationCancellationConfirmed) {
+        _classificationCancellationConfirmed = false;
+        await _cancelAndClose();
+        return;
+      }
       await _discardPendingFlow();
       if (!mounted) return;
       _reviewPresented = false;
@@ -351,15 +398,22 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     if (!mounted) return;
     switch (outcome) {
       case MedicalDocumentReviewOutcome.accepted:
-        await _markAiFeedbackPendingForAcceptedDocument(flow.state);
-        if (!mounted) return;
+        unawaited(_markAiFeedbackPendingForAcceptedDocument(flow.state));
         _reviewPresented = false;
         context.read<SharedFilesCubit>().clear();
-        Navigator.pop(context, true);
+        Navigator.pop(
+          context,
+          _isExternalShare
+              ? SharedFileUploadResult(
+                  animals: List.unmodifiable(_selectedAnimals),
+                  category: flow.state.remoteDocument?.finalCategory,
+                )
+              : true,
+        );
       case MedicalDocumentReviewOutcome.cancelled:
         _reviewPresented = false;
-        if (!_isManualUpload) context.read<SharedFilesCubit>().clear();
-        Navigator.pop(context, false);
+        await _cancelAndClose();
+        return;
       case MedicalDocumentReviewOutcome.dismissed:
         final discarded = await flow.discardCurrentFlow(
           showSubmittingState: false,
@@ -383,7 +437,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   ) async {
     final document = state.remoteDocument;
     final category = document?.finalCategory;
-    if (document == null || category == null ||
+    if (document == null ||
+        category == null ||
         !di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
       return;
     }
@@ -754,7 +809,10 @@ class _SelectedManualFile extends StatelessWidget {
         color: AppColors.white,
         child: Padding(
           padding: const EdgeInsets.all(4.0),
-          child: Image.asset('assets/icons/pdf.png', fit: BoxFit.contain),
+          child: SvgPicture.asset(
+            'assets/icons/PDF.svg',
+            fit: BoxFit.contain,
+          ),
         ),
       );
     }

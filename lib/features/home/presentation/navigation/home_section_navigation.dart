@@ -4,6 +4,9 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
+const homeInitialSectionArgument = 'initialSection';
+const homeMyAnimalsSection = 'mis_animales';
+
 /// Opens the vaccination record directly when there is no animal to choose.
 ///
 /// Returns whether the menu selection was handled as a direct navigation.

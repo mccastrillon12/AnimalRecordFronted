@@ -15,6 +15,7 @@ class ConfirmDialog extends StatelessWidget {
   final bool isConfirmEnabled;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
+  final VoidCallback? onClose;
   final double width;
 
   const ConfirmDialog({
@@ -31,6 +32,7 @@ class ConfirmDialog extends StatelessWidget {
     this.isConfirmEnabled = true,
     required this.onConfirm,
     this.onCancel,
+    this.onClose,
     this.width = 347,
   });
 
@@ -165,7 +167,7 @@ class ConfirmDialog extends StatelessWidget {
             right: 16,
             child: IconButton(
               icon: const Icon(Icons.close, color: AppColors.greyIconos),
-              onPressed: () => Navigator.of(context).pop(),
+              onPressed: onClose ?? () => Navigator.of(context).pop(),
               padding: EdgeInsets.zero,
               constraints: const BoxConstraints(),
             ),

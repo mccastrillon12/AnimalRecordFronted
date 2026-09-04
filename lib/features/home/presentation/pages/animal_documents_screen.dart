@@ -17,8 +17,13 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AnimalDocumentsScreen extends StatefulWidget {
   final String animalId;
+  final MedicalDocumentCategory initialCategory;
 
-  const AnimalDocumentsScreen({super.key, required this.animalId});
+  const AnimalDocumentsScreen({
+    super.key,
+    required this.animalId,
+    this.initialCategory = MedicalDocumentCategory.prescription,
+  });
 
   @override
   State<AnimalDocumentsScreen> createState() => _AnimalDocumentsScreenState();
@@ -29,7 +34,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String? _searchErrorText;
-  int _loadedTabIndex = 0;
+  late int _loadedTabIndex;
   final Set<MedicalDocumentCategory> _pendingAiFeedbackCategories = {};
   final Set<MedicalDocumentCategory> _answeredAiFeedbackCategories = {};
   final Map<MedicalDocumentCategory, Future<void>> _pendingFeedbackWrites = {};
@@ -45,13 +50,18 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   @override
   void initState() {
     super.initState();
+    _loadedTabIndex = _indexForCategory(widget.initialCategory);
     _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
     _pendingAiFeedbackCategories.addAll(
       _feedbackCategories.where(
         (category) => _aiFeedbackStore.isPending(widget.animalId, category),
       ),
     );
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(
+      length: 3,
+      initialIndex: _loadedTabIndex,
+      vsync: this,
+    );
     _tabController.addListener(() {
       FocusManager.instance.primaryFocus?.unfocus();
       if (_loadedTabIndex != _tabController.index) {
@@ -77,6 +87,12 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     0 => MedicalDocumentCategory.prescription,
     1 => MedicalDocumentCategory.medicalOrder,
     _ => MedicalDocumentCategory.referral,
+  };
+
+  int _indexForCategory(MedicalDocumentCategory category) => switch (category) {
+    MedicalDocumentCategory.medicalOrder => 1,
+    MedicalDocumentCategory.referral => 2,
+    _ => 0,
   };
 
   void _handleUploadedDocument() {

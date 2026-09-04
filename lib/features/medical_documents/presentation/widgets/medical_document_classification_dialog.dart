@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
+import 'package:animal_record/core/widgets/feedback/process_cancellation_dialog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -12,6 +15,7 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
   required BuildContext context,
   required MedicalDocumentEntity document,
   required MedicalDocumentCategory initialCategory,
+  VoidCallback? onProcessCancellationConfirmed,
 }) async {
   final detectedCategories = _detectedCategories(document, initialCategory);
   final detectedCategoriesLabel = _categoryListLabel(detectedCategories);
@@ -80,10 +84,28 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
         confirmColor: AppColors.aiViolet,
         isConfirmEnabled: selectedCategory != null,
         onConfirm: () => confirmedCategory = selectedCategory,
+        onClose: () {
+          unawaited(
+            _confirmProcessCancellation(
+              dialogContext,
+              onConfirmed: onProcessCancellationConfirmed,
+            ),
+          );
+        },
       ),
     ),
   );
   return confirmedCategory;
+}
+
+Future<void> _confirmProcessCancellation(
+  BuildContext context, {
+  VoidCallback? onConfirmed,
+}) async {
+  final confirmed = await showProcessCancellationDialog(context);
+  if (!context.mounted || !confirmed) return;
+  onConfirmed?.call();
+  Navigator.of(context).pop();
 }
 
 List<MedicalDocumentCategory> _detectedCategories(
@@ -118,12 +140,12 @@ String _categoryLabel(MedicalDocumentCategory category) =>
     : category.label;
 
 const _selectableCategories = [
-  MedicalDocumentCategory.prescription,
-  MedicalDocumentCategory.medicalOrder,
-  MedicalDocumentCategory.referral,
   MedicalDocumentCategory.vaccinationCard,
+  MedicalDocumentCategory.prescription,
   MedicalDocumentCategory.clinicalHistory,
   MedicalDocumentCategory.diagnosticImage,
+  MedicalDocumentCategory.medicalOrder,
+  MedicalDocumentCategory.referral,
   MedicalDocumentCategory.laboratoryResult,
 ];
 
