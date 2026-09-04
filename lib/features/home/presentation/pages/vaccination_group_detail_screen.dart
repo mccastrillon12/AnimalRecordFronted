@@ -7,6 +7,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
@@ -47,10 +48,43 @@ class VaccinationGroupDetailScreen extends StatefulWidget {
 class _VaccinationGroupDetailScreenState
     extends State<VaccinationGroupDetailScreen> {
   final _closeIconKey = GlobalKey();
+  MedicalFieldCatalog? _catalog;
+  Object? _catalogError;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    setState(() => _catalogError = null);
+    try {
+      final catalog = await di.sl<GetMedicalFieldCatalogUseCase>()(
+        category: MedicalDocumentCategory.vaccinationCard,
+      );
+      if (mounted) setState(() => _catalog = catalog);
+    } catch (error) {
+      if (mounted) setState(() => _catalogError = error);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final detail = vaccinationDetailViewData(widget.group);
+    final catalog = _catalog;
+    if (catalog == null) {
+      return Scaffold(
+        body: Center(
+          child: _catalogError == null
+              ? const CircularProgressIndicator()
+              : TextButton(
+                  onPressed: _loadCatalog,
+                  child: const Text('Reintentar'),
+                ),
+        ),
+      );
+    }
+    final detail = vaccinationDetailViewData(widget.group, catalog);
     return ModalPageLayout(
       title: '',
       titlePadding: EdgeInsets.zero,

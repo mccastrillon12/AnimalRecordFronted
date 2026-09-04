@@ -1,6 +1,7 @@
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
-import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:equatable/equatable.dart';
 
@@ -120,23 +121,22 @@ class VaccinationDetailViewData extends Equatable {
 
 VaccinationDetailViewData vaccinationDetailViewData(
   VaccinationGroupViewData group,
+  MedicalFieldCatalog catalog,
 ) {
   final doses = <VaccinationDoseViewData>[];
   for (var index = 0; index < group.applications.length; index++) {
     final application = group.applications[index];
-    final analysis = medicalDocumentToPdfAnalysis(
-      document: application.document,
-    );
+    final extraction = application.document.validatedExtraction;
     doses.add(
       VaccinationDoseViewData(
         title: 'Dosis ${index + 1}',
         document: application.document,
         nextDoseDate: application.nextDoseDate,
         nextDoseDateLabel: application.nextDoseDateLabel,
-        details: _doseDetails(application.vaccination.fields),
-        veterinarian: analysis.veterinarian,
-        tutor: analysis.tutor,
-        patient: analysis.patient,
+        details: _doseDetails(application.vaccination.fields, catalog),
+        veterinarian: _vaccinationVeterinarian(extraction?.issuer),
+        tutor: _vaccinationTutor(extraction?.owner),
+        patient: _vaccinationPatient(extraction?.patient),
       ),
     );
   }
@@ -144,12 +144,13 @@ VaccinationDetailViewData vaccinationDetailViewData(
 }
 
 SharedFileAnalysisEntity vaccinationGroupToPdfAnalysis(
-  VaccinationGroupViewData group, {
+  VaccinationGroupViewData group,
+  MedicalFieldCatalog catalog, {
   Map<String, String> originalUrls = const {},
 }) {
-  final detail = vaccinationDetailViewData(group);
+  final detail = vaccinationDetailViewData(group, catalog);
   return SharedFileAnalysisEntity(
-    documentType: 'Carné de vacunación',
+    documentType: MedicalDocumentCategory.vaccinationCard.label,
     documentNumber: '',
     date: null,
     originalFileName: '',
@@ -213,6 +214,7 @@ SharedFileAnalysisEntity vaccinationGroupToPdfAnalysis(
 
 SharedFileAnalysisEntity vaccinationGroupsToPdfAnalysis(
   List<VaccinationGroupViewData> groups, {
+  required MedicalFieldCatalog catalog,
   required String documentType,
   required SharedFilePatientAnalysisEntity patient,
   required SharedFileTutorAnalysisEntity tutor,
@@ -228,7 +230,7 @@ SharedFileAnalysisEntity vaccinationGroupsToPdfAnalysis(
     tutor: tutor,
     medications: [
       for (final group in orderedGroups)
-        for (final dose in vaccinationDetailViewData(group).doses)
+        for (final dose in vaccinationDetailViewData(group, catalog).doses)
           SharedFileMedicationAnalysisEntity(
             name: dose.title,
             groupTitle: 'Vacuna ${group.title}',
@@ -358,6 +360,7 @@ List<SharedFileAnalysisDetailEntity> _patientDetails(
 
 List<VaccinationGroupViewData> groupVaccinations(
   List<MedicalDocumentEntity> documents,
+  MedicalFieldCatalog catalog,
 ) {
   final grouped = <String, List<VaccinationApplicationViewData>>{};
 
@@ -387,9 +390,15 @@ List<VaccinationGroupViewData> groupVaccinations(
               vaccination: vaccination,
               sourceName: sourceName,
               applicationDate: applicationDate.value,
-              applicationDateLabel: _displayFieldKey(applicationDate.key),
+              applicationDateLabel: _vaccinationColumnLabel(
+                catalog,
+                applicationDate.key,
+              ),
               nextDoseDate: nextDoseDate.value,
-              nextDoseDateLabel: _displayFieldKey(nextDoseDate.key),
+              nextDoseDateLabel: _vaccinationColumnLabel(
+                catalog,
+                nextDoseDate.key,
+              ),
               sortDate: parsedApplicationDate ?? documentDate,
             ),
           );
@@ -411,36 +420,114 @@ List<VaccinationGroupViewData> groupVaccinations(
   return result;
 }
 
-List<SharedFileAnalysisDetailEntity> _doseDetails(Map<String, dynamic> fields) {
+List<SharedFileAnalysisDetailEntity> _doseDetails(
+  Map<String, dynamic> fields,
+  MedicalFieldCatalog catalog,
+) {
   final details = <SharedFileAnalysisDetailEntity>[];
-  for (final entry in fields.entries) {
-    final key = _normalizeKey(entry.key);
-    if (_doseIgnoredKeys.contains(key) || _nextDoseDateKeys.contains(key)) {
+  final columns = [...?catalog.fieldAt('vaccinations')?.columns]
+    ..sort((left, right) => left.order.compareTo(right.order));
+  for (final column in columns) {
+    final key = _normalizeKey(column.key);
+    if (isMedicalDocumentTechnicalKey(
+          column.key,
+          catalog.hiddenTechnicalKeys,
+        ) ||
+        _doseIgnoredKeys.contains(key) ||
+        _nextDoseDateKeys.contains(key)) {
       continue;
     }
-    final value = _valueText(entry.value);
+    final value = medicalDocumentDisplayValue(
+      fields[column.key],
+      hiddenTechnicalKeys: catalog.hiddenTechnicalKeys,
+    );
     if (value.isEmpty) continue;
     details.add(
-      SharedFileAnalysisDetailEntity(
-        label: _displayFieldKey(entry.key),
-        value: value,
-      ),
+      SharedFileAnalysisDetailEntity(label: column.label, value: value),
     );
   }
   return details;
 }
 
-String _displayFieldKey(String value) {
-  final separated = value
-      .replaceAllMapped(
-        RegExp(r'([a-záéíóúñ])([A-ZÁÉÍÓÚÑ])'),
-        (match) => '${match.group(1)} ${match.group(2)}',
-      )
-      .replaceAll(RegExp(r'[_-]+'), ' ')
-      .replaceAll(RegExp(r'\s+'), ' ')
-      .trim();
-  if (separated.isEmpty) return '';
-  return '${separated[0].toUpperCase()}${separated.substring(1)}';
+String _vaccinationColumnLabel(MedicalFieldCatalog catalog, String key) {
+  if (key.isEmpty ||
+      isMedicalDocumentTechnicalKey(key, catalog.hiddenTechnicalKeys)) {
+    return '';
+  }
+  final field = catalog.fieldAt('vaccinations');
+  for (final column in field?.columns ?? const <MedicalTableColumn>[]) {
+    if (column.key == key) return column.label;
+  }
+  return '';
+}
+
+const _emptyPatient = SharedFilePatientAnalysisEntity(
+  name: '',
+  recordId: '',
+  species: '',
+  breed: '',
+  age: '',
+  weight: '',
+);
+
+const _emptyTutor = SharedFileTutorAnalysisEntity(
+  name: '',
+  identification: '',
+  phoneNumber: '',
+);
+
+SharedFilePatientAnalysisEntity _vaccinationPatient(
+  MedicalDocumentPatientEntity? patient,
+) {
+  if (patient == null) return _emptyPatient;
+  String field(String key, String? fallback) =>
+      patient.fields[key]?.trim() ?? fallback?.trim() ?? '';
+  return SharedFilePatientAnalysisEntity(
+    name: field('name', patient.name),
+    recordId: field('identifier', patient.identifier),
+    species: field('species', patient.species),
+    breed: field('breed', patient.breed),
+    sex: field('sex', patient.sex),
+    color: field('color', patient.color),
+    age: field('age', patient.age),
+    weight: field('weight', patient.weight),
+  );
+}
+
+SharedFileTutorAnalysisEntity _vaccinationTutor(
+  MedicalDocumentOwnerEntity? owner,
+) {
+  if (owner == null) return _emptyTutor;
+  return SharedFileTutorAnalysisEntity(
+    name: owner.name?.trim() ?? '',
+    identification: owner.identification?.trim() ?? '',
+    phoneNumber: owner.phone?.trim() ?? '',
+    additionalDetails: [
+      if (owner.email?.trim().isNotEmpty == true)
+        SharedFileAnalysisDetailEntity(
+          label: 'Correo electrónico',
+          value: owner.email!.trim(),
+        ),
+      if (owner.address?.trim().isNotEmpty == true)
+        SharedFileAnalysisDetailEntity(
+          label: 'Dirección',
+          value: owner.address!.trim(),
+        ),
+    ],
+  );
+}
+
+SharedFileVeterinarianAnalysisEntity? _vaccinationVeterinarian(
+  Map<String, dynamic>? issuer,
+) {
+  if (issuer == null || issuer.isEmpty) return null;
+  String value(String key) => issuer[key]?.toString().trim() ?? '';
+  final result = SharedFileVeterinarianAnalysisEntity(
+    name: value('name'),
+    clinic: value('clinic'),
+    professionalId: value('professionalId'),
+  );
+  return result.hasData ? result : null;
 }
 
 String _vaccinationIdentity(String sourceName, Map<String, dynamic> fields) {

@@ -116,6 +116,8 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     MedicalDocumentCategory fallbackCategory,
   ) {
     final additionalFields = _map(json['additionalFields']);
+    final preservedUnknownFields = Map<String, dynamic>.from(json)
+      ..removeWhere((key, _) => _knownExtractionKeys.contains(key));
     List<MedicalDocumentItemEntity> items(Object? value) => _list(value)
         .map(_nullableMap)
         .whereType<Map<String, dynamic>>()
@@ -152,6 +154,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       laboratoryReport: _nullableMap(json['laboratoryReport']),
       laboratoryResults: items(json['laboratoryResults']),
       additionalFields: additionalFields,
+      preservedUnknownFields: preservedUnknownFields,
       warnings: _strings(json['warnings']),
     );
   }
@@ -192,6 +195,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     }
 
     return <String, dynamic>{
+      ...extraction.preservedUnknownFields,
       'documentType': extraction.documentType.wireValue,
       if (extraction.documentTypeConfidence != null)
         'documentTypeConfidence': extraction.documentTypeConfidence,
@@ -259,6 +263,32 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     };
   }
 }
+
+const Set<String> _knownExtractionKeys = {
+  'documentType',
+  'documentTypeConfidence',
+  'summary',
+  'documentDate',
+  'issuer',
+  'veterinarian',
+  'veterinarianDetails',
+  'doctor',
+  'patient',
+  'owner',
+  'patientHints',
+  'diagnoses',
+  'medications',
+  'vaccinations',
+  'medicalOrders',
+  'clinicalHistory',
+  'diagnosticResults',
+  'referral',
+  'diagnosticImages',
+  'laboratoryReport',
+  'laboratoryResults',
+  'additionalFields',
+  'warnings',
+};
 
 MedicalDocumentPatientEntity? _patientFromJson(Map<String, dynamic>? json) {
   if (json == null) return null;

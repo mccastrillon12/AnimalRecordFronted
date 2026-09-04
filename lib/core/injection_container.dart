@@ -111,6 +111,7 @@ import 'package:animal_record/features/medical_documents/domain/services/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
@@ -405,6 +406,10 @@ Future<void> init() async {
     () => AnimalMedicalDocumentsCubit(getDocumentsUseCase: sl()),
   );
   sl.registerLazySingleton(() => AnalyzeMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => GetMedicalFieldCatalogUseCase(sl()));
+  sl.registerLazySingleton(
+    () => MedicalDocumentAnalysisPresenter(getFieldCatalog: sl()),
+  );
   sl.registerLazySingleton(() => GetMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(
     () => GetMedicalDocumentRejectionReasonsUseCase(sl()),

@@ -16,10 +16,12 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -168,19 +170,48 @@ class _ClinicalHistoryDocumentScreenState
     extends State<ClinicalHistoryDocumentScreen> {
   final _closeIconKey = GlobalKey();
   final _actionIconKey = GlobalKey();
+  late Future<SharedFileAnalysisEntity> _analysis;
+
+  @override
+  void initState() {
+    super.initState();
+    _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
+      widget.document,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
-    return SharedFileSendScreen(
-      analysis: medicalDocumentToPdfAnalysis(document: widget.document),
-      closeIconKey: _closeIconKey,
-      actionIconKey: _actionIconKey,
-      onViewOriginal: () => _showOriginal(context),
-      resolveOriginalUri: () =>
-          di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
-      actionLabel: medicalDocumentSendActionLabel(
-        MedicalDocumentCategory.clinicalHistory,
-      ),
+    return FutureBuilder<SharedFileAnalysisEntity>(
+      future: _analysis,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
+          );
+        }
+        final analysis = snapshot.data;
+        if (analysis == null) {
+          return _MedicalCatalogError(
+            onRetry: () => setState(() {
+              _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
+                widget.document,
+              );
+            }),
+          );
+        }
+        return SharedFileSendScreen(
+          analysis: analysis,
+          closeIconKey: _closeIconKey,
+          actionIconKey: _actionIconKey,
+          onViewOriginal: () => _showOriginal(context),
+          resolveOriginalUri: () =>
+              di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
+          actionLabel: medicalDocumentSendActionLabel(
+            MedicalDocumentCategory.clinicalHistory,
+          ),
+        );
+      },
     );
   }
 
@@ -363,9 +394,10 @@ class _ClinicalHistoryGroupScreenState
             .where((document) => document.validatedExtraction != null)
             .map((document) async {
               final uri = await downloadUri(document.id);
-              return medicalDocumentToPdfAnalysis(
-                document: document,
-              ).withOriginalUrl(uri.toString());
+              final analysis = await di
+                  .sl<MedicalDocumentAnalysisPresenter>()
+                  .forAccepted(document);
+              return analysis.withOriginalUrl(uri.toString());
             }),
       );
       final saved = await di.sl<SaveSharedFileAnalysesPdfUseCase>()(
@@ -390,9 +422,10 @@ class _ClinicalHistoryGroupScreenState
       final uri = await di.sl<GetMedicalDocumentDownloadUriUseCase>()(
         document.id,
       );
-      final analysis = medicalDocumentToPdfAnalysis(
-        document: document,
-      ).withOriginalUrl(uri.toString());
+      final analysis =
+          (await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
+            document,
+          )).withOriginalUrl(uri.toString());
       await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
         analysis,
       ], fileName: 'historia_clinica_${widget.animal.name}');
@@ -407,6 +440,28 @@ class _ClinicalHistoryGroupScreenState
       context,
       MaterialPageRoute(
         builder: (_) => ClinicalHistoryDocumentScreen(document: document),
+      ),
+    );
+  }
+}
+
+class _MedicalCatalogError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _MedicalCatalogError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('No pudimos cargar los campos del documento.'),
+            const SizedBox(height: AppSpacing.m),
+            FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
+          ],
+        ),
       ),
     );
   }
@@ -578,7 +633,7 @@ class _ClinicalHistoryCard extends StatelessWidget {
       headerCrossAxisAlignment: CrossAxisAlignment.center,
       trailingSpacing: 0,
       leading: SvgPicture.asset(
-                  AppIcons.folderFavorite,
+        AppIcons.folderFavorite,
         width: 24,
         height: 24,
         colorFilter: const ColorFilter.mode(
@@ -591,10 +646,7 @@ class _ClinicalHistoryCard extends StatelessWidget {
         children: [
           Text(
             'Historia clínica ${index + 1}',
-            style: AppTypography.body3.copyWith(
-              color: AppColors.textPrimary,
-           
-            ),
+            style: AppTypography.body3.copyWith(color: AppColors.textPrimary),
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(

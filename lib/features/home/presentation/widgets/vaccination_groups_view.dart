@@ -10,6 +10,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/anim
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_field_catalog_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -38,76 +39,91 @@ class VaccinationGroupsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<
-      AnimalMedicalDocumentsCubit,
-      AnimalMedicalDocumentsState
-    >(
-      builder: (context, state) {
-        if (state is AnimalMedicalDocumentsLoading) {
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primaryFrances),
-          );
-        }
-        if (state is AnimalMedicalDocumentsError) {
-          return Center(
-            child: TextButton(
-              onPressed: () => context.read<AnimalMedicalDocumentsCubit>().load(
-                animal.id,
-                category: MedicalDocumentCategory.vaccinationCard,
-              ),
-              child: const Text('Reintentar'),
-            ),
-          );
-        }
-        if (state is! AnimalMedicalDocumentsLoaded ||
-            state.category != MedicalDocumentCategory.vaccinationCard) {
-          return const SizedBox.shrink();
-        }
-
-        final allGroups = groupVaccinations(state.documents);
-        final shouldShowAiFeedback = showAiFeedback && allGroups.isNotEmpty;
-        if (allGroups.isEmpty && !shouldShowAiFeedback) {
-          return const _VaccinationEmptyState();
-        }
-
-        final query = searchQuery.trim().toLowerCase();
-        final filteredGroups = allGroups
-            .where((group) => query.isEmpty || group.searchText.contains(query))
-            .toList(growable: false);
-        final groups = alphabeticalSortAscending == null
-            ? sortVaccinationGroupsByLatest(filteredGroups)
-            : [...filteredGroups];
-        if (alphabeticalSortAscending case final ascending?) {
-          groups.sort(
-            ascending
-                ? (left, right) => left.title.compareTo(right.title)
-                : (left, right) => right.title.compareTo(left.title),
-          );
-        }
-        if (groups.isEmpty && !shouldShowAiFeedback) {
-          return const _VaccinationNoResultsState();
-        }
-
-        return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-          itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
-          separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => shouldShowAiFeedback && index == 0
-              ? MedicalDocumentAiFeedbackBanner(
-                  key: ValueKey(aiFeedbackRequestId),
-                  initialHasResponded: initialAiFeedbackResponded,
-                  onDismissed: onAiFeedbackDismissed,
-                  onSubmitted: onAiFeedbackSubmitted,
-                )
-              : _VaccinationGroupCard(
-                  group: groups[index - (shouldShowAiFeedback ? 1 : 0)],
-                  onDetail: () => _showDetail(
-                    context,
-                    groups[index - (shouldShowAiFeedback ? 1 : 0)],
+    return MedicalFieldCatalogBuilder(
+      category: MedicalDocumentCategory.vaccinationCard,
+      builder: (context, catalog) =>
+          BlocBuilder<AnimalMedicalDocumentsCubit, AnimalMedicalDocumentsState>(
+            builder: (context, state) {
+              if (state is AnimalMedicalDocumentsLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primaryFrances,
                   ),
+                );
+              }
+              if (state is AnimalMedicalDocumentsError) {
+                return Center(
+                  child: TextButton(
+                    onPressed: () =>
+                        context.read<AnimalMedicalDocumentsCubit>().load(
+                          animal.id,
+                          category: MedicalDocumentCategory.vaccinationCard,
+                        ),
+                    child: const Text('Reintentar'),
+                  ),
+                );
+              }
+              if (state is! AnimalMedicalDocumentsLoaded ||
+                  state.category != MedicalDocumentCategory.vaccinationCard) {
+                return const SizedBox.shrink();
+              }
+
+              final allGroups = groupVaccinations(state.documents, catalog);
+              final shouldShowAiFeedback =
+                  showAiFeedback && allGroups.isNotEmpty;
+              if (allGroups.isEmpty && !shouldShowAiFeedback) {
+                return const _VaccinationEmptyState();
+              }
+
+              final query = searchQuery.trim().toLowerCase();
+              final filteredGroups = allGroups
+                  .where(
+                    (group) =>
+                        query.isEmpty || group.searchText.contains(query),
+                  )
+                  .toList(growable: false);
+              final groups = alphabeticalSortAscending == null
+                  ? sortVaccinationGroupsByLatest(filteredGroups)
+                  : [...filteredGroups];
+              if (alphabeticalSortAscending case final ascending?) {
+                groups.sort(
+                  ascending
+                      ? (left, right) => left.title.compareTo(right.title)
+                      : (left, right) => right.title.compareTo(left.title),
+                );
+              }
+              if (groups.isEmpty && !shouldShowAiFeedback) {
+                return const _VaccinationNoResultsState();
+              }
+
+              return ListView.separated(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.l,
+                  0,
+                  AppSpacing.l,
+                  88,
                 ),
-        );
-      },
+                itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
+                separatorBuilder: (_, _) =>
+                    const SizedBox(height: AppSpacing.m),
+                itemBuilder: (context, index) =>
+                    shouldShowAiFeedback && index == 0
+                    ? MedicalDocumentAiFeedbackBanner(
+                        key: ValueKey(aiFeedbackRequestId),
+                        initialHasResponded: initialAiFeedbackResponded,
+                        onDismissed: onAiFeedbackDismissed,
+                        onSubmitted: onAiFeedbackSubmitted,
+                      )
+                    : _VaccinationGroupCard(
+                        group: groups[index - (shouldShowAiFeedback ? 1 : 0)],
+                        onDetail: () => _showDetail(
+                          context,
+                          groups[index - (shouldShowAiFeedback ? 1 : 0)],
+                        ),
+                      ),
+              );
+            },
+          ),
     );
   }
 
@@ -219,9 +235,7 @@ class _VaccinationGroupCard extends StatelessWidget {
             children: [
               Text(
                 'Ver detalle',
-                style: AppTypography.body3.copyWith(
-                  color: AppColors.greyMedio,
-                ),
+                style: AppTypography.body3.copyWith(color: AppColors.greyMedio),
               ),
               const SizedBox(width: AppSpacing.xs),
               const Icon(

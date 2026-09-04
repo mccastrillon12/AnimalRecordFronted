@@ -108,6 +108,37 @@ void main() {
     ).called(2);
   });
 
+  test('loads the Spanish field catalog for the selected category', () async {
+    when(
+      () => apiClient.get<Map<String, dynamic>>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        data: _fieldCatalogResponse,
+        requestOptions: RequestOptions(
+          path: '/medical-documents/field-catalog',
+        ),
+        statusCode: 200,
+      ),
+    );
+
+    final catalog = await dataSource.getFieldCatalog(
+      category: MedicalDocumentCategory.clinicalHistory,
+      locale: 'es-CO',
+    );
+
+    verify(
+      () => apiClient.get<Map<String, dynamic>>(
+        '/medical-documents/field-catalog',
+        queryParameters: {'category': 'CLINICAL_HISTORY', 'locale': 'es-CO'},
+      ),
+    ).called(1);
+    expect(catalog.categoryLabel, 'Historia clínica');
+    expect(catalog.fieldAt('patient.identifier')?.label, 'Identificador');
+  });
+
   test('loads the rejection reasons used by the review dropdown', () async {
     when(() => apiClient.get<List<dynamic>>(any())).thenAnswer(
       (_) async => Response<List<dynamic>>(
@@ -317,6 +348,28 @@ Map<String, dynamic> _response({required String status}) => {
   'extractionsByCategory': {},
   'assignments': [],
   'version': 1,
+};
+
+const _fieldCatalogResponse = <String, dynamic>{
+  'catalogVersion': '1.0.0',
+  'locale': 'es-CO',
+  'category': 'CLINICAL_HISTORY',
+  'categoryLabel': 'Historia clínica',
+  'sections': [
+    {'key': 'patient', 'label': 'Paciente', 'order': 10},
+  ],
+  'fields': [
+    {
+      'path': 'patient.identifier',
+      'label': 'Identificador',
+      'sectionKey': 'patient',
+      'order': 10,
+      'kind': 'TEXT',
+      'editable': true,
+      'hideWhenEmpty': true,
+    },
+  ],
+  'hiddenTechnicalKeys': ['id', 'confidence', 'source'],
 };
 
 Map<String, dynamic> _acceptedDocument({

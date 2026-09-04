@@ -4,6 +4,23 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  test('preserves unknown extraction properties during serialization', () {
+    const unknownValue = {
+      'futureMetadata': {'reviewed': false, 'sequence': 0},
+    };
+    final extraction = MedicalDocumentModel.extractionFromJson({
+      'documentType': 'CLINICAL_HISTORY',
+      ...unknownValue,
+      'additionalFields': <String, dynamic>{},
+    }, MedicalDocumentCategory.clinicalHistory);
+
+    expect(extraction.preservedUnknownFields, unknownValue);
+    expect(
+      MedicalDocumentModel.extractionToJson(extraction)['futureMetadata'],
+      unknownValue['futureMetadata'],
+    );
+  });
+
   test('supports the diagnostic image and laboratory result categories', () {
     expect(
       MedicalDocumentCategory.tryParse('DIAGNOSTIC_IMAGE'),

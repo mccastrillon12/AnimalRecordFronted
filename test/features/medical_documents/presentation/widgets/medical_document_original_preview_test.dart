@@ -4,6 +4,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
@@ -259,6 +260,12 @@ class _RecordingFileSaver implements MedicalDocumentFileSaver {
 class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   @override
   void clearCache() {}
+
+  @override
+  Future<MedicalFieldCatalog> getFieldCatalog({
+    required MedicalDocumentCategory category,
+    String locale = 'es-CO',
+  }) => throw UnimplementedError();
 
   @override
   Future<Uri> getDownloadUri(String documentId) async =>

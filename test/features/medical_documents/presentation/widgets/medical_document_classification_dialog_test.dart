@@ -57,7 +57,7 @@ void main() {
 
       expect(
         find.textContaining(
-          'Historia clínica y Carné de vacunas.',
+          'Historia clinica y Carnet de vacunación.',
           findRichText: true,
         ),
         findsOneWidget,

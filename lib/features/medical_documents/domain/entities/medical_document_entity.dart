@@ -3,14 +3,14 @@ import 'package:equatable/equatable.dart';
 const _unchangedMedicalField = Object();
 
 enum MedicalDocumentCategory {
-  prescription('PRESCRIPTION', 'Fórmula médica'),
-  medicalOrder('MEDICAL_ORDER', 'Orden médica'),
-  referral('REFERRAL', 'Remisión médica'),
-  vaccinationCard('VACCINATION_CARD', 'Carné de vacunas'),
-  clinicalHistory('CLINICAL_HISTORY', 'Historia clínica'),
-  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imágenes diagnósticas'),
+  prescription('PRESCRIPTION', 'Formula'),
+  medicalOrder('MEDICAL_ORDER', 'Orden medica'),
+  referral('REFERRAL', 'Remisión'),
+  vaccinationCard('VACCINATION_CARD', 'Carnet de vacunación'),
+  clinicalHistory('CLINICAL_HISTORY', 'Historia clinica'),
+  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imagen Diagnostica'),
   laboratoryResult('LABORATORY_RESULT', 'Resultados de laboratorio'),
-  other('OTHER', 'Otro');
+  other('OTHER', 'Archivo no identificado');
 
   final String wireValue;
   final String label;
@@ -322,6 +322,11 @@ class MedicalDocumentExtractionEntity extends Equatable {
   final Map<String, dynamic>? laboratoryReport;
   final List<MedicalDocumentItemEntity> laboratoryResults;
   final Map<String, dynamic> additionalFields;
+
+  /// Canonical properties returned by the backend that this app version does
+  /// not model yet. They are deliberately not rendered, but must survive a
+  /// review round-trip.
+  final Map<String, dynamic> preservedUnknownFields;
   final List<String> warnings;
 
   const MedicalDocumentExtractionEntity({
@@ -344,6 +349,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     this.laboratoryReport,
     this.laboratoryResults = const [],
     this.additionalFields = const {},
+    this.preservedUnknownFields = const {},
     this.warnings = const [],
   });
 
@@ -381,6 +387,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     Map<String, dynamic>? laboratoryReport,
     List<MedicalDocumentItemEntity>? laboratoryResults,
     Map<String, dynamic>? additionalFields,
+    Map<String, dynamic>? preservedUnknownFields,
     List<String>? warnings,
   }) {
     return MedicalDocumentExtractionEntity(
@@ -404,6 +411,8 @@ class MedicalDocumentExtractionEntity extends Equatable {
       laboratoryReport: laboratoryReport ?? this.laboratoryReport,
       laboratoryResults: laboratoryResults ?? this.laboratoryResults,
       additionalFields: additionalFields ?? this.additionalFields,
+      preservedUnknownFields:
+          preservedUnknownFields ?? this.preservedUnknownFields,
       warnings: warnings ?? this.warnings,
     );
   }
@@ -463,6 +472,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
           ? _copyItems(laboratoryResults)
           : const [],
       additionalFields: _deepCopyMap(additionalFields),
+      preservedUnknownFields: _deepCopyMap(preservedUnknownFields),
       warnings: List.unmodifiable(warnings),
     );
   }
@@ -488,6 +498,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     laboratoryReport,
     laboratoryResults,
     additionalFields,
+    preservedUnknownFields,
     warnings,
   ];
 }

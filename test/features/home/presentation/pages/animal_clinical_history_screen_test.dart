@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../../helpers/medical_field_catalog_test_data.dart';
 
 class MockAnimalCubit extends Mock implements AnimalCubit {}
 
@@ -24,6 +25,8 @@ class MockAnimalMedicalDocumentsCubit extends Mock
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(registerMedicalFieldCatalogTestDependencies);
+  tearDown(unregisterMedicalFieldCatalogTestDependencies);
 
   const animal = AnimalModel(
     id: 'animal-1',
@@ -402,13 +405,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.text('Enviar historia clínica'), findsOneWidget);
-    expect(find.text('Document Date'), findsOneWidget);
+    expect(find.text('Fecha del documento'), findsOneWidget);
     expect(find.text('December 1, 2026'), findsOneWidget);
-    expect(find.text('Original File Name'), findsOneWidget);
-    expect(find.text('Identifier'), findsOneWidget);
+    expect(find.text('Archivo original'), findsOneWidget);
+    expect(find.text('Identificador'), findsOneWidget);
     expect(find.text('101077'), findsOneWidget);
-    expect(find.text('Species'), findsOneWidget);
-    expect(find.text('Reproductive Status'), findsOneWidget);
+    expect(find.text('Especie'), findsOneWidget);
+    expect(find.text('Estado reproductivo'), findsOneWidget);
     expect(find.text('Neutered'), findsOneWidget);
     expect(
       find.byKey(const Key('clinical-history-search-field')),

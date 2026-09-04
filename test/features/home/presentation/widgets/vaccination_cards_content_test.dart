@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../../helpers/medical_field_catalog_test_data.dart';
 
 class MockAnimalCubit extends Mock implements AnimalCubit {}
 
@@ -19,6 +20,8 @@ class MockGetAnimalMedicalDocumentsUseCase extends Mock
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(registerMedicalFieldCatalogTestDependencies);
+  tearDown(unregisterMedicalFieldCatalogTestDependencies);
 
   testWidgets('shows animals by family with their vaccination summary', (
     tester,

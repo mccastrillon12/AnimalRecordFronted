@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:animal_record/features/medical_documents/data/datasources/medical_documents_remote_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/models/medical_document_model.dart';
+import 'package:animal_record/features/medical_documents/data/models/medical_field_catalog_model.dart';
 import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
@@ -37,6 +38,26 @@ void main() {
     expect(second.single.id, 'cached');
     verify(
       () => remoteDataSource.getByAnimal(animalId, category: category),
+    ).called(1);
+  });
+
+  test('coalesces and caches field catalogs by category and locale', () async {
+    final pending = Completer<MedicalFieldCatalogModel>();
+    when(
+      () =>
+          remoteDataSource.getFieldCatalog(category: category, locale: 'es-CO'),
+    ).thenAnswer((_) => pending.future);
+
+    final first = repository.getFieldCatalog(category: category);
+    final second = repository.getFieldCatalog(category: category);
+    pending.complete(_catalog);
+
+    expect(await first, _catalog);
+    expect(await second, _catalog);
+    expect(await repository.getFieldCatalog(category: category), _catalog);
+    verify(
+      () =>
+          remoteDataSource.getFieldCatalog(category: category, locale: 'es-CO'),
     ).called(1);
   });
 
@@ -127,3 +148,13 @@ MedicalDocumentModel _document(String id) {
     version: 1,
   );
 }
+
+const _catalog = MedicalFieldCatalogModel(
+  catalogVersion: '1.0.0',
+  locale: 'es-CO',
+  category: 'VACCINATION_CARD',
+  categoryLabel: 'Carné de vacunación',
+  sections: [],
+  fields: [],
+  hiddenTechnicalKeys: {},
+);

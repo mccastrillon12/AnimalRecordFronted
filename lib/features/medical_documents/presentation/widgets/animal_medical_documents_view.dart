@@ -11,10 +11,12 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -537,11 +539,21 @@ Future<void> _showMedicalDocumentDetail(
 }) async {
   final closeIconKey = GlobalKey();
   final actionIconKey = GlobalKey();
+  late final SharedFileAnalysisEntity analysis;
+  try {
+    analysis = await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
+      document,
+    );
+  } catch (error) {
+    if (context.mounted) ErrorDisplay.showError(context, error.toString());
+    return;
+  }
+  if (!context.mounted) return;
   await Navigator.push<void>(
     context,
     MaterialPageRoute(
       builder: (detailContext) => SharedFileSendScreen(
-        analysis: medicalDocumentToPdfAnalysis(document: document),
+        analysis: analysis,
         closeIconKey: closeIconKey,
         actionIconKey: actionIconKey,
         onViewOriginal: () => _showMedicalDocumentOriginal(

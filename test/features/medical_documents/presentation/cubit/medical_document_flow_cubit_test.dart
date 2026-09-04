@@ -1,6 +1,7 @@
 import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
@@ -731,6 +732,12 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
 
   @override
   void clearCache() {}
+
+  @override
+  Future<MedicalFieldCatalog> getFieldCatalog({
+    required MedicalDocumentCategory category,
+    String locale = 'es-CO',
+  }) => throw UnimplementedError();
 
   @override
   Future<MedicalDocumentEntity> analyze(

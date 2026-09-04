@@ -73,7 +73,7 @@ void main() {
       find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
       findsOneWidget,
     );
-    expect(find.text('Adjunto: Fórmula médica N° FORM-007'), findsOneWidget);
+    expect(find.text('Adjunto: Formula N° FORM-007'), findsOneWidget);
     expect(
       find.text('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
       findsOneWidget,

@@ -134,10 +134,7 @@ String _categoryListLabel(List<MedicalDocumentCategory> categories) {
   return '${labels.take(labels.length - 1).join(', ')} y ${labels.last}';
 }
 
-String _categoryLabel(MedicalDocumentCategory category) =>
-    category == MedicalDocumentCategory.other
-    ? 'Archivo no identificado'
-    : category.label;
+String _categoryLabel(MedicalDocumentCategory category) => category.label;
 
 const _selectableCategories = [
   MedicalDocumentCategory.vaccinationCard,

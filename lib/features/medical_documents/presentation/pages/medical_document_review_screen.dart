@@ -5,10 +5,11 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
-import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_rejection_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -31,6 +32,8 @@ class _MedicalDocumentReviewScreenState
   bool _completionHandled = false;
   bool _canPop = false;
   bool _isDiscarding = false;
+  MedicalDocumentExtractionEntity? _analysisExtraction;
+  Future<SharedFileAnalysisEntity>? _analysisFuture;
 
   @override
   void initState() {
@@ -71,21 +74,53 @@ class _MedicalDocumentReviewScreenState
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return SharedFileAnalysisReviewScreen(
-            analysis: medicalDocumentToAnalysis(
-              document: document,
-              extraction: extraction,
-            ),
-            isSubmitting: state.phase == MedicalDocumentFlowPhase.submitting,
-            onSubmit: () => context.read<MedicalDocumentFlowCubit>().accept(),
-            onDoNotUpload: _showRejectionDialog,
-            onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
-            onClose: _discardAndClose,
-            closeIconKey: _reviewCloseIconKey,
+          return FutureBuilder<SharedFileAnalysisEntity>(
+            future: _analysisFor(document, extraction),
+            builder: (context, snapshot) {
+              final analysis = snapshot.data;
+              if (snapshot.connectionState != ConnectionState.done) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+              if (analysis == null) {
+                return _CatalogLoadError(onRetry: _retryCatalog);
+              }
+              return SharedFileAnalysisReviewScreen(
+                analysis: analysis,
+                isSubmitting:
+                    state.phase == MedicalDocumentFlowPhase.submitting,
+                onSubmit: () =>
+                    context.read<MedicalDocumentFlowCubit>().accept(),
+                onDoNotUpload: _showRejectionDialog,
+                onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+                onClose: _discardAndClose,
+                closeIconKey: _reviewCloseIconKey,
+              );
+            },
           );
         },
       ),
     );
+  }
+
+  Future<SharedFileAnalysisEntity> _analysisFor(
+    MedicalDocumentEntity document,
+    MedicalDocumentExtractionEntity extraction,
+  ) {
+    if (!identical(_analysisExtraction, extraction) ||
+        _analysisFuture == null) {
+      _analysisExtraction = extraction;
+      _analysisFuture = di.sl<MedicalDocumentAnalysisPresenter>().forReview(
+        document: document,
+        extraction: extraction,
+      );
+    }
+    return _analysisFuture!;
+  }
+
+  void _retryCatalog() {
+    setState(() => _analysisFuture = null);
   }
 
   Future<void> _discardAndClose() async {
@@ -148,5 +183,33 @@ class _MedicalDocumentReviewScreenState
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
     }
+  }
+}
+
+class _CatalogLoadError extends StatelessWidget {
+  final VoidCallback onRetry;
+
+  const _CatalogLoadError({required this.onRetry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'No pudimos cargar los campos del documento.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

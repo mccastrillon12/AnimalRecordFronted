@@ -2,9 +2,21 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_contract_validator.dart';
+
+class GetMedicalFieldCatalogUseCase {
+  final MedicalDocumentsRepository repository;
+
+  const GetMedicalFieldCatalogUseCase(this.repository);
+
+  Future<MedicalFieldCatalog> call({
+    required MedicalDocumentCategory category,
+    String locale = 'es-CO',
+  }) => repository.getFieldCatalog(category: category, locale: locale);
+}
 
 class AnalyzeMedicalDocumentUseCase {
   final MedicalDocumentsRepository repository;

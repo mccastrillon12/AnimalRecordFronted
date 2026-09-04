@@ -13,8 +13,10 @@ import 'package:animal_record/features/home/presentation/widgets/animal_filter_m
 import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_field_catalog_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -324,83 +326,87 @@ class _AnimalVaccinationSummaryContent extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<
-      AnimalMedicalDocumentsCubit,
-      AnimalMedicalDocumentsState
-    >(
-      builder: (context, state) {
-        final summary = _summary(state);
-        return InkWell(
-          key: Key('vaccination-animal-${animal.id}'),
-          onTap: () => Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<AnimalMedicalDocumentsCubit>(),
-                child: AnimalVaccinationsScreen(animal: animal),
-              ),
-            ),
-          ),
-          child: Container(
-            constraints: const BoxConstraints(minHeight: 81),
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppSpacing.s,
-              vertical: AppSpacing.m,
-            ),
-            decoration: const BoxDecoration(
-              border: Border(
-                bottom: BorderSide(color: AppColors.greyDelineante),
-              ),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                AnimalAvatar(animal: animal, size: 40, borderRadius: 6),
-                const SizedBox(width: AppSpacing.s),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
+    return MedicalFieldCatalogBuilder(
+      category: MedicalDocumentCategory.vaccinationCard,
+      builder: (context, catalog) =>
+          BlocBuilder<AnimalMedicalDocumentsCubit, AnimalMedicalDocumentsState>(
+            builder: (context, state) {
+              final summary = _summary(state, catalog);
+              return InkWell(
+                key: Key('vaccination-animal-${animal.id}'),
+                onTap: () => Navigator.push<void>(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => BlocProvider.value(
+                      value: context.read<AnimalMedicalDocumentsCubit>(),
+                      child: AnimalVaccinationsScreen(animal: animal),
+                    ),
+                  ),
+                ),
+                child: Container(
+                  constraints: const BoxConstraints(minHeight: 81),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: AppSpacing.s,
+                    vertical: AppSpacing.m,
+                  ),
+                  decoration: const BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: AppColors.greyDelineante),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              animal.name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTypography.body3.copyWith(
-                                color: AppColors.greyTextos,
-                              ),
+                      AnimalAvatar(animal: animal, size: 40, borderRadius: 6),
+                      const SizedBox(width: AppSpacing.s),
+                      Expanded(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: Text(
+                                    animal.name,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTypography.body3.copyWith(
+                                      color: AppColors.greyTextos,
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: AppSpacing.xs),
+                                Text(
+                                  animal.code,
+                                  style: AppTypography.body5.copyWith(
+                                    color: AppColors.greyBordes,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                          const SizedBox(width: AppSpacing.xs),
-                          Text(
-                            animal.code,
-                            style: AppTypography.body5.copyWith(
-                              color: AppColors.greyBordes,
+                            const SizedBox(height: AppSpacing.xxs),
+                            _SummaryValue(
+                              label: 'Próx. dosis',
+                              value: summary.vaccine,
                             ),
-                          ),
-                        ],
+                            _SummaryValue(label: 'Fecha', value: summary.date),
+                          ],
+                        ),
                       ),
-                      const SizedBox(height: AppSpacing.xxs),
-                      _SummaryValue(
-                        label: 'Próx. dosis',
-                        value: summary.vaccine,
-                      ),
-                      _SummaryValue(label: 'Fecha', value: summary.date),
                     ],
                   ),
                 ),
-              ],
-            ),
+              );
+            },
           ),
-        );
-      },
     );
   }
 
-  ({String vaccine, String date}) _summary(AnimalMedicalDocumentsState state) {
+  ({String vaccine, String date}) _summary(
+    AnimalMedicalDocumentsState state,
+    MedicalFieldCatalog catalog,
+  ) {
     if (state is AnimalMedicalDocumentsLoading) {
       return (vaccine: 'Cargando...', date: '-');
     }
@@ -408,7 +414,7 @@ class _AnimalVaccinationSummaryContent extends StatelessWidget {
       return (vaccine: 'No tiene dosis pendiente', date: '-');
     }
     final groups = sortVaccinationGroupsByLatest(
-      groupVaccinations(state.documents),
+      groupVaccinations(state.documents, catalog),
     );
     for (final group in groups) {
       if (group.latest.nextDoseDate.isNotEmpty) {

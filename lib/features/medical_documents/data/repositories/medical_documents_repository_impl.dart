@@ -3,9 +3,12 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
+  static const _fieldCatalogTtl = Duration(hours: 1);
+
   final MedicalDocumentsRemoteDataSource remoteDataSource;
 
   final Map<_MedicalDocumentsCacheKey, List<MedicalDocumentEntity>> _cache = {};
@@ -14,8 +17,45 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   final Map<_MedicalDocumentsCacheKey, int> _cacheGenerations = {};
   List<MedicalDocumentRejectionReasonEntity>? _rejectionReasons;
   Future<List<MedicalDocumentRejectionReasonEntity>>? _rejectionReasonsLoad;
+  final Map<_MedicalFieldCatalogCacheKey, _CachedMedicalFieldCatalog>
+  _fieldCatalogCache = {};
+  final Map<_MedicalFieldCatalogCacheKey, Future<MedicalFieldCatalog>>
+  _fieldCatalogInFlight = {};
 
   MedicalDocumentsRepositoryImpl({required this.remoteDataSource});
+
+  @override
+  Future<MedicalFieldCatalog> getFieldCatalog({
+    required MedicalDocumentCategory category,
+    String locale = 'es-CO',
+  }) {
+    final normalizedLocale = locale.trim().isEmpty ? 'es-CO' : locale.trim();
+    final key = _MedicalFieldCatalogCacheKey(category, normalizedLocale);
+    final cached = _fieldCatalogCache[key];
+    if (cached != null && !cached.isExpired(_fieldCatalogTtl)) {
+      return Future.value(cached.catalog);
+    }
+    final pending = _fieldCatalogInFlight[key];
+    if (pending != null) return pending;
+
+    late final Future<MedicalFieldCatalog> request;
+    request = remoteDataSource
+        .getFieldCatalog(category: category, locale: normalizedLocale)
+        .then((catalog) {
+          _fieldCatalogCache[key] = _CachedMedicalFieldCatalog(
+            catalog: catalog,
+            cachedAt: DateTime.now(),
+          );
+          return catalog;
+        })
+        .whenComplete(() {
+          if (identical(_fieldCatalogInFlight[key], request)) {
+            _fieldCatalogInFlight.remove(key);
+          }
+        });
+    _fieldCatalogInFlight[key] = request;
+    return request;
+  }
 
   @override
   Future<MedicalDocumentEntity> analyze(
@@ -120,6 +160,8 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     _inFlight.clear();
     _rejectionReasons = null;
     _rejectionReasonsLoad = null;
+    _fieldCatalogCache.clear();
+    _fieldCatalogInFlight.clear();
   }
 
   @override
@@ -137,6 +179,34 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
       _inFlight.remove(key);
     }
   }
+}
+
+class _MedicalFieldCatalogCacheKey {
+  final MedicalDocumentCategory category;
+  final String locale;
+
+  const _MedicalFieldCatalogCacheKey(this.category, this.locale);
+
+  @override
+  bool operator ==(Object other) =>
+      other is _MedicalFieldCatalogCacheKey &&
+      category == other.category &&
+      locale == other.locale;
+
+  @override
+  int get hashCode => Object.hash(category, locale);
+}
+
+class _CachedMedicalFieldCatalog {
+  final MedicalFieldCatalog catalog;
+  final DateTime cachedAt;
+
+  const _CachedMedicalFieldCatalog({
+    required this.catalog,
+    required this.cachedAt,
+  });
+
+  bool isExpired(Duration ttl) => DateTime.now().difference(cachedAt) >= ttl;
 }
 
 class _MedicalDocumentsCacheKey {

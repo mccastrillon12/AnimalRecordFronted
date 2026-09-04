@@ -13,6 +13,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/vaccination_group_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/vaccination_send_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
@@ -40,13 +41,45 @@ class VaccinationCardScreen extends StatefulWidget {
 
 class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
   bool _exporting = false;
+  MedicalFieldCatalog? _catalog;
+  Object? _catalogError;
 
   bool get _isCertificate => widget.selectedGroup != null;
   String get _title =>
       _isCertificate ? 'Certificado de vacunación' : 'Carné de vacunación';
 
   @override
+  void initState() {
+    super.initState();
+    _loadCatalog();
+  }
+
+  Future<void> _loadCatalog() async {
+    setState(() => _catalogError = null);
+    try {
+      final catalog = await di.sl<GetMedicalFieldCatalogUseCase>()(
+        category: MedicalDocumentCategory.vaccinationCard,
+      );
+      if (mounted) setState(() => _catalog = catalog);
+    } catch (error) {
+      if (mounted) setState(() => _catalogError = error);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_catalog == null) {
+      return Scaffold(
+        body: Center(
+          child: _catalogError == null
+              ? const CircularProgressIndicator()
+              : TextButton(
+                  onPressed: _loadCatalog,
+                  child: const Text('Reintentar'),
+                ),
+        ),
+      );
+    }
     final user = _currentUser(context);
     return Scaffold(
       backgroundColor: AppColors.bgOxford,
@@ -127,6 +160,7 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
                                     _VaccinationCardDocuments(
                                       animalId: widget.animal.id,
                                       selectedGroup: widget.selectedGroup,
+                                      catalog: _catalog!,
                                     ),
                                   ],
                                 ),
@@ -161,7 +195,9 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
     if (widget.selectedGroup case final selected?) return [selected];
     final state = context.read<AnimalMedicalDocumentsCubit>().state;
     return state is AnimalMedicalDocumentsLoaded
-        ? sortVaccinationGroupsByLatest(groupVaccinations(state.documents))
+        ? sortVaccinationGroupsByLatest(
+            groupVaccinations(state.documents, _catalog!),
+          )
         : const [];
   }
 
@@ -181,7 +217,8 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
       }
       final analysis = vaccinationGroupsToPdfAnalysis(
         groups,
-        documentType: _title,
+        catalog: _catalog!,
+        documentType: MedicalDocumentCategory.vaccinationCard.label,
         patient: _patient(widget.animal),
         tutor: _tutor(user, widget.animal),
         originalUrls: originalUrls,
@@ -417,8 +454,13 @@ class _InformationSection extends StatelessWidget {
 class _VaccinationCardDocuments extends StatelessWidget {
   final String animalId;
   final VaccinationGroupViewData? selectedGroup;
+  final MedicalFieldCatalog catalog;
 
-  const _VaccinationCardDocuments({required this.animalId, this.selectedGroup});
+  const _VaccinationCardDocuments({
+    required this.animalId,
+    this.selectedGroup,
+    required this.catalog,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -447,14 +489,16 @@ class _VaccinationCardDocuments extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final groups = selectedGroup == null
-            ? sortVaccinationGroupsByLatest(groupVaccinations(state.documents))
+            ? sortVaccinationGroupsByLatest(
+                groupVaccinations(state.documents, catalog),
+              )
             : [selectedGroup!];
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             for (var index = 0; index < groups.length; index++) ...[
               VaccinationRecordList(
-                detail: vaccinationDetailViewData(groups[index]),
+                detail: vaccinationDetailViewData(groups[index], catalog),
                 onViewOriginal: (document) => _showOriginal(context, document),
                 recordSpacing: 20,
                 groupDoses: true,

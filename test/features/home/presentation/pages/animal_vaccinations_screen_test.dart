@@ -10,12 +10,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
+import '../../../../helpers/medical_field_catalog_test_data.dart';
 
 class MockAnimalMedicalDocumentsCubit extends Mock
     implements AnimalMedicalDocumentsCubit {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUp(registerMedicalFieldCatalogTestDependencies);
+  tearDown(unregisterMedicalFieldCatalogTestDependencies);
 
   const animal = AnimalModel(
     id: 'animal-1',
@@ -170,8 +173,8 @@ void main() {
     expect(find.text('CANINE DISTEMPER'), findsNothing);
     expect(find.text('10/27/2025'), findsOneWidget);
     expect(find.text('10/27/2028'), findsOneWidget);
-    expect(find.text('Application Date:'), findsNWidgets(2));
-    expect(find.text('Next Dose Date:'), findsOneWidget);
+    expect(find.text('Fecha de aplicación:'), findsNWidgets(2));
+    expect(find.text('Próxima dosis:'), findsOneWidget);
     expect(find.byKey(const Key('vaccination-group-rabies')), findsOneWidget);
     expect(
       find.byKey(const Key('vaccination-group-distemper')),
@@ -292,7 +295,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Detalle de vacunación'), findsNWidgets(2));
-    expect(find.text('Next Dose Date'), findsOneWidget);
+    expect(find.text('Próxima dosis'), findsOneWidget);
     expect(find.text('10/27/2028'), findsOneWidget);
     expect(find.text('Dosis 1'), findsOneWidget);
     expect(find.text('Dosis 2'), findsOneWidget);

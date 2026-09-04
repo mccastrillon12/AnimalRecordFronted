@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/medical_documents/data/models/medical_document_model.dart';
+import 'package:animal_record/features/medical_documents/data/models/medical_field_catalog_model.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
@@ -10,6 +11,11 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:dio/dio.dart';
 
 abstract interface class MedicalDocumentsRemoteDataSource {
+  Future<MedicalFieldCatalogModel> getFieldCatalog({
+    required MedicalDocumentCategory category,
+    required String locale,
+  });
+
   Future<MedicalDocumentModel> analyze(AnalyzeMedicalDocumentRequest request);
 
   Future<MedicalDocumentModel> getById(String documentId);
@@ -40,6 +46,31 @@ class MedicalDocumentsRemoteDataSourceImpl
     required this.apiClient,
     required this.responseLogger,
   });
+
+  @override
+  Future<MedicalFieldCatalogModel> getFieldCatalog({
+    required MedicalDocumentCategory category,
+    required String locale,
+  }) async {
+    final response = await apiClient.get<Map<String, dynamic>>(
+      '/medical-documents/field-catalog',
+      queryParameters: {'category': category.wireValue, 'locale': locale},
+    );
+    responseLogger.logResponse(
+      operation: 'FIELD_CATALOG',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    final catalog = MedicalFieldCatalogModel.fromJson(
+      _responseMap(response.data),
+    );
+    if (catalog.category != category.wireValue) {
+      throw const FormatException(
+        'El servidor devolvió un catálogo de otra categoría.',
+      );
+    }
+    return catalog;
+  }
 
   @override
   Future<MedicalDocumentModel> analyze(
