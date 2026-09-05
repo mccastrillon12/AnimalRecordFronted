@@ -79,6 +79,58 @@ void main() {
     },
   );
 
+  testWidgets('reports a cancelled upload without leaving My animals', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(() => animalCubit.state).thenReturn(AnimalInitial());
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => animalCubit.animals).thenReturn(const [_animal]);
+    var cancellationReported = false;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          onGenerateRoute: (settings) {
+            if (settings.name == AppRoutes.sharedFileUpload) {
+              return MaterialPageRoute<void>(
+                settings: settings,
+                builder: (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancelar carga'),
+                  ),
+                ),
+              );
+            }
+            return null;
+          },
+          home: Scaffold(
+            body: MyAnimalsContent(
+              onUploadCancelled: () => cancellationReported = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionsMenu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('my-animals-actions-menu')),
+    );
+    actionsMenu.onSelected?.call('subir_documento');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar carga'));
+    await tester.pumpAndSettle();
+
+    expect(cancellationReported, isTrue);
+    expect(find.byKey(const Key('my-animals-actions-menu')), findsOneWidget);
+  });
+
   testWidgets('shows analysis status immediately while uploading', (
     tester,
   ) async {

@@ -177,6 +177,11 @@ void main() {
       file: file,
       animalIds: const [animal1Id, animal2Id],
     );
+    final emittedPhases = <MedicalDocumentFlowPhase>[];
+    final subscription = cubit.stream.listen(
+      (state) => emittedPhases.add(state.phase),
+    );
+    addTearDown(subscription.cancel);
     await cubit.reject(reasonCode: 'OTHER', comment: 'La imagen está borrosa');
 
     expect(repository.lastReviewRequest?.rejectionReasonCode, 'OTHER');
@@ -184,6 +189,8 @@ void main() {
       repository.lastReviewRequest?.rejectionComment,
       'La imagen está borrosa',
     );
+    expect(emittedPhases, contains(MedicalDocumentFlowPhase.rejecting));
+    expect(emittedPhases, isNot(contains(MedicalDocumentFlowPhase.submitting)));
     expect(cubit.state.phase, MedicalDocumentFlowPhase.rejected);
   });
 

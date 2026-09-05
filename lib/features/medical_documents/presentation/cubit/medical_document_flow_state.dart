@@ -9,6 +9,7 @@ enum MedicalDocumentFlowPhase {
   pollingPaused,
   reviewing,
   submitting,
+  rejecting,
   completed,
   rejected,
   failed,
@@ -42,7 +43,8 @@ class MedicalDocumentFlowState extends Equatable {
   bool get isBusy =>
       phase == MedicalDocumentFlowPhase.uploading ||
       phase == MedicalDocumentFlowPhase.analyzing ||
-      phase == MedicalDocumentFlowPhase.submitting;
+      phase == MedicalDocumentFlowPhase.submitting ||
+      phase == MedicalDocumentFlowPhase.rejecting;
 
   MedicalDocumentFlowState copyWith({
     MedicalDocumentFlowPhase? phase,

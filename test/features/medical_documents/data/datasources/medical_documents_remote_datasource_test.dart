@@ -177,6 +177,43 @@ void main() {
     ).called(1);
   });
 
+  test('sends the selected retry reason to the document review PUT', () async {
+    when(
+      () =>
+          apiClient.put<Map<String, dynamic>>(any(), data: any(named: 'data')),
+    ).thenAnswer(
+      (_) async => Response<Map<String, dynamic>>(
+        data: _response(status: 'REJECTED'),
+        requestOptions: RequestOptions(
+          path: '/medical-documents/document-1/review',
+        ),
+        statusCode: 200,
+      ),
+    );
+
+    final result = await dataSource.review(
+      'document-1',
+      ReviewMedicalDocumentRequest.reject(
+        documentVersion: 1,
+        rejectionReasonCode: 'OTHER',
+        rejectionComment: 'La imagen está borrosa',
+      ),
+    );
+
+    verify(
+      () => apiClient.put<Map<String, dynamic>>(
+        '/medical-documents/document-1/review',
+        data: {
+          'decision': 'REJECT',
+          'documentVersion': 1,
+          'rejectionReason': 'OTHER',
+          'rejectionComment': 'La imagen está borrosa',
+        },
+      ),
+    ).called(1);
+    expect(result.status, MedicalDocumentStatus.rejected);
+  });
+
   test(
     'submits LIKE and DISLIKE using the backend feedback contract',
     () async {

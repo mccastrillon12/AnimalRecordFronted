@@ -401,7 +401,12 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         document.status != MedicalDocumentStatus.reviewPending) {
       return;
     }
-    emit(state.copyWith(phase: MedicalDocumentFlowPhase.submitting));
+    emit(
+      state.copyWith(
+        phase: MedicalDocumentFlowPhase.rejecting,
+        clearMessage: true,
+      ),
+    );
     try {
       final request = ReviewMedicalDocumentRequest.reject(
         documentVersion: document.version,

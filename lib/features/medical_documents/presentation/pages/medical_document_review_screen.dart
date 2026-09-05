@@ -1,4 +1,5 @@
 import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/feedback/process_cancellation_dialog.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
@@ -86,16 +87,37 @@ class _MedicalDocumentReviewScreenState
               if (analysis == null) {
                 return _CatalogLoadError(onRetry: _retryCatalog);
               }
-              return SharedFileAnalysisReviewScreen(
-                analysis: analysis,
-                isSubmitting:
-                    state.phase == MedicalDocumentFlowPhase.submitting,
-                onSubmit: () =>
-                    context.read<MedicalDocumentFlowCubit>().accept(),
-                onDoNotUpload: _showRejectionDialog,
-                onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
-                onClose: _discardAndClose,
-                closeIconKey: _reviewCloseIconKey,
+              final isRejecting =
+                  state.phase == MedicalDocumentFlowPhase.rejecting;
+              return Stack(
+                children: [
+                  IgnorePointer(
+                    ignoring: isRejecting,
+                    child: SharedFileAnalysisReviewScreen(
+                      analysis: analysis,
+                      isSubmitting:
+                          state.phase == MedicalDocumentFlowPhase.submitting,
+                      onSubmit: () =>
+                          context.read<MedicalDocumentFlowCubit>().accept(),
+                      onDoNotUpload: _showRejectionDialog,
+                      onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+                      onClose: _discardAndClose,
+                      closeIconKey: _reviewCloseIconKey,
+                    ),
+                  ),
+                  if (isRejecting)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        key: const Key('medical-document-retry-loading'),
+                        color: AppColors.white.withValues(alpha: 0.72),
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.aiViolet,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
               );
             },
           );
@@ -139,6 +161,11 @@ class _MedicalDocumentReviewScreenState
     final reason = await showMedicalDocumentRejectionDialog(
       context: context,
       loadReasons: di.sl<GetMedicalDocumentRejectionReasonsUseCase>(),
+      onCancel: () async {
+        if (mounted) {
+          _popWithResult(MedicalDocumentReviewOutcome.cancelled);
+        }
+      },
     );
     if (!mounted) return;
     if (reason == null) return;

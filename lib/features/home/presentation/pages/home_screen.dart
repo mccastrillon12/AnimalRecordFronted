@@ -70,7 +70,12 @@ class _HomeScreenState extends State<HomeScreen> {
       setState(() => _activeSection = homeMyAnimalsSection);
       ErrorDisplay.showSuccess(context, sharedFileUploadSuccessMessage);
     } else if (uploaded == false) {
-      ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+      setState(() => _activeSection = homeMyAnimalsSection);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+        }
+      });
     }
   }
 
@@ -117,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _handleExternalUploadCancelled() {
-    setState(() => _activeSection = null);
+    setState(() => _activeSection = homeMyAnimalsSection);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         ErrorDisplay.showError(context, sharedFileUploadErrorMessage);

@@ -15,6 +15,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
@@ -154,9 +155,19 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     }
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
-      navigator.pop();
+      navigator.pop(false);
     } else {
-      navigator.pushReplacementNamed(AppRoutes.home);
+      navigator.pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (_) => false,
+        arguments: const {homeInitialSectionArgument: homeMyAnimalsSection},
+      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final overlay = navigator.overlay;
+        if (overlay != null) {
+          ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+        }
+      });
     }
   }
 

@@ -64,10 +64,12 @@ class _SharedFilesNavigationCoordinatorState
         _showSuccessAfterNavigation();
       }
     } else if (uploaded == false) {
-      final overlay = widget.navigatorKey.currentState?.overlay;
-      if (overlay != null) {
-        ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
-      }
+      navigator.pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (_) => false,
+        arguments: const {homeInitialSectionArgument: homeMyAnimalsSection},
+      );
+      _showErrorAfterNavigation();
     }
   }
 
@@ -93,6 +95,16 @@ class _SharedFilesNavigationCoordinatorState
   void _showSuccessAfterNavigation() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _showSuccess();
+    });
+  }
+
+  void _showErrorAfterNavigation() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final overlay = widget.navigatorKey.currentState?.overlay;
+      if (overlay != null) {
+        ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+      }
     });
   }
 
