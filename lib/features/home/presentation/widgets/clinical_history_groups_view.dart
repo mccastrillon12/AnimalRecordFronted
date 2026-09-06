@@ -103,7 +103,7 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(
             AppSpacing.l,
-            AppSpacing.l,
+            0,
             AppSpacing.l,
             88,
           ),

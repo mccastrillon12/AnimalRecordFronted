@@ -268,6 +268,67 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'keeps diagnostic images in the thumbnail grid while feedback is visible',
+    (tester) async {
+      const document = MedicalDocumentEntity(
+        id: 'diagnostic-image-1',
+        animalIds: ['animal-1'],
+        originalFileName: 'radiografia.png',
+        mimeType: 'image/png',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        validatedExtraction: MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.diagnosticImage,
+        ),
+        version: 1,
+      );
+      final cubit = _MockAnimalMedicalDocumentsCubit();
+      when(() => cubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          document,
+        ], category: MedicalDocumentCategory.diagnosticImage),
+      );
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: AnimalMedicalDocumentsView(
+                animalId: 'animal-1',
+                category: MedicalDocumentCategory.diagnosticImage,
+                emptyTitle: 'Sin imágenes',
+                emptyDescription: 'Sin documentos',
+                showAiFeedback: true,
+                onAiFeedback: (_) async {},
+                diagnosticThumbnailUriLoader: (_) async =>
+                    Uri.parse('https://example.test/radiografia.png'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+        findsOneWidget,
+      );
+      final thumbnail = tester.widget<Container>(
+        find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+      );
+      expect(thumbnail.constraints?.maxWidth, 140);
+      expect(thumbnail.constraints?.maxHeight, 100);
+      expect(find.text('radiografia.png'), findsOneWidget);
+      expect(find.byType(MedicalDocumentSummaryCard), findsNothing);
+      expect(find.textContaining('Adjunto:'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('does not show AI feedback just because documents exist', (
     tester,
   ) async {

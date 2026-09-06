@@ -13,6 +13,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_record_s
 import 'package:animal_record/features/home/presentation/widgets/vaccination_groups_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -153,9 +154,9 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            key: Key('vaccinations-list-gap'),
-                            height: AppSpacing.l,
+                          MedicalDocumentAiFeedbackTopGap(
+                            key: const Key('vaccinations-list-gap'),
+                            isBannerVisible: _showAiFeedback,
                           ),
                           Expanded(
                             child: VaccinationGroupsView(

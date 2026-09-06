@@ -125,6 +125,15 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           });
         }
         final shouldShowAiFeedback = showAiFeedback && documents.isNotEmpty;
+        final aiFeedbackBanner = shouldShowAiFeedback
+            ? MedicalDocumentAiFeedbackBanner(
+                key: ValueKey(aiFeedbackRequestId),
+                onDismissed: onAiFeedbackDismissed,
+                onSubmit: onAiFeedback ?? _submitAiFeedback,
+                initialHasResponded: initialAiFeedbackResponded,
+                onSubmitted: onAiFeedbackSubmitted,
+              )
+            : null;
         if (documents.isEmpty && !shouldShowAiFeedback) {
           return _EmptyState(
             title: emptyTitle,
@@ -132,13 +141,13 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             bottomOffset: emptyBottomOffset,
           );
         }
-        if (category == MedicalDocumentCategory.diagnosticImage &&
-            !shouldShowAiFeedback) {
+        if (category == MedicalDocumentCategory.diagnosticImage) {
           return _DiagnosticImagesGrid(
             documents: documents,
             loadThumbnailUri:
                 diagnosticThumbnailUriLoader ??
                 _loadMedicalDocumentThumbnailUri,
+            header: aiFeedbackBanner,
           );
         }
         return ListView.separated(
@@ -146,13 +155,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           itemCount: documents.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) => shouldShowAiFeedback && index == 0
-              ? MedicalDocumentAiFeedbackBanner(
-                  key: ValueKey(aiFeedbackRequestId),
-                  onDismissed: onAiFeedbackDismissed,
-                  onSubmit: onAiFeedback ?? _submitAiFeedback,
-                  initialHasResponded: initialAiFeedbackResponded,
-                  onSubmitted: onAiFeedbackSubmitted,
-                )
+              ? aiFeedbackBanner!
               : MedicalDocumentSummaryCard(
                   document: documents[index - (shouldShowAiFeedback ? 1 : 0)],
                   category:
@@ -364,30 +367,41 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
 class _DiagnosticImagesGrid extends StatelessWidget {
   final List<MedicalDocumentEntity> documents;
   final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
+  final Widget? header;
 
   const _DiagnosticImagesGrid({
     required this.documents,
     required this.loadThumbnailUri,
+    this.header,
   });
 
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: Wrap(
-          spacing: AppSpacing.l,
-          runSpacing: AppSpacing.l,
-          children: [
-            for (final document in documents)
-              _DiagnosticImageTile(
-                key: ValueKey(document.id),
-                document: document,
-                loadThumbnailUri: loadThumbnailUri,
-              ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (header != null) ...[
+            header!,
+            const SizedBox(height: AppSpacing.m),
           ],
-        ),
+          Align(
+            alignment: Alignment.topLeft,
+            child: Wrap(
+              spacing: AppSpacing.l,
+              runSpacing: AppSpacing.l,
+              children: [
+                for (final document in documents)
+                  _DiagnosticImageTile(
+                    key: ValueKey(document.id),
+                    document: document,
+                    loadThumbnailUri: loadThumbnailUri,
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

@@ -27,6 +27,13 @@ class MedicalDocumentAiFeedbackBanner extends StatefulWidget {
       _MedicalDocumentAiFeedbackBannerState();
 }
 
+class MedicalDocumentAiFeedbackTopGap extends SizedBox {
+  const MedicalDocumentAiFeedbackTopGap({
+    super.key,
+    required bool isBannerVisible,
+  }) : super(height: isBannerVisible ? AppSpacing.m : AppSpacing.l);
+}
+
 class _MedicalDocumentAiFeedbackBannerState
     extends State<MedicalDocumentAiFeedbackBanner> {
   late bool _hasResponded;

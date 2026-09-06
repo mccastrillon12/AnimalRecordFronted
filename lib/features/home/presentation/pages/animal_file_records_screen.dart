@@ -12,6 +12,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_record_s
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -171,9 +172,9 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                               ],
                             ),
                           ),
-                          const SizedBox(
-                            key: Key('animal-file-records-list-gap'),
-                            height: AppSpacing.l,
+                          MedicalDocumentAiFeedbackTopGap(
+                            key: const Key('animal-file-records-list-gap'),
+                            isBannerVisible: _showAiFeedback,
                           ),
                           Expanded(
                             child: AnimalMedicalDocumentsView(

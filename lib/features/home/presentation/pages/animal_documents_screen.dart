@@ -13,6 +13,7 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AnimalDocumentsScreen extends StatefulWidget {
@@ -383,7 +384,13 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.m),
+                          MedicalDocumentAiFeedbackTopGap(
+                            key: const Key('animal-documents-list-gap'),
+                            isBannerVisible: _pendingAiFeedbackCategories
+                                .contains(
+                                  _categoryForIndex(_tabController.index),
+                                ),
+                          ),
 
                           Expanded(
                             child: TabBarView(
