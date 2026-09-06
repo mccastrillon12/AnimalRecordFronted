@@ -154,6 +154,37 @@ void main() {
     );
   });
 
+  test('validates an override using the extraction category contract', () {
+    final request = ReviewMedicalDocumentRequest.accept(
+      documentVersion: 2,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: const MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.vaccinationCard,
+        vaccinations: [
+          MedicalDocumentItemEntity(
+            id: 'vaccination-1',
+            fields: {'name': 'Rabia'},
+          ),
+        ],
+      ),
+      assignments: const [
+        MedicalDocumentAssignmentEntity(
+          animalId: animal1,
+          extractedItemIds: ['vaccination-1'],
+        ),
+        MedicalDocumentAssignmentEntity(animalId: animal2),
+      ],
+    );
+
+    expect(
+      () => MedicalDocumentContractValidator.validateReview(
+        request: request,
+        originalAnimalIds: const [animal1, animal2],
+      ),
+      returnsNormally,
+    );
+  });
+
   test(
     'keeps diagnostic images and laboratory results in their own categories',
     () {

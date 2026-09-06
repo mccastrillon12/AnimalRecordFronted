@@ -34,6 +34,7 @@ class _MedicalDocumentReviewScreenState
   bool _canPop = false;
   bool _isDiscarding = false;
   MedicalDocumentExtractionEntity? _analysisExtraction;
+  MedicalDocumentCategory? _analysisFinalCategory;
   Future<SharedFileAnalysisEntity>? _analysisFuture;
 
   @override
@@ -76,7 +77,11 @@ class _MedicalDocumentReviewScreenState
             );
           }
           return FutureBuilder<SharedFileAnalysisEntity>(
-            future: _analysisFor(document, extraction),
+            future: _analysisFor(
+              document,
+              extraction,
+              state.selectedFinalCategory ?? extraction.documentType,
+            ),
             builder: (context, snapshot) {
               final analysis = snapshot.data;
               if (snapshot.connectionState != ConnectionState.done) {
@@ -129,13 +134,17 @@ class _MedicalDocumentReviewScreenState
   Future<SharedFileAnalysisEntity> _analysisFor(
     MedicalDocumentEntity document,
     MedicalDocumentExtractionEntity extraction,
+    MedicalDocumentCategory finalCategory,
   ) {
     if (!identical(_analysisExtraction, extraction) ||
+        _analysisFinalCategory != finalCategory ||
         _analysisFuture == null) {
       _analysisExtraction = extraction;
+      _analysisFinalCategory = finalCategory;
       _analysisFuture = di.sl<MedicalDocumentAnalysisPresenter>().forReview(
         document: document,
         extraction: extraction,
+        finalCategory: finalCategory,
       );
     }
     return _analysisFuture!;

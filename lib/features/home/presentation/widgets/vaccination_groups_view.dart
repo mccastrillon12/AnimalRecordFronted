@@ -8,6 +8,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_field_catalog_builder.dart';
@@ -68,10 +69,29 @@ class VaccinationGroupsView extends StatelessWidget {
                 return const SizedBox.shrink();
               }
 
-              final allGroups = groupVaccinations(state.documents, catalog);
+              final overriddenDocuments = state.documents
+                  .where(
+                    (document) =>
+                        document.finalCategory ==
+                            MedicalDocumentCategory.vaccinationCard &&
+                        document.validatedExtraction?.documentType !=
+                            MedicalDocumentCategory.vaccinationCard,
+                  )
+                  .toList(growable: false);
+              final allGroups = groupVaccinations(
+                state.documents
+                    .where(
+                      (document) => !overriddenDocuments.contains(document),
+                    )
+                    .toList(growable: false),
+                catalog,
+              );
               final shouldShowAiFeedback =
-                  showAiFeedback && allGroups.isNotEmpty;
-              if (allGroups.isEmpty && !shouldShowAiFeedback) {
+                  showAiFeedback &&
+                  (allGroups.isNotEmpty || overriddenDocuments.isNotEmpty);
+              if (allGroups.isEmpty &&
+                  overriddenDocuments.isEmpty &&
+                  !shouldShowAiFeedback) {
                 return const _VaccinationEmptyState();
               }
 
@@ -80,6 +100,17 @@ class VaccinationGroupsView extends StatelessWidget {
                   .where(
                     (group) =>
                         query.isEmpty || group.searchText.contains(query),
+                  )
+                  .toList(growable: false);
+              final filteredOverriddenDocuments = overriddenDocuments
+                  .where(
+                    (document) =>
+                        query.isEmpty ||
+                        [
+                          document.originalFileName,
+                          document.validatedExtraction?.documentType.label ??
+                              '',
+                        ].join(' ').toLowerCase().contains(query),
                   )
                   .toList(growable: false);
               final groups = alphabeticalSortAscending == null
@@ -91,8 +122,16 @@ class VaccinationGroupsView extends StatelessWidget {
                       ? (left, right) => left.title.compareTo(right.title)
                       : (left, right) => right.title.compareTo(left.title),
                 );
+                filteredOverriddenDocuments.sort((left, right) {
+                  final comparison = left.originalFileName
+                      .toLowerCase()
+                      .compareTo(right.originalFileName.toLowerCase());
+                  return ascending ? comparison : -comparison;
+                });
               }
-              if (groups.isEmpty && !shouldShowAiFeedback) {
+              if (groups.isEmpty &&
+                  filteredOverriddenDocuments.isEmpty &&
+                  !shouldShowAiFeedback) {
                 return const _VaccinationNoResultsState();
               }
 
@@ -103,24 +142,36 @@ class VaccinationGroupsView extends StatelessWidget {
                   AppSpacing.l,
                   88,
                 ),
-                itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
+                itemCount:
+                    groups.length +
+                    filteredOverriddenDocuments.length +
+                    (shouldShowAiFeedback ? 1 : 0),
                 separatorBuilder: (_, _) =>
                     const SizedBox(height: AppSpacing.m),
-                itemBuilder: (context, index) =>
-                    shouldShowAiFeedback && index == 0
-                    ? MedicalDocumentAiFeedbackBanner(
-                        key: ValueKey(aiFeedbackRequestId),
-                        initialHasResponded: initialAiFeedbackResponded,
-                        onDismissed: onAiFeedbackDismissed,
-                        onSubmitted: onAiFeedbackSubmitted,
-                      )
-                    : _VaccinationGroupCard(
-                        group: groups[index - (shouldShowAiFeedback ? 1 : 0)],
-                        onDetail: () => _showDetail(
-                          context,
-                          groups[index - (shouldShowAiFeedback ? 1 : 0)],
-                        ),
-                      ),
+                itemBuilder: (context, index) {
+                  if (shouldShowAiFeedback && index == 0) {
+                    return MedicalDocumentAiFeedbackBanner(
+                      key: ValueKey(aiFeedbackRequestId),
+                      initialHasResponded: initialAiFeedbackResponded,
+                      onDismissed: onAiFeedbackDismissed,
+                      onSubmitted: onAiFeedbackSubmitted,
+                    );
+                  }
+                  final contentIndex = index - (shouldShowAiFeedback ? 1 : 0);
+                  if (contentIndex < groups.length) {
+                    final group = groups[contentIndex];
+                    return _VaccinationGroupCard(
+                      group: group,
+                      onDetail: () => _showDetail(context, group),
+                    );
+                  }
+                  return MedicalDocumentSummaryCard(
+                    document:
+                        filteredOverriddenDocuments[contentIndex -
+                            groups.length],
+                    category: MedicalDocumentCategory.vaccinationCard,
+                  );
+                },
               );
             },
           ),

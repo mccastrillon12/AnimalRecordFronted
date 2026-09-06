@@ -127,6 +127,57 @@ void main() {
     );
   });
 
+  test('renders unknown non-technical values only for category overrides', () {
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      rawExtraction: {
+        'documentType': 'CLINICAL_HISTORY',
+        'documentTypeConfidence': 0.93,
+        'futureSection': {
+          'medicalValue': 'Valor clínico futuro',
+          'classificationConfidence': 0.71,
+          'verified': true,
+        },
+      },
+    );
+
+    final matching = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: _catalog,
+    );
+    final overridden = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: _catalog,
+      displayCategory: MedicalDocumentCategory.prescription,
+      includeUncataloguedFields: true,
+    );
+
+    expect(
+      matching.sections.where(
+        (section) => section.title == 'Información adicional extraída',
+      ),
+      isEmpty,
+    );
+    final additional = overridden.sections.singleWhere(
+      (section) => section.title == 'Información adicional extraída',
+    );
+    expect(
+      additional.details.map((detail) => detail.value),
+      containsAll(['Valor clínico futuro', 'true']),
+    );
+    expect(
+      additional.details.map((detail) => detail.value),
+      isNot(contains('0.93')),
+    );
+    expect(
+      additional.details.map((detail) => detail.value),
+      isNot(contains('0.71')),
+    );
+    expect(overridden.documentType, MedicalDocumentCategory.prescription.label);
+  });
+
   test('keeps extracted values unchanged', () {
     const extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.clinicalHistory,

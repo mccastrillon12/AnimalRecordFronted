@@ -127,7 +127,7 @@ void main() {
       find.byType(AppDropdown<MedicalDocumentCategory>),
     );
     expect(dropdown.value, isNull);
-    expect(dropdown.hint, 'Tipo de contenido');
+    expect(dropdown.hint, 'Selecciona una categoría');
     expect(dropdown.items, isNot(contains(MedicalDocumentCategory.other)));
     expect(
       dropdown.items,

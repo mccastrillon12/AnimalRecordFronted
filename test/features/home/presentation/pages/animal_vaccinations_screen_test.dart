@@ -215,6 +215,59 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    'shows a document archived as vaccination with another extraction',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final documentsCubit = MockAnimalMedicalDocumentsCubit();
+      when(() => documentsCubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          MedicalDocumentEntity(
+            id: 'overridden-prescription',
+            animalIds: ['animal-1'],
+            originalFileName: 'formula-brownie.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            status: MedicalDocumentStatus.accepted,
+            finalCategory: MedicalDocumentCategory.vaccinationCard,
+            validatedExtraction: MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.prescription,
+              rawExtraction: {
+                'documentType': 'PRESCRIPTION',
+                'medications': [
+                  {'name': 'Medicamento completo'},
+                ],
+              },
+            ),
+            version: 1,
+          ),
+        ], category: MedicalDocumentCategory.vaccinationCard),
+      );
+      when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: documentsCubit,
+          child: const MaterialApp(
+            home: AnimalVaccinationsScreen(animal: animal),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(const Key('medical-document-card-overridden-prescription')),
+        findsOneWidget,
+      );
+      expect(find.text('Adjunto: Carnet de vacunación'), findsOneWidget);
+      expect(find.text('formula-brownie.pdf'), findsOneWidget);
+      expect(find.text('El registro de vacunas está vacío'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('opens the grouped vaccination detail with every dose', (
     tester,
   ) async {

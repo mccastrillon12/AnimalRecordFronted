@@ -323,6 +323,10 @@ class MedicalDocumentExtractionEntity extends Equatable {
   final List<MedicalDocumentItemEntity> laboratoryResults;
   final Map<String, dynamic> additionalFields;
 
+  /// Lossless extraction received from the backend. It is used only when the
+  /// user archives the file under a category different from [documentType].
+  final Map<String, dynamic> rawExtraction;
+
   /// Canonical properties returned by the backend that this app version does
   /// not model yet. They are deliberately not rendered, but must survive a
   /// review round-trip.
@@ -349,6 +353,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     this.laboratoryReport,
     this.laboratoryResults = const [],
     this.additionalFields = const {},
+    this.rawExtraction = const {},
     this.preservedUnknownFields = const {},
     this.warnings = const [],
   });
@@ -387,6 +392,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     Map<String, dynamic>? laboratoryReport,
     List<MedicalDocumentItemEntity>? laboratoryResults,
     Map<String, dynamic>? additionalFields,
+    Map<String, dynamic>? rawExtraction,
     Map<String, dynamic>? preservedUnknownFields,
     List<String>? warnings,
   }) {
@@ -411,6 +417,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
       laboratoryReport: laboratoryReport ?? this.laboratoryReport,
       laboratoryResults: laboratoryResults ?? this.laboratoryResults,
       additionalFields: additionalFields ?? this.additionalFields,
+      rawExtraction: rawExtraction ?? this.rawExtraction,
       preservedUnknownFields:
           preservedUnknownFields ?? this.preservedUnknownFields,
       warnings: warnings ?? this.warnings,
@@ -472,6 +479,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
           ? _copyItems(laboratoryResults)
           : const [],
       additionalFields: _deepCopyMap(additionalFields),
+      rawExtraction: _deepCopyMap(rawExtraction),
       preservedUnknownFields: _deepCopyMap(preservedUnknownFields),
       warnings: List.unmodifiable(warnings),
     );
@@ -498,6 +506,7 @@ class MedicalDocumentExtractionEntity extends Equatable {
     laboratoryReport,
     laboratoryResults,
     additionalFields,
+    rawExtraction,
     preservedUnknownFields,
     warnings,
   ];

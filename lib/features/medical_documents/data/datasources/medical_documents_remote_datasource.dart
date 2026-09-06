@@ -190,24 +190,20 @@ class MedicalDocumentsRemoteDataSourceImpl
     String animalId, {
     MedicalDocumentCategory? category,
   }) async {
-    final response = await apiClient.get<List<dynamic>>(
-      '/animals/$animalId/medical-documents',
-    );
+    final path = '/animals/$animalId/medical-documents';
+    final response = category == null
+        ? await apiClient.get<List<dynamic>>(path)
+        : await apiClient.get<List<dynamic>>(
+            path,
+            queryParameters: {'category': category.wireValue},
+          );
     responseLogger.logResponse(
       operation: 'LIST_BY_ANIMAL',
       statusCode: response.statusCode,
       response: response.data,
     );
-    final documents = (response.data ?? const [])
+    return (response.data ?? const [])
         .map((item) => MedicalDocumentModel.fromJson(_responseMap(item)))
-        .toList(growable: false);
-    if (category == null) return documents;
-    return documents
-        .where(
-          (document) =>
-              document.finalCategory == category ||
-              document.validatedExtraction?.documentType == category,
-        )
         .toList(growable: false);
   }
 

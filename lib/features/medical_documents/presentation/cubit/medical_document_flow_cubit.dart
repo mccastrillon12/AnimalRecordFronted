@@ -211,7 +211,43 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   void selectFinalCategory(MedicalDocumentCategory category) {
     final document = state.remoteDocument;
     if (document == null) return;
-    _emitReview(document, category);
+    final draft = state.draftExtraction;
+    if (draft == null ||
+        draft.documentType == category ||
+        document.classificationOutcome ==
+            MedicalDocumentClassificationOutcome.unclassified ||
+        !_hasExtractionContent(draft)) {
+      _emitReview(document, category);
+      return;
+    }
+    emit(
+      state.copyWith(
+        selectedFinalCategory: category,
+        clearMessage: true,
+        versionConflict: false,
+      ),
+    );
+  }
+
+  /// Changes the reviewed extraction only through a separate explicit action.
+  /// Selecting where the file is archived never invokes this method.
+  void useExtractionCategory(MedicalDocumentCategory category) {
+    final document = state.remoteDocument;
+    final extraction = document?.extractionsByCategory[category];
+    if (document == null || extraction == null) return;
+    final draft = extraction.sanitizedFor(extraction.documentType);
+    emit(
+      state.copyWith(
+        selectedExtractionCategory: category,
+        draftExtraction: draft,
+        assignmentsByAnimalId: {
+          for (final animalId in document.animalIds)
+            animalId: List.unmodifiable(draft.extractedItemIds),
+        },
+        clearMessage: true,
+        versionConflict: false,
+      ),
+    );
   }
 
   void _emitReview(
@@ -224,6 +260,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         phase: MedicalDocumentFlowPhase.reviewing,
         remoteDocument: document,
         selectedFinalCategory: category,
+        selectedExtractionCategory: sanitized.documentType,
         draftExtraction: sanitized,
         assignmentsByAnimalId: {
           for (final animalId in document.animalIds)
@@ -281,9 +318,8 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   }
 
   void updateDraft(MedicalDocumentExtractionEntity extraction) {
-    final category = state.selectedFinalCategory;
-    if (category == null) return;
-    final sanitized = extraction.sanitizedFor(category);
+    if (state.selectedFinalCategory == null) return;
+    final sanitized = extraction.sanitizedFor(extraction.documentType);
     final validIds = sanitized.extractedItemIds.toSet();
     emit(
       state.copyWith(
@@ -331,7 +367,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       final request = ReviewMedicalDocumentRequest.accept(
         documentVersion: document.version,
         finalCategory: category,
-        validatedExtraction: extraction.sanitizedFor(category),
+        validatedExtraction: extraction.sanitizedFor(extraction.documentType),
         assignments: document.animalIds
             .map(
               (animalId) => MedicalDocumentAssignmentEntity(

@@ -22,6 +22,7 @@ class MedicalDocumentFlowState extends Equatable {
   final MedicalDocumentCategory? requestedCategory;
   final MedicalDocumentEntity? remoteDocument;
   final MedicalDocumentCategory? selectedFinalCategory;
+  final MedicalDocumentCategory? selectedExtractionCategory;
   final MedicalDocumentExtractionEntity? draftExtraction;
   final Map<String, List<String>> assignmentsByAnimalId;
   final String? message;
@@ -34,6 +35,7 @@ class MedicalDocumentFlowState extends Equatable {
     this.requestedCategory,
     this.remoteDocument,
     this.selectedFinalCategory,
+    this.selectedExtractionCategory,
     this.draftExtraction,
     this.assignmentsByAnimalId = const {},
     this.message,
@@ -53,6 +55,7 @@ class MedicalDocumentFlowState extends Equatable {
     MedicalDocumentCategory? requestedCategory,
     MedicalDocumentEntity? remoteDocument,
     MedicalDocumentCategory? selectedFinalCategory,
+    MedicalDocumentCategory? selectedExtractionCategory,
     MedicalDocumentExtractionEntity? draftExtraction,
     Map<String, List<String>>? assignmentsByAnimalId,
     String? message,
@@ -67,6 +70,8 @@ class MedicalDocumentFlowState extends Equatable {
       remoteDocument: remoteDocument ?? this.remoteDocument,
       selectedFinalCategory:
           selectedFinalCategory ?? this.selectedFinalCategory,
+      selectedExtractionCategory:
+          selectedExtractionCategory ?? this.selectedExtractionCategory,
       draftExtraction: draftExtraction ?? this.draftExtraction,
       assignmentsByAnimalId:
           assignmentsByAnimalId ?? this.assignmentsByAnimalId,
@@ -83,6 +88,7 @@ class MedicalDocumentFlowState extends Equatable {
     requestedCategory,
     remoteDocument,
     selectedFinalCategory,
+    selectedExtractionCategory,
     draftExtraction,
     assignmentsByAnimalId,
     message,

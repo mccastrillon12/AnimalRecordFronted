@@ -380,6 +380,7 @@ void main() {
       expect(cubit.state.remoteDocument?.detectedCategories, hasLength(2));
 
       cubit.selectFinalCategory(MedicalDocumentCategory.vaccinationCard);
+      cubit.useExtractionCategory(MedicalDocumentCategory.vaccinationCard);
       await cubit.accept();
 
       final extraction = repository.lastReviewRequest?.validatedExtraction;
@@ -394,7 +395,7 @@ void main() {
   );
 
   test(
-    'creates a clean category draft when the user selects another category',
+    'preserves backend content when the final category is different',
     () async {
       final repository = _FakeMedicalDocumentsRepository(
         analyzeResponse: _document(MedicalDocumentStatus.analyzing),
@@ -412,23 +413,27 @@ void main() {
       cubit.selectFinalCategory(MedicalDocumentCategory.clinicalHistory);
 
       final draft = cubit.state.draftExtraction!;
-      expect(draft.documentType, MedicalDocumentCategory.clinicalHistory);
-      expect(draft.vaccinations, isEmpty);
-      expect(draft.patient, isNull);
+      expect(draft.documentType, MedicalDocumentCategory.vaccinationCard);
+      expect(draft.vaccinations, hasLength(1));
+      expect(draft.patient?.name, 'Chuleta');
       expect(draft.additionalFields, isEmpty);
-      expect(draft.warnings, isEmpty);
+      expect(draft.warnings, isNotEmpty);
 
       await cubit.accept();
 
       final request = repository.lastReviewRequest!;
       expect(request.finalCategory, MedicalDocumentCategory.clinicalHistory);
-      expect(request.validatedExtraction?.vaccinations, isEmpty);
+      expect(
+        request.validatedExtraction?.documentType,
+        MedicalDocumentCategory.vaccinationCard,
+      );
+      expect(request.validatedExtraction?.vaccinations, hasLength(1));
       expect(request.validatedExtraction?.additionalFields, isEmpty);
-      expect(request.validatedExtraction?.warnings, isEmpty);
+      expect(request.validatedExtraction?.warnings, isNotEmpty);
     },
   );
 
-  test('does not carry structured blocks across category mismatches', () async {
+  test('keeps structured blocks across category overrides', () async {
     final cases =
         <
           ({
@@ -518,10 +523,18 @@ void main() {
       );
       cubit.selectFinalCategory(testCase.selected);
 
-      expect(cubit.state.draftExtraction?.documentType, testCase.selected);
+      final draft = cubit.state.draftExtraction!;
+      expect(draft.documentType, testCase.detected);
+      final isPreserved = switch (testCase.preservedKey) {
+        'medications' => draft.medications.isNotEmpty,
+        'clinicalHistory' => draft.clinicalHistory != null,
+        'medicalOrders' => draft.medicalOrders.isNotEmpty,
+        'referral' => draft.referral != null,
+        _ => false,
+      };
       expect(
-        cubit.state.draftExtraction?.additionalFields[testCase.preservedKey],
-        isNull,
+        isPreserved,
+        isTrue,
         reason:
             '${testCase.detected.wireValue} -> '
             '${testCase.selected.wireValue}',

@@ -153,7 +153,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                   initialHasResponded: initialAiFeedbackResponded,
                   onSubmitted: onAiFeedbackSubmitted,
                 )
-              : _MedicalDocumentCard(
+              : MedicalDocumentSummaryCard(
                   document: documents[index - (shouldShowAiFeedback ? 1 : 0)],
                   category:
                       documents[index - (shouldShowAiFeedback ? 1 : 0)]
@@ -214,11 +214,15 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _MedicalDocumentCard extends StatelessWidget {
+class MedicalDocumentSummaryCard extends StatelessWidget {
   final MedicalDocumentEntity document;
   final MedicalDocumentCategory category;
 
-  const _MedicalDocumentCard({required this.document, required this.category});
+  const MedicalDocumentSummaryCard({
+    super.key,
+    required this.document,
+    required this.category,
+  });
 
   @override
   Widget build(BuildContext context) {

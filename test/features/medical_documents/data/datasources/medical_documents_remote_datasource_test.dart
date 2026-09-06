@@ -283,54 +283,59 @@ void main() {
     await expectLater(future, throwsA(isA<FormatException>()));
   });
 
-  test(
-    'loads every accepted document and filters the category locally',
-    () async {
-      when(() => apiClient.get<List<dynamic>>(any())).thenAnswer(
-        (_) async => Response<List<dynamic>>(
-          data: [
-            _acceptedDocument(
-              id: 'vaccination-1',
-              category: MedicalDocumentCategory.vaccinationCard,
-            ),
-            _acceptedDocument(
-              id: 'vaccination-2',
-              category: MedicalDocumentCategory.vaccinationCard,
-            ),
-            _acceptedDocument(
-              id: 'prescription-1',
-              category: MedicalDocumentCategory.prescription,
-            ),
-          ],
-          requestOptions: RequestOptions(
-            path: '/animals/animal-1/medical-documents',
+  test('requests accepted documents by their final category', () async {
+    when(
+      () => apiClient.get<List<dynamic>>(
+        any(),
+        queryParameters: any(named: 'queryParameters'),
+      ),
+    ).thenAnswer(
+      (_) async => Response<List<dynamic>>(
+        data: [
+          _acceptedDocument(
+            id: 'vaccination-1',
+            category: MedicalDocumentCategory.vaccinationCard,
           ),
-          statusCode: 200,
+          _acceptedDocument(
+            id: 'vaccination-2',
+            category: MedicalDocumentCategory.vaccinationCard,
+          ),
+          _acceptedDocument(
+            id: 'prescription-1',
+            category: MedicalDocumentCategory.prescription,
+          ),
+        ],
+        requestOptions: RequestOptions(
+          path: '/animals/animal-1/medical-documents',
         ),
-      );
+        statusCode: 200,
+      ),
+    );
 
-      final result = await dataSource.getByAnimal(
-        'animal-1',
-        category: MedicalDocumentCategory.vaccinationCard,
-      );
+    final result = await dataSource.getByAnimal(
+      'animal-1',
+      category: MedicalDocumentCategory.vaccinationCard,
+    );
 
-      verify(
-        () =>
-            apiClient.get<List<dynamic>>('/animals/animal-1/medical-documents'),
-      ).called(1);
-      verify(
-        () => responseLogger.logResponse(
-          operation: 'LIST_BY_ANIMAL',
-          statusCode: 200,
-          response: any(named: 'response'),
-        ),
-      ).called(1);
-      expect(result.map((document) => document.id), [
-        'vaccination-1',
-        'vaccination-2',
-      ]);
-    },
-  );
+    verify(
+      () => apiClient.get<List<dynamic>>(
+        '/animals/animal-1/medical-documents',
+        queryParameters: {'category': 'VACCINATION_CARD'},
+      ),
+    ).called(1);
+    verify(
+      () => responseLogger.logResponse(
+        operation: 'LIST_BY_ANIMAL',
+        statusCode: 200,
+        response: any(named: 'response'),
+      ),
+    ).called(1);
+    expect(result.map((document) => document.id), [
+      'vaccination-1',
+      'vaccination-2',
+      'prescription-1',
+    ]);
+  });
 
   test(
     'requests a fresh signed URL every time the original is opened',

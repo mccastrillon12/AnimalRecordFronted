@@ -88,19 +88,13 @@ abstract final class MedicalDocumentContractValidator {
       return;
     }
 
-    final category = request.finalCategory;
     final extraction = request.validatedExtraction;
-    if (category == null || extraction == null) {
+    if (request.finalCategory == null || extraction == null) {
       throw const MedicalDocumentContractException(
         'La categoría final y la extracción validada son obligatorias.',
       );
     }
-    if (extraction.documentType != category) {
-      throw const MedicalDocumentContractException(
-        'La extracción validada no corresponde a la categoría final.',
-      );
-    }
-    if (_hasDisallowedCategoryData(extraction, category)) {
+    if (_hasDisallowedCategoryData(extraction, extraction.documentType)) {
       throw const MedicalDocumentContractException(
         'La extracción validada mezcla información de categorías diferentes.',
       );

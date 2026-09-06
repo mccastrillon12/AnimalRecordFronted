@@ -55,8 +55,8 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Si no es correcto por favor cambie el tipo de contenido para '
-              'continuar con la carga del archivo.',
+              'Selecciona la categoría donde deseas guardar el archivo. '
+              'Esta elección no cambia la información extraída por la IA.',
               style: AppTypography.body6.copyWith(
                 color: AppColors.greyTextos,
                 height: 1.6,
@@ -64,8 +64,8 @@ Future<MedicalDocumentCategory?> showMedicalDocumentClassificationDialog({
             ),
             const SizedBox(height: AppSpacing.m),
             AppDropdown<MedicalDocumentCategory>(
-              label: 'Tipo de contenido',
-              hint: 'Tipo de contenido',
+              label: 'Guardar en',
+              hint: 'Selecciona una categoría',
               value: selectedCategory,
               items: _selectableCategories,
               itemAsString: _categoryLabel,

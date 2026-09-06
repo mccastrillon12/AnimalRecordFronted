@@ -26,6 +26,10 @@ SharedFileAnalysisEntity medicalDocumentToPdfAnalysis({
     document: document,
     extraction: document.validatedExtraction!,
     catalog: catalog,
+    displayCategory:
+        document.finalCategory ?? document.validatedExtraction!.documentType,
+    includeUncataloguedFields:
+        document.finalCategory != document.validatedExtraction!.documentType,
   );
 }
 
@@ -35,10 +39,20 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   required MedicalDocumentEntity document,
   required MedicalDocumentExtractionEntity extraction,
   required MedicalFieldCatalog catalog,
+  MedicalDocumentCategory? displayCategory,
+  bool includeUncataloguedFields = false,
 }) {
-  final values = _extractionValues(extraction);
+  final values =
+      includeUncataloguedFields && extraction.rawExtraction.isNotEmpty
+      ? _losslessExtractionValues(extraction)
+      : _extractionValues(extraction);
+  final sections = [..._catalogSections(catalog, values)];
+  if (includeUncataloguedFields) {
+    final uncatalogued = _uncataloguedSection(catalog, values);
+    if (uncatalogued != null) sections.add(uncatalogued);
+  }
   return SharedFileAnalysisEntity(
-    documentType: extraction.documentType.label,
+    documentType: (displayCategory ?? extraction.documentType).label,
     documentNumber:
         extraction.documentType == MedicalDocumentCategory.vaccinationCard
         ? ''
@@ -51,7 +65,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     patient: _patient(document, extraction.patient, catalog),
     tutor: _tutor(document, extraction.owner, catalog),
     veterinarian: _veterinarian(extraction.issuer, catalog),
-    sections: _catalogSections(catalog, values),
+    sections: List.unmodifiable(sections),
   );
 }
 
@@ -409,6 +423,118 @@ bool _isPartyPath(String path) =>
     path.startsWith('patient.') ||
     path.startsWith('owner.') ||
     path.startsWith('issuer.');
+
+Map<String, dynamic> _losslessExtractionValues(
+  MedicalDocumentExtractionEntity extraction,
+) {
+  final values = _deepCopyMap(extraction.rawExtraction);
+  values['documentType'] = extraction.documentType.label;
+  values['additionalFields'] = _deepCopyMap(extraction.additionalFields);
+  return values;
+}
+
+SharedFileAnalysisSectionEntity? _uncataloguedSection(
+  MedicalFieldCatalog catalog,
+  Map<String, dynamic> extraction,
+) {
+  final uncataloguedValues = <Object?>[];
+
+  void collect(Object? value, List<String> path) {
+    final displayPath = path.join('.');
+    if (displayPath.isNotEmpty &&
+        isMedicalDocumentTechnicalPath(
+          displayPath,
+          catalog.hiddenTechnicalKeys,
+        )) {
+      return;
+    }
+    if (value is Map) {
+      for (final entry in value.entries) {
+        collect(entry.value, [...path, entry.key.toString()]);
+      }
+      return;
+    }
+    if (value is Iterable) {
+      final items = value.toList(growable: false);
+      if (items.every((item) => item is! Map && item is! Iterable)) {
+        if (!_isCataloguedPath(path, catalog) && !_isEmpty(items)) {
+          uncataloguedValues.add(items);
+        }
+        return;
+      }
+      for (var index = 0; index < items.length; index++) {
+        collect(items[index], [...path, '$index']);
+      }
+      return;
+    }
+    if (!_isEmpty(value) && !_isCataloguedPath(path, catalog)) {
+      uncataloguedValues.add(value);
+    }
+  }
+
+  collect(extraction, const []);
+  if (uncataloguedValues.isEmpty) return null;
+  return SharedFileAnalysisSectionEntity(
+    title: 'Información adicional extraída',
+    details: [
+      for (var index = 0; index < uncataloguedValues.length; index++)
+        SharedFileAnalysisDetailEntity(
+          label: uncataloguedValues.length == 1
+              ? 'Campo adicional'
+              : 'Campo adicional ${index + 1}',
+          value: medicalDocumentDisplayValue(
+            uncataloguedValues[index],
+            hiddenTechnicalKeys: catalog.hiddenTechnicalKeys,
+          ),
+        ),
+    ],
+  );
+}
+
+bool _isCataloguedPath(List<String> rawPath, MedicalFieldCatalog catalog) {
+  final path = rawPath
+      .where((segment) => int.tryParse(segment) == null)
+      .join('.');
+  if (const {
+    'documentType',
+    'documentDate',
+    'patient.name',
+    'owner.name',
+    'issuer.name',
+  }.contains(path)) {
+    return true;
+  }
+  for (final field in catalog.fields) {
+    if (field.kind == MedicalFieldKind.dynamicObject &&
+        (path == field.path || path.startsWith('${field.path}.'))) {
+      return true;
+    }
+    if (path == field.path) return true;
+    if (field.kind == MedicalFieldKind.table &&
+        path.startsWith('${field.path}.')) {
+      final columnPath = path.substring(field.path.length + 1);
+      if (field.columns.any((column) => column.key == columnPath)) return true;
+    }
+  }
+  return false;
+}
+
+Map<String, dynamic> _deepCopyMap(Map<String, dynamic> values) => {
+  for (final entry in values.entries) entry.key: _deepCopyValue(entry.value),
+};
+
+Object? _deepCopyValue(Object? value) {
+  if (value is Map) {
+    return {
+      for (final entry in value.entries)
+        entry.key.toString(): _deepCopyValue(entry.value),
+    };
+  }
+  if (value is Iterable) {
+    return value.map(_deepCopyValue).toList(growable: false);
+  }
+  return value;
+}
 
 Map<String, dynamic> _extractionValues(
   MedicalDocumentExtractionEntity extraction,

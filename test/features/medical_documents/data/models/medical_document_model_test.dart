@@ -21,6 +21,99 @@ void main() {
     );
   });
 
+  test('override sends every raw backend value except confidence metadata', () {
+    final extraction = MedicalDocumentModel.extractionFromJson({
+      'documentType': 'VACCINATION_CARD',
+      'documentTypeConfidence': 0.91,
+      'patient': {
+        'name': 'Chuleta',
+        'measurements': {'weight': 12.4, 'verified': true},
+      },
+      'owner': {
+        'name': 'Maria',
+        'preferredContact': {'channel': 'WHATSAPP', 'enabled': true},
+      },
+      'vaccinations': [
+        {
+          'id': 'vaccination-1',
+          'name': 'Rabia',
+          'confidence': 0.82,
+          'source': {
+            'page': 1,
+            'text': 'Rabies',
+            'boundingBox': [1, 2, 3, 4],
+          },
+          'futureDetails': {
+            'lotVerified': true,
+            'temperatures': [2.5, 3.0],
+          },
+        },
+      ],
+      'futureSection': {
+        'classificationScore': 0.72,
+        'medicalValue': 'Conservar',
+      },
+      'additionalFields': <String, dynamic>{},
+    }, MedicalDocumentCategory.vaccinationCard);
+
+    final payload = MedicalDocumentModel.reviewRequestToJson(
+      ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.prescription,
+        validatedExtraction: extraction,
+        assignments: const [
+          MedicalDocumentAssignmentEntity(
+            animalId: 'animal-1',
+            extractedItemIds: ['vaccination-1'],
+          ),
+        ],
+      ),
+    );
+    final validated = payload['validatedExtraction'] as Map<String, dynamic>;
+    final vaccination =
+        (validated['vaccinations'] as List).single as Map<String, dynamic>;
+
+    expect(validated['documentType'], 'VACCINATION_CARD');
+    expect(validated, isNot(contains('documentTypeConfidence')));
+    expect((validated['patient'] as Map)['measurements'], {
+      'weight': 12.4,
+      'verified': true,
+    });
+    expect((validated['owner'] as Map)['preferredContact'], {
+      'channel': 'WHATSAPP',
+      'enabled': true,
+    });
+    expect(vaccination['id'], 'vaccination-1');
+    expect(vaccination, isNot(contains('confidence')));
+    expect((vaccination['source'] as Map)['boundingBox'], [1, 2, 3, 4]);
+    expect((vaccination['futureDetails'] as Map)['temperatures'], [2.5, 3.0]);
+    expect(validated['futureSection'], {'medicalValue': 'Conservar'});
+  });
+
+  test('matching category keeps the existing typed serialization', () {
+    final extraction = MedicalDocumentModel.extractionFromJson({
+      'documentType': 'PRESCRIPTION',
+      'documentTypeConfidence': 0.91,
+      'futureNestedOwner': {'value': true},
+      'additionalFields': <String, dynamic>{},
+    }, MedicalDocumentCategory.prescription);
+
+    final payload = MedicalDocumentModel.reviewRequestToJson(
+      ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.prescription,
+        validatedExtraction: extraction,
+        assignments: const [
+          MedicalDocumentAssignmentEntity(animalId: 'animal-1'),
+        ],
+      ),
+    );
+    final validated = payload['validatedExtraction'] as Map<String, dynamic>;
+
+    expect(validated['documentTypeConfidence'], 0.91);
+    expect(validated['futureNestedOwner'], {'value': true});
+  });
+
   test('supports the diagnostic image and laboratory result categories', () {
     expect(
       MedicalDocumentCategory.tryParse('DIAGNOSTIC_IMAGE'),

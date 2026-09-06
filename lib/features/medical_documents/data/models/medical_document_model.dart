@@ -154,6 +154,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       laboratoryReport: _nullableMap(json['laboratoryReport']),
       laboratoryResults: items(json['laboratoryResults']),
       additionalFields: additionalFields,
+      rawExtraction: _deepCopyJsonMap(json),
       preservedUnknownFields: preservedUnknownFields,
       warnings: _strings(json['warnings']),
     );
@@ -179,8 +180,9 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
   }
 
   static Map<String, dynamic> extractionToJson(
-    MedicalDocumentExtractionEntity extraction,
-  ) {
+    MedicalDocumentExtractionEntity extraction, {
+    bool preserveRawExtraction = false,
+  }) {
     Map<String, dynamic> itemToJson(MedicalDocumentItemEntity item) {
       return <String, dynamic>{
         'id': item.id,
@@ -194,7 +196,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       };
     }
 
-    return <String, dynamic>{
+    final typedExtraction = <String, dynamic>{
       ...extraction.preservedUnknownFields,
       'documentType': extraction.documentType.wireValue,
       if (extraction.documentTypeConfidence != null)
@@ -232,6 +234,16 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       'additionalFields': extraction.additionalFields,
       'warnings': extraction.warnings,
     };
+    if (!preserveRawExtraction || extraction.rawExtraction.isEmpty) {
+      return typedExtraction;
+    }
+
+    final lossless = _deepCopyJsonMap(extraction.rawExtraction);
+    lossless['documentType'] = extraction.documentType.wireValue;
+    lossless['additionalFields'] = _deepCopyJsonMap(
+      extraction.additionalFields,
+    );
+    return _removeConfidenceMetadata(lossless);
   }
 
   static Map<String, dynamic> reviewRequestToJson(
@@ -251,7 +263,11 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       'decision': 'ACCEPT',
       'documentVersion': request.documentVersion,
       'finalCategory': request.finalCategory!.wireValue,
-      'validatedExtraction': extractionToJson(request.validatedExtraction!),
+      'validatedExtraction': extractionToJson(
+        request.validatedExtraction!,
+        preserveRawExtraction:
+            request.finalCategory != request.validatedExtraction!.documentType,
+      ),
       'assignments': request.assignments
           .map(
             (assignment) => {
@@ -350,6 +366,63 @@ Map<String, dynamic> _ownerToJson(MedicalDocumentOwnerEntity owner) => {
 };
 
 bool _hasText(String? value) => value?.trim().isNotEmpty == true;
+
+Map<String, dynamic> _deepCopyJsonMap(Map<String, dynamic> values) => {
+  for (final entry in values.entries)
+    entry.key: _deepCopyJsonValue(entry.value),
+};
+
+Object? _deepCopyJsonValue(Object? value) {
+  if (value is Map) {
+    return {
+      for (final entry in value.entries)
+        entry.key.toString(): _deepCopyJsonValue(entry.value),
+    };
+  }
+  if (value is Iterable) {
+    return value.map(_deepCopyJsonValue).toList(growable: false);
+  }
+  return value;
+}
+
+Map<String, dynamic> _removeConfidenceMetadata(Map<String, dynamic> values) => {
+  for (final entry in values.entries)
+    if (!_isConfidenceMetadataKey(entry.key))
+      entry.key: _removeConfidenceValue(entry.value),
+};
+
+Object? _removeConfidenceValue(Object? value) {
+  if (value is Map) {
+    return _removeConfidenceMetadata(
+      value.map((key, item) => MapEntry(key.toString(), item)),
+    );
+  }
+  if (value is Iterable) {
+    return value.map(_removeConfidenceValue).toList(growable: false);
+  }
+  return value;
+}
+
+bool _isConfidenceMetadataKey(String key) {
+  final normalized = key
+      .trim()
+      .toLowerCase()
+      .replaceAll('ó', 'o')
+      .replaceAll('í', 'i')
+      .replaceAll(RegExp(r'[^a-z0-9]'), '');
+  if (normalized.contains('confidence') || normalized.contains('confianza')) {
+    return true;
+  }
+  final isClassification =
+      normalized.contains('classification') ||
+      normalized.contains('clasificacion');
+  final isScore =
+      normalized.contains('score') ||
+      normalized.contains('probability') ||
+      normalized.contains('probabilidad') ||
+      normalized.contains('puntuacion');
+  return isClassification && isScore;
+}
 
 String? _nullableString(Object? value) {
   final text = value?.toString().trim();

@@ -14,12 +14,15 @@ class MedicalDocumentAnalysisPresenter {
   Future<SharedFileAnalysisEntity> forReview({
     required MedicalDocumentEntity document,
     required MedicalDocumentExtractionEntity extraction,
+    required MedicalDocumentCategory finalCategory,
   }) async {
     final catalog = await getFieldCatalog(category: extraction.documentType);
     return medicalDocumentToAnalysis(
       document: document,
       extraction: extraction,
       catalog: catalog,
+      displayCategory: finalCategory,
+      includeUncataloguedFields: finalCategory != extraction.documentType,
     );
   }
 

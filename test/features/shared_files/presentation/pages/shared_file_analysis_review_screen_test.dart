@@ -14,6 +14,47 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  testWidgets('uses the document type as the only category title', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Historia clínica',
+      documentNumber: '',
+      date: null,
+      originalFileName: 'formula.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: '',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SharedFileAnalysisReviewScreen(analysis: analysis),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Historia clínica'), findsOneWidget);
+    expect(
+      find.byKey(const Key('medical-document-category-override')),
+      findsNothing,
+    );
+    expect(find.textContaining('Guardado en:'), findsNothing);
+    expect(find.textContaining('Contenido extraído como:'), findsNothing);
+  });
+
   testWidgets('shows original link below the only available file detail', (
     tester,
   ) async {
