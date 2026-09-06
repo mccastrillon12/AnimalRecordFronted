@@ -629,6 +629,7 @@ class MedicalDocumentTutorEntity extends Equatable {
 class MedicalDocumentEntity extends Equatable {
   final String id;
   final String documentCode;
+  final String description;
   final List<String> animalIds;
   final String originalFileName;
   final String mimeType;
@@ -653,6 +654,7 @@ class MedicalDocumentEntity extends Equatable {
   const MedicalDocumentEntity({
     required this.id,
     this.documentCode = '',
+    this.description = '',
     required this.animalIds,
     required this.originalFileName,
     required this.mimeType,
@@ -678,6 +680,7 @@ class MedicalDocumentEntity extends Equatable {
   List<Object?> get props => [
     id,
     documentCode,
+    description,
     animalIds,
     originalFileName,
     mimeType,

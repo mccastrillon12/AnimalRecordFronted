@@ -6,6 +6,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
   const MedicalDocumentModel({
     required super.id,
     super.documentCode,
+    super.description,
     required super.animalIds,
     required super.originalFileName,
     required super.mimeType,
@@ -47,6 +48,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     return MedicalDocumentModel(
       id: json['id']?.toString() ?? '',
       documentCode: json['documentCode']?.toString().trim() ?? '',
+      description: json['description']?.toString().trim() ?? '',
       animalIds: _strings(json['animalIds']),
       originalFileName: normalizeMedicalDocumentFileName(
         json['originalFileName'],

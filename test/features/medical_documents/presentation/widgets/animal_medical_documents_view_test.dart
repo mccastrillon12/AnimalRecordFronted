@@ -25,6 +25,7 @@ void main() {
     const document = MedicalDocumentEntity(
       id: '7d22ffa7-7927-46bb-b6b1-0f0232243b84',
       documentCode: 'FORM-007',
+      description: 'Control hepático',
       animalIds: ['animal-1'],
       originalFileName: 'JAKE 2025-05-15 Formula médica.pdf',
       mimeType: 'application/pdf',
@@ -34,7 +35,6 @@ void main() {
       validatedExtraction: MedicalDocumentExtractionEntity(
         documentType: MedicalDocumentCategory.prescription,
         documentDate: 'miércoles, 14 de mayo de 2025, 7:21 p.m.',
-        additionalFields: {'description': 'Control hepático'},
       ),
       version: 2,
     );
@@ -79,6 +79,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
+    expect(find.text('Descripción:'), findsOneWidget);
     expect(find.text('Control hepático'), findsOneWidget);
     expect(find.text('Ver detalle'), findsOneWidget);
     final documentCardFinder = find.byKey(
@@ -164,6 +165,7 @@ void main() {
       finalCategory: MedicalDocumentCategory.prescription,
       validatedExtraction: MedicalDocumentExtractionEntity(
         documentType: MedicalDocumentCategory.prescription,
+        additionalFields: {'description': 'No usar en la card'},
       ),
       version: 1,
     );
@@ -205,6 +207,64 @@ void main() {
       findsOneWidget,
     );
     expect(find.textContaining('Gracias por tu respuesta'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows and submits AI feedback for referrals', (tester) async {
+    const document = MedicalDocumentEntity(
+      id: 'referral-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'remision.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.referral,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.referral,
+        referral: {'destination': 'Cardiología'},
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.referral),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    MedicalDocumentAiFeedback? submittedFeedback;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.referral,
+              emptyTitle: 'Sin remisiones',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('medical-document-ai-not-useful')));
+    await tester.pumpAndSettle();
+
+    expect(submittedFeedback, MedicalDocumentAiFeedback.dislike);
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 
@@ -253,6 +313,8 @@ void main() {
       findsNothing,
     );
     expect(find.text('Ver detalle'), findsOneWidget);
+    expect(find.text('Descripción:'), findsNothing);
+    expect(find.text('No usar en la card'), findsNothing);
   });
 
   testWidgets('a new upload request resets the feedback question', (

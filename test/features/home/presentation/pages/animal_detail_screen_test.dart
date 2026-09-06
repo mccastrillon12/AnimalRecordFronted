@@ -1,9 +1,11 @@
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
@@ -16,6 +18,96 @@ import 'package:mocktail/mocktail.dart';
 class _MockAnimalCubit extends Mock implements AnimalCubit {}
 
 void main() {
+  testWidgets('floating vaccination item opens the same animal screen', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(
+      () => animalCubit.state,
+    ).thenReturn(const AnimalsLoaded([_animalEntity]));
+    when(() => animalCubit.animals).thenReturn(const [_animalEntity]);
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          routes: {
+            AppRoutes.animalVaccinations: (context) {
+              final animal =
+                  ModalRoute.of(context)!.settings.arguments as AnimalModel;
+              return Scaffold(body: Text('vaccinations-${animal.id}'));
+            },
+          },
+          home: const AnimalDetailScreen(animal: _animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.widget<TopMenuOverlay>(find.byType(TopMenuOverlay)).onToggle();
+    await tester.pumpAndSettle();
+    final floatingVaccinations = find.descendant(
+      of: find.byType(TopMenuOverlay),
+      matching: find.text('Carné vacunas'),
+    );
+    await tester.tap(floatingVaccinations);
+    await tester.pumpAndSettle();
+
+    expect(find.text('vaccinations-animal-1'), findsOneWidget);
+  });
+
+  testWidgets('floating vaccination item opens the selector for many animals', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(
+      () => animalCubit.state,
+    ).thenReturn(const AnimalsLoaded([_animalEntity, _secondAnimalEntity]));
+    when(
+      () => animalCubit.animals,
+    ).thenReturn(const [_animalEntity, _secondAnimalEntity]);
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          routes: {
+            AppRoutes.home: (context) {
+              final arguments =
+                  ModalRoute.of(context)!.settings.arguments!
+                      as Map<String, dynamic>;
+              return Scaffold(
+                body: Text('home-${arguments[homeInitialSectionArgument]}'),
+              );
+            },
+          },
+          home: const AnimalDetailScreen(animal: _animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    tester.widget<TopMenuOverlay>(find.byType(TopMenuOverlay)).onToggle();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(
+        of: find.byType(TopMenuOverlay),
+        matching: find.text('Carné vacunas'),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('home-vaccination_cards'), findsOneWidget);
+  });
+
   testWidgets('always opens the clinical histories overview', (tester) async {
     await tester.binding.setSurfaceSize(const Size(600, 1000));
     addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -357,6 +449,21 @@ const _animalEntity = AnimalEntity(
   breed: 'Criollo',
   sex: 'FEMALE',
   reproductiveStatus: 'SPAYED',
+  hasChip: false,
+  isAssociationMember: false,
+  temperament: [],
+  diagnosis: [],
+  ownerId: 'owner-1',
+);
+
+const _secondAnimalEntity = AnimalEntity(
+  id: 'animal-2',
+  name: 'Milo',
+  code: 'AR-C026',
+  species: 'DOG',
+  breed: 'Criollo',
+  sex: 'MALE',
+  reproductiveStatus: 'NEUTERED',
   hasChip: false,
   isAssociationMember: false,
   temperament: [],

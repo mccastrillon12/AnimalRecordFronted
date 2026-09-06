@@ -140,6 +140,7 @@ void main() {
         _vaccinationDocument(
           id: 'rabies-es',
           vaccinationId: 'rabies-2',
+          description: 'Refuerzo anual',
           fields: const {
             'name': 'Rabia',
             'applicationDate': '10/27/2025',
@@ -173,8 +174,50 @@ void main() {
     expect(find.text('CANINE DISTEMPER'), findsNothing);
     expect(find.text('10/27/2025'), findsOneWidget);
     expect(find.text('10/27/2028'), findsOneWidget);
-    expect(find.text('Fecha de aplicación:'), findsNWidgets(2));
+    expect(find.text('Última aplicación:'), findsNWidgets(2));
+    expect(find.text('Fecha de aplicación:'), findsNothing);
     expect(find.text('Próxima dosis:'), findsOneWidget);
+    expect(find.text('Descripción:'), findsNothing);
+    expect(find.text('Refuerzo anual'), findsNothing);
+    for (final finder in [
+      find.text('Rabia'),
+      find.text('10/27/2025'),
+      find.text('10/27/2028'),
+      find.text('Próxima dosis:'),
+    ]) {
+      final text = tester.widget<Text>(finder);
+      expect(text.maxLines, 1);
+      expect(text.softWrap, isFalse);
+    }
+    final rabiesCard = find.byKey(const Key('vaccination-group-rabies'));
+    final lastApplicationLabel = find.descendant(
+      of: rabiesCard,
+      matching: find.text('Última aplicación:'),
+    );
+    final nextDoseLabel = find.descendant(
+      of: rabiesCard,
+      matching: find.text('Próxima dosis:'),
+    );
+    expect(
+      tester.getTopLeft(lastApplicationLabel).dx,
+      tester.getTopLeft(find.text('Rabia')).dx,
+    );
+    expect(
+      tester.getTopLeft(nextDoseLabel).dx,
+      tester.getTopLeft(find.text('Rabia')).dx,
+    );
+    expect(
+      tester.getTopLeft(find.text('10/27/2025')).dx,
+      tester.getTopLeft(find.text('10/27/2028')).dx,
+    );
+    expect(
+      tester.getTopLeft(find.text('10/27/2025')).dx,
+      greaterThan(tester.getTopRight(lastApplicationLabel).dx),
+    );
+    expect(
+      tester.getCenter(find.text('Próxima dosis:')).dy,
+      tester.getCenter(find.text('10/27/2028')).dy,
+    );
     expect(find.byKey(const Key('vaccination-group-rabies')), findsOneWidget);
     expect(
       find.byKey(const Key('vaccination-group-distemper')),
@@ -190,7 +233,6 @@ void main() {
     expect((vaccineCard.decoration! as BoxDecoration).boxShadow, const [
       AppShadows.card,
     ]);
-    final rabiesCard = find.byKey(const Key('vaccination-group-rabies'));
     final distemperCard = find.byKey(const Key('vaccination-group-distemper'));
     expect(
       tester.getTopLeft(rabiesCard).dy,
@@ -226,6 +268,7 @@ void main() {
         const AnimalMedicalDocumentsLoaded([
           MedicalDocumentEntity(
             id: 'overridden-prescription',
+            description: 'No mostrar en carné de vacunación',
             animalIds: ['animal-1'],
             originalFileName: 'formula-brownie.pdf',
             mimeType: 'application/pdf',
@@ -263,6 +306,8 @@ void main() {
       );
       expect(find.text('Adjunto: Carnet de vacunación'), findsOneWidget);
       expect(find.text('formula-brownie.pdf'), findsOneWidget);
+      expect(find.text('Descripción:'), findsNothing);
+      expect(find.text('No mostrar en carné de vacunación'), findsNothing);
       expect(find.text('El registro de vacunas está vacío'), findsNothing);
       expect(tester.takeException(), isNull);
     },
@@ -467,6 +512,7 @@ MedicalDocumentEntity _vaccinationDocument({
   required String id,
   required String vaccinationId,
   required Map<String, dynamic> fields,
+  String description = '',
   Map<String, dynamic>? issuer,
   MedicalDocumentPatientEntity? patient,
   MedicalDocumentOwnerEntity? owner,
@@ -474,6 +520,7 @@ MedicalDocumentEntity _vaccinationDocument({
 }) {
   return MedicalDocumentEntity(
     id: id,
+    description: description,
     animalIds: const ['animal-1'],
     originalFileName: '$id.pdf',
     mimeType: 'application/pdf',

@@ -58,6 +58,7 @@ void main() {
           ),
           animalIds: const ['animal-1', 'animal-2'],
           requestedCategory: MedicalDocumentCategory.prescription,
+          description: 'Control veterinario de agosto',
         ),
       );
 
@@ -74,6 +75,7 @@ void main() {
       };
       expect(fields['animalIds'], '["animal-1","animal-2"]');
       expect(fields['requestedCategory'], 'PRESCRIPTION');
+      expect(fields['description'], 'Control veterinario de agosto');
       expect(captured.files.single.key, 'file');
       expect(captured.files.single.value.filename, 'formula.pdf');
       expect(result.status, MedicalDocumentStatus.analyzing);

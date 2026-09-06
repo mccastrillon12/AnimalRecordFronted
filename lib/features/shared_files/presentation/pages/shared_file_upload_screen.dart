@@ -182,6 +182,13 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         arguments[sharedFileExternalUploadArgument] == true;
   }
 
+  bool get _shouldReturnUploadResult {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    return _isExternalShare ||
+        (arguments is Map &&
+            arguments[sharedFileReturnUploadResultArgument] == true);
+  }
+
   AnimalEntity? get _preselectedAnimal {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is Map && arguments['preselectedAnimal'] is AnimalEntity) {
@@ -355,6 +362,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       file: sourceFile,
       animalIds: _selectedAnimals.map((animal) => animal.id).toList(),
       requestedCategory: _requestedCategory,
+      description: _descriptionController.text,
     );
   }
 
@@ -385,18 +393,6 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     }
     final flow = context.read<MedicalDocumentFlowCubit>();
     flow.selectFinalCategory(selected);
-    final description = _descriptionController.text.trim();
-    if (description.isNotEmpty) {
-      final draft = flow.state.draftExtraction!;
-      flow.updateDraft(
-        draft.copyWith(
-          additionalFields: {
-            ...draft.additionalFields,
-            'description': description,
-          },
-        ),
-      );
-    }
     final outcome = await Navigator.push<MedicalDocumentReviewOutcome>(
       context,
       MaterialPageRoute(
@@ -414,7 +410,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         context.read<SharedFilesCubit>().clear();
         Navigator.pop(
           context,
-          _isExternalShare
+          _shouldReturnUploadResult
               ? SharedFileUploadResult(
                   animals: List.unmodifiable(_selectedAnimals),
                   category: flow.state.remoteDocument?.finalCategory,

@@ -5,11 +5,13 @@ class AnalyzeMedicalDocumentRequest {
   final SharedFileEntity file;
   final List<String> animalIds;
   final MedicalDocumentCategory? requestedCategory;
+  final String? description;
 
   const AnalyzeMedicalDocumentRequest({
     required this.file,
     required this.animalIds,
     this.requestedCategory,
+    this.description,
   });
 }
 

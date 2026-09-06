@@ -95,8 +95,8 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     _ => 0,
   };
 
-  void _handleUploadedDocument() {
-    final category = _categoryForIndex(_tabController.index);
+  void _handleUploadedDocument(MedicalDocumentCategory category) {
+    final visibleCategory = _categoryForIndex(_tabController.index);
     setState(() {
       _pendingAiFeedbackCategories.add(category);
       _answeredAiFeedbackCategories.remove(category);
@@ -105,10 +105,12 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     final write = _aiFeedbackStore.markPending(widget.animalId, category);
     _pendingFeedbackWrites[category] = write;
     unawaited(write.catchError((_) {}));
-    context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
-      widget.animalId,
-      category: category,
-    );
+    if (category == visibleCategory) {
+      context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+        widget.animalId,
+        category: category,
+      );
+    }
   }
 
   void _dismissAiFeedback(MedicalDocumentCategory category) {
@@ -482,7 +484,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                           requestedCategory: _categoryForIndex(
                             _tabController.index,
                           ),
-                          onUploaded: _handleUploadedDocument,
+                          onUploadedToCategory: _handleUploadedDocument,
                         ),
                       ),
                     ],

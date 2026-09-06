@@ -22,3 +22,15 @@ bool openSingleAnimalVaccinations(BuildContext context, String? section) {
   );
   return true;
 }
+
+/// Applies the same vaccination navigation rule from screens outside Home:
+/// one animal opens directly, while multiple animals return to the selector.
+void openVaccinationsFromFloatingMenu(BuildContext context) {
+  if (openSingleAnimalVaccinations(context, 'vaccination_cards')) return;
+
+  Navigator.of(context).pushNamedAndRemoveUntil<void>(
+    AppRoutes.home,
+    (_) => false,
+    arguments: const {homeInitialSectionArgument: 'vaccination_cards'},
+  );
+}

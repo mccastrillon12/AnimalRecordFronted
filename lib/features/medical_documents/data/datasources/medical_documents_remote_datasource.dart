@@ -93,6 +93,8 @@ class MedicalDocumentsRemoteDataSourceImpl
       'animalIds': jsonEncode(request.animalIds),
       if (request.requestedCategory != null)
         'requestedCategory': request.requestedCategory!.wireValue,
+      if (request.description?.trim().isNotEmpty == true)
+        'description': request.description!.trim(),
     });
     final response = await apiClient.post<Map<String, dynamic>>(
       '/medical-documents/analyze',

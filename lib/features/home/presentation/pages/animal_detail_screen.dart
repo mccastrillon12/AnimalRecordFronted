@@ -10,6 +10,7 @@ import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_empty_feature_screen.dart';
@@ -87,7 +88,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     TopMenuItem(
       svgPath: 'assets/icons/vacunas.svg',
       label: 'Carné vacunas',
-      onTap: () {},
+      onTap: () => openVaccinationsFromFloatingMenu(context),
     ),
   ];
 

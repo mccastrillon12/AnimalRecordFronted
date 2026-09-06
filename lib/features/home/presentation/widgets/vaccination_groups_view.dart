@@ -1,4 +1,3 @@
-import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -9,12 +8,10 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
-import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_field_catalog_builder.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class VaccinationGroupsView extends StatelessWidget {
   final AnimalModel animal;
@@ -170,6 +167,7 @@ class VaccinationGroupsView extends StatelessWidget {
                         filteredOverriddenDocuments[contentIndex -
                             groups.length],
                     category: MedicalDocumentCategory.vaccinationCard,
+                    showDescription: false,
                   );
                 },
               );
@@ -214,26 +212,16 @@ class _VaccinationGroupCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final latest = group.latest;
-    final hasDates =
-        latest.applicationDate.isNotEmpty || latest.nextDoseDate.isNotEmpty;
-    return MedicalDocumentCard(
-      key: Key('vaccination-group-${group.key}'),
+    return MedicalDocumentSummaryCard(
+      document: latest.document,
+      category: MedicalDocumentCategory.vaccinationCard,
+      cardKey: Key('vaccination-group-${group.key}'),
+      detailKey: Key('vaccination-group-detail-${group.key}'),
       onTap: onDetail,
-      headerCrossAxisAlignment: CrossAxisAlignment.center,
-      trailingSpacing: 0,
-      leading: SvgPicture.asset(
-        AppIcons.documentUpload,
-        width: 24,
-        height: 24,
-        colorFilter: const ColorFilter.mode(
-          AppColors.primaryAzulClaro,
-          BlendMode.srcIn,
-        ),
-      ),
-      title: Text(
-        vaccinationDisplayName(group.title),
-        style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
-      ),
+      onDetail: onDetail,
+      showDescription: false,
+      titleText: vaccinationDisplayName(group.title),
+      titleMaxLines: 1,
       trailing: Container(
         constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
         alignment: Alignment.center,
@@ -257,79 +245,22 @@ class _VaccinationGroupCard extends StatelessWidget {
           ),
         ),
       ),
-      body: hasDates
-          ? Padding(
-              padding: const EdgeInsets.only(left: 29),
-              child: Column(
-                children: [
-                  if (latest.applicationDate.isNotEmpty)
-                    _VaccinationValue(
-                      label: '${latest.applicationDateLabel}:',
-                      value: latest.applicationDate,
-                    ),
-                  if (latest.nextDoseDate.isNotEmpty)
-                    _VaccinationValue(
-                      label: '${latest.nextDoseDateLabel}:',
-                      value: latest.nextDoseDate,
-                    ),
-                ],
-              ),
-            )
-          : null,
-      footer: Align(
-        alignment: Alignment.centerRight,
-        child: Padding(
-          key: Key('vaccination-group-detail-${group.key}'),
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Ver detalle',
-                style: AppTypography.body3.copyWith(color: AppColors.greyMedio),
-              ),
-              const SizedBox(width: AppSpacing.xs),
-              const Icon(
-                Icons.chevron_right,
-                size: AppSpacing.iconSizeSmall,
-                color: AppColors.greyIconos,
-              ),
-            ],
+      values: [
+        if (latest.applicationDate.isNotEmpty)
+          MedicalDocumentSummaryValue(
+            label: 'Última aplicación:',
+            value: latest.applicationDate,
+            maxLines: 1,
+            spacing: AppSpacing.s,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VaccinationValue extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _VaccinationValue({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.xs),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 112,
-            child: Text(
-              label,
-              style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
-            ),
+        if (latest.nextDoseDate.isNotEmpty)
+          MedicalDocumentSummaryValue(
+            label: 'Próxima dosis:',
+            value: latest.nextDoseDate,
+            maxLines: 1,
+            spacing: AppSpacing.s,
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
-            ),
-          ),
-        ],
-      ),
+      ],
     );
   }
 }

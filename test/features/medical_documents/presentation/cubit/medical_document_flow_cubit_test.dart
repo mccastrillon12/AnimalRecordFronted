@@ -40,6 +40,7 @@ void main() {
         file: file,
         animalIds: const [animal1Id, animal2Id],
         requestedCategory: MedicalDocumentCategory.prescription,
+        description: '  Control veterinario de agosto  ',
       );
 
       expect(cubit.state.phase, MedicalDocumentFlowPhase.reviewing);
@@ -54,6 +55,10 @@ void main() {
         'medication-1',
       ]);
       expect(pending.value?.documentId, 'document-1');
+      expect(
+        repository.lastAnalyzeRequest?.description,
+        'Control veterinario de agosto',
+      );
 
       cubit.updateAssignment(animal2Id, const []);
       await cubit.accept();
@@ -741,6 +746,7 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   final MedicalDocumentEntity? reviewResponse;
   final Object? reviewError;
   ReviewMedicalDocumentRequest? lastReviewRequest;
+  AnalyzeMedicalDocumentRequest? lastAnalyzeRequest;
   int analyzeCalls = 0;
 
   _FakeMedicalDocumentsRepository({
@@ -764,6 +770,7 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
     AnalyzeMedicalDocumentRequest request,
   ) async {
     analyzeCalls++;
+    lastAnalyzeRequest = request;
     return analyzeResponse;
   }
 

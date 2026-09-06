@@ -3,6 +3,8 @@ import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 
+const sharedFileReturnUploadResultArgument = 'returnUploadResult';
+
 class SharedFileUploadResult {
   final List<AnimalEntity> animals;
   final MedicalDocumentCategory? category;

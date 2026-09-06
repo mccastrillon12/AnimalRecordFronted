@@ -48,6 +48,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     required SharedFileEntity file,
     required List<String> animalIds,
     MedicalDocumentCategory? requestedCategory,
+    String? description,
   }) async {
     _pollGeneration++;
     emit(
@@ -64,6 +65,9 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
           file: file,
           animalIds: animalIds,
           requestedCategory: requestedCategory,
+          description: description?.trim().isNotEmpty == true
+              ? description!.trim()
+              : null,
         ),
       );
       await pendingLocalDataSource.save(

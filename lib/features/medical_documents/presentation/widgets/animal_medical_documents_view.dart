@@ -214,28 +214,86 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
+class MedicalDocumentSummaryValue {
+  final String label;
+  final String value;
+  final int maxLines;
+  final double spacing;
+
+  const MedicalDocumentSummaryValue({
+    required this.label,
+    required this.value,
+    this.maxLines = 2,
+    this.spacing = 0,
+  });
+}
+
 class MedicalDocumentSummaryCard extends StatelessWidget {
   final MedicalDocumentEntity document;
   final MedicalDocumentCategory category;
+  final bool showDescription;
+  final String? titleText;
+  final int? titleMaxLines;
+  final Widget? trailing;
+  final List<MedicalDocumentSummaryValue>? values;
+  final VoidCallback? onTap;
+  final VoidCallback? onDetail;
+  final Key? cardKey;
+  final Key? detailKey;
 
   const MedicalDocumentSummaryCard({
     super.key,
     required this.document,
     required this.category,
+    this.showDescription = true,
+    this.titleText,
+    this.titleMaxLines,
+    this.trailing,
+    this.values,
+    this.onTap,
+    this.onDetail,
+    this.cardKey,
+    this.detailKey,
   });
 
   @override
   Widget build(BuildContext context) {
     final extraction = document.validatedExtraction;
     final date = displayMedicalDocumentDate(extraction?.documentDate);
-    final description = _documentDescription(document);
+    final description = showDescription ? document.description.trim() : '';
     final number = _documentNumber(document);
-    final title = [
+    final defaultTitle = [
       'Adjunto: ${document.finalCategory?.label ?? 'Archivo médico'}',
       if (number.isNotEmpty) number,
     ].join(' ');
+    final summaryValues =
+        values ??
+        [
+          if (date.isNotEmpty)
+            MedicalDocumentSummaryValue(label: 'Fecha:', value: date),
+          if (document.originalFileName.trim().isNotEmpty)
+            MedicalDocumentSummaryValue(
+              label: 'Archivo:',
+              value: document.originalFileName,
+            ),
+          if (description.isNotEmpty)
+            MedicalDocumentSummaryValue(
+              label: 'Descripción:',
+              value: description,
+            ),
+        ];
+    final detailAction =
+        onDetail ??
+        (extraction == null
+            ? null
+            : () => _showMedicalDocumentDetail(
+                context,
+                document: document,
+                category: category,
+              ));
     return MedicalDocumentCard(
-      key: Key('medical-document-card-${document.id}'),
+      key: cardKey ?? Key('medical-document-card-${document.id}'),
+      onTap: onTap,
       leading: SvgPicture.asset(
         AppIcons.documentUpload,
         key: Key('medical-document-card-icon-${document.id}'),
@@ -247,30 +305,26 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
         ),
       ),
       title: Text(
-        title,
+        titleText ?? defaultTitle,
+        maxLines: titleMaxLines,
+        softWrap: titleMaxLines == 1 ? false : null,
+        overflow: titleMaxLines == null ? null : TextOverflow.ellipsis,
         style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
       ),
-      body:
-          date.isNotEmpty ||
-              document.originalFileName.trim().isNotEmpty ||
-              description.isNotEmpty
+      trailing: trailing,
+      body: summaryValues.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.only(
                 left: AppSpacing.iconSizeSmall + AppSpacing.m,
               ),
               child: Column(
                 children: [
-                  if (date.isNotEmpty)
-                    _DocumentCardValue(label: 'Fecha:', value: date),
-                  if (document.originalFileName.trim().isNotEmpty)
+                  for (final value in summaryValues)
                     _DocumentCardValue(
-                      label: 'Archivo:',
-                      value: document.originalFileName,
-                    ),
-                  if (description.isNotEmpty)
-                    _DocumentCardValue(
-                      label: 'Descripción:',
-                      value: description,
+                      label: value.label,
+                      value: value.value,
+                      maxLines: value.maxLines,
+                      spacing: value.spacing,
                     ),
                 ],
               ),
@@ -279,14 +333,8 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
       footer: Align(
         alignment: Alignment.centerRight,
         child: InkWell(
-          key: Key('medical-document-detail-${document.id}'),
-          onTap: extraction == null
-              ? null
-              : () => _showMedicalDocumentDetail(
-                  context,
-                  document: document,
-                  category: category,
-                ),
+          key: detailKey ?? Key('medical-document-detail-${document.id}'),
+          onTap: detailAction,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xxs),
             child: Row(
@@ -601,8 +649,15 @@ Future<void> _showMedicalDocumentOriginal(
 class _DocumentCardValue extends StatelessWidget {
   final String label;
   final String value;
+  final int maxLines;
+  final double spacing;
 
-  const _DocumentCardValue({required this.label, required this.value});
+  const _DocumentCardValue({
+    required this.label,
+    required this.value,
+    required this.maxLines,
+    required this.spacing,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -615,13 +670,18 @@ class _DocumentCardValue extends StatelessWidget {
             width: 128,
             child: Text(
               label,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
               style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
             ),
           ),
+          if (spacing > 0) SizedBox(width: spacing),
           Expanded(
             child: Text(
               value,
-              maxLines: 2,
+              maxLines: maxLines,
+              softWrap: maxLines == 1 ? false : null,
               overflow: TextOverflow.ellipsis,
               style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
             ),
@@ -815,33 +875,6 @@ String _documentNumber(MedicalDocumentEntity document) {
   final value = document.documentCode.trim();
   if (value.isEmpty) return '';
   return value.startsWith('N°') ? value : 'N° $value';
-}
-
-String _documentDescription(MedicalDocumentEntity document) {
-  final extraction = document.validatedExtraction;
-  final additionalFields =
-      extraction?.additionalFields ?? const <String, dynamic>{};
-  for (final entry in additionalFields.entries) {
-    if (const {
-      'description',
-      'descripcion',
-    }.contains(_normalizedFieldKey(entry.key))) {
-      final value = _valueText(entry.value).trim();
-      if (value.isNotEmpty) return value;
-    }
-  }
-  return '';
-}
-
-String _normalizedFieldKey(String value) {
-  return value
-      .toLowerCase()
-      .replaceAll('á', 'a')
-      .replaceAll('é', 'e')
-      .replaceAll('í', 'i')
-      .replaceAll('ó', 'o')
-      .replaceAll('ú', 'u')
-      .replaceAll(RegExp(r'[^a-z0-9]'), '');
 }
 
 String _searchableDocumentText(MedicalDocumentEntity document) {

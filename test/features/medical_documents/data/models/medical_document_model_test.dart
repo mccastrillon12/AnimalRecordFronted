@@ -394,6 +394,7 @@ void main() {
     () {
       final model = MedicalDocumentModel.fromJson({
         'id': 'document-2',
+        'description': 'Fórmula para control hepático',
         'animalIds': ['backend-animal'],
         'animalDetails': [
           {
@@ -422,6 +423,7 @@ void main() {
       });
 
       expect(model.originalFileName, 'OkVet Fórmula médica.pdf');
+      expect(model.description, 'Fórmula para control hepático');
       expect(model.animalDetails.single.name, 'Brownie backend');
       expect(model.animalDetails.single.code, 'AR-BACK');
       expect(model.animalDetails.single.breed, 'Labrador');

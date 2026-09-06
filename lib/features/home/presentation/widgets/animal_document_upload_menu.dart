@@ -6,6 +6,7 @@ import 'package:animal_record/core/widgets/menus/app_single_action_popup_menu.da
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -15,12 +16,14 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   final String animalId;
   final MedicalDocumentCategory? requestedCategory;
   final VoidCallback? onUploaded;
+  final ValueChanged<MedicalDocumentCategory>? onUploadedToCategory;
 
   const AnimalDocumentUploadMenu({
     super.key,
     required this.animalId,
     this.requestedCategory,
     this.onUploaded,
+    this.onUploadedToCategory,
   });
 
   @override
@@ -81,11 +84,16 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
       arguments: {
         'manualUpload': true,
         'preselectedAnimal': matches.first,
+        sharedFileReturnUploadResultArgument: true,
         if (requestedCategory != null) 'requestedCategory': requestedCategory,
       },
     );
     if (!context.mounted) return;
-    if (uploaded == true) {
+    if (uploaded == true || uploaded is SharedFileUploadResult) {
+      final savedCategory = uploaded is SharedFileUploadResult
+          ? uploaded.category ?? requestedCategory
+          : requestedCategory;
+      if (savedCategory != null) onUploadedToCategory?.call(savedCategory);
       onUploaded?.call();
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!context.mounted) return;
