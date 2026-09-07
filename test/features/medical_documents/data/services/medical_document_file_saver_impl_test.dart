@@ -11,11 +11,12 @@ void main() {
     Uint8List? savedBytes;
     final saver = MedicalDocumentFileSaverImpl(
       dio: Dio(),
-      saveBytes: ({required fileName, required bytes}) async {
-        savedName = fileName;
-        savedBytes = bytes;
-        return 'saved/document.pdf';
-      },
+      saveBytes:
+          ({required fileName, required mimeType, required bytes}) async {
+            savedName = fileName;
+            savedBytes = bytes;
+            return 'saved/document.pdf';
+          },
     );
     final sourceBytes = Uint8List.fromList([1, 2, 3]);
 
@@ -31,10 +32,12 @@ void main() {
     expect(savedBytes, same(sourceBytes));
   });
 
-  test('reports cancellation when the save dialog returns no path', () async {
+  test('reports a failed save when the platform returns no path', () async {
     final saver = MedicalDocumentFileSaverImpl(
       dio: Dio(),
-      saveBytes: ({required fileName, required bytes}) async => null,
+      saveBytes:
+          ({required fileName, required mimeType, required bytes}) async =>
+              null,
     );
 
     final saved = await saver.save(
@@ -49,22 +52,27 @@ void main() {
 
   test('preserves an existing image extension without appending pdf', () async {
     String? savedName;
+    String? savedMimeType;
     final saver = MedicalDocumentFileSaverImpl(
       dio: Dio(),
-      saveBytes: ({required fileName, required bytes}) async {
-        savedName = fileName;
-        return 'saved/$fileName';
-      },
+      saveBytes:
+          ({required fileName, required mimeType, required bytes}) async {
+            savedName = fileName;
+            savedMimeType = mimeType;
+            return 'saved/$fileName';
+          },
     );
 
     final saved = await saver.save(
       MedicalDocumentFileSaveRequest(
         fileName: '15240513993600.jpg',
+        mimeType: 'image/jpeg',
         bytes: Uint8List.fromList([1, 2, 3]),
       ),
     );
 
     expect(saved, isTrue);
     expect(savedName, '15240513993600.jpg');
+    expect(savedMimeType, 'image/jpeg');
   });
 }

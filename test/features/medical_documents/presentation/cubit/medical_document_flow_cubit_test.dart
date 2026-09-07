@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
@@ -168,6 +170,33 @@ void main() {
     expect(cubit.state.remoteDocument, isNull);
     expect(pending.value, isNull);
   });
+
+  test(
+    'does not restore a pending flow after cancelling during upload',
+    () async {
+      final repository = _DelayedAnalyzeMedicalDocumentsRepository();
+      final pending = _MemoryPendingDataSource();
+      final cubit = _buildCubit(repository, pending);
+      addTearDown(cubit.close);
+
+      final upload = cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(cubit.state.phase, MedicalDocumentFlowPhase.uploading);
+
+      await cubit.discardCurrentFlow();
+      repository.analyzeCompleter.complete(
+        _document(MedicalDocumentStatus.analyzing),
+      );
+      await upload;
+
+      expect(cubit.state.phase, MedicalDocumentFlowPhase.selecting);
+      expect(cubit.pendingFlow, isNull);
+      expect(repository.getResponses, isEmpty);
+    },
+  );
 
   test('sends the selected reason when rejecting an AI review', () async {
     final repository = _FakeMedicalDocumentsRepository(
@@ -807,6 +836,24 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   @override
   Future<Uri> getDownloadUri(String documentId) async =>
       Uri.parse('https://example.test/original');
+}
+
+class _DelayedAnalyzeMedicalDocumentsRepository
+    extends _FakeMedicalDocumentsRepository {
+  final analyzeCompleter = Completer<MedicalDocumentEntity>();
+
+  _DelayedAnalyzeMedicalDocumentsRepository()
+    : super(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: const [],
+      );
+
+  @override
+  Future<MedicalDocumentEntity> analyze(AnalyzeMedicalDocumentRequest request) {
+    analyzeCalls++;
+    lastAnalyzeRequest = request;
+    return analyzeCompleter.future;
+  }
 }
 
 class _MemoryPendingDataSource

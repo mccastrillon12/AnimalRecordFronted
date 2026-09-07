@@ -487,8 +487,7 @@ class SharedFilePdfBuilder {
   }
 
   bool _isVaccinationCard(SharedFileAnalysisEntity analysis) {
-    final type = analysis.documentType.trim().toLowerCase();
-    return type == 'carné de vacunación' || type == 'certificado de vacunación';
+    return isVaccinationPdfDocumentType(analysis.documentType);
   }
 
   bool _isVaccinationVisualDetail(SharedFileAnalysisDetailEntity detail) {
@@ -806,4 +805,19 @@ class SharedFilePdfBuilder {
     ];
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
+}
+
+bool isVaccinationPdfDocumentType(String documentType) {
+  final normalized = documentType
+      .trim()
+      .toLowerCase()
+      .replaceAll(RegExp('[áàäâ]'), 'a')
+      .replaceAll(RegExp('[éèëê]'), 'e')
+      .replaceAll(RegExp('[íìïî]'), 'i')
+      .replaceAll(RegExp('[óòöô]'), 'o')
+      .replaceAll(RegExp('[úùüû]'), 'u')
+      .replaceAll(RegExp(r'\s+'), ' ');
+  return normalized == 'carne de vacunacion' ||
+      normalized == 'carnet de vacunacion' ||
+      normalized == 'certificado de vacunacion';
 }

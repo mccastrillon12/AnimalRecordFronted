@@ -39,6 +39,7 @@ class AnimalFileRecordsScreen extends StatefulWidget {
 
 class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final GlobalKey _closeIconKey = GlobalKey();
   bool _sortAscending = true;
   MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
   bool _showAiFeedback = false;
@@ -196,6 +197,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                               ),
                               diagnosticThumbnailUriLoader:
                                   widget.diagnosticThumbnailUriLoader,
+                              diagnosticPreviewCloseIconKey: _closeIconKey,
                             ),
                           ),
                         ],
@@ -206,7 +208,8 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                         child: IconButton(
                           key: const Key('close-animal-file-records'),
                           onPressed: () => Navigator.pop(context),
-                          icon: const Icon(
+                          icon: Icon(
+                            key: _closeIconKey,
                             Icons.close,
                             color: AppColors.greyIconos,
                             size: AppSpacing.iconSizeSmall,

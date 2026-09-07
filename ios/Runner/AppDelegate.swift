@@ -1,14 +1,17 @@
 import Flutter
 import UIKit
 import MSAL
+import Photos
 import UniformTypeIdentifiers
 
 @main
 @objc class AppDelegate: FlutterAppDelegate {
   private let sharedFilesChannelName = "com.animalrecord/shared_files"
+  private let fileDownloadChannelName = "com.animalrecord/file_download"
   private let sharedAppGroup = "group.com.animalRecord.animalRecord.shared"
   private let sharedQueueFile = "shared_files.json"
   private var sharedFilesChannel: FlutterMethodChannel?
+  private var fileDownloadChannel: FlutterMethodChannel?
   private var flutterIsReadyForSharedFiles = false
   private var pendingDocumentFiles: [[String: String]] = []
 
@@ -39,9 +42,146 @@ import UniformTypeIdentifiers
         self?.flutterIsReadyForSharedFiles = true
         result(self?.consumeAllSharedFiles() ?? [])
       }
+
+      fileDownloadChannel = FlutterMethodChannel(
+        name: fileDownloadChannelName,
+        binaryMessenger: controller.binaryMessenger
+      )
+      fileDownloadChannel?.setMethodCallHandler { [weak self] call, result in
+        guard call.method == "saveFile" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        guard let arguments = call.arguments as? [String: Any],
+              let fileName = arguments["fileName"] as? String,
+              !fileName.isEmpty,
+              let mimeType = arguments["mimeType"] as? String,
+              !mimeType.isEmpty,
+              let typedData = arguments["bytes"] as? FlutterStandardTypedData,
+              !typedData.data.isEmpty
+        else {
+          result(FlutterError(
+            code: "INVALID_DOWNLOAD",
+            message: "No hay un archivo válido para descargar.",
+            details: nil
+          ))
+          return
+        }
+
+        if mimeType.hasPrefix("image/") {
+          self?.savePhotoToLibrary(
+            named: fileName,
+            data: typedData.data,
+            result: result
+          )
+          return
+        }
+
+        do {
+          let destination = try self?.saveDownloadedFile(
+            named: fileName,
+            data: typedData.data
+          )
+          result(destination?.path)
+        } catch {
+          result(FlutterError(
+            code: "DOWNLOAD_FAILED",
+            message: "No fue posible descargar el archivo.",
+            details: error.localizedDescription
+          ))
+        }
+      }
     }
 
     return didFinishLaunching
+  }
+
+  private func savePhotoToLibrary(
+    named fileName: String,
+    data: Data,
+    result: @escaping FlutterResult
+  ) {
+    requestPhotoLibraryAddAccess { granted in
+      guard granted else {
+        DispatchQueue.main.async {
+          result(FlutterError(
+            code: "PHOTO_LIBRARY_PERMISSION_DENIED",
+            message: "Se necesita permiso para guardar la imagen en Fotos.",
+            details: nil
+          ))
+        }
+        return
+      }
+
+      var localIdentifier: String?
+      PHPhotoLibrary.shared().performChanges {
+        let request = PHAssetCreationRequest.forAsset()
+        let options = PHAssetResourceCreationOptions()
+        options.originalFilename = fileName
+        request.addResource(with: .photo, data: data, options: options)
+        localIdentifier = request.placeholderForCreatedAsset?.localIdentifier
+      } completionHandler: { saved, error in
+        DispatchQueue.main.async {
+          if saved {
+            result(localIdentifier ?? "photos://saved")
+          } else {
+            result(FlutterError(
+              code: "PHOTO_SAVE_FAILED",
+              message: "No fue posible guardar la imagen en Fotos.",
+              details: error?.localizedDescription
+            ))
+          }
+        }
+      }
+    }
+  }
+
+  private func requestPhotoLibraryAddAccess(
+    completion: @escaping (Bool) -> Void
+  ) {
+    if #available(iOS 14, *) {
+      PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+        completion(status == .authorized || status == .limited)
+      }
+    } else {
+      PHPhotoLibrary.requestAuthorization { status in
+        completion(status == .authorized)
+      }
+    }
+  }
+
+  private func saveDownloadedFile(named fileName: String, data: Data) throws -> URL {
+    let documentsDirectory = FileManager.default.urls(
+      for: .documentDirectory,
+      in: .userDomainMask
+    )[0]
+    let destination = uniqueDestination(
+      in: documentsDirectory,
+      fileName: fileName
+    )
+    try data.write(to: destination, options: .atomic)
+    return destination
+  }
+
+  private func uniqueDestination(in directory: URL, fileName: String) -> URL {
+    let initial = directory.appendingPathComponent(fileName)
+    guard FileManager.default.fileExists(atPath: initial.path) else {
+      return initial
+    }
+
+    let fileExtension = initial.pathExtension
+    let baseName = initial.deletingPathExtension().lastPathComponent
+    var copyNumber = 1
+    while true {
+      let suffix = fileExtension.isEmpty ? "" : ".\(fileExtension)"
+      let candidate = directory.appendingPathComponent(
+        "\(baseName) (\(copyNumber))\(suffix)"
+      )
+      if !FileManager.default.fileExists(atPath: candidate.path) {
+        return candidate
+      }
+      copyNumber += 1
+    }
   }
 
   override func application(

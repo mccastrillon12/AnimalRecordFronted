@@ -50,7 +50,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     MedicalDocumentCategory? requestedCategory,
     String? description,
   }) async {
-    _pollGeneration++;
+    final analysisGeneration = ++_pollGeneration;
     emit(
       MedicalDocumentFlowState(
         phase: MedicalDocumentFlowPhase.uploading,
@@ -70,6 +70,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
               : null,
         ),
       );
+      if (analysisGeneration != _pollGeneration || isClosed) return;
       await pendingLocalDataSource.save(
         PendingMedicalDocumentFlow(
           documentId: document.id,
@@ -78,6 +79,10 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
           requestedCategory: requestedCategory,
         ),
       );
+      if (analysisGeneration != _pollGeneration || isClosed) {
+        await pendingLocalDataSource.clear();
+        return;
+      }
       emit(
         state.copyWith(
           phase: MedicalDocumentFlowPhase.analyzing,
@@ -87,6 +92,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       );
       await _poll(document.id);
     } catch (error) {
+      if (analysisGeneration != _pollGeneration || isClosed) return;
       emit(
         state.copyWith(
           phase: MedicalDocumentFlowPhase.failed,

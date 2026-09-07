@@ -329,6 +329,71 @@ void main() {
     },
   );
 
+  testWidgets(
+    'shows the PDF icon and opens the original diagnostic file directly',
+    (tester) async {
+      const document = MedicalDocumentEntity(
+        id: 'diagnostic-pdf-1',
+        animalIds: ['animal-1'],
+        originalFileName: 'radiografia.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        version: 1,
+      );
+      final cubit = _MockAnimalMedicalDocumentsCubit();
+      when(() => cubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          document,
+        ], category: MedicalDocumentCategory.diagnosticImage),
+      );
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+      var thumbnailRequests = 0;
+      MedicalDocumentEntity? openedDocument;
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: AnimalMedicalDocumentsView(
+                animalId: 'animal-1',
+                category: MedicalDocumentCategory.diagnosticImage,
+                emptyTitle: 'Sin imágenes',
+                emptyDescription: 'Sin documentos',
+                diagnosticThumbnailUriLoader: (_) async {
+                  thumbnailRequests += 1;
+                  return Uri.parse('https://example.test/radiografia.pdf');
+                },
+                diagnosticDocumentPreviewHandler: (_, selectedDocument) async {
+                  openedDocument = selectedDocument;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const Key('diagnostic-image-pdf-thumbnail-diagnostic-pdf-1'),
+        ),
+        findsOneWidget,
+      );
+      expect(thumbnailRequests, 0);
+
+      await tester.tap(
+        find.byKey(const Key('diagnostic-image-diagnostic-pdf-1')),
+      );
+      await tester.pump();
+
+      expect(openedDocument, document);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('does not show AI feedback just because documents exist', (
     tester,
   ) async {

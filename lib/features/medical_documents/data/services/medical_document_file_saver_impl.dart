@@ -4,14 +4,20 @@ import 'dart:typed_data';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:dio/dio.dart';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/services.dart' show MethodChannel;
 
 typedef MedicalDocumentSaveBytes =
     Future<String?> Function({
       required String fileName,
+      required String mimeType,
       required Uint8List bytes,
     });
 
 class MedicalDocumentFileSaverImpl implements MedicalDocumentFileSaver {
+  static const _mobileDownloadChannel = MethodChannel(
+    'com.animalrecord/file_download',
+  );
+
   final Dio dio;
   final MedicalDocumentSaveBytes saveBytes;
 
@@ -25,6 +31,7 @@ class MedicalDocumentFileSaverImpl implements MedicalDocumentFileSaver {
     final bytes = await _loadBytes(request);
     final result = await saveBytes(
       fileName: _safeFileName(request.fileName),
+      mimeType: request.mimeType,
       bytes: bytes,
     );
     return result != null;
@@ -53,8 +60,17 @@ class MedicalDocumentFileSaverImpl implements MedicalDocumentFileSaver {
 
   static Future<String?> _saveBytes({
     required String fileName,
+    required String mimeType,
     required Uint8List bytes,
-  }) {
+  }) async {
+    if (Platform.isAndroid || Platform.isIOS) {
+      return _mobileDownloadChannel.invokeMethod<String>('saveFile', {
+        'fileName': fileName,
+        'mimeType': mimeType,
+        'bytes': bytes,
+      });
+    }
+
     final extension = _fileExtension(fileName) ?? 'pdf';
     return FilePicker.saveFile(
       dialogTitle: 'Guardar archivo',

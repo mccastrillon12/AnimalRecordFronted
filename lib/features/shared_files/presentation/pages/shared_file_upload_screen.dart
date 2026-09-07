@@ -70,6 +70,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       if (authState is AuthSuccess) {
         await context.read<AnimalCubit>().loadAnimals(authState.user.id);
       }
+      if (mounted && _selectOnlyActiveAnimalForExternalShare()) {
+        setState(() {});
+      }
       if (mounted && _shouldResumePending) {
         await _resumeCompatiblePendingFlow();
       }
@@ -85,6 +88,19 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         _selectedAnimals = [preselected];
       }
     }
+    _selectOnlyActiveAnimalForExternalShare();
+  }
+
+  bool _selectOnlyActiveAnimalForExternalShare() {
+    if (!_isExternalShare || _selectedAnimals.isNotEmpty) return false;
+    final activeAnimals = context
+        .read<AnimalCubit>()
+        .animals
+        .where((animal) => animal.isActive)
+        .toList(growable: false);
+    if (activeAnimals.length != 1) return false;
+    _selectedAnimals = [activeAnimals.single];
+    return true;
   }
 
   @override
@@ -97,6 +113,13 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_isExternalShare &&
+        (state == AppLifecycleState.paused ||
+            state == AppLifecycleState.inactive ||
+            state == AppLifecycleState.detached)) {
+      unawaited(_cancelExternalFlowAfterLeavingApp());
+      return;
+    }
     final flow = context.read<MedicalDocumentFlowCubit>();
     if (state == AppLifecycleState.resumed &&
         flow.state.phase == MedicalDocumentFlowPhase.pollingPaused) {
@@ -105,6 +128,24 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       flow.pausePolling();
+    }
+  }
+
+  Future<void> _cancelExternalFlowAfterLeavingApp() async {
+    if (_isClosing) return;
+    _isClosing = true;
+    context.read<SharedFilesCubit>().clear();
+    try {
+      await context.read<MedicalDocumentFlowCubit>().discardCurrentFlow();
+    } catch (_) {
+      // Leaving the app must still close the external flow silently.
+    }
+    if (!mounted) return;
+    final navigator = Navigator.of(context);
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
     }
   }
 
@@ -572,6 +613,17 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                         final animals = cubit.animals
                             .where((animal) => animal.isActive)
                             .toList(growable: false);
+                        if (_isExternalShare && animals.length == 1) {
+                          return AppDropdown<AnimalEntity>(
+                            label: 'Animal',
+                            hint: '',
+                            value: animals.single,
+                            items: animals,
+                            itemAsString: (animal) => animal.name,
+                            enabled: false,
+                            onChanged: null,
+                          );
+                        }
                         return AppMultiSearchDropdown<AnimalEntity>(
                           label: 'Animal(es)',
                           hint: state is AnimalsLoading

@@ -23,6 +23,8 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 typedef MedicalDocumentThumbnailUriLoader =
     Future<Uri> Function(String documentId);
+typedef MedicalDocumentPreviewHandler =
+    Future<void> Function(BuildContext context, MedicalDocumentEntity document);
 
 const _diagnosticThumbnailCacheLifetime = Duration(minutes: 5);
 final _diagnosticThumbnailUriCache = _DiagnosticThumbnailUriCache();
@@ -46,6 +48,8 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final bool initialAiFeedbackResponded;
   final Future<void> Function()? onAiFeedbackSubmitted;
   final MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader;
+  final MedicalDocumentPreviewHandler? diagnosticDocumentPreviewHandler;
+  final GlobalKey? diagnosticPreviewCloseIconKey;
 
   const AnimalMedicalDocumentsView({
     super.key,
@@ -64,6 +68,8 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     this.initialAiFeedbackResponded = false,
     this.onAiFeedbackSubmitted,
     this.diagnosticThumbnailUriLoader,
+    this.diagnosticDocumentPreviewHandler,
+    this.diagnosticPreviewCloseIconKey,
   });
 
   @override
@@ -147,6 +153,13 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             loadThumbnailUri:
                 diagnosticThumbnailUriLoader ??
                 _loadMedicalDocumentThumbnailUri,
+            onDocumentTap:
+                diagnosticDocumentPreviewHandler ??
+                (context, document) => _showDiagnosticDocumentOriginal(
+                  context,
+                  document,
+                  closeIconKey: diagnosticPreviewCloseIconKey,
+                ),
             header: aiFeedbackBanner,
           );
         }
@@ -367,11 +380,13 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
 class _DiagnosticImagesGrid extends StatelessWidget {
   final List<MedicalDocumentEntity> documents;
   final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
+  final MedicalDocumentPreviewHandler onDocumentTap;
   final Widget? header;
 
   const _DiagnosticImagesGrid({
     required this.documents,
     required this.loadThumbnailUri,
+    required this.onDocumentTap,
     this.header,
   });
 
@@ -397,6 +412,7 @@ class _DiagnosticImagesGrid extends StatelessWidget {
                     key: ValueKey(document.id),
                     document: document,
                     loadThumbnailUri: loadThumbnailUri,
+                    onDocumentTap: onDocumentTap,
                   ),
               ],
             ),
@@ -410,11 +426,13 @@ class _DiagnosticImagesGrid extends StatelessWidget {
 class _DiagnosticImageTile extends StatefulWidget {
   final MedicalDocumentEntity document;
   final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
+  final MedicalDocumentPreviewHandler onDocumentTap;
 
   const _DiagnosticImageTile({
     super.key,
     required this.document,
     required this.loadThumbnailUri,
+    required this.onDocumentTap,
   });
 
   @override
@@ -422,20 +440,24 @@ class _DiagnosticImageTile extends StatefulWidget {
 }
 
 class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
-  late Future<Uri> _thumbnailUri;
+  Future<Uri>? _thumbnailUri;
+
+  bool get _isPdf =>
+      widget.document.mimeType.toLowerCase() == 'application/pdf';
 
   @override
   void initState() {
     super.initState();
-    _loadThumbnail();
+    if (!_isPdf) _loadThumbnail();
   }
 
   @override
   void didUpdateWidget(covariant _DiagnosticImageTile oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.document.id != widget.document.id ||
+        oldWidget.document.mimeType != widget.document.mimeType ||
         !identical(oldWidget.loadThumbnailUri, widget.loadThumbnailUri)) {
-      _loadThumbnail();
+      if (!_isPdf) _loadThumbnail();
     }
   }
 
@@ -458,13 +480,7 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
       width: 140,
       child: InkWell(
         key: Key('diagnostic-image-${widget.document.id}'),
-        onTap: widget.document.validatedExtraction == null
-            ? null
-            : () => _showMedicalDocumentDetail(
-                context,
-                document: widget.document,
-                category: MedicalDocumentCategory.diagnosticImage,
-              ),
+        onTap: () => widget.onDocumentTap(context, widget.document),
         borderRadius: AppBorders.small(),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -478,28 +494,41 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
                 color: AppColors.bgBlancoAntiFlash,
                 border: Border.all(color: AppColors.greyDelineante),
               ),
-              child: FutureBuilder<Uri>(
-                future: _thumbnailUri,
-                initialData: _initialThumbnailUri,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData) {
-                    return Image.network(
-                      snapshot.data.toString(),
-                      width: 140,
-                      height: 100,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, _, _) => const _ThumbnailFallback(),
-                    );
-                  }
-                  if (snapshot.hasError) return const _ThumbnailFallback();
-                  return const Center(
-                    child: SizedBox.square(
-                      dimension: 22,
-                      child: CircularProgressIndicator(strokeWidth: 2),
+              child: _isPdf
+                  ? Padding(
+                      padding: const EdgeInsets.all(AppSpacing.l),
+                      child: SvgPicture.asset(
+                        'assets/icons/PDF.svg',
+                        key: Key(
+                          'diagnostic-image-pdf-thumbnail-${widget.document.id}',
+                        ),
+                        semanticsLabel: 'Archivo PDF',
+                      ),
+                    )
+                  : FutureBuilder<Uri>(
+                      future: _thumbnailUri,
+                      initialData: _initialThumbnailUri,
+                      builder: (context, snapshot) {
+                        if (snapshot.hasData) {
+                          return Image.network(
+                            snapshot.data.toString(),
+                            width: 140,
+                            height: 100,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const _ThumbnailFallback(),
+                          );
+                        }
+                        if (snapshot.hasError) {
+                          return const _ThumbnailFallback();
+                        }
+                        return const Center(
+                          child: SizedBox.square(
+                            dimension: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
             const SizedBox(height: AppSpacing.xs),
             Text(
@@ -515,6 +544,17 @@ class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
     );
   }
 }
+
+Future<void> _showDiagnosticDocumentOriginal(
+  BuildContext context,
+  MedicalDocumentEntity document, {
+  GlobalKey? closeIconKey,
+}) =>
+    _showMedicalDocumentOriginal(
+      context,
+      document: document,
+      closeIconKey: closeIconKey,
+    );
 
 class _DiagnosticThumbnailUriCache {
   final Map<_DiagnosticThumbnailUriCacheKey, _DiagnosticThumbnailUriCacheEntry>
@@ -639,7 +679,7 @@ Future<void> _showMedicalDocumentDetail(
 Future<void> _showMedicalDocumentOriginal(
   BuildContext context, {
   required MedicalDocumentEntity document,
-  required GlobalKey closeIconKey,
+  GlobalKey? closeIconKey,
   GlobalKey? downloadIconKey,
 }) async {
   final preview = MedicalDocumentOriginalPreview(

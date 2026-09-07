@@ -111,8 +111,11 @@ void main() {
     await tester.pump();
 
     expect(fileSaver.request?.fileName, 'formula.png');
+    expect(fileSaver.request?.mimeType, 'image/png');
     expect(fileSaver.request?.bytes, image.bytes);
     expect(fileSaver.request?.remoteUri, isNull);
+    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
   });
 
   testWidgets('opens PDFs over the modal overlay and fits the white page', (
@@ -205,10 +208,13 @@ void main() {
     await tester.pump();
 
     expect(fileSaver.request?.fileName, 'formula.pdf');
+    expect(fileSaver.request?.mimeType, 'application/pdf');
     expect(
       fileSaver.request?.remoteUri,
       Uri.parse('https://example.test/original'),
     );
+    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 3));
   });
 }
 

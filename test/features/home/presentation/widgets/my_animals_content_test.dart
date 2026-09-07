@@ -14,6 +14,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/medi
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_upload_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -208,6 +209,165 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    'selects and locks the only active animal for an external shared file',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      final authBloc = _MockAuthBloc();
+      final sharedFilesCubit = _MockSharedFilesCubit();
+      final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+      when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      when(() => authBloc.state).thenReturn(AuthInitial());
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+      when(
+        () => sharedFilesCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => sharedFilesCubit.pendingFiles,
+      ).thenReturn(const [_externalFile]);
+      when(
+        () => medicalDocumentFlowCubit.state,
+      ).thenReturn(const MedicalDocumentFlowState());
+      when(
+        () => medicalDocumentFlowCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AnimalCubit>.value(value: animalCubit),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+            BlocProvider<MedicalDocumentFlowCubit>.value(
+              value: medicalDocumentFlowCubit,
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(
+                      arguments: {'externalShare': true},
+                    ),
+                    builder: (_) => const SharedFileUploadScreen(),
+                  ),
+                ),
+                child: const Text('Abrir archivo externo'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Abrir archivo externo'));
+      await tester.pumpAndSettle();
+
+      final selector = tester.widget<AppDropdown<AnimalEntity>>(
+        find.byType(AppDropdown<AnimalEntity>),
+      );
+      expect(selector.value, same(_animal));
+      expect(selector.enabled, isFalse);
+      expect(find.byType(AppMultiSearchDropdown<AnimalEntity>), findsNothing);
+      expect(
+        tester.widget<CustomButton>(find.byType(CustomButton)).onPressed,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'discards and closes an external upload when the app is backgrounded',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      final authBloc = _MockAuthBloc();
+      final sharedFilesCubit = _MockSharedFilesCubit();
+      final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+      when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      when(() => authBloc.state).thenReturn(AuthInitial());
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+      when(
+        () => sharedFilesCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => sharedFilesCubit.pendingFiles,
+      ).thenReturn(const [_externalFile]);
+      when(() => medicalDocumentFlowCubit.state).thenReturn(
+        const MedicalDocumentFlowState(
+          phase: MedicalDocumentFlowPhase.analyzing,
+        ),
+      );
+      when(
+        () => medicalDocumentFlowCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => medicalDocumentFlowCubit.discardCurrentFlow(),
+      ).thenAnswer((_) async => true);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AnimalCubit>.value(value: animalCubit),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+            BlocProvider<MedicalDocumentFlowCubit>.value(
+              value: medicalDocumentFlowCubit,
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => Column(
+                children: [
+                  const Text('Inicio normal'),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(
+                          arguments: {'externalShare': true},
+                        ),
+                        builder: (_) => const SharedFileUploadScreen(),
+                      ),
+                    ),
+                    child: const Text('Abrir archivo externo'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Abrir archivo externo'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Subir archivo'), findsWidgets);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Inicio normal'), findsOneWidget);
+      expect(find.byType(SharedFileUploadScreen), findsNothing);
+      verify(() => sharedFilesCubit.clear()).called(1);
+      verify(() => medicalDocumentFlowCubit.discardCurrentFlow()).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
 }
 
 const _animal = AnimalEntity(
@@ -223,4 +383,11 @@ const _animal = AnimalEntity(
   temperament: [],
   diagnosis: [],
   ownerId: 'owner-1',
+);
+
+const _externalFile = SharedFileEntity(
+  path: '/shared/document.pdf',
+  name: 'document.pdf',
+  mimeType: 'application/pdf',
+  type: SharedFileType.pdf,
 );

@@ -1,6 +1,7 @@
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
@@ -65,7 +66,111 @@ void main() {
       isNot(contains('No mostrar')),
     );
   });
+
+  test('assigns a vaccine heading to every dose group in exported PDFs', () {
+    final groups = groupVaccinations([
+      _document(
+        'rabies-new',
+        const MedicalDocumentItemEntity(
+          id: 'rabies-2',
+          fields: {'name': 'Rabia', 'applicationDate': '7/01/25'},
+        ),
+      ),
+      _document(
+        'rabies-old',
+        const MedicalDocumentItemEntity(
+          id: 'rabies-1',
+          fields: {'name': 'Rabies', 'applicationDate': '7/01/24'},
+        ),
+      ),
+      _document(
+        'parvovirus',
+        const MedicalDocumentItemEntity(
+          id: 'parvovirus-1',
+          fields: {'name': 'Parvovirus', 'applicationDate': '6/01/25'},
+        ),
+      ),
+    ], _catalog);
+
+    final card = vaccinationGroupsToPdfAnalysis(
+      groups,
+      catalog: _catalog,
+      documentType: 'Carné de vacunación',
+      patient: _emptyPatient,
+      tutor: _emptyTutor,
+    );
+    final certificate = vaccinationGroupsToPdfAnalysis(
+      [groups.singleWhere((group) => group.title == 'Rabia')],
+      catalog: _catalog,
+      documentType: 'Certificado de vacunación',
+      patient: _emptyPatient,
+      tutor: _emptyTutor,
+    );
+
+    expect(card.medications.map((dose) => dose.groupTitle), [
+      'Vacuna Rabia',
+      'Vacuna Rabia',
+      'Vacuna Parvovirus',
+    ]);
+    expect(certificate.medications, hasLength(2));
+    expect(
+      certificate.medications.every(
+        (dose) => dose.groupTitle == 'Vacuna Rabia',
+      ),
+      isTrue,
+    );
+  });
+
+  test('orders PDF doses from the newest application to the oldest', () {
+    final group = groupVaccinations([
+      _document(
+        'old-dose',
+        const MedicalDocumentItemEntity(
+          id: 'old-rabies',
+          fields: {'name': 'Rabia', 'applicationDate': '17 de Enero 2019'},
+        ),
+      ),
+      _document(
+        'new-dose',
+        const MedicalDocumentItemEntity(
+          id: 'new-rabies',
+          fields: {'name': 'Rabies', 'applicationDate': '01/24/2024'},
+        ),
+      ),
+    ], _catalog).single;
+
+    final detail = vaccinationDetailViewData(group, _catalog);
+    final pdf = vaccinationGroupsToPdfAnalysis(
+      [group],
+      catalog: _catalog,
+      documentType: 'Carné de vacunación',
+      patient: _emptyPatient,
+      tutor: _emptyTutor,
+    );
+
+    expect(group.applications.map((dose) => dose.document.id), [
+      'new-dose',
+      'old-dose',
+    ]);
+    expect(detail.doses.map((dose) => dose.title), ['Dosis 1', 'Dosis 2']);
+    expect(pdf.medications.map((dose) => dose.name), ['Dosis 1', 'Dosis 2']);
+  });
 }
+
+const _emptyPatient = SharedFilePatientAnalysisEntity(
+  name: '',
+  recordId: '',
+  species: '',
+  breed: '',
+  age: '',
+  weight: '',
+);
+
+const _emptyTutor = SharedFileTutorAnalysisEntity(
+  name: '',
+  identification: '',
+  phoneNumber: '',
+);
 
 MedicalDocumentEntity _document(
   String id,

@@ -105,7 +105,7 @@ void main() {
     const firstUrl = 'https://api.example.test/vaccines/dose-1.pdf';
     const secondUrl = 'https://api.example.test/vaccines/dose-2.pdf';
     const analysis = SharedFileAnalysisEntity(
-      documentType: 'Carné de vacunación',
+      documentType: 'Carnet de vacunación',
       documentNumber: '',
       date: null,
       originalFileName: '',
@@ -169,6 +169,13 @@ void main() {
     expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
     expect(pdfText, isNot(contains(firstUrl)));
     expect(pdfText, isNot(contains(secondUrl)));
+  });
+
+  test('recognizes card and certificate vaccination PDF titles', () {
+    expect(isVaccinationPdfDocumentType('Carnet de vacunación'), isTrue);
+    expect(isVaccinationPdfDocumentType('Carné de vacunación'), isTrue);
+    expect(isVaccinationPdfDocumentType('Certificado de vacunación'), isTrue);
+    expect(isVaccinationPdfDocumentType('Historia clínica'), isFalse);
   });
 
   test('uses the vaccination layout for certificates too', () async {

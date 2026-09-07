@@ -69,6 +69,7 @@ class MedicalDocumentOriginalPreview {
           localFile: localFile,
           remoteUriLoader: remoteUriLoader,
           fileName: fileName ?? localFile?.name ?? 'documento_medico',
+          mimeType: mimeType,
         ),
       ),
     );
@@ -79,6 +80,7 @@ class MedicalDocumentOriginalPreview {
     required SharedFileEntity? localFile,
     required _MedicalDocumentUriLoader? remoteUriLoader,
     required String fileName,
+    required String mimeType,
   }) async {
     try {
       final remoteUri = localFile == null
@@ -87,15 +89,14 @@ class MedicalDocumentOriginalPreview {
       final saved = await saveOriginalUseCase(
         MedicalDocumentFileSaveRequest(
           fileName: fileName,
+          mimeType: mimeType,
           bytes: localFile?.bytes,
           localPath: localFile?.path,
           remoteUri: remoteUri,
         ),
       );
       if (saved && context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Imagen guardada correctamente.')),
-        );
+        ErrorDisplay.showSuccess(context, 'Se descargo correctamente');
       }
     } catch (error) {
       if (context.mounted) {
@@ -276,15 +277,14 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
       final saved = await widget.saveOriginalUseCase(
         MedicalDocumentFileSaveRequest(
           fileName: widget.fileName,
+          mimeType: 'application/pdf',
           bytes: localFile?.bytes,
           localPath: localFile?.path,
           remoteUri: remoteUri,
         ),
       );
       if (saved && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('PDF guardado correctamente.')),
-        );
+        ErrorDisplay.showSuccess(context, 'Se descargo correctamente');
       }
     } catch (error) {
       if (mounted) {

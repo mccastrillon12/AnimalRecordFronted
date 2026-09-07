@@ -679,6 +679,20 @@ DateTime? _parseFlexibleDate(String value) {
     }
   }
 
+  final spanishNamedMonth = RegExp(
+    r'^(\d{1,2})\s+de\s+([a-z]+)(?:\s+de)?\s+(\d{4})$',
+  ).firstMatch(normalized);
+  if (spanishNamedMonth != null) {
+    final month = _spanishMonths[spanishNamedMonth.group(2)];
+    if (month != null) {
+      return DateTime(
+        int.parse(spanishNamedMonth.group(3)!),
+        month,
+        int.parse(spanishNamedMonth.group(1)!),
+      );
+    }
+  }
+
   final numeric = RegExp(
     r'^(\d{1,2})[/-](\d{1,2})[/-](\d{2}|\d{4})$',
   ).firstMatch(normalized);
@@ -791,4 +805,20 @@ const _englishMonths = {
   'october': 10,
   'november': 11,
   'december': 12,
+};
+
+const _spanishMonths = {
+  'enero': 1,
+  'febrero': 2,
+  'marzo': 3,
+  'abril': 4,
+  'mayo': 5,
+  'junio': 6,
+  'julio': 7,
+  'agosto': 8,
+  'septiembre': 9,
+  'setiembre': 9,
+  'octubre': 10,
+  'noviembre': 11,
+  'diciembre': 12,
 };

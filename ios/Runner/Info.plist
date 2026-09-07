@@ -37,6 +37,8 @@
 	</array>
 	<key>LSSupportsOpeningDocumentsInPlace</key>
 	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Necesitamos tu rostro para iniciar sesión de forma segura</string>
 	<key>CFBundleDisplayName</key>
@@ -104,6 +106,8 @@
 	<string>Esta aplicación requiere acceso a la cámara para tomar fotos de perfil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Esta aplicación requiere acceso a la galería para seleccionar fotos de perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Animal Record necesita guardar las imágenes descargadas en tu galería.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Esta aplicación requiere acceso al micrófono para grabar videos si es necesario.</string>
 </dict>

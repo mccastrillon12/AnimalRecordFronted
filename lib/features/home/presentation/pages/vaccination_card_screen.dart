@@ -206,22 +206,12 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
     if (groups.isEmpty || _exporting) return;
     setState(() => _exporting = true);
     try {
-      final getDownloadUri = di.sl<GetMedicalDocumentDownloadUriUseCase>();
-      final originalUrls = <String, String>{};
-      for (final group in groups) {
-        for (final application in group.applications) {
-          originalUrls[application.document.id] = (await getDownloadUri(
-            application.document.id,
-          )).toString();
-        }
-      }
       final analysis = vaccinationGroupsToPdfAnalysis(
         groups,
         catalog: _catalog!,
-        documentType: MedicalDocumentCategory.vaccinationCard.label,
+        documentType: _title,
         patient: _patient(widget.animal),
         tutor: _tutor(user, widget.animal),
-        originalUrls: originalUrls,
       );
       await di.sl<ExportSharedFileAnalysisPdfUseCase>()(analysis);
     } catch (error) {
