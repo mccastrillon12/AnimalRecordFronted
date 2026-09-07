@@ -19,6 +19,7 @@ import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
+import 'package:animal_record/core/widgets/media/animal_photo_cropper.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
@@ -201,8 +202,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       final match = cubit.animalPurposes.where((p) => p.name == purposeName);
       if (match.isNotEmpty) purposeId = match.first.id;
     }
-    
-    final isBovino = _selectedSpecies != null &&
+
+    final isBovino =
+        _selectedSpecies != null &&
         _selectedSpecies!.name.toLowerCase() == 'bovino';
 
     setState(() {
@@ -211,7 +213,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         _selectedBreed = null; // Reset breed when purpose changes
       }
     });
-    
+
     // Reload breeds filtered by purpose only for bovinos
     if (isBovino) {
       cubit.loadBreeds(_selectedSpecies!.id, purposeId: purposeId);
@@ -252,8 +254,10 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
   }
 
   bool get _isStep3Valid {
-    return _selectedTemperaments.isNotEmpty && _diagnoses.values.any((v) => v) &&
-        (_diagnoses['Otro'] != true || _otherDiagnosisController.text.trim().isNotEmpty);
+    return _selectedTemperaments.isNotEmpty &&
+        _diagnoses.values.any((v) => v) &&
+        (_diagnoses['Otro'] != true ||
+            _otherDiagnosisController.text.trim().isNotEmpty);
   }
 
   /// Returns true if the user has filled in at least one field after step 1.
@@ -338,7 +342,9 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
           ? _otherDiagnosisController.text.trim()
           : null,
       ownerId: ownerId,
-      weight: double.tryParse(_weightKgController.text.trim().replaceAll(',', '.')),
+      weight: double.tryParse(
+        _weightKgController.text.trim().replaceAll(',', '.'),
+      ),
       colorAndMarkings: _colorDescController.text.trim().isNotEmpty
           ? _colorDescController.text.trim()
           : null,
@@ -352,12 +358,15 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
       identificationNumber: _hasIdentification == 'si'
           ? _identificationNumberController.text.trim()
           : null,
-      registrationAssociations: _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
+      registrationAssociations:
+          _belongsToAssociation == 'si' && _selectedAssociations.isNotEmpty
           ? _selectedAssociations
           : null,
       isAdopted: _isAdopted,
       adoptionSource: _isAdopted == true ? _selectedAdoptionSource : null,
-      adoptionPlaceName: _isAdopted == true && _adoptionPlaceNameController.text.trim().isNotEmpty
+      adoptionPlaceName:
+          _isAdopted == true &&
+              _adoptionPlaceNameController.text.trim().isNotEmpty
           ? _adoptionPlaceNameController.text.trim()
           : null,
       unknownBirthDate: _unknownExactDate,
@@ -473,14 +482,20 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               _pendingAddAnother = false;
               context.read<AnimalCubit>().resetToLoaded();
               _resetForm();
-              ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
+              ErrorDisplay.showSuccess(
+                context,
+                '¡${state.animal.name} ha sido agregado con éxito!',
+              );
             } else {
               context.read<AnimalCubit>().resetToLoaded();
               final animalModel = AnimalModel.fromEntity(state.animal);
               final nav = Navigator.of(context);
               nav.pop();
               nav.pushNamed(AppRoutes.animalDetail, arguments: animalModel);
-              ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
+              ErrorDisplay.showSuccess(
+                context,
+                '¡${state.animal.name} ha sido agregado con éxito!',
+              );
             }
           }
         } else if (state is AnimalPictureUploaded) {
@@ -489,14 +504,20 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
             _pendingAddAnother = false;
             context.read<AnimalCubit>().resetToLoaded();
             _resetForm();
-            ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
+            ErrorDisplay.showSuccess(
+              context,
+              '¡${state.animal.name} ha sido agregado con éxito!',
+            );
           } else {
             context.read<AnimalCubit>().resetToLoaded();
             final animalModel = AnimalModel.fromEntity(state.animal);
             final nav = Navigator.of(context);
             nav.pop();
             nav.pushNamed(AppRoutes.animalDetail, arguments: animalModel);
-            ErrorDisplay.showSuccess(context, '¡${state.animal.name} ha sido agregado con éxito!');
+            ErrorDisplay.showSuccess(
+              context,
+              '¡${state.animal.name} ha sido agregado con éxito!',
+            );
           }
         } else if (state is AnimalError) {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -567,11 +588,13 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
                 }
               }),
               selectedApproximateAge: _selectedApproximateAge,
-              onApproximateAgeChanged: (v) => setState(() => _selectedApproximateAge = v),
+              onApproximateAgeChanged: (v) =>
+                  setState(() => _selectedApproximateAge = v),
               weightKgController: _weightKgController,
               weightLbController: _weightLbController,
               weightErrorText: _weightErrorText,
-              onWeightErrorChanged: (error) => setState(() => _weightErrorText = error),
+              onWeightErrorChanged: (error) =>
+                  setState(() => _weightErrorText = error),
               colorDescController: _colorDescController,
               hasIdentification: _hasIdentification,
               onHasIdentificationChanged: (v) => setState(() {
@@ -641,7 +664,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
               onDiagnosisChanged: (key, value) {
                 setState(() {
                   _diagnoses[key] = value;
-                  
+
                   if (value) {
                     if (key == 'Ninguno/Desconocido') {
                       // Deselect all others
@@ -994,31 +1017,43 @@ class _AnimalInfoStep extends StatelessWidget {
                           searchable: true,
                           isInline: true,
                           preserveOrder: true,
-                          enabled: (!breedsLoading && breeds.isNotEmpty) &&
-                              (selectedSpecies.name.toLowerCase() != 'bovino' || selectedPurpose != null),
+                          enabled:
+                              (!breedsLoading && breeds.isNotEmpty) &&
+                              (selectedSpecies.name.toLowerCase() != 'bovino' ||
+                                  selectedPurpose != null),
                           items: () {
                             final names = breeds.map((b) => b.name).toList();
-                            names.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
-                            
+                            names.sort(
+                              (a, b) =>
+                                  a.toLowerCase().compareTo(b.toLowerCase()),
+                            );
+
                             int topIndex = -1;
-                            
+
                             // Primero buscamos coincidencias exactas para asegurar que agarre el correcto (ej. 'Mestizo Comercial')
-                            final exactMatches = ['mestizo / criollo', 'mestizo comercial', 'mestizo', 'criollo'];
+                            final exactMatches = [
+                              'mestizo / criollo',
+                              'mestizo comercial',
+                              'mestizo',
+                              'criollo',
+                            ];
                             for (final target in exactMatches) {
-                              topIndex = names.indexWhere((name) => name.toLowerCase() == target);
+                              topIndex = names.indexWhere(
+                                (name) => name.toLowerCase() == target,
+                              );
                               if (topIndex != -1) break;
                             }
-                            
+
                             // Si no hay coincidencia exacta, buscamos por subcadena
                             if (topIndex == -1) {
                               topIndex = names.indexWhere((name) {
                                 final lower = name.toLowerCase();
-                                return lower.contains('mestizo comercial') || 
-                                       lower.contains('criollo') || 
-                                       lower.contains('mestizo');
+                                return lower.contains('mestizo comercial') ||
+                                    lower.contains('criollo') ||
+                                    lower.contains('mestizo');
                               });
                             }
-                            
+
                             if (topIndex > 0) {
                               final topBreed = names.removeAt(topIndex);
                               names.insert(0, topBreed);
@@ -1149,18 +1184,28 @@ class _AnimalInfoStep extends StatelessWidget {
                                     label: '',
                                     hint: '- kg',
                                     controller: weightKgController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
                                     maxLength: 7,
                                     inputFormatters: [
-                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
                                         return newValue.copyWith(
-                                          text: newValue.text.replaceAll('.', ','),
+                                          text: newValue.text.replaceAll(
+                                            '.',
+                                            ',',
+                                          ),
                                         );
                                       }),
                                     ],
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y comas',
+                                    patternErrorMessage:
+                                        'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1175,18 +1220,28 @@ class _AnimalInfoStep extends StatelessWidget {
                                     label: '',
                                     hint: '- lb',
                                     controller: weightLbController,
-                                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                    keyboardType:
+                                        const TextInputType.numberWithOptions(
+                                          decimal: true,
+                                        ),
                                     maxLength: 7,
                                     inputFormatters: [
-                                      TextInputFormatter.withFunction((oldValue, newValue) {
+                                      TextInputFormatter.withFunction((
+                                        oldValue,
+                                        newValue,
+                                      ) {
                                         return newValue.copyWith(
-                                          text: newValue.text.replaceAll('.', ','),
+                                          text: newValue.text.replaceAll(
+                                            '.',
+                                            ',',
+                                          ),
                                         );
                                       }),
                                     ],
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
-                                    patternErrorMessage: 'Solo se permiten números y comas',
+                                    patternErrorMessage:
+                                        'Solo se permiten números y comas',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1311,10 +1366,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         const SizedBox(height: AppSpacing.m),
 
                         // Is Adopted?
-                        Text(
-                          '¿Es adoptado?',
-                          style: AppTypography.body6,
-                        ),
+                        Text('¿Es adoptado?', style: AppTypography.body6),
                         const SizedBox(height: AppSpacing.xs),
                         Row(
                           children: [
@@ -1428,7 +1480,7 @@ class _AnimalInfoStep extends StatelessWidget {
                         width: 96,
                         height: 96,
                         fit: BoxFit.cover,
-                        alignment: Alignment.topCenter,
+                        alignment: Alignment.center,
                       )
                     : Center(
                         child: SvgPicture.asset(
@@ -1509,7 +1561,13 @@ class _AnimalInfoStep extends StatelessWidget {
                       maxHeight: 1920,
                       imageQuality: 95,
                     );
-                    if (picked != null) onPhotoSelected(picked.path);
+                    if (picked != null && context.mounted) {
+                      final croppedPath = await showAnimalPhotoCropper(
+                        context,
+                        imagePath: picked.path,
+                      );
+                      if (croppedPath != null) onPhotoSelected(croppedPath);
+                    }
                   },
                 ),
                 ListTile(
@@ -1523,7 +1581,13 @@ class _AnimalInfoStep extends StatelessWidget {
                       maxHeight: 1920,
                       imageQuality: 95,
                     );
-                    if (picked != null) onPhotoSelected(picked.path);
+                    if (picked != null && context.mounted) {
+                      final croppedPath = await showAnimalPhotoCropper(
+                        context,
+                        imagePath: picked.path,
+                      );
+                      if (croppedPath != null) onPhotoSelected(croppedPath);
+                    }
                   },
                 ),
                 if (hasPhoto)

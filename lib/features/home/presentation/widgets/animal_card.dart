@@ -37,7 +37,7 @@ class AnimalAvatar extends StatelessWidget {
               child: CachedNetworkImage(
                 imageUrl: animal.imageUrl!.trim(),
                 fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+                alignment: Alignment.center,
                 width: size,
                 height: size,
                 fadeInDuration: Duration.zero,
@@ -366,7 +366,7 @@ class AnimalCard extends StatelessWidget {
               imageBuilder: (context, imageProvider) => Image(
                 image: imageProvider,
                 fit: BoxFit.cover,
-                alignment: Alignment.topCenter,
+                alignment: Alignment.center,
                 width: double.infinity,
                 height: double.infinity,
               ),
