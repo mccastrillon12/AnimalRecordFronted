@@ -68,13 +68,11 @@ class _HomeScreenState extends State<HomeScreen> {
       _openSingleAnimalUploadDestination(uploaded);
     } else if (uploaded == true) {
       setState(() => _activeSection = homeMyAnimalsSection);
-      ErrorDisplay.showSuccess(context, sharedFileUploadSuccessMessage);
+      _showUploadSuccessOnTop();
     } else if (uploaded == false) {
       setState(() => _activeSection = homeMyAnimalsSection);
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
-        }
+        if (mounted) _showUploadErrorOnTop();
       });
     }
   }
@@ -82,7 +80,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openSingleAnimalUploadDestination(SharedFileUploadResult result) {
     final destination = resolveSharedFileUploadDestination(result);
     if (destination == null) {
-      ErrorDisplay.showSuccess(context, sharedFileUploadSuccessMessage);
+      _showUploadSuccessOnTop();
       return;
     }
 
@@ -96,9 +94,25 @@ class _HomeScreenState extends State<HomeScreen> {
       );
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      ErrorDisplay.showSuccess(context, sharedFileUploadSuccessMessage);
+      if (mounted) _showUploadSuccessOnTop();
     });
+  }
+
+  void _showUploadSuccessOnTop() {
+    final overlay = Navigator.of(context).overlay;
+    if (overlay != null) {
+      ErrorDisplay.showSuccessOnOverlay(
+        overlay,
+        sharedFileUploadSuccessMessage,
+      );
+    }
+  }
+
+  void _showUploadErrorOnTop() {
+    final overlay = Navigator.of(context).overlay;
+    if (overlay != null) {
+      ErrorDisplay.showErrorOnOverlay(overlay, sharedFileUploadErrorMessage);
+    }
   }
 
   Future<void> _checkBiometricActivation() async {
@@ -124,9 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void _handleExternalUploadCancelled() {
     setState(() => _activeSection = homeMyAnimalsSection);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
-      }
+      if (mounted) _showUploadErrorOnTop();
     });
   }
 

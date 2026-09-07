@@ -103,7 +103,7 @@ class _SharedFilesNavigationCoordinatorState
       if (!mounted) return;
       final overlay = widget.navigatorKey.currentState?.overlay;
       if (overlay != null) {
-        ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+        ErrorDisplay.showErrorOnOverlay(overlay, sharedFileUploadErrorMessage);
       }
     });
   }
@@ -111,7 +111,10 @@ class _SharedFilesNavigationCoordinatorState
   void _showSuccess() {
     final overlay = widget.navigatorKey.currentState?.overlay;
     if (overlay != null) {
-      ErrorDisplay.showSuccess(overlay.context, sharedFileUploadSuccessMessage);
+      ErrorDisplay.showSuccessOnOverlay(
+        overlay,
+        sharedFileUploadSuccessMessage,
+      );
     }
   }
 

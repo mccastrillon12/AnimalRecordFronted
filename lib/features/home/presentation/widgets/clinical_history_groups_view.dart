@@ -101,12 +101,7 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
           return const _ClinicalHistoryNoResultsState();
         }
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.l,
-            0,
-            AppSpacing.l,
-            88,
-          ),
+          padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
           itemCount: groups.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
           itemBuilder: (context, index) {
@@ -405,9 +400,13 @@ class _ClinicalHistoryGroupScreenState
         fileName: 'historias_clinicas_${widget.animal.name}',
       );
       if (mounted && saved) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Historias clínicas descargadas.')),
-        );
+        final overlay = Navigator.of(context).overlay;
+        if (overlay != null) {
+          ErrorDisplay.showSuccessOnOverlay(
+            overlay,
+            'Historias clínicas descargadas.',
+          );
+        }
       }
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());

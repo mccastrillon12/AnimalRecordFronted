@@ -14,7 +14,7 @@ class _MockAnimalCubit extends Mock implements AnimalCubit {}
 
 void main() {
   testWidgets(
-    'reports the final saved category when it differs from the upload tab',
+    'opens the final saved section when it differs from the upload tab',
     (tester) async {
       final animalCubit = _MockAnimalCubit();
       when(() => animalCubit.state).thenReturn(AnimalInitial());
@@ -23,29 +23,39 @@ void main() {
       MedicalDocumentCategory? uploadedCategory;
       var uploaded = false;
       RouteSettings? uploadSettings;
+      RouteSettings? destinationSettings;
 
       await tester.pumpWidget(
         BlocProvider<AnimalCubit>.value(
           value: animalCubit,
           child: MaterialApp(
             onGenerateRoute: (settings) {
-              if (settings.name != AppRoutes.sharedFileUpload) return null;
-              uploadSettings = settings;
-              return MaterialPageRoute<void>(
-                settings: settings,
-                builder: (context) => Scaffold(
-                  body: TextButton(
-                    onPressed: () => Navigator.pop(
-                      context,
-                      const SharedFileUploadResult(
-                        animals: [_animal],
-                        category: MedicalDocumentCategory.referral,
+              if (settings.name == AppRoutes.sharedFileUpload) {
+                uploadSettings = settings;
+                return MaterialPageRoute<void>(
+                  settings: settings,
+                  builder: (context) => Scaffold(
+                    body: TextButton(
+                      onPressed: () => Navigator.pop(
+                        context,
+                        const SharedFileUploadResult(
+                          animals: [_animal],
+                          category: MedicalDocumentCategory.referral,
+                        ),
                       ),
+                      child: const Text('Completar carga'),
                     ),
-                    child: const Text('Completar carga'),
                   ),
-                ),
-              );
+                );
+              }
+              if (settings.name == AppRoutes.animalDocuments) {
+                destinationSettings = settings;
+                return MaterialPageRoute<void>(
+                  settings: settings,
+                  builder: (_) => const Scaffold(body: Text('Sección final')),
+                );
+              }
+              return null;
             },
             home: Scaffold(
               body: AnimalDocumentUploadMenu(
@@ -78,6 +88,20 @@ void main() {
 
       expect(uploaded, isTrue);
       expect(uploadedCategory, MedicalDocumentCategory.referral);
+      expect(destinationSettings?.name, AppRoutes.animalDocuments);
+      expect(destinationSettings?.arguments, {
+        'animalId': _animal.id,
+        'initialCategory': MedicalDocumentCategory.referral,
+      });
+      expect(find.text('Sección final'), findsOneWidget);
+      final successFeedback = find.text(
+        'El archivo ha sido subido exitosamente.',
+      );
+      expect(successFeedback, findsOneWidget);
+      expect(
+        tester.getTopLeft(successFeedback).dy,
+        lessThan(tester.getSize(find.byType(MaterialApp)).height / 2),
+      );
       expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 3));
     },

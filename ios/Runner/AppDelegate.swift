@@ -5,7 +5,7 @@ import Photos
 import UniformTypeIdentifiers
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, UIDocumentPickerDelegate {
   private let sharedFilesChannelName = "com.animalrecord/shared_files"
   private let fileDownloadChannelName = "com.animalrecord/file_download"
   private let sharedAppGroup = "group.com.animalRecord.animalRecord.shared"
@@ -14,6 +14,8 @@ import UniformTypeIdentifiers
   private var fileDownloadChannel: FlutterMethodChannel?
   private var flutterIsReadyForSharedFiles = false
   private var pendingDocumentFiles: [[String: String]] = []
+  private var pendingDocumentExportResult: FlutterResult?
+  private var pendingDocumentExportURL: URL?
 
   override func application(
     _ application: UIApplication,
@@ -77,19 +79,11 @@ import UniformTypeIdentifiers
           return
         }
 
-        do {
-          let destination = try self?.saveDownloadedFile(
-            named: fileName,
-            data: typedData.data
-          )
-          result(destination?.path)
-        } catch {
-          result(FlutterError(
-            code: "DOWNLOAD_FAILED",
-            message: "No fue posible descargar el archivo.",
-            details: error.localizedDescription
-          ))
-        }
+        self?.presentDocumentExporter(
+          named: fileName,
+          data: typedData.data,
+          result: result
+        )
       }
     }
 
@@ -150,17 +144,93 @@ import UniformTypeIdentifiers
     }
   }
 
-  private func saveDownloadedFile(named fileName: String, data: Data) throws -> URL {
-    let documentsDirectory = FileManager.default.urls(
-      for: .documentDirectory,
-      in: .userDomainMask
-    )[0]
-    let destination = uniqueDestination(
-      in: documentsDirectory,
-      fileName: fileName
-    )
-    try data.write(to: destination, options: .atomic)
-    return destination
+  private func presentDocumentExporter(
+    named fileName: String,
+    data: Data,
+    result: @escaping FlutterResult
+  ) {
+    guard pendingDocumentExportResult == nil else {
+      result(FlutterError(
+        code: "DOWNLOAD_IN_PROGRESS",
+        message: "Ya hay una descarga en curso.",
+        details: nil
+      ))
+      return
+    }
+
+    do {
+      let exportDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("animal_record_downloads", isDirectory: true)
+      try FileManager.default.createDirectory(
+        at: exportDirectory,
+        withIntermediateDirectories: true
+      )
+      let sourceURL = uniqueDestination(
+        in: exportDirectory,
+        fileName: fileName
+      )
+      try data.write(to: sourceURL, options: .atomic)
+
+      guard let presenter = topViewController(from: window?.rootViewController) else {
+        try? FileManager.default.removeItem(at: sourceURL)
+        result(FlutterError(
+          code: "DOWNLOAD_UNAVAILABLE",
+          message: "No fue posible abrir Guardar en Archivos.",
+          details: nil
+        ))
+        return
+      }
+
+      pendingDocumentExportResult = result
+      pendingDocumentExportURL = sourceURL
+      let documentPicker = UIDocumentPickerViewController(
+        forExporting: [sourceURL],
+        asCopy: true
+      )
+      documentPicker.delegate = self
+      presenter.present(documentPicker, animated: true)
+    } catch {
+      result(FlutterError(
+        code: "DOWNLOAD_FAILED",
+        message: "No fue posible preparar el archivo para descargar.",
+        details: error.localizedDescription
+      ))
+    }
+  }
+
+  func documentPicker(
+    _ controller: UIDocumentPickerViewController,
+    didPickDocumentsAt urls: [URL]
+  ) {
+    finishDocumentExport(result: urls.isEmpty ? nil : "files://saved")
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    finishDocumentExport(result: nil)
+  }
+
+  private func finishDocumentExport(result value: Any?) {
+    let result = pendingDocumentExportResult
+    let sourceURL = pendingDocumentExportURL
+    pendingDocumentExportResult = nil
+    pendingDocumentExportURL = nil
+    if let sourceURL {
+      try? FileManager.default.removeItem(at: sourceURL)
+    }
+    result?(value)
+  }
+
+  private func topViewController(from root: UIViewController?) -> UIViewController? {
+    if let presented = root?.presentedViewController {
+      return topViewController(from: presented)
+    }
+    if let navigationController = root as? UINavigationController {
+      return topViewController(from: navigationController.visibleViewController)
+    }
+    if let tabController = root as? UITabBarController {
+      return topViewController(from: tabController.selectedViewController)
+    }
+    return root
   }
 
   private func uniqueDestination(in directory: URL, fileName: String) -> URL {

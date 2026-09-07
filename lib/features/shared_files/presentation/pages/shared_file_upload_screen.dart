@@ -206,7 +206,10 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final overlay = navigator.overlay;
         if (overlay != null) {
-          ErrorDisplay.showError(overlay.context, sharedFileUploadErrorMessage);
+          ErrorDisplay.showErrorOnOverlay(
+            overlay,
+            sharedFileUploadErrorMessage,
+          );
         }
       });
     }
@@ -454,7 +457,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
           _shouldReturnUploadResult
               ? SharedFileUploadResult(
                   animals: List.unmodifiable(_selectedAnimals),
-                  category: flow.state.remoteDocument?.finalCategory,
+                  category:
+                      flow.state.remoteDocument?.finalCategory ??
+                      flow.state.selectedFinalCategory,
                 )
               : true,
         );
@@ -868,10 +873,7 @@ class _SelectedManualFile extends StatelessWidget {
         color: AppColors.white,
         child: Padding(
           padding: const EdgeInsets.all(4.0),
-          child: SvgPicture.asset(
-            'assets/icons/PDF.svg',
-            fit: BoxFit.contain,
-          ),
+          child: SvgPicture.asset('assets/icons/PDF.svg', fit: BoxFit.contain),
         ),
       );
     }

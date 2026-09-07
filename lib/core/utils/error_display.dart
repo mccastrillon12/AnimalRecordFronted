@@ -40,6 +40,32 @@ class ErrorDisplay {
     );
   }
 
+  static void showSuccessOnOverlay(
+    OverlayState overlayState,
+    String message, {
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: false,
+      duration: duration,
+    );
+  }
+
+  static void showErrorOnOverlay(
+    OverlayState overlayState,
+    String message, {
+    Duration duration = const Duration(seconds: 4),
+  }) {
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: true,
+      duration: duration,
+    );
+  }
+
   static void _showTopOverlay({
     required BuildContext context,
     required String message,
@@ -70,6 +96,21 @@ class ErrorDisplay {
       return;
     }
 
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: isError,
+      duration: duration,
+    );
+  }
+
+  static void _showTopOverlayEntry({
+    required OverlayState overlayState,
+    required String message,
+    required bool isError,
+    required Duration duration,
+  }) {
+    _removeCurrentOverlay();
     _currentEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 90.0,

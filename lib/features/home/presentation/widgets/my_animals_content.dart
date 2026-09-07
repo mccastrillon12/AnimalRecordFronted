@@ -594,10 +594,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           );
           if (!context.mounted) return;
           if (uploaded == true) {
+            final navigator = Navigator.of(context);
             WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (context.mounted) {
-                ErrorDisplay.showSuccess(
-                  context,
+              final overlay = navigator.overlay;
+              if (overlay != null) {
+                ErrorDisplay.showSuccessOnOverlay(
+                  overlay,
                   'El archivo ha sido subido exitosamente.',
                 );
               }
@@ -609,7 +611,13 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           if (onUploadCancelled != null) {
             onUploadCancelled();
           } else {
-            ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+            final overlay = Navigator.of(context).overlay;
+            if (overlay != null) {
+              ErrorDisplay.showErrorOnOverlay(
+                overlay,
+                sharedFileUploadErrorMessage,
+              );
+            }
           }
         } else if (value == 'transferir') {
           // TODO: Implement transfer

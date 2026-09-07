@@ -95,15 +95,37 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
           : requestedCategory;
       if (savedCategory != null) onUploadedToCategory?.call(savedCategory);
       onUploaded?.call();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!context.mounted) return;
-        ErrorDisplay.showSuccess(
-          context,
-          'El archivo ha sido subido exitosamente.',
-        );
-      });
+      final navigator = Navigator.of(context);
+      if (uploaded is SharedFileUploadResult &&
+          savedCategory != null &&
+          savedCategory != requestedCategory) {
+        final destination = resolveSharedFileUploadDestination(uploaded);
+        if (destination?.sectionRouteName case final sectionRouteName?) {
+          navigator.pushReplacementNamed(
+            sectionRouteName,
+            arguments: destination!.sectionArguments,
+          );
+        } else if (destination != null) {
+          navigator.pop();
+        }
+      }
+      _showTopSuccessAfterNavigation(navigator);
     } else if (uploaded == false) {
-      ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+      final overlay = Navigator.of(context).overlay;
+      if (overlay != null) {
+        ErrorDisplay.showErrorOnOverlay(overlay, sharedFileUploadErrorMessage);
+      }
     }
+  }
+
+  void _showTopSuccessAfterNavigation(NavigatorState navigator) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final overlay = navigator.overlay;
+      if (overlay == null) return;
+      ErrorDisplay.showSuccessOnOverlay(
+        overlay,
+        'El archivo ha sido subido exitosamente.',
+      );
+    });
   }
 }
