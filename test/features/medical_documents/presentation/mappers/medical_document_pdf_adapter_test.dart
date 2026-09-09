@@ -28,6 +28,12 @@ void main() {
     expect(medicalDocumentDisplayValue('NEEDS_REVIEW'), 'NEEDS_REVIEW');
   });
 
+  test('always hides warnings as technical metadata', () {
+    for (final key in ['warning', 'warnings', 'advertencia', 'advertencias']) {
+      expect(isMedicalDocumentTechnicalKey(key, const {}), isTrue);
+    }
+  });
+
   test('uses catalog labels for every canonical path and table column', () {
     const extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.clinicalHistory,
@@ -133,9 +139,13 @@ void main() {
       rawExtraction: {
         'documentType': 'CLINICAL_HISTORY',
         'documentTypeConfidence': 0.93,
+        'warnings': [
+          'the document did not match a configured extraction blueprint',
+        ],
         'futureSection': {
           'medicalValue': 'Valor clínico futuro',
           'classificationConfidence': 0.71,
+          'warning': 'internal warning',
           'verified': true,
         },
       },
@@ -174,6 +184,18 @@ void main() {
     expect(
       additional.details.map((detail) => detail.value),
       isNot(contains('0.71')),
+    );
+    expect(
+      additional.details.map((detail) => detail.value),
+      isNot(
+        contains(
+          'the document did not match a configured extraction blueprint',
+        ),
+      ),
+    );
+    expect(
+      additional.details.map((detail) => detail.value),
+      isNot(contains('internal warning')),
     );
     expect(overridden.documentType, MedicalDocumentCategory.prescription.label);
   });

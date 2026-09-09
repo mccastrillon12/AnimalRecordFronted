@@ -333,40 +333,58 @@ void main() {
     expect(pending.value, isNull);
   });
 
-  test(
-    'does not mutate detection when an unclassified flow selects a final category',
-    () async {
-      final repository = _FakeMedicalDocumentsRepository(
-        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
-        getResponses: [_unclassifiedDocument()],
-      );
-      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
-      addTearDown(cubit.close);
+  for (final finalCategory in MedicalDocumentCategory.values.where(
+    (category) => category != MedicalDocumentCategory.other,
+  )) {
+    test(
+      'keeps the $finalCategory review UI and sends OTHER as document type',
+      () async {
+        final repository = _FakeMedicalDocumentsRepository(
+          analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+          getResponses: [_unclassifiedDocument()],
+          reviewResponse: _document(MedicalDocumentStatus.accepted, version: 2),
+        );
+        final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+        addTearDown(cubit.close);
 
-      await cubit.startAnalysis(
-        file: file,
-        animalIds: const [animal1Id, animal2Id],
-        requestedCategory: MedicalDocumentCategory.prescription,
-      );
+        await cubit.startAnalysis(
+          file: file,
+          animalIds: const [animal1Id, animal2Id],
+          requestedCategory: finalCategory,
+        );
 
-      expect(cubit.state.remoteDocument?.detectedCategories, isEmpty);
-      expect(cubit.state.remoteDocument?.primaryDetectedCategory, isNull);
-      expect(
-        cubit.state.remoteDocument?.classificationOutcome,
-        MedicalDocumentClassificationOutcome.unclassified,
-      );
-      expect(cubit.state.selectedFinalCategory, MedicalDocumentCategory.other);
-      expect(
-        cubit.state.draftExtraction?.documentType,
-        MedicalDocumentCategory.other,
-      );
-      cubit.selectFinalCategory(MedicalDocumentCategory.prescription);
-      expect(
-        cubit.state.draftExtraction?.documentType,
-        MedicalDocumentCategory.prescription,
-      );
-    },
-  );
+        expect(cubit.state.remoteDocument?.detectedCategories, isEmpty);
+        expect(cubit.state.remoteDocument?.primaryDetectedCategory, isNull);
+        expect(
+          cubit.state.remoteDocument?.classificationOutcome,
+          MedicalDocumentClassificationOutcome.unclassified,
+        );
+        expect(
+          cubit.state.selectedFinalCategory,
+          MedicalDocumentCategory.other,
+        );
+        expect(
+          cubit.state.draftExtraction?.documentType,
+          MedicalDocumentCategory.other,
+        );
+        cubit.selectFinalCategory(finalCategory);
+        expect(cubit.state.draftExtraction?.documentType, finalCategory);
+
+        await cubit.accept();
+
+        final request = repository.lastReviewRequest!;
+        expect(request.finalCategory, finalCategory);
+        expect(
+          request.validatedExtraction?.documentType,
+          MedicalDocumentCategory.other,
+        );
+        expect(
+          request.validatedExtraction?.summary,
+          'Contenido no clasificado',
+        );
+      },
+    );
+  }
 
   test('refreshes the latest version when rejection conflicts', () async {
     final repository = _FakeMedicalDocumentsRepository(

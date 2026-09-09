@@ -155,6 +155,31 @@ void main() {
     expect(detail.doses.map((dose) => dose.title), ['Dosis 1', 'Dosis 2']);
     expect(pdf.medications.map((dose) => dose.name), ['Dosis 1', 'Dosis 2']);
   });
+
+  test('includes an unclassified document archived as vaccination', () {
+    const document = MedicalDocumentEntity(
+      id: 'unclassified-vaccination',
+      animalIds: ['animal-1'],
+      originalFileName: 'archivo.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.vaccinationCard,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.other,
+      ),
+      version: 1,
+    );
+
+    final group = groupVaccinations([document], _catalog).single;
+    final detail = vaccinationDetailViewData(group, _catalog);
+
+    expect(group.key, 'unclassified-unclassified-vaccination');
+    expect(group.title, 'Vacuna no identificada');
+    expect(group.applications.single.document, document);
+    expect(detail.doses, hasLength(1));
+    expect(detail.doses.single.document, document);
+  });
 }
 
 const _emptyPatient = SharedFilePatientAnalysisEntity(

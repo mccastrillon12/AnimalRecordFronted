@@ -72,7 +72,9 @@ class VaccinationGroupsView extends StatelessWidget {
                         document.finalCategory ==
                             MedicalDocumentCategory.vaccinationCard &&
                         document.validatedExtraction?.documentType !=
-                            MedicalDocumentCategory.vaccinationCard,
+                            MedicalDocumentCategory.vaccinationCard &&
+                        document.validatedExtraction?.documentType !=
+                            MedicalDocumentCategory.other,
                   )
                   .toList(growable: false);
               final allGroups = groupVaccinations(

@@ -367,6 +367,32 @@ List<VaccinationGroupViewData> groupVaccinations(
   for (final document in documents) {
     final extraction = document.validatedExtraction;
     if (extraction == null) continue;
+    if (document.finalCategory == MedicalDocumentCategory.vaccinationCard &&
+        extraction.documentType == MedicalDocumentCategory.other &&
+        extraction.vaccinations.isEmpty) {
+      const sourceName = 'Vacuna no identificada';
+      final vaccination = MedicalDocumentItemEntity(
+        id: 'unclassified-${document.id}',
+        fields: const {'name': sourceName},
+      );
+      grouped['unclassified-${document.id}'] = [
+        VaccinationApplicationViewData(
+          document: document,
+          vaccination: vaccination,
+          sourceName: sourceName,
+          applicationDate: '',
+          applicationDateLabel: '',
+          nextDoseDate: '',
+          nextDoseDateLabel: '',
+          sortDate:
+              document.updatedAt ??
+              document.reviewedAt ??
+              document.createdAt ??
+              DateTime.fromMillisecondsSinceEpoch(0),
+        ),
+      ];
+      continue;
+    }
     for (final vaccination in extraction.vaccinations) {
       final sourceName = _vaccinationName(vaccination.fields);
       final identity = _vaccinationIdentity(sourceName, vaccination.fields);

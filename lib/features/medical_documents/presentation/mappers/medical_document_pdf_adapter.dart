@@ -428,6 +428,10 @@ Map<String, dynamic> _losslessExtractionValues(
   MedicalDocumentExtractionEntity extraction,
 ) {
   final values = _deepCopyMap(extraction.rawExtraction);
+  values.remove('warnings');
+  values.remove('warning');
+  values.remove('advertencias');
+  values.remove('advertencia');
   values['documentType'] = extraction.documentType.label;
   values['additionalFields'] = _deepCopyMap(extraction.additionalFields);
   return values;
@@ -614,6 +618,5 @@ Map<String, dynamic> _extractionValues(
         .map(item)
         .toList(growable: false),
     'additionalFields': extraction.additionalFields,
-    'warnings': extraction.warnings,
   };
 }

@@ -313,6 +313,71 @@ void main() {
     },
   );
 
+  testWidgets(
+    'opens an unclassified vaccination in the certificate and animal card',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final documentsCubit = MockAnimalMedicalDocumentsCubit();
+      when(() => documentsCubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          MedicalDocumentEntity(
+            id: 'unclassified-vaccination',
+            animalIds: ['animal-1'],
+            originalFileName: 'vacuna-sin-clasificar.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            status: MedicalDocumentStatus.accepted,
+            finalCategory: MedicalDocumentCategory.vaccinationCard,
+            validatedExtraction: MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.other,
+            ),
+            version: 1,
+          ),
+        ], category: MedicalDocumentCategory.vaccinationCard),
+      );
+      when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: documentsCubit,
+          child: const MaterialApp(
+            home: AnimalVaccinationsScreen(animal: animal),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final card = find.byKey(
+        const Key('vaccination-group-unclassified-unclassified-vaccination'),
+      );
+      expect(card, findsOneWidget);
+      expect(find.text('Vacuna no identificada'), findsOneWidget);
+
+      await tester.tapAt(tester.getTopLeft(card) + const Offset(30, 30));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('export-vaccination-group')), findsOneWidget);
+      expect(find.text('Enviar'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('export-vaccination-group')));
+      await tester.pumpAndSettle();
+      expect(find.text('Certificado de vacunación'), findsOneWidget);
+      expect(find.text('Vacuna no identificada'), findsOneWidget);
+
+      Navigator.of(
+        tester.element(find.text('Certificado de vacunación')),
+      ).pop();
+      await tester.pumpAndSettle();
+      Navigator.of(tester.element(find.text('Enviar'))).pop();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key('view-vaccination-card-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Carné de vacunación'), findsOneWidget);
+      expect(find.text('Vacuna no identificada'), findsOneWidget);
+    },
+  );
+
   testWidgets('opens the grouped vaccination detail with every dose', (
     tester,
   ) async {

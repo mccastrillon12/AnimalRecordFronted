@@ -15,6 +15,15 @@ bool isMedicalDocumentTechnicalKey(
     return true;
   }
 
+  if (const {
+    'warning',
+    'warnings',
+    'advertencia',
+    'advertencias',
+  }.contains(normalized)) {
+    return true;
+  }
+
   if (normalized.contains('confidence') || normalized.contains('confianza')) {
     return true;
   }

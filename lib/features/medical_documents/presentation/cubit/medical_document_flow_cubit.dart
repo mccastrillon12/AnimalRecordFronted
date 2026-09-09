@@ -377,7 +377,10 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       final request = ReviewMedicalDocumentRequest.accept(
         documentVersion: document.version,
         finalCategory: category,
-        validatedExtraction: extraction.sanitizedFor(extraction.documentType),
+        validatedExtraction: _validatedExtractionForReview(
+          document,
+          extraction,
+        ),
         assignments: document.animalIds
             .map(
               (animalId) => MedicalDocumentAssignmentEntity(
@@ -413,6 +416,20 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         ),
       );
     }
+  }
+
+  MedicalDocumentExtractionEntity _validatedExtractionForReview(
+    MedicalDocumentEntity document,
+    MedicalDocumentExtractionEntity draft,
+  ) {
+    if (document.classificationOutcome ==
+        MedicalDocumentClassificationOutcome.unclassified) {
+      final unclassifiedExtraction =
+          document.extractionsByCategory[MedicalDocumentCategory.other] ??
+          MedicalDocumentExtractionEntity.empty(MedicalDocumentCategory.other);
+      return unclassifiedExtraction.sanitizedFor(MedicalDocumentCategory.other);
+    }
+    return draft.sanitizedFor(draft.documentType);
   }
 
   Future<void> _handleVersionConflict(String documentId) async {
