@@ -60,6 +60,26 @@ void main() {
       expect(result.ageDisplay, '1-3 años');
     });
 
+    test('capitaliza cada palabra cuando el animal tiene varios nombres', () {
+      const entity = AnimalEntity(
+        id: 'animal-multiple-name',
+        name: '  juAN   paBLo de la cruz  ',
+        species: 'DOG',
+        breed: 'Mestizo',
+        sex: 'MALE',
+        reproductiveStatus: 'INTACT',
+        hasChip: false,
+        isAssociationMember: false,
+        temperament: [],
+        diagnosis: [],
+        ownerId: 'owner-1',
+      );
+
+      final result = AnimalModel.fromEntity(entity);
+
+      expect(result.name, 'Juan Pablo De La Cruz');
+    });
+
     test('excluye de la tarjeta los diagnósticos extraídos de documentos', () {
       const entity = AnimalEntity(
         id: 'animal-9012',

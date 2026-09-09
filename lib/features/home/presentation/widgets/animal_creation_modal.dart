@@ -986,7 +986,7 @@ class _AnimalInfoStep extends StatelessWidget {
                           label: 'Nombre',
                           controller: nameController,
                           maxLength: 50,
-                          textCapitalization: TextCapitalization.sentences,
+                          textCapitalization: TextCapitalization.words,
                           strictValidation: true,
                           allowPattern: RegExp(r'^[a-zA-ZÀ-ÿ0-9\s.,´]+$'),
                         ),

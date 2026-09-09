@@ -1,3 +1,4 @@
+import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 
 /// Represents an animal registered in the system.
@@ -133,12 +134,7 @@ class AnimalModel {
         }
     }
 
-    String formattedName = entity.name.trim();
-    if (formattedName.isNotEmpty) {
-      formattedName =
-          formattedName[0].toUpperCase() +
-          formattedName.substring(1).toLowerCase();
-    }
+    final formattedName = StringFormatters.formatName(entity.name);
 
     // Calculate age from birthdate
     String calculatedAgeDisplay = '';

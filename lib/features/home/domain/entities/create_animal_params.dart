@@ -1,3 +1,4 @@
+import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:equatable/equatable.dart';
 
 /// Parameters for the POST /animals endpoint.
@@ -69,7 +70,7 @@ class CreateAnimalParams extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'name': name,
+      'name': StringFormatters.formatName(name),
       'species': species,
       'breed': breed,
       'sex': sex,
@@ -96,7 +97,8 @@ class CreateAnimalParams extends Equatable {
         'identificationType': identificationType,
       if (identificationNumber != null && identificationNumber!.isNotEmpty)
         'identificationNumber': identificationNumber,
-      if (registrationAssociations != null && registrationAssociations!.isNotEmpty)
+      if (registrationAssociations != null &&
+          registrationAssociations!.isNotEmpty)
         'registrationAssociations': registrationAssociations,
       if (isAdopted != null) 'isAdopted': isAdopted,
       if (adoptionSource != null && adoptionSource!.isNotEmpty)
@@ -115,35 +117,35 @@ class CreateAnimalParams extends Equatable {
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        species,
-        breed,
-        sex,
-        reproductiveStatus,
-        birthdate,
-        hasChip,
-        isAssociationMember,
-        temperament,
-        diagnosis,
-        ownerId,
-        weight,
-        colorAndMarkings,
-        allergies,
-        housingType,
-        purpose,
-        feedingType,
-        birthType,
-        birthCondition,
-        identificationType,
-        identificationNumber,
-        registrationAssociations,
-        isAdopted,
-        adoptionSource,
-        adoptionPlaceName,
-        otherDiagnosisDetail,
-        unknownBirthDate,
-        approximateAgeMinMonths,
-        approximateAgeMaxMonths,
-      ];
+    id,
+    name,
+    species,
+    breed,
+    sex,
+    reproductiveStatus,
+    birthdate,
+    hasChip,
+    isAssociationMember,
+    temperament,
+    diagnosis,
+    ownerId,
+    weight,
+    colorAndMarkings,
+    allergies,
+    housingType,
+    purpose,
+    feedingType,
+    birthType,
+    birthCondition,
+    identificationType,
+    identificationNumber,
+    registrationAssociations,
+    isAdopted,
+    adoptionSource,
+    adoptionPlaceName,
+    otherDiagnosisDetail,
+    unknownBirthDate,
+    approximateAgeMinMonths,
+    approximateAgeMaxMonths,
+  ];
 }
