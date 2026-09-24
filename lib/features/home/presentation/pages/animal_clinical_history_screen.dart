@@ -34,6 +34,7 @@ class _AnimalClinicalHistoryScreenState
   bool _showAiFeedback = false;
   bool _hasAnsweredAiFeedback = false;
   int _aiFeedbackRequestId = 0;
+  Future<void>? _pendingFeedbackWrite;
 
   @override
   void initState() {
@@ -57,10 +58,14 @@ class _AnimalClinicalHistoryScreenState
       _aiFeedbackRequestId++;
     });
     final store = _aiFeedbackStore;
-    if (store != null) unawaited(store.markPending(
-      widget.animal.id,
-      MedicalDocumentCategory.clinicalHistory,
-    ));
+    if (store != null) {
+      final write = store.markPending(
+        widget.animal.id,
+        MedicalDocumentCategory.clinicalHistory,
+      );
+      _pendingFeedbackWrite = write;
+      unawaited(write.catchError((_) {}));
+    }
     context.read<AnimalMedicalDocumentsCubit>().load(
       widget.animal.id,
       category: MedicalDocumentCategory.clinicalHistory,
@@ -68,15 +73,28 @@ class _AnimalClinicalHistoryScreenState
   }
 
   Future<void> _markAiFeedbackAnswered() async {
+    await _clearStoredAiFeedback();
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
+
+  Future<void> _clearStoredAiFeedback() async {
+    try {
+      await _pendingFeedbackWrite;
+    } catch (_) {
+      // Continue cleanup even if persisting the pending prompt failed.
+    }
+    _pendingFeedbackWrite = null;
     await _aiFeedbackStore?.clearPending(
       widget.animal.id,
       MedicalDocumentCategory.clinicalHistory,
     );
-    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
   }
 
   @override
   void dispose() {
+    if (_showAiFeedback && !_hasAnsweredAiFeedback) {
+      unawaited(_clearStoredAiFeedback().catchError((_) {}));
+    }
     _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
@@ -185,9 +203,8 @@ class _AnimalClinicalHistoryScreenState
                               initialAiFeedbackResponded:
                                   _hasAnsweredAiFeedback,
                               onAiFeedbackSubmitted: _markAiFeedbackAnswered,
-                              onAiFeedbackDismissed: () => setState(
-                                () => _showAiFeedback = false,
-                              ),
+                              onAiFeedbackDismissed: () =>
+                                  setState(() => _showAiFeedback = false),
                             ),
                           ),
                         ],

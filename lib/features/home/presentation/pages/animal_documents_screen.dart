@@ -123,6 +123,12 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   }
 
   Future<void> _markAiFeedbackAnswered(MedicalDocumentCategory category) async {
+    await _clearStoredAiFeedback(category);
+    if (!mounted) return;
+    setState(() => _answeredAiFeedbackCategories.add(category));
+  }
+
+  Future<void> _clearStoredAiFeedback(MedicalDocumentCategory category) async {
     try {
       await _pendingFeedbackWrites.remove(category);
     } catch (_) {
@@ -132,14 +138,17 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     try {
       await _aiFeedbackStore.clearPending(widget.animalId, category);
     } catch (_) {
-      // The backend already accepted the anonymous vote. Keep the UI answered.
+      // A local cleanup failure must not affect navigation or a submitted vote.
     }
-    if (!mounted) return;
-    setState(() => _answeredAiFeedbackCategories.add(category));
   }
 
   @override
   void dispose() {
+    for (final category in _pendingAiFeedbackCategories) {
+      if (!_answeredAiFeedbackCategories.contains(category)) {
+        unawaited(_clearStoredAiFeedback(category));
+      }
+    }
     _tabController.dispose();
     _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
