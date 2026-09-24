@@ -20,6 +20,13 @@ bool isMedicalDocumentTechnicalKey(
     'warnings',
     'advertencia',
     'advertencias',
+    'summary',
+    'resumen',
+    'patienthints',
+    'identifierfragments',
+    'identifyingfragments',
+    'fragmentosidentificadores',
+    'fragmentosdeidentificacion',
   }.contains(normalized)) {
     return true;
   }

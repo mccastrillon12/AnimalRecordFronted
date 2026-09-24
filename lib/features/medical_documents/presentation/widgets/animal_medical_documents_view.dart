@@ -10,6 +10,7 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
@@ -643,7 +644,6 @@ String _searchableDocumentText(MedicalDocumentEntity document) {
     document.originalFileName,
     document.finalCategory?.label,
     extraction?.documentDate,
-    ...?extraction?.patientHints,
     ...?extraction?.diagnoses.expand(_itemSearchValues),
     ...?extraction?.medications.expand(_itemSearchValues),
     ...?extraction?.vaccinations.expand(_itemSearchValues),
@@ -670,7 +670,10 @@ String _valueText(Object? value) {
   }
   if (value is Map) {
     return value.entries
-        .where((entry) => entry.key != 'source' && entry.key != 'confidence')
+        .where(
+          (entry) =>
+              !isMedicalDocumentTechnicalKey(entry.key.toString(), const {}),
+        )
         .map((entry) => _valueText(entry.value))
         .where((item) => item.isNotEmpty)
         .join(' ');

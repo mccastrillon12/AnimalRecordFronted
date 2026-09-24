@@ -34,6 +34,81 @@ void main() {
     }
   });
 
+  test('always hides summaries and identifier fragments', () {
+    for (final key in [
+      'summary',
+      'Resumen',
+      'patientHints',
+      'identifierFragments',
+      'Fragmentos identificadores',
+    ]) {
+      expect(isMedicalDocumentTechnicalKey(key, const {}), isTrue);
+    }
+
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      summary: 'Resumen que no debe mostrarse',
+      patientHints: ['Fragmento que no debe mostrarse'],
+      rawExtraction: {
+        'summary': 'Resumen crudo que no debe mostrarse',
+        'patientHints': ['Fragmento crudo que no debe mostrarse'],
+      },
+    );
+    const catalog = MedicalFieldCatalog(
+      catalogVersion: '1.0.0',
+      locale: 'es-CO',
+      category: 'CLINICAL_HISTORY',
+      categoryLabel: 'Historia clínica',
+      sections: [
+        MedicalFieldSection(
+          key: 'general',
+          label: 'Información general',
+          order: 10,
+        ),
+      ],
+      fields: [
+        MedicalFieldDefinition(
+          path: 'summary',
+          label: 'Resumen',
+          sectionKey: 'general',
+          order: 10,
+          kind: MedicalFieldKind.longText,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'patientHints',
+          label: 'Fragmentos identificadores',
+          sectionKey: 'general',
+          order: 20,
+          kind: MedicalFieldKind.list,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+      ],
+      hiddenTechnicalKeys: {},
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: catalog,
+      displayCategory: MedicalDocumentCategory.prescription,
+      includeUncataloguedFields: true,
+    );
+    final details = analysis.sections.expand((section) => section.details);
+
+    expect(details.map((detail) => detail.label), isNot(contains('Resumen')));
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Fragmentos identificadores')),
+    );
+    expect(
+      details.map((detail) => detail.value).join(' '),
+      isNot(contains('no debe mostrarse')),
+    );
+  });
+
   test('uses catalog labels for every canonical path and table column', () {
     const extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.clinicalHistory,
