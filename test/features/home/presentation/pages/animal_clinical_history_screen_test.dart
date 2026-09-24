@@ -419,6 +419,87 @@ void main() {
     );
   });
 
+  testWidgets(
+    'shows the most recent document date regardless of update timestamps',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final authBloc = MockAuthBloc();
+      final documentsCubit = MockAnimalMedicalDocumentsCubit();
+      final accountOwner = UserEntity.empty().copyWith(name: 'Barbara James');
+      when(() => authBloc.state).thenReturn(AuthSuccess(accountOwner));
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => documentsCubit.state).thenReturn(
+        AnimalMedicalDocumentsLoaded([
+          MedicalDocumentEntity(
+            id: 'older-document-newer-update',
+            animalIds: const ['animal-1'],
+            originalFileName: 'older.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            status: MedicalDocumentStatus.accepted,
+            finalCategory: MedicalDocumentCategory.clinicalHistory,
+            validatedExtraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.clinicalHistory,
+              documentDate: '25/09/2025',
+            ),
+            version: 1,
+            updatedAt: DateTime(2026, 1, 1),
+          ),
+          MedicalDocumentEntity(
+            id: 'newer-document-older-update',
+            animalIds: const ['animal-1'],
+            originalFileName: 'newer.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            status: MedicalDocumentStatus.accepted,
+            finalCategory: MedicalDocumentCategory.clinicalHistory,
+            validatedExtraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.clinicalHistory,
+              documentDate: '01/10/2025',
+            ),
+            version: 1,
+            updatedAt: DateTime(2025, 1, 1),
+          ),
+          MedicalDocumentEntity(
+            id: 'missing-document-date',
+            animalIds: const ['animal-1'],
+            originalFileName: 'missing-date.pdf',
+            mimeType: 'application/pdf',
+            fileSize: 100,
+            status: MedicalDocumentStatus.accepted,
+            finalCategory: MedicalDocumentCategory.clinicalHistory,
+            validatedExtraction: const MedicalDocumentExtractionEntity(
+              documentType: MedicalDocumentCategory.clinicalHistory,
+            ),
+            version: 1,
+            updatedAt: DateTime(2027, 1, 1),
+          ),
+        ], category: MedicalDocumentCategory.clinicalHistory),
+      );
+      when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<AnimalMedicalDocumentsCubit>.value(
+              value: documentsCubit,
+            ),
+          ],
+          child: const MaterialApp(
+            home: AnimalClinicalHistoryScreen(animal: animal),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('01/10/2025'), findsOneWidget);
+      expect(find.text('25/09/2025'), findsNothing);
+    },
+  );
+
   testWidgets('shows the current user name, initials and own-group title', (
     tester,
   ) async {

@@ -853,11 +853,7 @@ List<ClinicalHistoryGroup> _groups(
   }
   return values.entries
       .map((entry) {
-        final sorted = [...entry.value]
-          ..sort(
-            (left, right) =>
-                _documentTimestamp(right).compareTo(_documentTimestamp(left)),
-          );
+        final sorted = [...entry.value]..sort(_compareByDocumentDate);
         final value = metadata[entry.key]!;
         return ClinicalHistoryGroup(
           name: value.name,
@@ -880,11 +876,28 @@ List<ClinicalHistoryGroup> _groups(
   return (name: '', picture: null);
 }
 
+int _compareByDocumentDate(
+  MedicalDocumentEntity left,
+  MedicalDocumentEntity right,
+) {
+  final leftDate = parseMedicalDocumentDate(
+    left.validatedExtraction?.documentDate,
+  );
+  final rightDate = parseMedicalDocumentDate(
+    right.validatedExtraction?.documentDate,
+  );
+  if (leftDate != null && rightDate != null) {
+    return rightDate.compareTo(leftDate);
+  }
+  if (leftDate != null) return -1;
+  if (rightDate != null) return 1;
+  return _documentTimestamp(right).compareTo(_documentTimestamp(left));
+}
+
 DateTime _documentTimestamp(MedicalDocumentEntity document) {
   return document.updatedAt ??
       document.reviewedAt ??
       document.createdAt ??
-      parseMedicalDocumentDate(document.validatedExtraction?.documentDate) ??
       DateTime.fromMillisecondsSinceEpoch(0);
 }
 
