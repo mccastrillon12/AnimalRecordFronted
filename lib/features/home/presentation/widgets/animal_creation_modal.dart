@@ -1183,6 +1183,8 @@ class _AnimalInfoStep extends StatelessWidget {
                                   child: CustomTextField(
                                     label: '',
                                     hint: '- kg',
+                                    suffixText: 'kg',
+                                    suffixTextWhenNotEmpty: true,
                                     controller: weightKgController,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
@@ -1219,6 +1221,8 @@ class _AnimalInfoStep extends StatelessWidget {
                                   child: CustomTextField(
                                     label: '',
                                     hint: '- lb',
+                                    suffixText: 'lb',
+                                    suffixTextWhenNotEmpty: true,
                                     controller: weightLbController,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(

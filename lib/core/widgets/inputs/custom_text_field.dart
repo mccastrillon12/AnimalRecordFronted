@@ -14,6 +14,9 @@ class CustomTextField extends StatefulWidget {
   final TextInputType keyboardType;
   final String? Function(String?)? validator;
   final Widget? suffixIcon;
+  final String? suffixText;
+  final TextStyle? suffixStyle;
+  final bool suffixTextWhenNotEmpty;
   final Widget? prefixIcon;
   final String? prefixText;
   final TextStyle? labelStyle;
@@ -54,6 +57,9 @@ class CustomTextField extends StatefulWidget {
     this.textCapitalization = TextCapitalization.none,
     this.validator,
     this.suffixIcon,
+    this.suffixText,
+    this.suffixStyle,
+    this.suffixTextWhenNotEmpty = false,
     this.prefixIcon,
     this.prefixText,
     this.labelStyle,
@@ -98,11 +104,37 @@ class _CustomTextFieldState extends State<CustomTextField> {
     super.initState();
     _focusNode = widget.focusNode ?? FocusNode();
     _focusNode.addListener(_onFocusChange);
+    _addControllerListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant CustomTextField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.controller != widget.controller ||
+        oldWidget.suffixTextWhenNotEmpty != widget.suffixTextWhenNotEmpty) {
+      if (oldWidget.suffixTextWhenNotEmpty) {
+        oldWidget.controller?.removeListener(_onControllerChanged);
+      }
+      _addControllerListener();
+    }
+  }
+
+  void _addControllerListener() {
+    if (widget.suffixTextWhenNotEmpty) {
+      widget.controller?.addListener(_onControllerChanged);
+    }
+  }
+
+  void _onControllerChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void dispose() {
     _focusNode.removeListener(_onFocusChange);
+    if (widget.suffixTextWhenNotEmpty) {
+      widget.controller?.removeListener(_onControllerChanged);
+    }
     _validationTimer?.cancel();
     if (widget.focusNode == null) {
       _focusNode.dispose();
@@ -255,7 +287,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 // If another field currently has focus, dismiss keyboard first
                 // then re-request focus on this field after a microtask.
                 final currentFocus = FocusManager.instance.primaryFocus;
-                if (currentFocus != null && currentFocus != _focusNode && currentFocus.hasPrimaryFocus) {
+                if (currentFocus != null &&
+                    currentFocus != _focusNode &&
+                    currentFocus.hasPrimaryFocus) {
                   currentFocus.unfocus();
                   Future.microtask(() {
                     if (mounted) _focusNode.requestFocus();
@@ -284,7 +318,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               style: AppTypography.body4.copyWith(
                 color: (widget.enabled ?? true)
                     ? AppColors.greyNegroV2
-                    : const Color(0xFF2E3949).withOpacity(0.3),
+                    : const Color(0xFF2E3949).withValues(alpha: 0.3),
               ),
               decoration: InputDecoration(
                 filled: true,
@@ -305,6 +339,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 errorText: null,
                 hintStyle:
                     widget.hintStyle ??
+                    AppTypography.body4.copyWith(color: AppColors.greyBordes),
+                suffixText:
+                    widget.suffixTextWhenNotEmpty &&
+                        (widget.controller?.text.isEmpty ?? true)
+                    ? null
+                    : widget.suffixText,
+                suffixStyle:
+                    widget.suffixStyle ??
                     AppTypography.body4.copyWith(color: AppColors.greyBordes),
                 prefixIcon: widget.prefixIcon,
 
@@ -408,7 +450,9 @@ class ErrorTriggeringTextInputFormatter extends TextInputFormatter {
     }
 
     if (allowPattern != null && !allowPattern!.hasMatch(newValue.text)) {
-      onError(patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9');
+      onError(
+        patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9',
+      );
       return oldValue;
     }
 
