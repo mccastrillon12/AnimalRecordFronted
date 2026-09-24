@@ -270,6 +270,18 @@ void main() {
       tester.widget<CustomButton>(find.byType(CustomButton)).text,
       'Subir archivo',
     );
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pump();
+
+    expect(find.text('Analizando archivo...'), findsOneWidget);
+    verifyNever(() => medicalDocumentFlowCubit.pausePolling());
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pump();
+
+    expect(find.text('Analizando archivo...'), findsOneWidget);
+    verifyNever(() => medicalDocumentFlowCubit.resumePolling());
     expect(tester.takeException(), isNull);
   });
 
@@ -348,6 +360,87 @@ void main() {
   );
 
   testWidgets(
+    'keeps an external analysis open while the notification shade is visible',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      final authBloc = _MockAuthBloc();
+      final sharedFilesCubit = _MockSharedFilesCubit();
+      final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+      const flowState = MedicalDocumentFlowState(
+        phase: MedicalDocumentFlowPhase.analyzing,
+      );
+      when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      when(() => authBloc.state).thenReturn(AuthInitial());
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+      when(
+        () => sharedFilesCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => sharedFilesCubit.pendingFiles,
+      ).thenReturn(const [_externalFile]);
+      when(() => medicalDocumentFlowCubit.state).thenAnswer((_) => flowState);
+      when(
+        () => medicalDocumentFlowCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AnimalCubit>.value(value: animalCubit),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+            BlocProvider<MedicalDocumentFlowCubit>.value(
+              value: medicalDocumentFlowCubit,
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(
+                      arguments: {'externalShare': true},
+                    ),
+                    builder: (_) => const SharedFileUploadScreen(),
+                  ),
+                ),
+                child: const Text('Abrir archivo externo'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Abrir archivo externo'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+
+      expect(find.byType(SharedFileUploadScreen), findsOneWidget);
+      expect(find.text('Analizando archivo...'), findsOneWidget);
+      verifyNever(() => medicalDocumentFlowCubit.pausePolling());
+      verifyNever(() => sharedFilesCubit.clear());
+      verifyNever(() => medicalDocumentFlowCubit.discardCurrentFlow());
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pump();
+
+      expect(find.byType(SharedFileUploadScreen), findsOneWidget);
+      expect(find.text('Analizando archivo...'), findsOneWidget);
+      verifyNever(() => medicalDocumentFlowCubit.resumePolling());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
     'discards and closes an external upload when the app is backgrounded',
     (tester) async {
       await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -419,6 +512,14 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
       expect(find.text('Subir archivo'), findsWidgets);
 
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+      await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
       await tester.pump();
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);

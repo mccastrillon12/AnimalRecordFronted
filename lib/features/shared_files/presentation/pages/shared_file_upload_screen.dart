@@ -115,7 +115,6 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (_isExternalShare &&
         (state == AppLifecycleState.paused ||
-            state == AppLifecycleState.inactive ||
             state == AppLifecycleState.detached)) {
       unawaited(_cancelExternalFlowAfterLeavingApp());
       return;
@@ -125,7 +124,6 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         flow.state.phase == MedicalDocumentFlowPhase.pollingPaused) {
       flow.resumePolling();
     } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       flow.pausePolling();
     }
