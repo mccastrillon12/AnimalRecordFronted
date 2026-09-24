@@ -85,15 +85,27 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
       backgroundColor: AppColors.bgOxford,
       body: Stack(
         children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              key: Key('vaccination-card-gradient-background'),
+              decoration: BoxDecoration(gradient: AppColors.backgroundDegrade),
+            ),
+          ),
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SvgPicture.asset(
-              AppIcons.vaccinationCardBackground,
-              key: const Key('vaccination-card-background'),
+              _isCertificate
+                  ? AppIcons.vaccinationCertificateBackground
+                  : AppIcons.vaccinationCardBackground,
+              key: Key(
+                _isCertificate
+                    ? 'vaccination-certificate-background'
+                    : 'vaccination-card-background',
+              ),
               width: double.infinity,
-              height: 562,
+              height: _isCertificate ? 296 : 562,
               fit: BoxFit.fill,
             ),
           ),

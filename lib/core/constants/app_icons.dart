@@ -11,6 +11,8 @@ class AppIcons {
   static const String folderFavorite = 'assets/icons/folder-favorite.svg';
   static const String vaccineShield = 'assets/icons/Vector.svg';
   static const String vaccinationCardBackground = 'assets/icons/Group 2009.svg';
+  static const String vaccinationCertificateBackground =
+      'assets/illustrations/R.svg';
 
   static const String boldPeople = 'assets/icons/bold-people.svg';
   static const String edit = 'assets/icons/Edit.svg';

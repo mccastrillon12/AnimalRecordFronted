@@ -5,6 +5,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/vaccination_card_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -130,6 +131,13 @@ void main() {
       find.byKey(const Key('vaccination-card-background')),
       findsOneWidget,
     );
+    final gradientBackground = tester.widget<DecoratedBox>(
+      find.byKey(const Key('vaccination-card-gradient-background')),
+    );
+    expect(
+      (gradientBackground.decoration! as BoxDecoration).gradient,
+      AppColors.backgroundDegrade,
+    );
     final contentBackground = tester.widget<Container>(
       find.byKey(const Key('vaccination-card-content-background')),
     );
@@ -222,6 +230,76 @@ void main() {
       inInclusiveRange(0, AppSpacing.xs),
     );
     expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('uses the R artwork and shared gradient for the certificate', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final document = _vaccinationDocument(
+      id: 'rabies-certificate',
+      vaccinationId: 'rabies-1',
+      name: 'Rabia',
+      applicationDate: '7/01/25',
+    );
+    final group = VaccinationGroupViewData(
+      key: 'rabia',
+      title: 'Rabia',
+      applications: [
+        VaccinationApplicationViewData(
+          document: document,
+          vaccination: document.validatedExtraction!.vaccinations.first,
+          sourceName: 'Rabia',
+          applicationDate: '7/01/25',
+          applicationDateLabel: 'Fecha de aplicación',
+          nextDoseDate: '',
+          nextDoseDateLabel: 'Próxima dosis',
+          sortDate: DateTime(2025, 1, 7),
+        ),
+      ],
+    );
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    when(() => documentsCubit.state).thenReturn(
+      AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.vaccinationCard),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: documentsCubit,
+        child: MaterialApp(
+          home: VaccinationCardScreen(
+            animal: const AnimalModel(
+              id: 'animal-1',
+              name: 'Brownie',
+              code: 'AR-C012',
+              family: 'Canino',
+            ),
+            selectedGroup: group,
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('Certificado de vacunación'), findsOneWidget);
+    final certificateBackground = find.byKey(
+      const Key('vaccination-certificate-background'),
+    );
+    expect(certificateBackground, findsOneWidget);
+    expect(tester.getSize(certificateBackground).height, 296);
+    expect(find.byKey(const Key('vaccination-card-background')), findsNothing);
+    final gradientBackground = tester.widget<DecoratedBox>(
+      find.byKey(const Key('vaccination-card-gradient-background')),
+    );
+    expect(
+      (gradientBackground.decoration! as BoxDecoration).gradient,
+      AppColors.backgroundDegrade,
+    );
   });
 }
 
