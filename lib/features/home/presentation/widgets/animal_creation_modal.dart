@@ -1823,6 +1823,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                           selectedItems: selectedTemperaments,
                           isInline: true,
                           searchable: false,
+                          closeOnSelection: true,
                           items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,

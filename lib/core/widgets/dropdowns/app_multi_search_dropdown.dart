@@ -23,6 +23,7 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
   final bool isInline;
   final bool searchable;
   final bool enabled;
+  final bool closeOnSelection;
   final int? searchMaxLength;
   final List<TextInputFormatter>? searchInputFormatters;
   final VoidCallback? onTap;
@@ -48,6 +49,7 @@ class AppMultiSearchDropdown<T> extends StatefulWidget {
     this.isInline = false,
     this.searchable = true,
     this.enabled = true,
+    this.closeOnSelection = false,
     this.searchMaxLength = 50,
     this.searchInputFormatters,
     this.onTap,
@@ -316,6 +318,11 @@ class _AppMultiSearchDropdownState<T> extends State<AppMultiSearchDropdown<T>> {
             return InkWell(
               onTap: () {
                 _toggleItem(item);
+                if (widget.closeOnSelection) {
+                  _focusNode.unfocus();
+                  _closeDropdown();
+                  return;
+                }
                 _searchController.clear();
                 _filter('');
                 if (!widget.isInline) {
