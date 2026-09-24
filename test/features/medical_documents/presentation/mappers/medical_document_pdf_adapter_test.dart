@@ -200,6 +200,30 @@ void main() {
     expect(overridden.documentType, MedicalDocumentCategory.prescription.label);
   });
 
+  test('uses the saved category when the document type is unidentified', () {
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.other,
+      rawExtraction: {'documentType': 'OTHER'},
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: _catalog,
+      displayCategory: MedicalDocumentCategory.diagnosticImage,
+      includeUncataloguedFields: true,
+    );
+    final documentType = analysis.sections
+        .expand((section) => section.details)
+        .singleWhere((detail) => detail.label == 'Tipo de documento');
+
+    expect(
+      analysis.documentType,
+      MedicalDocumentCategory.diagnosticImage.label,
+    );
+    expect(documentType.value, MedicalDocumentCategory.diagnosticImage.label);
+  });
+
   test('keeps extracted values unchanged', () {
     const extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.clinicalHistory,

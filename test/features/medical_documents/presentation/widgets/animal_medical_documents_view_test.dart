@@ -269,7 +269,7 @@ void main() {
   });
 
   testWidgets(
-    'keeps diagnostic images in the thumbnail grid while feedback is visible',
+    'shows diagnostic images as structured cards while feedback is visible',
     (tester) async {
       const document = MedicalDocumentEntity(
         id: 'diagnostic-image-1',
@@ -304,8 +304,6 @@ void main() {
                 emptyDescription: 'Sin documentos',
                 showAiFeedback: true,
                 onAiFeedback: (_) async {},
-                diagnosticThumbnailUriLoader: (_) async =>
-                    Uri.parse('https://example.test/radiografia.png'),
               ),
             ),
           ),
@@ -317,20 +315,22 @@ void main() {
         find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
         findsOneWidget,
       );
-      final thumbnail = tester.widget<Container>(
-        find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+      expect(find.byType(MedicalDocumentSummaryCard), findsOneWidget);
+      expect(
+        find.byKey(const Key('medical-document-card-diagnostic-image-1')),
+        findsOneWidget,
       );
-      expect(thumbnail.constraints?.maxWidth, 140);
-      expect(thumbnail.constraints?.maxHeight, 100);
       expect(find.text('radiografia.png'), findsOneWidget);
-      expect(find.byType(MedicalDocumentSummaryCard), findsNothing);
-      expect(find.textContaining('Adjunto:'), findsNothing);
+      expect(
+        find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+        findsNothing,
+      );
       expect(tester.takeException(), isNull);
     },
   );
 
   testWidgets(
-    'shows the PDF icon and opens the original diagnostic file directly',
+    'shows diagnostic PDFs as structured cards instead of original previews',
     (tester) async {
       const document = MedicalDocumentEntity(
         id: 'diagnostic-pdf-1',
@@ -349,8 +349,6 @@ void main() {
         ], category: MedicalDocumentCategory.diagnosticImage),
       );
       when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
-      var thumbnailRequests = 0;
-      MedicalDocumentEntity? openedDocument;
 
       await tester.pumpWidget(
         BlocProvider<AnimalMedicalDocumentsCubit>.value(
@@ -362,13 +360,6 @@ void main() {
                 category: MedicalDocumentCategory.diagnosticImage,
                 emptyTitle: 'Sin imágenes',
                 emptyDescription: 'Sin documentos',
-                diagnosticThumbnailUriLoader: (_) async {
-                  thumbnailRequests += 1;
-                  return Uri.parse('https://example.test/radiografia.pdf');
-                },
-                diagnosticDocumentPreviewHandler: (_, selectedDocument) async {
-                  openedDocument = selectedDocument;
-                },
               ),
             ),
           ),
@@ -376,20 +367,18 @@ void main() {
       );
       await tester.pumpAndSettle();
 
+      expect(find.byType(MedicalDocumentSummaryCard), findsOneWidget);
+      expect(
+        find.byKey(const Key('medical-document-card-diagnostic-pdf-1')),
+        findsOneWidget,
+      );
+      expect(find.text('radiografia.pdf'), findsOneWidget);
       expect(
         find.byKey(
           const Key('diagnostic-image-pdf-thumbnail-diagnostic-pdf-1'),
         ),
-        findsOneWidget,
+        findsNothing,
       );
-      expect(thumbnailRequests, 0);
-
-      await tester.tap(
-        find.byKey(const Key('diagnostic-image-diagnostic-pdf-1')),
-      );
-      await tester.pump();
-
-      expect(openedDocument, document);
       expect(tester.takeException(), isNull);
     },
   );

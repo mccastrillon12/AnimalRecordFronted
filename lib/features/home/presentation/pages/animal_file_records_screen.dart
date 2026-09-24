@@ -23,13 +23,11 @@ enum AnimalFileRecordSection { diagnosticImages, laboratoryResults }
 class AnimalFileRecordsScreen extends StatefulWidget {
   final AnimalModel animal;
   final AnimalFileRecordSection section;
-  final MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader;
 
   const AnimalFileRecordsScreen({
     super.key,
     required this.animal,
     required this.section,
-    this.diagnosticThumbnailUriLoader,
   });
 
   @override
@@ -213,9 +211,6 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                               onAiFeedbackSubmitted: _markAiFeedbackAnswered,
                               onAiFeedbackDismissed: () =>
                                   setState(() => _showAiFeedback = false),
-                              diagnosticThumbnailUriLoader:
-                                  widget.diagnosticThumbnailUriLoader,
-                              diagnosticPreviewCloseIconKey: _closeIconKey,
                             ),
                           ),
                         ],

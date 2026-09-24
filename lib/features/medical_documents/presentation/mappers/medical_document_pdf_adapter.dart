@@ -42,17 +42,22 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   MedicalDocumentCategory? displayCategory,
   bool includeUncataloguedFields = false,
 }) {
+  final resolvedDisplayCategory = displayCategory ?? extraction.documentType;
   final values =
       includeUncataloguedFields && extraction.rawExtraction.isNotEmpty
       ? _losslessExtractionValues(extraction)
       : _extractionValues(extraction);
+  if (extraction.documentType == MedicalDocumentCategory.other &&
+      resolvedDisplayCategory != MedicalDocumentCategory.other) {
+    values['documentType'] = resolvedDisplayCategory.label;
+  }
   final sections = [..._catalogSections(catalog, values)];
   if (includeUncataloguedFields) {
     final uncatalogued = _uncataloguedSection(catalog, values);
     if (uncatalogued != null) sections.add(uncatalogued);
   }
   return SharedFileAnalysisEntity(
-    documentType: (displayCategory ?? extraction.documentType).label,
+    documentType: resolvedDisplayCategory.label,
     documentNumber:
         extraction.documentType == MedicalDocumentCategory.vaccinationCard
         ? ''
