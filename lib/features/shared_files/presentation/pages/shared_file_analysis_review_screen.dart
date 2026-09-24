@@ -483,6 +483,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
                   valueColor: AppColors.primaryFrances,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  onTap: viewOriginal,
                 ),
               if (showStandaloneOriginalLink) ...[
                 const SizedBox(height: AppSpacing.xs),
@@ -795,6 +796,7 @@ class _AnalysisValueRow extends StatelessWidget {
   final Color? valueColor;
   final int? maxLines;
   final TextOverflow? overflow;
+  final VoidCallback? onTap;
 
   const _AnalysisValueRow({
     required this.label,
@@ -802,6 +804,7 @@ class _AnalysisValueRow extends StatelessWidget {
     this.valueColor,
     this.maxLines,
     this.overflow,
+    this.onTap,
   });
 
   @override
@@ -821,12 +824,16 @@ class _AnalysisValueRow extends StatelessWidget {
         ),
         const SizedBox(width: AppSpacing.xs),
         Expanded(
-          child: Text(
-            value,
-            maxLines: maxLines,
-            overflow: overflow,
-            style: AppTypography.body4.copyWith(
-              color: valueColor ?? AppColors.greyTextos,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Text(
+              value,
+              maxLines: maxLines,
+              overflow: overflow,
+              style: AppTypography.body4.copyWith(
+                color: valueColor ?? AppColors.greyTextos,
+              ),
             ),
           ),
         ),

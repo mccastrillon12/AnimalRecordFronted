@@ -100,6 +100,10 @@ void main() {
       greaterThan(tester.getBottomLeft(fileName).dy),
     );
 
+    await tester.tap(fileName);
+    expect(originalOpened, isTrue);
+
+    originalOpened = false;
     await tester.tap(originalLink);
     expect(originalOpened, isTrue);
   });
