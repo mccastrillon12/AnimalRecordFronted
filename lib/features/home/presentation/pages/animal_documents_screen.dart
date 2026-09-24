@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,11 +9,22 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AnimalDocumentsScreen extends StatefulWidget {
   final String animalId;
+  final MedicalDocumentCategory initialCategory;
 
-  const AnimalDocumentsScreen({super.key, required this.animalId});
+  const AnimalDocumentsScreen({
+    super.key,
+    required this.animalId,
+    this.initialCategory = MedicalDocumentCategory.prescription,
+  });
 
   @override
   State<AnimalDocumentsScreen> createState() => _AnimalDocumentsScreenState();
@@ -21,13 +35,43 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   late TabController _tabController;
   final TextEditingController _searchController = TextEditingController();
   String? _searchErrorText;
+  late int _loadedTabIndex;
+  final Set<MedicalDocumentCategory> _pendingAiFeedbackCategories = {};
+  final Set<MedicalDocumentCategory> _answeredAiFeedbackCategories = {};
+  final Map<MedicalDocumentCategory, Future<void>> _pendingFeedbackWrites = {};
+  late final MedicalDocumentAiFeedbackLocalDataSource _aiFeedbackStore;
+  int _aiFeedbackRequestId = 0;
+
+  static const _feedbackCategories = {
+    MedicalDocumentCategory.prescription,
+    MedicalDocumentCategory.medicalOrder,
+    MedicalDocumentCategory.referral,
+  };
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _loadedTabIndex = _indexForCategory(widget.initialCategory);
+    _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+    _pendingAiFeedbackCategories.addAll(
+      _feedbackCategories.where(
+        (category) => _aiFeedbackStore.isPending(widget.animalId, category),
+      ),
+    );
+    _tabController = TabController(
+      length: 3,
+      initialIndex: _loadedTabIndex,
+      vsync: this,
+    );
     _tabController.addListener(() {
       FocusManager.instance.primaryFocus?.unfocus();
+      if (_loadedTabIndex != _tabController.index) {
+        _loadedTabIndex = _tabController.index;
+        context.read<AnimalMedicalDocumentsCubit>().load(
+          widget.animalId,
+          category: _categoryForIndex(_loadedTabIndex),
+        );
+      }
       if (mounted) {
         setState(() {
           _searchController.clear();
@@ -35,11 +79,69 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
         });
       }
     });
+    _searchController.addListener(_refreshSearch);
+  }
+
+  void _refreshSearch() => setState(() {});
+
+  MedicalDocumentCategory _categoryForIndex(int index) => switch (index) {
+    0 => MedicalDocumentCategory.prescription,
+    1 => MedicalDocumentCategory.medicalOrder,
+    _ => MedicalDocumentCategory.referral,
+  };
+
+  int _indexForCategory(MedicalDocumentCategory category) => switch (category) {
+    MedicalDocumentCategory.medicalOrder => 1,
+    MedicalDocumentCategory.referral => 2,
+    _ => 0,
+  };
+
+  void _handleUploadedDocument(MedicalDocumentCategory category) {
+    final visibleCategory = _categoryForIndex(_tabController.index);
+    setState(() {
+      _pendingAiFeedbackCategories.add(category);
+      _answeredAiFeedbackCategories.remove(category);
+      _aiFeedbackRequestId++;
+    });
+    final write = _aiFeedbackStore.markPending(widget.animalId, category);
+    _pendingFeedbackWrites[category] = write;
+    unawaited(write.catchError((_) {}));
+    if (category == visibleCategory) {
+      context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+        widget.animalId,
+        category: category,
+      );
+    }
+  }
+
+  void _dismissAiFeedback(MedicalDocumentCategory category) {
+    if (!_pendingAiFeedbackCategories.contains(category)) return;
+    setState(() {
+      _pendingAiFeedbackCategories.remove(category);
+      _answeredAiFeedbackCategories.remove(category);
+    });
+  }
+
+  Future<void> _markAiFeedbackAnswered(MedicalDocumentCategory category) async {
+    try {
+      await _pendingFeedbackWrites.remove(category);
+    } catch (_) {
+      // A failed pending write must not cause the already-submitted vote
+      // to be sent twice.
+    }
+    try {
+      await _aiFeedbackStore.clearPending(widget.animalId, category);
+    } catch (_) {
+      // The backend already accepted the anonymous vote. Keep the UI answered.
+    }
+    if (!mounted) return;
+    setState(() => _answeredAiFeedbackCategories.add(category));
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
   }
@@ -282,24 +384,97 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(height: AppSpacing.m),
+                          MedicalDocumentAiFeedbackTopGap(
+                            key: const Key('animal-documents-list-gap'),
+                            isBannerVisible: _pendingAiFeedbackCategories
+                                .contains(
+                                  _categoryForIndex(_tabController.index),
+                                ),
+                          ),
 
-                          // Tab content (empty states for now)
                           Expanded(
                             child: TabBarView(
                               controller: _tabController,
                               children: [
-                                _buildEmptyState(
-                                  'El registro de fórmulas está vacío',
-                                  'Aquí se podrán visualizar las fórmulas\nmédicas que se creen.',
+                                AnimalMedicalDocumentsView(
+                                  animalId: widget.animalId,
+                                  category:
+                                      MedicalDocumentCategory.prescription,
+                                  showAiFeedback: _pendingAiFeedbackCategories
+                                      .contains(
+                                        MedicalDocumentCategory.prescription,
+                                      ),
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  initialAiFeedbackResponded:
+                                      _answeredAiFeedbackCategories.contains(
+                                        MedicalDocumentCategory.prescription,
+                                      ),
+                                  onAiFeedbackSubmitted: () =>
+                                      _markAiFeedbackAnswered(
+                                        MedicalDocumentCategory.prescription,
+                                      ),
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.prescription,
+                                      ),
+                                  searchQuery: _searchController.text,
+                                  emptyTitle:
+                                      'El registro de fórmulas está vacío',
+                                  emptyDescription:
+                                      'Aquí se podrán visualizar las fórmulas médicas que se creen.',
                                 ),
-                                _buildEmptyState(
-                                  'El registro de órdenes está vacío',
-                                  'Aquí se podrán visualizar las órdenes\nmédicas que se creen.',
+                                AnimalMedicalDocumentsView(
+                                  animalId: widget.animalId,
+                                  category:
+                                      MedicalDocumentCategory.medicalOrder,
+                                  showAiFeedback: _pendingAiFeedbackCategories
+                                      .contains(
+                                        MedicalDocumentCategory.medicalOrder,
+                                      ),
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  initialAiFeedbackResponded:
+                                      _answeredAiFeedbackCategories.contains(
+                                        MedicalDocumentCategory.medicalOrder,
+                                      ),
+                                  onAiFeedbackSubmitted: () =>
+                                      _markAiFeedbackAnswered(
+                                        MedicalDocumentCategory.medicalOrder,
+                                      ),
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.medicalOrder,
+                                      ),
+                                  searchQuery: _searchController.text,
+                                  emptyTitle:
+                                      'El registro de órdenes está vacío',
+                                  emptyDescription:
+                                      'Aquí se podrán visualizar las órdenes médicas que se creen.',
                                 ),
-                                _buildEmptyState(
-                                  'El registro de remisiones está vacío',
-                                  'Aquí se podrán visualizar las remisiones\nmédicas que se creen.',
+                                AnimalMedicalDocumentsView(
+                                  animalId: widget.animalId,
+                                  category: MedicalDocumentCategory.referral,
+                                  showAiFeedback: _pendingAiFeedbackCategories
+                                      .contains(
+                                        MedicalDocumentCategory.referral,
+                                      ),
+                                  aiFeedbackRequestId: _aiFeedbackRequestId,
+                                  initialAiFeedbackResponded:
+                                      _answeredAiFeedbackCategories.contains(
+                                        MedicalDocumentCategory.referral,
+                                      ),
+                                  onAiFeedbackSubmitted: () =>
+                                      _markAiFeedbackAnswered(
+                                        MedicalDocumentCategory.referral,
+                                      ),
+                                  onAiFeedbackDismissed: () =>
+                                      _dismissAiFeedback(
+                                        MedicalDocumentCategory.referral,
+                                      ),
+                                  searchQuery: _searchController.text,
+                                  emptyTitle:
+                                      'El registro de remisiones está vacío',
+                                  emptyDescription:
+                                      'Aquí se podrán visualizar las remisiones médicas que se creen.',
                                 ),
                               ],
                             ),
@@ -313,6 +488,10 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
                           animalId: widget.animalId,
+                          requestedCategory: _categoryForIndex(
+                            _tabController.index,
+                          ),
+                          onUploadedToCategory: _handleUploadedDocument,
                         ),
                       ),
                     ],
@@ -327,31 +506,6 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
           ),
         ),
       ),
-    );
-  }
-
-  Widget _buildEmptyState(String title, String description) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Text(
-          title,
-          style: AppTypography.body3.copyWith(
-            color: AppColors.greyTextos,
-            fontWeight: FontWeight.w700,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: AppSpacing.m),
-        Text(
-          description,
-          style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(
-          height: 100,
-        ), // Spacing to balance the visual center taking FAB into account
-      ],
     );
   }
 }

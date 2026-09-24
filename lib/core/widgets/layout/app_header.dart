@@ -12,6 +12,7 @@ class AppHeader extends StatelessWidget {
   final VoidCallback? onClose;
   final Color backgroundColor;
   final Color contentColor;
+  final Widget? customCenter;
   final Widget? customTrailing;
   final bool showCloseText;
 
@@ -24,6 +25,7 @@ class AppHeader extends StatelessWidget {
     this.onClose,
     this.backgroundColor = Colors.transparent,
     this.contentColor = Colors.white,
+    this.customCenter,
     this.customTrailing,
     this.showCloseText = true,
   });
@@ -41,24 +43,28 @@ class AppHeader extends StatelessWidget {
           else
             const SizedBox(width: 48, height: 48),
 
-          if (title != null)
+          if (customCenter != null)
+            Expanded(child: Center(child: customCenter!))
+          else if (title != null)
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Text(
                   title!,
-                  style: AppTypography.heading2.copyWith(color: AppColors.greyTextos),
+                  style: AppTypography.heading2.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
                   textAlign: TextAlign.center,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
             ),
-          
+
           if (customTrailing != null)
-             customTrailing!
+            customTrailing!
           else if (showCloseButton)
             AppCloseButton(
-              onClose: onClose, 
+              onClose: onClose,
               contentColor: contentColor,
               showText: showCloseText,
             )

@@ -23,4 +23,6 @@ abstract class AppRoutes {
   static const String sharedFileAnalysisReview = '/shared-file-analysis-review';
   static const String sharedFileSend = '/shared-file-send';
   static const String animalDocuments = '/animal-documents';
+  static const String animalDiagnosticImages = '/animal-diagnostic-images';
+  static const String animalLaboratoryResults = '/animal-laboratory-results';
 }

@@ -3,6 +3,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalRecordSearchField extends StatelessWidget {
@@ -10,13 +11,17 @@ class AnimalRecordSearchField extends StatelessWidget {
   final Key? fieldKey;
   final Color fillColor;
   final Color borderColor;
+  final bool enabled;
+  final int? maxLength;
 
   const AnimalRecordSearchField({
     super.key,
     required this.controller,
     this.fieldKey,
-    this.fillColor = AppColors.bgBlancoAntiFlash,
-    this.borderColor = AppColors.greyDelineante,
+    this.fillColor = AppColors.white,
+    this.borderColor = AppColors.greyBordes,
+    this.enabled = true,
+    this.maxLength,
   });
 
   @override
@@ -25,12 +30,20 @@ class AnimalRecordSearchField extends StatelessWidget {
       borderRadius: AppBorders.small(),
       borderSide: BorderSide(color: borderColor, width: 1),
     );
+    final focusedBorder = OutlineInputBorder(
+      borderRadius: AppBorders.small(),
+      borderSide: const BorderSide(color: AppColors.primaryFrances, width: 1),
+    );
 
     return SizedBox(
       height: AppSpacing.iconSizeMedium,
       child: TextField(
         key: fieldKey,
         controller: controller,
+        enabled: enabled,
+        inputFormatters: maxLength == null
+            ? null
+            : [LengthLimitingTextInputFormatter(maxLength)],
         style: AppTypography.body4,
         textAlignVertical: TextAlignVertical.center,
         decoration: InputDecoration(
@@ -43,10 +56,10 @@ class AnimalRecordSearchField extends StatelessWidget {
             padding: const EdgeInsets.only(left: AppSpacing.m, right: 10),
             child: SvgPicture.asset(
               'assets/icons/vuesax-linear-search-2.svg',
-              width: 20,
-              height: 20,
+              width: 24,
+              height: 24,
               colorFilter: const ColorFilter.mode(
-                AppColors.greyBordes,
+                AppColors.greyMedio,
                 BlendMode.srcIn,
               ),
             ),
@@ -54,7 +67,8 @@ class AnimalRecordSearchField extends StatelessWidget {
           prefixIconConstraints: const BoxConstraints(),
           border: border,
           enabledBorder: border,
-          focusedBorder: border,
+          disabledBorder: border,
+          focusedBorder: focusedBorder,
           contentPadding: const EdgeInsets.symmetric(vertical: 11),
         ),
       ),

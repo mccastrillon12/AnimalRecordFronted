@@ -1,0 +1,543 @@
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_shadows.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockAnimalMedicalDocumentsCubit extends Mock
+    implements AnimalMedicalDocumentsCubit {}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  testWidgets('renders an accepted formula with the compact saved design', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const document = MedicalDocumentEntity(
+      id: '7d22ffa7-7927-46bb-b6b1-0f0232243b84',
+      documentCode: 'FORM-007',
+      description: 'Control hepático',
+      animalIds: ['animal-1'],
+      originalFileName: 'JAKE 2025-05-15 Formula médica.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 95861,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+        documentDate: 'miércoles, 14 de mayo de 2025, 7:21 p.m.',
+      ),
+      version: 2,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.prescription),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    var feedbackDismissed = false;
+    MedicalDocumentAiFeedback? submittedFeedback;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin fórmulas',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              aiFeedbackRequestId: 1,
+              onAiFeedbackDismissed: () => feedbackDismissed = true,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+      findsOneWidget,
+    );
+    expect(find.text('Adjunto: Formula N° FORM-007'), findsOneWidget);
+    expect(
+      find.text('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
+      findsOneWidget,
+    );
+    expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
+    expect(find.text('Descripción:'), findsOneWidget);
+    expect(find.text('Control hepático'), findsOneWidget);
+    expect(find.text('Ver detalle'), findsOneWidget);
+    final documentCardFinder = find.byKey(
+      const Key('medical-document-card-7d22ffa7-7927-46bb-b6b1-0f0232243b84'),
+    );
+    expect(tester.widget(documentCardFinder), isA<MedicalDocumentCard>());
+    final documentCard = tester.widget<Container>(
+      find
+          .descendant(of: documentCardFinder, matching: find.byType(Container))
+          .first,
+    );
+    expect((documentCard.decoration! as BoxDecoration).boxShadow, const [
+      AppShadows.card,
+    ]);
+    expect(
+      find.byKey(const Key('medical-document-ai-not-useful')),
+      findsOneWidget,
+    );
+    expect(find.byKey(const Key('medical-document-ai-useful')), findsOneWidget);
+    void expectWhiteFeedbackButtons() {
+      for (final key in const [
+        Key('medical-document-ai-not-useful'),
+        Key('medical-document-ai-useful'),
+      ]) {
+        final button = find.byKey(key);
+        final material = tester.widget<Material>(
+          find.descendant(of: button, matching: find.byType(Material)),
+        );
+        final ink = tester.widget<Ink>(
+          find.descendant(of: button, matching: find.byType(Ink)),
+        );
+        expect(material.color, AppColors.white);
+        expect((ink.decoration! as BoxDecoration).color, AppColors.white);
+      }
+    }
+
+    expectWhiteFeedbackButtons();
+    await tester.tap(find.byKey(const Key('medical-document-ai-useful')));
+    await tester.pumpAndSettle();
+    expect(submittedFeedback, MedicalDocumentAiFeedback.like);
+    expect(
+      find.text(
+        'Gracias por tu respuesta, la tendremos en cuenta para seguir '
+        'entrenando la IA.',
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-not-useful')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('medical-document-ai-useful')), findsNothing);
+
+    await tester.tap(
+      find.byKey(const Key('medical-document-ai-feedback-close')),
+    );
+    await tester.pump();
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsNothing,
+    );
+    expect(feedbackDismissed, isTrue);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows the thank-you message after negative AI feedback', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    const document = MedicalDocumentEntity(
+      id: 'document-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+        additionalFields: {'description': 'No usar en la card'},
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.prescription),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    MedicalDocumentAiFeedback? submittedFeedback;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin fórmulas',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              aiFeedbackRequestId: 1,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('medical-document-ai-not-useful')));
+    await tester.pumpAndSettle();
+
+    expect(submittedFeedback, MedicalDocumentAiFeedback.dislike);
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Gracias por tu respuesta'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('shows and submits AI feedback for referrals', (tester) async {
+    const document = MedicalDocumentEntity(
+      id: 'referral-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'remision.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.referral,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.referral,
+        referral: {'destination': 'Cardiología'},
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.referral),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    MedicalDocumentAiFeedback? submittedFeedback;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.referral,
+              emptyTitle: 'Sin remisiones',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              onAiFeedback: (feedback) async => submittedFeedback = feedback,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+      findsOneWidget,
+    );
+    await tester.tap(find.byKey(const Key('medical-document-ai-not-useful')));
+    await tester.pumpAndSettle();
+
+    expect(submittedFeedback, MedicalDocumentAiFeedback.dislike);
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'keeps diagnostic images in the thumbnail grid while feedback is visible',
+    (tester) async {
+      const document = MedicalDocumentEntity(
+        id: 'diagnostic-image-1',
+        animalIds: ['animal-1'],
+        originalFileName: 'radiografia.png',
+        mimeType: 'image/png',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        validatedExtraction: MedicalDocumentExtractionEntity(
+          documentType: MedicalDocumentCategory.diagnosticImage,
+        ),
+        version: 1,
+      );
+      final cubit = _MockAnimalMedicalDocumentsCubit();
+      when(() => cubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          document,
+        ], category: MedicalDocumentCategory.diagnosticImage),
+      );
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: AnimalMedicalDocumentsView(
+                animalId: 'animal-1',
+                category: MedicalDocumentCategory.diagnosticImage,
+                emptyTitle: 'Sin imágenes',
+                emptyDescription: 'Sin documentos',
+                showAiFeedback: true,
+                onAiFeedback: (_) async {},
+                diagnosticThumbnailUriLoader: (_) async =>
+                    Uri.parse('https://example.test/radiografia.png'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+        findsOneWidget,
+      );
+      final thumbnail = tester.widget<Container>(
+        find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+      );
+      expect(thumbnail.constraints?.maxWidth, 140);
+      expect(thumbnail.constraints?.maxHeight, 100);
+      expect(find.text('radiografia.png'), findsOneWidget);
+      expect(find.byType(MedicalDocumentSummaryCard), findsNothing);
+      expect(find.textContaining('Adjunto:'), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'shows the PDF icon and opens the original diagnostic file directly',
+    (tester) async {
+      const document = MedicalDocumentEntity(
+        id: 'diagnostic-pdf-1',
+        animalIds: ['animal-1'],
+        originalFileName: 'radiografia.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: MedicalDocumentCategory.diagnosticImage,
+        version: 1,
+      );
+      final cubit = _MockAnimalMedicalDocumentsCubit();
+      when(() => cubit.state).thenReturn(
+        const AnimalMedicalDocumentsLoaded([
+          document,
+        ], category: MedicalDocumentCategory.diagnosticImage),
+      );
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+      var thumbnailRequests = 0;
+      MedicalDocumentEntity? openedDocument;
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: AnimalMedicalDocumentsView(
+                animalId: 'animal-1',
+                category: MedicalDocumentCategory.diagnosticImage,
+                emptyTitle: 'Sin imágenes',
+                emptyDescription: 'Sin documentos',
+                diagnosticThumbnailUriLoader: (_) async {
+                  thumbnailRequests += 1;
+                  return Uri.parse('https://example.test/radiografia.pdf');
+                },
+                diagnosticDocumentPreviewHandler: (_, selectedDocument) async {
+                  openedDocument = selectedDocument;
+                },
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const Key('diagnostic-image-pdf-thumbnail-diagnostic-pdf-1'),
+        ),
+        findsOneWidget,
+      );
+      expect(thumbnailRequests, 0);
+
+      await tester.tap(
+        find.byKey(const Key('diagnostic-image-diagnostic-pdf-1')),
+      );
+      await tester.pump();
+
+      expect(openedDocument, document);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('does not show AI feedback just because documents exist', (
+    tester,
+  ) async {
+    const document = MedicalDocumentEntity(
+      id: 'document-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.prescription),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin fórmulas',
+              emptyDescription: 'Sin documentos',
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+      findsNothing,
+    );
+    expect(find.text('Ver detalle'), findsOneWidget);
+    expect(find.text('Descripción:'), findsNothing);
+    expect(find.text('No usar en la card'), findsNothing);
+  });
+
+  testWidgets('a new upload request resets the feedback question', (
+    tester,
+  ) async {
+    const document = MedicalDocumentEntity(
+      id: 'document-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+      ),
+      version: 1,
+    );
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.prescription),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+    Widget view(int requestId) =>
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            home: Scaffold(
+              body: AnimalMedicalDocumentsView(
+                animalId: 'animal-1',
+                category: MedicalDocumentCategory.prescription,
+                emptyTitle: 'Sin fórmulas',
+                emptyDescription: 'Sin documentos',
+                showAiFeedback: true,
+                aiFeedbackRequestId: requestId,
+                onAiFeedback: (_) async {},
+              ),
+            ),
+          ),
+        );
+
+    await tester.pumpWidget(view(1));
+    await tester.tap(find.byKey(const Key('medical-document-ai-useful')));
+    await tester.pump();
+    expect(find.textContaining('Gracias por tu respuesta'), findsOneWidget);
+
+    await tester.pumpWidget(view(2));
+    await tester.pump();
+
+    expect(
+      find.text('¿La ayuda de la IA te fue útil para leer tu archivo?'),
+      findsOneWidget,
+    );
+    expect(find.textContaining('Gracias por tu respuesta'), findsNothing);
+  });
+
+  testWidgets('does not show AI feedback when there are no documents', (
+    tester,
+  ) async {
+    final cubit = _MockAnimalMedicalDocumentsCubit();
+    when(() => cubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded(
+        [],
+        category: MedicalDocumentCategory.prescription,
+      ),
+    );
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalMedicalDocumentsCubit>.value(
+        value: cubit,
+        child: const MaterialApp(
+          home: Scaffold(
+            body: AnimalMedicalDocumentsView(
+              animalId: 'animal-1',
+              category: MedicalDocumentCategory.prescription,
+              emptyTitle: 'Sin formulas',
+              emptyDescription: 'Sin documentos',
+              showAiFeedback: true,
+              initialAiFeedbackResponded: true,
+            ),
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('medical-document-ai-feedback-thanks')),
+      findsNothing,
+    );
+    expect(
+      find.byKey(const Key('medical-document-ai-not-useful')),
+      findsNothing,
+    );
+    expect(find.byKey(const Key('medical-document-ai-useful')), findsNothing);
+  });
+}

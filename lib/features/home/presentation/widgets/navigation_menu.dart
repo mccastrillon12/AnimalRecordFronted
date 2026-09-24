@@ -26,6 +26,8 @@ class _NavigationMenuState extends State<NavigationMenu> {
         return 'mis_animales';
       case 4:
         return null; // Inicio
+      case 5:
+        return 'vaccination_cards';
       default:
         return null;
     }
@@ -35,6 +37,8 @@ class _NavigationMenuState extends State<NavigationMenu> {
     switch (section) {
       case 'mis_animales':
         return 3;
+      case 'vaccination_cards':
+        return 5;
       default:
         return 4; // Inicio
     }
@@ -126,6 +130,7 @@ class _NavigationMenuState extends State<NavigationMenu> {
                     onTap: () => _onItemTapped(4),
                   ),
                   _NavItem(
+                    itemKey: const Key('navigation-vaccination-cards'),
                     svgPath: 'assets/icons/vacunas.svg',
                     label: 'Carné vacunas',
                     isActive: selectedIndex == 5,
@@ -161,12 +166,14 @@ class _NavigationMenuState extends State<NavigationMenu> {
 }
 
 class _NavItem extends StatelessWidget {
+  final Key? itemKey;
   final String svgPath;
   final String label;
   final bool isActive;
   final VoidCallback onTap;
 
   const _NavItem({
+    this.itemKey,
     required this.svgPath,
     required this.label,
     required this.onTap,
@@ -183,6 +190,8 @@ class _NavItem extends StatelessWidget {
         : const Color(0xFF59667A);
 
     return GestureDetector(
+      key: itemKey,
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: SizedBox(
         width: 90,

@@ -6,15 +6,23 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
 import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_empty_feature_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+
+typedef MedicalDocumentAvailabilityLoader =
+    Future<bool> Function(String animalId, MedicalDocumentCategory category);
 
 /// Detail screen for a single animal.
 ///
@@ -26,8 +34,13 @@ import 'package:animal_record/features/diary/presentation/pages/animal_diary_scr
 /// - Top menu overlay accessible via trigger
 class AnimalDetailScreen extends StatefulWidget {
   final AnimalModel animal;
+  final MedicalDocumentAvailabilityLoader? hasMedicalDocuments;
 
-  const AnimalDetailScreen({super.key, required this.animal});
+  const AnimalDetailScreen({
+    super.key,
+    required this.animal,
+    this.hasMedicalDocuments,
+  });
 
   @override
   State<AnimalDetailScreen> createState() => _AnimalDetailScreenState();
@@ -75,7 +88,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     TopMenuItem(
       svgPath: 'assets/icons/vacunas.svg',
       label: 'Carné vacunas',
-      onTap: () {},
+      onTap: () => openVaccinationsFromFloatingMenu(context),
     ),
   ];
 
@@ -328,30 +341,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
           enabled: currentAnimal.isActive,
-          onTap: () {
-            Navigator.push(
-              context,
-              PageRouteBuilder(
-                opaque: false,
-                pageBuilder: (context, animation, secondaryAnimation) =>
-                    AnimalDiaryScreen(animal: currentAnimal),
-                transitionsBuilder:
-                    (context, animation, secondaryAnimation, child) {
-                      const begin = Offset(0.0, 1.0);
-                      const end = Offset.zero;
-                      const curve = Curves.ease;
-                      final tween = Tween(
-                        begin: begin,
-                        end: end,
-                      ).chain(CurveTween(curve: curve));
-                      return SlideTransition(
-                        position: animation.drive(tween),
-                        child: child,
-                      );
-                    },
-              ),
-            );
-          },
+          onTap: () => _openModalPage(AnimalDiaryScreen(animal: currentAnimal)),
         ),
         const SizedBox(width: 74),
         _buildActionButton(
@@ -449,10 +439,11 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       'Información',
       'Historia clínica',
       'Carné de vacunas',
+      'Peso',
       'Desparasitaciones',
       'Órdenes, fórmulas y remisiones',
-      'Ayudas diagnosticas',
-      'Peso',
+      'Imágenes diagnósticas',
+      'Resultados de laboratorio',
       'Genealogía',
     ];
 
@@ -472,7 +463,11 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: options.asMap().entries.map((entry) {
+          final isClinicalHistory = entry.value == 'Historia clínica';
           return MenuItemRow(
+            key: isClinicalHistory
+                ? const Key('animal-clinical-history-menu-item')
+                : null,
             title: entry.value,
             onTap: () {
               if (entry.value == 'Información') {
@@ -482,11 +477,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   arguments: animal,
                 );
               } else if (entry.value == 'Historia clínica') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalClinicalHistory,
-                  arguments: animal,
-                );
+                _openClinicalHistory(animal);
               } else if (entry.value == 'Carné de vacunas') {
                 Navigator.pushNamed(
                   context,
@@ -494,16 +485,188 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                   arguments: animal,
                 );
               } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalDocuments,
-                  arguments: animal.id,
+                _openDocumentsSection(animal);
+              } else if (entry.value == 'Imágenes diagnósticas') {
+                _openMedicalFileSection(
+                  animal: animal,
+                  category: MedicalDocumentCategory.diagnosticImage,
+                  title: 'Imágenes diagnósticas',
+                  continueRoute: AppRoutes.animalDiagnosticImages,
+                  mainText: 'Actualmente no tiene archivos subidos',
+                  subText:
+                      'Recopila todas las imágenes\n'
+                      'diagnósticas importantes '
+                      'del animal.',
+                );
+              } else if (entry.value == 'Resultados de laboratorio') {
+                _openMedicalFileSection(
+                  animal: animal,
+                  category: MedicalDocumentCategory.laboratoryResult,
+                  title: 'Resultados de laboratorio',
+                  continueRoute: AppRoutes.animalLaboratoryResults,
+                  mainText: 'Actualmente no tiene registros',
+                  subText:
+                      'Aquí podrá encontrar todos los resultados de '
+                      'laboratorio que se suban del animal.',
                 );
               }
             },
             showArrow: true,
           );
         }).toList(),
+      ),
+    );
+  }
+
+  void _openClinicalHistory(AnimalModel animal) {
+    Navigator.pushNamed(
+      context,
+      AppRoutes.animalClinicalHistory,
+      arguments: animal,
+    );
+  }
+
+  Future<void> _openDocumentsSection(AnimalModel animal) async {
+    late final bool hasDocuments;
+    try {
+      hasDocuments = await _hasAnyDocuments(
+        animal.id,
+        const [
+          MedicalDocumentCategory.prescription,
+          MedicalDocumentCategory.medicalOrder,
+          MedicalDocumentCategory.referral,
+        ],
+      );
+    } catch (_) {
+      if (mounted) {
+        await Navigator.pushNamed(
+          context,
+          AppRoutes.animalDocuments,
+          arguments: animal.id,
+        );
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    if (hasDocuments) {
+      await Navigator.pushNamed(
+        context,
+        AppRoutes.animalDocuments,
+        arguments: animal.id,
+      );
+      return;
+    }
+    _openEmptyFeature(
+      animal: animal,
+      title: 'Fórmulas, órdenes y remisiones',
+      continueRoute: AppRoutes.animalDocuments,
+      mainText: 'Actualmente no tiene registros',
+      subText:
+          'Aquí podrá encontrar todas las fórmulas, órdenes y remisiones '
+          'médicas que se le han realizado al animal.',
+      continueArguments: animal.id,
+    );
+  }
+
+  Future<void> _openMedicalFileSection({
+    required AnimalModel animal,
+    required MedicalDocumentCategory category,
+    required String title,
+    required String continueRoute,
+    required String mainText,
+    required String subText,
+  }) async {
+    late final bool hasDocuments;
+    try {
+      hasDocuments =
+          await (widget.hasMedicalDocuments?.call(animal.id, category) ??
+              _hasMedicalDocuments(animal.id, category));
+    } catch (_) {
+      if (mounted) {
+        await Navigator.pushNamed(context, continueRoute, arguments: animal);
+      }
+      return;
+    }
+    if (!mounted) return;
+
+    if (hasDocuments) {
+      await Navigator.pushNamed(context, continueRoute, arguments: animal);
+      return;
+    }
+    _openEmptyFeature(
+      animal: animal,
+      title: title,
+      continueRoute: continueRoute,
+      mainText: mainText,
+      subText: subText,
+    );
+  }
+
+  Future<bool> _hasMedicalDocuments(
+    String animalId,
+    MedicalDocumentCategory category,
+  ) async {
+    final documents = await di.sl<GetAnimalMedicalDocumentsUseCase>()(
+      animalId,
+      category: category,
+    );
+    return documents.isNotEmpty;
+  }
+
+  Future<bool> _hasAnyDocuments(
+    String animalId,
+    List<MedicalDocumentCategory> categories,
+  ) async {
+    final availability = await Future.wait(
+      categories.map(
+        (category) =>
+            widget.hasMedicalDocuments?.call(animalId, category) ??
+            _hasMedicalDocuments(animalId, category),
+      ),
+    );
+    return availability.any((hasDocuments) => hasDocuments);
+  }
+
+  void _openEmptyFeature({
+    required AnimalModel animal,
+    required String title,
+    required String continueRoute,
+    required String mainText,
+    required String subText,
+    Object? continueArguments,
+  }) {
+    _openModalPage(
+      AnimalEmptyFeatureScreen(
+        animalFamily: animal.family,
+        title: title,
+        mainText: mainText,
+        subText: subText,
+        onContinue: () => Navigator.pushReplacementNamed(
+          context,
+          continueRoute,
+          arguments: continueArguments ?? animal,
+        ),
+      ),
+    );
+  }
+
+  void _openModalPage(Widget page) {
+    Navigator.push(
+      context,
+      PageRouteBuilder<void>(
+        opaque: false,
+        pageBuilder: (context, animation, secondaryAnimation) => page,
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          final tween = Tween(
+            begin: const Offset(0, 1),
+            end: Offset.zero,
+          ).chain(CurveTween(curve: Curves.ease));
+          return SlideTransition(
+            position: animation.drive(tween),
+            child: child,
+          );
+        },
       ),
     );
   }

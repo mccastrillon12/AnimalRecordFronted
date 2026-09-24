@@ -71,6 +71,7 @@ dependencies:
   open_filex: ^4.7.0
   audioplayers: ^6.6.0
   pdf: 3.12.0
+  pdfrx: ^2.2.24
   share_plus: ^12.0.2
 
 dev_dependencies:

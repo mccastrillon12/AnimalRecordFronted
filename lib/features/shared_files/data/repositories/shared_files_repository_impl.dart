@@ -43,4 +43,12 @@ class SharedFilesRepositoryImpl implements SharedFilesRepository {
   Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
     return exportDataSource.exportAnalysisPdf(analysis);
   }
+
+  @override
+  Future<bool> saveAnalysisPdfs(
+    List<SharedFileAnalysisEntity> analyses, {
+    required String fileName,
+  }) {
+    return exportDataSource.saveAnalysisPdfs(analyses, fileName: fileName);
+  }
 }

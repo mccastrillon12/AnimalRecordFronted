@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/core/exceptions/user_not_verified_exception.dart';
 import 'package:animal_record/core/utils/error_mapper.dart';
 import 'package:logger/logger.dart';
@@ -91,8 +92,15 @@ class ApiClient {
       final response = await request();
       return response;
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
+      final path = e.requestOptions.path;
       if (e.response?.statusCode == 401) {
-        throw Exception('No se pudo iniciar sesión. Verifica tus credenciales');
+        throw ApiException(
+          statusCode: statusCode,
+          message: 'No se pudo iniciar sesión. Verifica tus credenciales',
+          data: e.response?.data,
+          path: path,
+        );
       }
       if (e.response?.statusCode == 403) {
         final data = e.response?.data;
@@ -101,14 +109,30 @@ class ApiClient {
         }
       }
       if (e.response?.statusCode == 404) {
-        throw Exception('Recurso no encontrado (404)');
-      }
-      if (e.response?.statusCode == 409) {
-        throw Exception(
-          'El correo/celular ya se encuentra registrado, por favor inicie sesión',
+        throw ApiException(
+          statusCode: statusCode,
+          message: 'Recurso no encontrado (404)',
+          data: e.response?.data,
+          path: path,
         );
       }
-      throw Exception(ErrorMapper.mapToUserMessage(e.response?.data));
+      if (e.response?.statusCode == 409) {
+        final isMedicalDocument = path.contains('/medical-documents');
+        throw ApiException(
+          statusCode: statusCode,
+          message: isMedicalDocument
+              ? ErrorMapper.mapToUserMessage(e.response?.data)
+              : 'El correo/celular ya se encuentra registrado, por favor inicie sesión',
+          data: e.response?.data,
+          path: path,
+        );
+      }
+      throw ApiException(
+        statusCode: statusCode,
+        message: ErrorMapper.mapToUserMessage(e.response?.data),
+        data: e.response?.data,
+        path: path,
+      );
     } catch (e) {
       if (e is Exception) rethrow;
       throw Exception('Error inesperado: \$e');

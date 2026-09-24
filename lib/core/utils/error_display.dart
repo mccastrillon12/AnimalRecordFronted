@@ -40,6 +40,32 @@ class ErrorDisplay {
     );
   }
 
+  static void showSuccessOnOverlay(
+    OverlayState overlayState,
+    String message, {
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: false,
+      duration: duration,
+    );
+  }
+
+  static void showErrorOnOverlay(
+    OverlayState overlayState,
+    String message, {
+    Duration duration = const Duration(seconds: 4),
+  }) {
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: true,
+      duration: duration,
+    );
+  }
+
   static void _showTopOverlay({
     required BuildContext context,
     required String message,
@@ -48,8 +74,43 @@ class ErrorDisplay {
   }) {
     _removeCurrentOverlay();
 
-    final overlayState = Overlay.of(context);
+    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlayState == null) {
+      final messenger = ScaffoldMessenger.maybeOf(context);
+      if (messenger != null) {
+        messenger
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              behavior: SnackBarBehavior.floating,
+              content: CustomSnackBar(
+                message: message,
+                isError: isError,
+                onClose: messenger.hideCurrentSnackBar,
+              ),
+            ),
+          );
+      }
+      return;
+    }
 
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: message,
+      isError: isError,
+      duration: duration,
+    );
+  }
+
+  static void _showTopOverlayEntry({
+    required OverlayState overlayState,
+    required String message,
+    required bool isError,
+    required Duration duration,
+  }) {
+    _removeCurrentOverlay();
     _currentEntry = OverlayEntry(
       builder: (context) => Positioned(
         top: 90.0,
@@ -103,7 +164,8 @@ class ErrorDisplay {
   }) {
     _removeSecondaryOverlay();
 
-    final overlayState = Overlay.of(context);
+    final overlayState = Overlay.maybeOf(context, rootOverlay: true);
+    if (overlayState == null) return;
 
     _secondaryEntry = OverlayEntry(
       builder: (context) => Positioned(

@@ -1,16 +1,21 @@
 import Flutter
 import UIKit
 import MSAL
+import Photos
 import UniformTypeIdentifiers
 
 @main
-@objc class AppDelegate: FlutterAppDelegate {
+@objc class AppDelegate: FlutterAppDelegate, UIDocumentPickerDelegate {
   private let sharedFilesChannelName = "com.animalrecord/shared_files"
+  private let fileDownloadChannelName = "com.animalrecord/file_download"
   private let sharedAppGroup = "group.com.animalRecord.animalRecord.shared"
   private let sharedQueueFile = "shared_files.json"
   private var sharedFilesChannel: FlutterMethodChannel?
+  private var fileDownloadChannel: FlutterMethodChannel?
   private var flutterIsReadyForSharedFiles = false
   private var pendingDocumentFiles: [[String: String]] = []
+  private var pendingDocumentExportResult: FlutterResult?
+  private var pendingDocumentExportURL: URL?
 
   override func application(
     _ application: UIApplication,
@@ -39,9 +44,214 @@ import UniformTypeIdentifiers
         self?.flutterIsReadyForSharedFiles = true
         result(self?.consumeAllSharedFiles() ?? [])
       }
+
+      fileDownloadChannel = FlutterMethodChannel(
+        name: fileDownloadChannelName,
+        binaryMessenger: controller.binaryMessenger
+      )
+      fileDownloadChannel?.setMethodCallHandler { [weak self] call, result in
+        guard call.method == "saveFile" else {
+          result(FlutterMethodNotImplemented)
+          return
+        }
+        guard let arguments = call.arguments as? [String: Any],
+              let fileName = arguments["fileName"] as? String,
+              !fileName.isEmpty,
+              let mimeType = arguments["mimeType"] as? String,
+              !mimeType.isEmpty,
+              let typedData = arguments["bytes"] as? FlutterStandardTypedData,
+              !typedData.data.isEmpty
+        else {
+          result(FlutterError(
+            code: "INVALID_DOWNLOAD",
+            message: "No hay un archivo válido para descargar.",
+            details: nil
+          ))
+          return
+        }
+
+        if mimeType.hasPrefix("image/") {
+          self?.savePhotoToLibrary(
+            named: fileName,
+            data: typedData.data,
+            result: result
+          )
+          return
+        }
+
+        self?.presentDocumentExporter(
+          named: fileName,
+          data: typedData.data,
+          result: result
+        )
+      }
     }
 
     return didFinishLaunching
+  }
+
+  private func savePhotoToLibrary(
+    named fileName: String,
+    data: Data,
+    result: @escaping FlutterResult
+  ) {
+    requestPhotoLibraryAddAccess { granted in
+      guard granted else {
+        DispatchQueue.main.async {
+          result(FlutterError(
+            code: "PHOTO_LIBRARY_PERMISSION_DENIED",
+            message: "Se necesita permiso para guardar la imagen en Fotos.",
+            details: nil
+          ))
+        }
+        return
+      }
+
+      var localIdentifier: String?
+      PHPhotoLibrary.shared().performChanges {
+        let request = PHAssetCreationRequest.forAsset()
+        let options = PHAssetResourceCreationOptions()
+        options.originalFilename = fileName
+        request.addResource(with: .photo, data: data, options: options)
+        localIdentifier = request.placeholderForCreatedAsset?.localIdentifier
+      } completionHandler: { saved, error in
+        DispatchQueue.main.async {
+          if saved {
+            result(localIdentifier ?? "photos://saved")
+          } else {
+            result(FlutterError(
+              code: "PHOTO_SAVE_FAILED",
+              message: "No fue posible guardar la imagen en Fotos.",
+              details: error?.localizedDescription
+            ))
+          }
+        }
+      }
+    }
+  }
+
+  private func requestPhotoLibraryAddAccess(
+    completion: @escaping (Bool) -> Void
+  ) {
+    if #available(iOS 14, *) {
+      PHPhotoLibrary.requestAuthorization(for: .addOnly) { status in
+        completion(status == .authorized || status == .limited)
+      }
+    } else {
+      PHPhotoLibrary.requestAuthorization { status in
+        completion(status == .authorized)
+      }
+    }
+  }
+
+  private func presentDocumentExporter(
+    named fileName: String,
+    data: Data,
+    result: @escaping FlutterResult
+  ) {
+    guard pendingDocumentExportResult == nil else {
+      result(FlutterError(
+        code: "DOWNLOAD_IN_PROGRESS",
+        message: "Ya hay una descarga en curso.",
+        details: nil
+      ))
+      return
+    }
+
+    do {
+      let exportDirectory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("animal_record_downloads", isDirectory: true)
+      try FileManager.default.createDirectory(
+        at: exportDirectory,
+        withIntermediateDirectories: true
+      )
+      let sourceURL = uniqueDestination(
+        in: exportDirectory,
+        fileName: fileName
+      )
+      try data.write(to: sourceURL, options: .atomic)
+
+      guard let presenter = topViewController(from: window?.rootViewController) else {
+        try? FileManager.default.removeItem(at: sourceURL)
+        result(FlutterError(
+          code: "DOWNLOAD_UNAVAILABLE",
+          message: "No fue posible abrir Guardar en Archivos.",
+          details: nil
+        ))
+        return
+      }
+
+      pendingDocumentExportResult = result
+      pendingDocumentExportURL = sourceURL
+      let documentPicker = UIDocumentPickerViewController(
+        forExporting: [sourceURL],
+        asCopy: true
+      )
+      documentPicker.delegate = self
+      presenter.present(documentPicker, animated: true)
+    } catch {
+      result(FlutterError(
+        code: "DOWNLOAD_FAILED",
+        message: "No fue posible preparar el archivo para descargar.",
+        details: error.localizedDescription
+      ))
+    }
+  }
+
+  func documentPicker(
+    _ controller: UIDocumentPickerViewController,
+    didPickDocumentsAt urls: [URL]
+  ) {
+    finishDocumentExport(result: urls.isEmpty ? nil : "files://saved")
+  }
+
+  func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+    finishDocumentExport(result: nil)
+  }
+
+  private func finishDocumentExport(result value: Any?) {
+    let result = pendingDocumentExportResult
+    let sourceURL = pendingDocumentExportURL
+    pendingDocumentExportResult = nil
+    pendingDocumentExportURL = nil
+    if let sourceURL {
+      try? FileManager.default.removeItem(at: sourceURL)
+    }
+    result?(value)
+  }
+
+  private func topViewController(from root: UIViewController?) -> UIViewController? {
+    if let presented = root?.presentedViewController {
+      return topViewController(from: presented)
+    }
+    if let navigationController = root as? UINavigationController {
+      return topViewController(from: navigationController.visibleViewController)
+    }
+    if let tabController = root as? UITabBarController {
+      return topViewController(from: tabController.selectedViewController)
+    }
+    return root
+  }
+
+  private func uniqueDestination(in directory: URL, fileName: String) -> URL {
+    let initial = directory.appendingPathComponent(fileName)
+    guard FileManager.default.fileExists(atPath: initial.path) else {
+      return initial
+    }
+
+    let fileExtension = initial.pathExtension
+    let baseName = initial.deletingPathExtension().lastPathComponent
+    var copyNumber = 1
+    while true {
+      let suffix = fileExtension.isEmpty ? "" : ".\(fileExtension)"
+      let candidate = directory.appendingPathComponent(
+        "\(baseName) (\(copyNumber))\(suffix)"
+      )
+      if !FileManager.default.fileExists(atPath: candidate.path) {
+        return candidate
+      }
+      copyNumber += 1
+    }
   }
 
   override func application(

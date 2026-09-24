@@ -5,20 +5,24 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 
 /// Full "Mis Animales" page with search bar, grid/list toggle, filter, and
 /// animals grouped by species (family).
 class MyAnimalsContent extends StatefulWidget {
-  const MyAnimalsContent({super.key});
+  final VoidCallback? onUploadCancelled;
+
+  const MyAnimalsContent({super.key, this.onUploadCancelled});
 
   @override
   State<MyAnimalsContent> createState() => _MyAnimalsContentState();
@@ -263,7 +267,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                       const SizedBox(width: AppSpacing.l),
 
                       // View toggle
-                      _buildIconButton(
+                      AnimalListControlButton(
                         child: SvgPicture.asset(
                           _viewMode == AnimalCardMode.list
                               ? 'assets/icons/vuesax-bold-element-3.svg'
@@ -281,7 +285,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                       const SizedBox(width: AppSpacing.m),
 
                       // Filter button
-                      _buildIconButton(
+                      AnimalListControlButton(
                         child: SvgPicture.asset(
                           'assets/icons/vuesax-bold-setting-4.svg',
                           colorFilter: ColorFilter.mode(
@@ -458,32 +462,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
     );
   }
 
-  Widget _buildIconButton({
-    required Widget child,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: AppSpacing.iconSizeMedium,
-        height: AppSpacing.iconSizeMedium,
-        decoration: BoxDecoration(
-          color: AppColors.white,
-          borderRadius: BorderRadius.circular(4),
-          border: Border.all(color: AppColors.greyDelineante),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF0F1925).withValues(alpha: 0.08),
-              offset: const Offset(0, 4),
-              blurRadius: 8,
-            ),
-          ],
-        ),
-        child: Center(child: child),
-      ),
-    );
-  }
-
   Widget _buildGroup(String family, List<AnimalModel> animals) {
     final bool isCollapsed = _collapsedFamilies.contains(family);
 
@@ -595,23 +573,58 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
   Widget _buildFab(BuildContext context) {
     return PopupMenuButton<String>(
-      onSelected: (value) {
+      key: const Key('my-animals-actions-menu'),
+      onSelected: (value) async {
         if (value == 'agregar') {
           showAnimalCreationModal(context);
         } else if (value == 'subir_documento') {
-          Navigator.pushNamed(
+          final activeAnimals = context
+              .read<AnimalCubit>()
+              .animals
+              .where((animal) => animal.isActive)
+              .toList(growable: false);
+          final uploaded = await Navigator.pushNamed(
             context,
             AppRoutes.sharedFileUpload,
-            arguments: const {'manualUpload': true},
+            arguments: {
+              'manualUpload': true,
+              if (activeAnimals.length == 1)
+                'preselectedAnimal': activeAnimals.single,
+            },
           );
+          if (!context.mounted) return;
+          if (uploaded == true) {
+            final navigator = Navigator.of(context);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              final overlay = navigator.overlay;
+              if (overlay != null) {
+                ErrorDisplay.showSuccessOnOverlay(
+                  overlay,
+                  'El archivo ha sido subido exitosamente.',
+                );
+              }
+            });
+            return;
+          }
+          if (uploaded != false) return;
+          final onUploadCancelled = widget.onUploadCancelled;
+          if (onUploadCancelled != null) {
+            onUploadCancelled();
+          } else {
+            final overlay = Navigator.of(context).overlay;
+            if (overlay != null) {
+              ErrorDisplay.showErrorOnOverlay(
+                overlay,
+                sharedFileUploadErrorMessage,
+              );
+            }
+          }
         } else if (value == 'transferir') {
           // TODO: Implement transfer
         }
       },
       offset: const Offset(0, -162),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
-      ),
+      shape: const RoundedRectangleBorder(),
       constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
       color: AppColors.white,
       elevation: 4,
@@ -650,7 +663,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               ),
               const SizedBox(width: 10),
               Text(
-                'Subir documento',
+                'Subir archivo',
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                 ),

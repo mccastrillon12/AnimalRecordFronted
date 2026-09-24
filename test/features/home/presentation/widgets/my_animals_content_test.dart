@@ -1,0 +1,393 @@
+import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
+import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/home/presentation/widgets/my_animals_content.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
+import 'package:animal_record/features/shared_files/presentation/pages/shared_file_upload_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockAnimalCubit extends Mock implements AnimalCubit {}
+
+class _MockAuthBloc extends Mock implements AuthBloc {}
+
+class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
+
+class _MockMedicalDocumentFlowCubit extends Mock
+    implements MedicalDocumentFlowCubit {}
+
+void main() {
+  testWidgets(
+    'preselects the only active animal when uploading from My animals',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      when(() => animalCubit.state).thenReturn(AnimalInitial());
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      RouteSettings? uploadRouteSettings;
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalCubit>.value(
+          value: animalCubit,
+          child: MaterialApp(
+            onGenerateRoute: (settings) {
+              if (settings.name == AppRoutes.sharedFileUpload) {
+                uploadRouteSettings = settings;
+                return MaterialPageRoute<void>(
+                  settings: settings,
+                  builder: (_) => const Scaffold(body: Text('Flujo de subida')),
+                );
+              }
+              return null;
+            },
+            home: const Scaffold(body: MyAnimalsContent()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final actionsMenu = tester.widget<PopupMenuButton<String>>(
+        find.byKey(const Key('my-animals-actions-menu')),
+      );
+      expect(
+        (actionsMenu.shape! as RoundedRectangleBorder).borderRadius,
+        BorderRadius.zero,
+      );
+      actionsMenu.onSelected?.call('subir_documento');
+      await tester.pumpAndSettle();
+
+      final arguments = uploadRouteSettings?.arguments as Map<String, dynamic>;
+      expect(arguments['manualUpload'], isTrue);
+      expect(arguments['preselectedAnimal'], same(_animal));
+      expect(find.text('Flujo de subida'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('reports a cancelled upload without leaving My animals', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(() => animalCubit.state).thenReturn(AnimalInitial());
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => animalCubit.animals).thenReturn(const [_animal]);
+    var cancellationReported = false;
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: MaterialApp(
+          onGenerateRoute: (settings) {
+            if (settings.name == AppRoutes.sharedFileUpload) {
+              return MaterialPageRoute<void>(
+                settings: settings,
+                builder: (context) => Scaffold(
+                  body: TextButton(
+                    onPressed: () => Navigator.pop(context, false),
+                    child: const Text('Cancelar carga'),
+                  ),
+                ),
+              );
+            }
+            return null;
+          },
+          home: Scaffold(
+            body: MyAnimalsContent(
+              onUploadCancelled: () => cancellationReported = true,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final actionsMenu = tester.widget<PopupMenuButton<String>>(
+      find.byKey(const Key('my-animals-actions-menu')),
+    );
+    actionsMenu.onSelected?.call('subir_documento');
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Cancelar carga'));
+    await tester.pumpAndSettle();
+
+    expect(cancellationReported, isTrue);
+    expect(find.byKey(const Key('my-animals-actions-menu')), findsOneWidget);
+  });
+
+  testWidgets('shows analysis status immediately while uploading', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    final authBloc = _MockAuthBloc();
+    final sharedFilesCubit = _MockSharedFilesCubit();
+    final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+    when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => animalCubit.animals).thenReturn(const [_animal]);
+    when(() => authBloc.state).thenReturn(AuthInitial());
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+    when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+    when(() => sharedFilesCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => sharedFilesCubit.pendingFiles).thenReturn(const []);
+    when(() => medicalDocumentFlowCubit.state).thenReturn(
+      const MedicalDocumentFlowState(phase: MedicalDocumentFlowPhase.uploading),
+    );
+    when(
+      () => medicalDocumentFlowCubit.stream,
+    ).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AnimalCubit>.value(value: animalCubit),
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+          BlocProvider<MedicalDocumentFlowCubit>.value(
+            value: medicalDocumentFlowCubit,
+          ),
+        ],
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  settings: const RouteSettings(
+                    arguments: {
+                      'manualUpload': true,
+                      'preselectedAnimal': _animal,
+                    },
+                  ),
+                  builder: (_) => const SharedFileUploadScreen(),
+                ),
+              ),
+              child: const Text('Abrir subida'),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Abrir subida'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+
+    final selector = tester.widget<AppDropdown<AnimalEntity>>(
+      find.byType(AppDropdown<AnimalEntity>),
+    );
+    expect(selector.value, same(_animal));
+    expect(selector.enabled, isFalse);
+    expect(find.byType(AppMultiSearchDropdown<AnimalEntity>), findsNothing);
+    final analysisLabel = tester.widget<Text>(
+      find.text('Analizando archivo...'),
+    );
+    expect(analysisLabel.style?.color, AppColors.aiViolet);
+    expect(analysisLabel.style?.decoration, TextDecoration.none);
+    expect(
+      tester.widget<CustomButton>(find.byType(CustomButton)).text,
+      'Subir archivo',
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'selects and locks the only active animal for an external shared file',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      final authBloc = _MockAuthBloc();
+      final sharedFilesCubit = _MockSharedFilesCubit();
+      final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+      when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      when(() => authBloc.state).thenReturn(AuthInitial());
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+      when(
+        () => sharedFilesCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => sharedFilesCubit.pendingFiles,
+      ).thenReturn(const [_externalFile]);
+      when(
+        () => medicalDocumentFlowCubit.state,
+      ).thenReturn(const MedicalDocumentFlowState());
+      when(
+        () => medicalDocumentFlowCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AnimalCubit>.value(value: animalCubit),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+            BlocProvider<MedicalDocumentFlowCubit>.value(
+              value: medicalDocumentFlowCubit,
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    settings: const RouteSettings(
+                      arguments: {'externalShare': true},
+                    ),
+                    builder: (_) => const SharedFileUploadScreen(),
+                  ),
+                ),
+                child: const Text('Abrir archivo externo'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Abrir archivo externo'));
+      await tester.pumpAndSettle();
+
+      final selector = tester.widget<AppDropdown<AnimalEntity>>(
+        find.byType(AppDropdown<AnimalEntity>),
+      );
+      expect(selector.value, same(_animal));
+      expect(selector.enabled, isFalse);
+      expect(find.byType(AppMultiSearchDropdown<AnimalEntity>), findsNothing);
+      expect(
+        tester.widget<CustomButton>(find.byType(CustomButton)).onPressed,
+        isNotNull,
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'discards and closes an external upload when the app is backgrounded',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      final authBloc = _MockAuthBloc();
+      final sharedFilesCubit = _MockSharedFilesCubit();
+      final medicalDocumentFlowCubit = _MockMedicalDocumentFlowCubit();
+      when(() => animalCubit.state).thenReturn(const AnimalsLoaded([_animal]));
+      when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => animalCubit.animals).thenReturn(const [_animal]);
+      when(() => authBloc.state).thenReturn(AuthInitial());
+      when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+      when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
+      when(
+        () => sharedFilesCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => sharedFilesCubit.pendingFiles,
+      ).thenReturn(const [_externalFile]);
+      when(() => medicalDocumentFlowCubit.state).thenReturn(
+        const MedicalDocumentFlowState(
+          phase: MedicalDocumentFlowPhase.analyzing,
+        ),
+      );
+      when(
+        () => medicalDocumentFlowCubit.stream,
+      ).thenAnswer((_) => const Stream.empty());
+      when(
+        () => medicalDocumentFlowCubit.discardCurrentFlow(),
+      ).thenAnswer((_) async => true);
+
+      await tester.pumpWidget(
+        MultiBlocProvider(
+          providers: [
+            BlocProvider<AnimalCubit>.value(value: animalCubit),
+            BlocProvider<AuthBloc>.value(value: authBloc),
+            BlocProvider<SharedFilesCubit>.value(value: sharedFilesCubit),
+            BlocProvider<MedicalDocumentFlowCubit>.value(
+              value: medicalDocumentFlowCubit,
+            ),
+          ],
+          child: MaterialApp(
+            home: Builder(
+              builder: (context) => Column(
+                children: [
+                  const Text('Inicio normal'),
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(
+                          arguments: {'externalShare': true},
+                        ),
+                        builder: (_) => const SharedFileUploadScreen(),
+                      ),
+                    ),
+                    child: const Text('Abrir archivo externo'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Abrir archivo externo'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 400));
+      expect(find.text('Subir archivo'), findsWidgets);
+
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await tester.pump();
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Inicio normal'), findsOneWidget);
+      expect(find.byType(SharedFileUploadScreen), findsNothing);
+      verify(() => sharedFilesCubit.clear()).called(1);
+      verify(() => medicalDocumentFlowCubit.discardCurrentFlow()).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+}
+
+const _animal = AnimalEntity(
+  id: 'animal-1',
+  name: 'Umi',
+  code: 'AR-F025',
+  species: 'CAT',
+  breed: 'Criollo',
+  sex: 'FEMALE',
+  reproductiveStatus: 'SPAYED',
+  hasChip: false,
+  isAssociationMember: false,
+  temperament: [],
+  diagnosis: [],
+  ownerId: 'owner-1',
+);
+
+const _externalFile = SharedFileEntity(
+  path: '/shared/document.pdf',
+  name: 'document.pdf',
+  mimeType: 'application/pdf',
+  type: SharedFileType.pdf,
+);

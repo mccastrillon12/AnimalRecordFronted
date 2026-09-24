@@ -26,7 +26,7 @@ class ManualFilePickerDataSourceImpl implements ManualFilePickerDataSource {
   Future<Map<Object?, Object?>?> pickFromFiles() async {
     final result = await FilePicker.pickFiles(
       type: FileType.custom,
-      allowedExtensions: const ['png', 'jpg', 'jpeg', 'pdf'],
+      allowedExtensions: const ['png', 'jpg', 'jpeg', 'tif', 'tiff', 'pdf'],
       allowMultiple: false,
       withData: true,
     );
@@ -84,6 +84,7 @@ class ManualFilePickerDataSourceImpl implements ManualFilePickerDataSource {
       'pdf' => 'application/pdf',
       'png' => 'image/png',
       'jpg' || 'jpeg' => 'image/jpeg',
+      'tif' || 'tiff' => 'image/tiff',
       _ => 'application/octet-stream',
     };
   }

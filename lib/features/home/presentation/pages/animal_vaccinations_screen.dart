@@ -1,11 +1,22 @@
+import 'dart:async';
+
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/pages/vaccination_card_screen.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_record_sort_button.dart';
+import 'package:animal_record/features/home/presentation/widgets/vaccination_groups_view.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
+import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
 
 class AnimalVaccinationsScreen extends StatefulWidget {
@@ -20,9 +31,55 @@ class AnimalVaccinationsScreen extends StatefulWidget {
 
 class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  bool? _alphabeticalSortAscending;
+  MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
+  bool _showAiFeedback = false;
+  bool _hasAnsweredAiFeedback = false;
+  int _aiFeedbackRequestId = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    if (di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
+      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+      _showAiFeedback = _aiFeedbackStore!.isPending(
+        widget.animal.id,
+        MedicalDocumentCategory.vaccinationCard,
+      );
+    }
+    _searchController.addListener(_refreshSearch);
+  }
+
+  void _refreshSearch() => setState(() {});
+
+  void _handleUploadedDocument() {
+    setState(() {
+      _showAiFeedback = true;
+      _hasAnsweredAiFeedback = false;
+      _aiFeedbackRequestId++;
+    });
+    final store = _aiFeedbackStore;
+    if (store != null) unawaited(store.markPending(
+      widget.animal.id,
+      MedicalDocumentCategory.vaccinationCard,
+    ));
+    context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
+      widget.animal.id,
+      category: MedicalDocumentCategory.vaccinationCard,
+    );
+  }
+
+  Future<void> _markAiFeedbackAnswered() async {
+    await _aiFeedbackStore?.clearPending(
+      widget.animal.id,
+      MedicalDocumentCategory.vaccinationCard,
+    );
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
 
   @override
   void dispose() {
+    _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
   }
@@ -65,7 +122,7 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                       Column(
                         children: [
                           _VaccinationsHeader(animal: widget.animal),
-                          const SizedBox(height: AppSpacing.l),
+                          const SizedBox(height: AppSpacing.xl),
                           Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: AppSpacing.l,
@@ -83,11 +140,40 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                   ),
                                 ),
                                 const SizedBox(width: AppSpacing.xs),
-                                const _VaccinationSortButton(),
+                                AnimalRecordSortButton(
+                                  key: const Key('vaccinations-sort-button'),
+                                  sortAscending:
+                                      _alphabeticalSortAscending ?? true,
+                                  onTap: () => setState(() {
+                                    _alphabeticalSortAscending =
+                                        _alphabeticalSortAscending == null
+                                        ? true
+                                        : !_alphabeticalSortAscending!;
+                                  }),
+                                ),
                               ],
                             ),
                           ),
-                          const Expanded(child: _VaccinationsEmptyState()),
+                          MedicalDocumentAiFeedbackTopGap(
+                            key: const Key('vaccinations-list-gap'),
+                            isBannerVisible: _showAiFeedback,
+                          ),
+                          Expanded(
+                            child: VaccinationGroupsView(
+                              animal: widget.animal,
+                              searchQuery: _searchController.text,
+                              alphabeticalSortAscending:
+                                  _alphabeticalSortAscending,
+                              showAiFeedback: _showAiFeedback,
+                              aiFeedbackRequestId: _aiFeedbackRequestId,
+                              initialAiFeedbackResponded:
+                                  _hasAnsweredAiFeedback,
+                              onAiFeedbackSubmitted: _markAiFeedbackAnswered,
+                              onAiFeedbackDismissed: () => setState(
+                                () => _showAiFeedback = false,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                       Positioned(
@@ -103,7 +189,18 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                               label: 'Ver carné de vacunas',
                               child: GestureDetector(
                                 key: const Key('view-vaccination-card-button'),
-                                onTap: () {},
+                                onTap: () => Navigator.push<void>(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => BlocProvider.value(
+                                      value: context
+                                          .read<AnimalMedicalDocumentsCubit>(),
+                                      child: VaccinationCardScreen(
+                                        animal: widget.animal,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 behavior: HitTestBehavior.opaque,
                                 child: SizedBox(
                                   height: AppSpacing.iconSizeSmall,
@@ -115,12 +212,12 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                                       const Icon(
                                         Icons.visibility,
                                         color: AppColors.greyMedio,
-                                        size: 16,
+                                        size: 20,
                                       ),
                                       const SizedBox(width: AppSpacing.xs),
                                       Text(
                                         'Ver carné',
-                                        style: AppTypography.body6.copyWith(
+                                        style: AppTypography.body4.copyWith(
                                           color: AppColors.greyMedio,
                                         ),
                                       ),
@@ -151,6 +248,9 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
                           animalId: widget.animal.id,
+                          requestedCategory:
+                              MedicalDocumentCategory.vaccinationCard,
+                          onUploaded: _handleUploadedDocument,
                         ),
                       ),
                     ],
@@ -204,7 +304,7 @@ class _VaccinationsHeader extends StatelessWidget {
                     color: AppColors.greyTextos,
                   ),
                 ),
-                const TextSpan(text: '  -  '),
+                const TextSpan(text: ' - '),
                 TextSpan(text: animal.code),
               ],
             ),
@@ -213,69 +313,6 @@ class _VaccinationsHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _VaccinationSortButton extends StatelessWidget {
-  const _VaccinationSortButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: AppBorders.small(),
-      elevation: 2,
-      shadowColor: AppColors.greyNegro.withValues(alpha: 0.12),
-      child: InkWell(
-        key: const Key('vaccinations-sort-button'),
-        onTap: () {},
-        borderRadius: AppBorders.small(),
-        child: const SizedBox(
-          width: AppSpacing.iconSizeMedium,
-          height: AppSpacing.iconSizeMedium,
-          child: Icon(
-            Icons.sort_by_alpha_rounded,
-            color: AppColors.greyMedio,
-            size: 22,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _VaccinationsEmptyState extends StatelessWidget {
-  const _VaccinationsEmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 100),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'El registro de vacunas está vacío',
-              style: AppTypography.body3.copyWith(
-                color: AppColors.greyTextos,
-                fontWeight: FontWeight.w700,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: AppSpacing.m),
-            Text(
-              'Aquí se podrán visualizar las vacunas que se creen.',
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                height: 1.45,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }

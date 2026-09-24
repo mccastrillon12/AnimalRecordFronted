@@ -44,6 +44,7 @@ class SharedFileModel extends SharedFileEntity {
     return switch (extension) {
       'jpg' || 'jpeg' => 'image/jpeg',
       'png' => 'image/png',
+      'tif' || 'tiff' => 'image/tiff',
       'pdf' => 'application/pdf',
       _ => normalized,
     };
