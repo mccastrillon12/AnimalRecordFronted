@@ -12,12 +12,12 @@ void main() {
           category.wireValue: category.label,
       },
       {
-        'PRESCRIPTION': 'Formula',
-        'MEDICAL_ORDER': 'Orden medica',
+        'PRESCRIPTION': 'Fórmula',
+        'MEDICAL_ORDER': 'Orden médica',
         'REFERRAL': 'Remisión',
         'VACCINATION_CARD': 'Carnet de vacunación',
-        'CLINICAL_HISTORY': 'Historia clinica',
-        'DIAGNOSTIC_IMAGE': 'Imagen Diagnostica',
+        'CLINICAL_HISTORY': 'Historia clínica',
+        'DIAGNOSTIC_IMAGE': 'Imagen diagnóstica',
         'LABORATORY_RESULT': 'Resultados de laboratorio',
         'OTHER': 'Archivo no identificado',
       },
@@ -145,7 +145,7 @@ void main() {
       catalog: _catalog,
     );
 
-    expect(analysis.documentType, 'Historia clinica');
+    expect(analysis.documentType, 'Historia clínica');
     expect(analysis.sourceDateLabel, 'Fecha del documento');
     expect(analysis.originalFileNameLabel, 'Archivo original');
     expect(analysis.patient.name, 'Chuleta');
@@ -168,7 +168,7 @@ void main() {
         'Resultado reportado',
       ]),
     );
-    expect(details.map((detail) => detail.value), contains('Historia clinica'));
+    expect(details.map((detail) => detail.value), contains('Historia clínica'));
     expect(
       details.map((detail) => detail.label.toLowerCase()),
       isNot(contains(contains('confianza'))),

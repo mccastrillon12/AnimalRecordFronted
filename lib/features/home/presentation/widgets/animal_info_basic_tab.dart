@@ -402,7 +402,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<String>(
                 value: 'si',
                 groupValue: hasIdentification,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onHasIdentificationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
@@ -448,7 +448,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<String>(
                 value: 'si',
                 groupValue: belongsToAssociation,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onBelongsToAssociationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
@@ -485,7 +485,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<bool>(
                 value: true,
                 groupValue: isAdopted,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onIsAdoptedChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),

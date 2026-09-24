@@ -551,7 +551,7 @@ class _BiometricButton extends StatelessWidget {
     final String iconPath = isIOS
         ? 'assets/icons/scan-face.svg'
         : 'assets/icons/fingerprint.svg';
-    final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometria';
+    final String label = isIOS ? 'Ingresa con FaceID' : 'Ingresa con Biometría';
 
     return GestureDetector(
       onTap: () => _handleBiometricTap(context),

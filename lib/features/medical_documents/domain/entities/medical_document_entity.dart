@@ -3,12 +3,12 @@ import 'package:equatable/equatable.dart';
 const _unchangedMedicalField = Object();
 
 enum MedicalDocumentCategory {
-  prescription('PRESCRIPTION', 'Formula'),
-  medicalOrder('MEDICAL_ORDER', 'Orden medica'),
+  prescription('PRESCRIPTION', 'Fórmula'),
+  medicalOrder('MEDICAL_ORDER', 'Orden médica'),
   referral('REFERRAL', 'Remisión'),
   vaccinationCard('VACCINATION_CARD', 'Carnet de vacunación'),
-  clinicalHistory('CLINICAL_HISTORY', 'Historia clinica'),
-  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imagen Diagnostica'),
+  clinicalHistory('CLINICAL_HISTORY', 'Historia clínica'),
+  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imagen diagnóstica'),
   laboratoryResult('LABORATORY_RESULT', 'Resultados de laboratorio'),
   other('OTHER', 'Archivo no identificado');
 

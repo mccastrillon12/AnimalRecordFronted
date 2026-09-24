@@ -57,7 +57,7 @@ void main() {
 
       expect(
         find.textContaining(
-          'Historia clinica y Carnet de vacunación.',
+          'Historia clínica y Carnet de vacunación.',
           findRichText: true,
         ),
         findsOneWidget,
@@ -219,7 +219,7 @@ void main() {
 
     await tester.tap(find.byIcon(Icons.close));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Si'));
+    await tester.tap(find.text('Sí'));
     await tester.pumpAndSettle();
 
     expect(cancellationConfirmed, isTrue);

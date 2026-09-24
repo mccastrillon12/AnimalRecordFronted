@@ -504,7 +504,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
         builder: (_) => ConfirmDialog(
           title: '¿Desea cancelar el proceso?',
           description: 'Perderá los datos diligenciados al momento.',
-          confirmLabel: 'Si',
+          confirmLabel: 'Sí',
           cancelLabel: 'No',
           width: 325,
           confirmColor: const Color(0xFFFA2844),
@@ -525,7 +525,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
         builder: (_) => ConfirmDialog(
           title: '¿Desea cancelar el proceso?',
           description: 'Perderá los datos diligenciados al momento.',
-          confirmLabel: 'Si',
+          confirmLabel: 'Sí',
           cancelLabel: 'No',
           width: 325,
           confirmColor: const Color(0xFFFA2844),

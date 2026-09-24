@@ -294,7 +294,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         builder: (_) => ConfirmDialog(
           title: '¿Desea cancelar el proceso?',
           description: 'Perderá los datos diligenciados al momento.',
-          confirmLabel: 'Si',
+          confirmLabel: 'Sí',
           cancelLabel: 'No',
           width: 325,
           confirmColor: const Color(0xFFFA2844),
@@ -1291,7 +1291,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<String>(
                               value: 'si',
                               groupValue: hasIdentification,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onHasIdentificationChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
@@ -1339,7 +1339,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<String>(
                               value: 'si',
                               groupValue: belongsToAssociation,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onBelongsToAssociationChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
@@ -1377,7 +1377,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<bool>(
                               value: true,
                               groupValue: isAdopted,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onIsAdoptedChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
