@@ -12,6 +12,7 @@ import 'package:animal_record/features/home/presentation/widgets/animal_card.dar
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_filter_matcher.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/utils/error_display.dart';
@@ -87,24 +88,10 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           return const Center(child: CircularProgressIndicator());
         }
 
-        // Filter by search
-        final filtered = _searchQuery.isEmpty
-            ? allAnimals
-            : allAnimals
-                  .where(
-                    (a) =>
-                        a.name.toLowerCase().contains(
-                          _searchQuery.toLowerCase(),
-                        ) ||
-                        a.code.toLowerCase().contains(
-                          _searchQuery.toLowerCase(),
-                        ) ||
-                        (a.breed?.toLowerCase().contains(
-                              _searchQuery.toLowerCase(),
-                            ) ??
-                            false),
-                  )
-                  .toList();
+        final filtered = allAnimals
+            .where(_matchesSearch)
+            .where(_matchesFilters)
+            .toList(growable: false);
 
         // Group by family
         final Map<String, List<AnimalModel>> grouped = {};
@@ -167,11 +154,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                       if (_searchErrorText != error) {
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {
-                                              if (mounted)
+                                              if (mounted) {
                                                 setState(
                                                   () =>
                                                       _searchErrorText = error,
                                                 );
+                                              }
                                             });
                                       }
                                     },
@@ -179,10 +167,11 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                                       if (_searchErrorText != null) {
                                         WidgetsBinding.instance
                                             .addPostFrameCallback((_) {
-                                              if (mounted)
+                                              if (mounted) {
                                                 setState(
                                                   () => _searchErrorText = null,
                                                 );
+                                              }
                                             });
                                       }
                                     },
@@ -268,6 +257,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
 
                       // View toggle
                       AnimalListControlButton(
+                        onTap: _toggleViewMode,
                         child: SvgPicture.asset(
                           _viewMode == AnimalCardMode.list
                               ? 'assets/icons/vuesax-bold-element-3.svg'
@@ -279,13 +269,14 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                           width: AppSpacing.iconSizeSmall,
                           height: AppSpacing.iconSizeSmall,
                         ),
-                        onTap: _toggleViewMode,
                       ),
 
                       const SizedBox(width: AppSpacing.m),
 
                       // Filter button
                       AnimalListControlButton(
+                        buttonKey: const Key('my-animals-filter-button'),
+                        onTap: _openFilters,
                         child: SvgPicture.asset(
                           'assets/icons/vuesax-bold-setting-4.svg',
                           colorFilter: ColorFilter.mode(
@@ -297,125 +288,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                           width: AppSpacing.iconSizeSmall,
                           height: AppSpacing.iconSizeSmall,
                         ),
-                        onTap: () async {
-                          final result =
-                              await showModalBottomSheet<Map<String, dynamic>>(
-                                context: context,
-                                isScrollControlled: true,
-                                backgroundColor: Colors.transparent,
-                                barrierColor: AppColors.overlayBlack,
-                                builder: (context) => AnimalFilterModal(
-                                  initialSex: _currentFilterSex,
-                                  initialFamilies: _currentFilterFamilies,
-                                  initialAges: _currentFilterAges,
-                                ),
-                              );
-
-                          if (!context.mounted) return;
-
-                          if (result != null) {
-                            setState(() {
-                              _currentFilterSex =
-                                  result['sex'] as String? ?? 'Ambos';
-                              _currentFilterFamilies =
-                                  result['families'] as List<String>? ?? [];
-                              _currentFilterAges =
-                                  result['ages'] as List<String>? ?? [];
-                            });
-
-                            final Map<String, dynamic> queryParams = {};
-
-                            final sex = result['sex'] as String?;
-                            if (sex != null) {
-                              if (sex == 'Ambos') {
-                                queryParams['sex'] = 'MALE,FEMALE';
-                              } else {
-                                queryParams['sex'] = sex == 'Macho'
-                                    ? 'MALE'
-                                    : 'FEMALE';
-                              }
-                            }
-
-                            // Species: map to API codes and send comma-separated
-                            final families =
-                                result['families'] as List<String>?;
-                            if (families != null && families.isNotEmpty) {
-                              final mappedSpecies = families.map((family) {
-                                switch (family) {
-                                  case 'Felino':
-                                    return 'CAT';
-                                  case 'Canino':
-                                    return 'DOG';
-                                  case 'Bovino':
-                                    return 'BOVINE';
-                                  case 'Equino':
-                                    return 'EQUINE';
-                                  default:
-                                    return family.toUpperCase();
-                                }
-                              }).toList();
-                              queryParams['species'] = mappedSpecies.join(',');
-                            }
-
-                            // Age ranges: send each range individually as min-max in months
-                            final ages = result['ages'] as List<String>?;
-                            if (ages != null && ages.isNotEmpty) {
-                              final List<String> ageRangeParts = [];
-
-                              for (final ageStr in ages) {
-                                switch (ageStr) {
-                                  case '0-6 meses':
-                                    ageRangeParts.add('0-6');
-                                    break;
-                                  case '7-11 meses':
-                                    ageRangeParts.add('7-11');
-                                    break;
-                                  case '1-3 años':
-                                    ageRangeParts.add('12-36');
-                                    break;
-                                  case '4-6 años':
-                                    ageRangeParts.add('48-72');
-                                    break;
-                                  case '7-10 años':
-                                    ageRangeParts.add('84-120');
-                                    break;
-                                  case '11-15 años':
-                                    ageRangeParts.add('132-180');
-                                    break;
-                                  case '16-20 años':
-                                    ageRangeParts.add('192-240');
-                                    break;
-                                  case '21-25 años':
-                                    ageRangeParts.add('252-300');
-                                    break;
-                                  case '+25 años':
-                                    ageRangeParts.add('301-600');
-                                    break;
-                                }
-                              }
-
-                              if (ageRangeParts.isNotEmpty) {
-                                queryParams['ageRanges'] = ageRangeParts.join(
-                                  ',',
-                                );
-                              }
-                            }
-
-                            if (queryParams.isEmpty) {
-                              // If no filters were selected or they were cleared, reload without filters
-                              if (context.read<AnimalCubit>().currentOwnerId !=
-                                  null) {
-                                context.read<AnimalCubit>().searchAnimals(
-                                  queryParams,
-                                );
-                              }
-                            } else {
-                              context.read<AnimalCubit>().searchAnimals(
-                                queryParams,
-                              );
-                            }
-                          }
-                        },
                       ),
                     ],
                   ),
@@ -459,6 +331,39 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           ],
         );
       },
+    );
+  }
+
+  Future<void> _openFilters() async {
+    final result = await showAnimalFilterModal(
+      context,
+      initialSex: _currentFilterSex,
+      initialFamilies: _currentFilterFamilies,
+      initialAges: _currentFilterAges,
+    );
+    if (!mounted || result == null) return;
+
+    setState(() {
+      _currentFilterSex = result['sex'] as String? ?? 'Ambos';
+      _currentFilterFamilies = result['families'] as List<String>? ?? [];
+      _currentFilterAges = result['ages'] as List<String>? ?? [];
+    });
+  }
+
+  bool _matchesSearch(AnimalModel animal) {
+    final query = _searchQuery.trim().toLowerCase();
+    return query.isEmpty ||
+        animal.name.toLowerCase().contains(query) ||
+        animal.code.toLowerCase().contains(query) ||
+        (animal.breed?.toLowerCase().contains(query) ?? false);
+  }
+
+  bool _matchesFilters(AnimalModel animal) {
+    return matchesAnimalFilters(
+      animal,
+      sex: _currentFilterSex,
+      families: _currentFilterFamilies,
+      ages: _currentFilterAges,
     );
   }
 

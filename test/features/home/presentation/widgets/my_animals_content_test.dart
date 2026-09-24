@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
@@ -8,6 +10,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
 import 'package:animal_record/features/home/presentation/widgets/my_animals_content.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
@@ -30,6 +33,66 @@ class _MockMedicalDocumentFlowCubit extends Mock
     implements MedicalDocumentFlowCubit {}
 
 void main() {
+  testWidgets(
+    'uses the shared animal filter and applies the selection locally',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final animalCubit = _MockAnimalCubit();
+      AnimalState animalState = AnimalInitial();
+      final animalStates = StreamController<AnimalState>.broadcast();
+      addTearDown(animalStates.close);
+      when(() => animalCubit.state).thenAnswer((_) => animalState);
+      when(() => animalCubit.stream).thenAnswer((_) => animalStates.stream);
+      when(() => animalCubit.animals).thenReturn(const [_animal, _maleAnimal]);
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalCubit>.value(
+          value: animalCubit,
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(0.9)),
+              child: child!,
+            ),
+            home: const Scaffold(body: MyAnimalsContent()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(AnimalListControlButton).first);
+      await tester.pump();
+
+      await tester.tap(find.byKey(const Key('my-animals-filter-button')));
+      await tester.pumpAndSettle();
+      expect(find.text('Filtros'), findsOneWidget);
+
+      await tester.tap(find.text('Macho'));
+      await tester.tap(find.text('Filtrar'));
+      await tester.pumpAndSettle();
+
+      animalState = const AnimalsLoaded([_animal, _maleAnimal]);
+      animalStates.add(animalState);
+      await tester.pumpAndSettle();
+
+      expect(find.text('Umi'), findsNothing);
+      expect(find.text('Max'), findsOneWidget);
+
+      await tester.tap(find.byKey(const Key('my-animals-filter-button')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Limpiar filtros'));
+      await tester.tap(find.text('Filtrar'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Umi'), findsOneWidget);
+      expect(find.text('Max'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'preselects the only active animal when uploading from My animals',
     (tester) async {
@@ -378,6 +441,21 @@ const _animal = AnimalEntity(
   breed: 'Criollo',
   sex: 'FEMALE',
   reproductiveStatus: 'SPAYED',
+  hasChip: false,
+  isAssociationMember: false,
+  temperament: [],
+  diagnosis: [],
+  ownerId: 'owner-1',
+);
+
+const _maleAnimal = AnimalEntity(
+  id: 'animal-2',
+  name: 'Max',
+  code: 'AR-C001',
+  species: 'DOG',
+  breed: 'Labrador',
+  sex: 'MALE',
+  reproductiveStatus: 'INTACT',
   hasChip: false,
   isAssociationMember: false,
   temperament: [],
