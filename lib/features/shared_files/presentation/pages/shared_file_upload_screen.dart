@@ -673,7 +673,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                       ),
                       const SizedBox(height: AppSpacing.s),
                       Text(
-                        'Analizando archivo...',
+                        'La IA está analizando tu archivo\n'
+                        'Por favor, no salgas de la pantalla.',
+                        textAlign: TextAlign.center,
                         style: AppTypography.body4.copyWith(
                           color: AppColors.aiViolet,
                           decoration: TextDecoration.none,

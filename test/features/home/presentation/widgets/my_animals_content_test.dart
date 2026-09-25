@@ -261,9 +261,7 @@ void main() {
     expect(selector.value, same(_animal));
     expect(selector.enabled, isFalse);
     expect(find.byType(AppMultiSearchDropdown<AnimalEntity>), findsNothing);
-    final analysisLabel = tester.widget<Text>(
-      find.text('Analizando archivo...'),
-    );
+    final analysisLabel = tester.widget<Text>(find.text(_analysisMessage));
     expect(analysisLabel.style?.color, AppColors.aiViolet);
     expect(analysisLabel.style?.decoration, TextDecoration.none);
     expect(
@@ -274,13 +272,13 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
 
-    expect(find.text('Analizando archivo...'), findsOneWidget);
+    expect(find.text(_analysisMessage), findsOneWidget);
     verifyNever(() => medicalDocumentFlowCubit.pausePolling());
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
-    expect(find.text('Analizando archivo...'), findsOneWidget);
+    expect(find.text(_analysisMessage), findsOneWidget);
     verifyNever(() => medicalDocumentFlowCubit.resumePolling());
     expect(tester.takeException(), isNull);
   });
@@ -425,7 +423,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SharedFileUploadScreen), findsOneWidget);
-      expect(find.text('Analizando archivo...'), findsOneWidget);
+      expect(find.text(_analysisMessage), findsOneWidget);
       verifyNever(() => medicalDocumentFlowCubit.pausePolling());
       verifyNever(() => sharedFilesCubit.clear());
       verifyNever(() => medicalDocumentFlowCubit.discardCurrentFlow());
@@ -434,7 +432,7 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SharedFileUploadScreen), findsOneWidget);
-      expect(find.text('Analizando archivo...'), findsOneWidget);
+      expect(find.text(_analysisMessage), findsOneWidget);
       verifyNever(() => medicalDocumentFlowCubit.resumePolling());
       expect(tester.takeException(), isNull);
     },
@@ -533,6 +531,10 @@ void main() {
     },
   );
 }
+
+const _analysisMessage =
+    'La IA está analizando tu archivo\n'
+    'Por favor, no salgas de la pantalla.';
 
 const _animal = AnimalEntity(
   id: 'animal-1',
