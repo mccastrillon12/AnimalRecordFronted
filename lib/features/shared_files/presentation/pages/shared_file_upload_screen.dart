@@ -54,6 +54,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   bool _pendingResumeChecked = false;
   bool _classificationCancellationConfirmed = false;
   bool _isClosing = false;
+  bool _analysisInterruptedByBackground = false;
+  Future<void>? _interruptedAnalysisDiscard;
 
   @override
   void initState() {
@@ -113,13 +115,28 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed &&
+        _analysisInterruptedByBackground) {
+      unawaited(_closeInterruptedAnalysis());
+      return;
+    }
+
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    if ((state == AppLifecycleState.paused ||
+            state == AppLifecycleState.detached) &&
+        (flow.state.phase == MedicalDocumentFlowPhase.uploading ||
+            flow.state.phase == MedicalDocumentFlowPhase.analyzing)) {
+      _analysisInterruptedByBackground = true;
+      _interruptedAnalysisDiscard ??= _discardInterruptedAnalysis();
+      return;
+    }
+
     if (_isExternalShare &&
         (state == AppLifecycleState.paused ||
             state == AppLifecycleState.detached)) {
       unawaited(_cancelExternalFlowAfterLeavingApp());
       return;
     }
-    final flow = context.read<MedicalDocumentFlowCubit>();
     if (state == AppLifecycleState.resumed &&
         flow.state.phase == MedicalDocumentFlowPhase.pollingPaused) {
       flow.resumePolling();
@@ -127,6 +144,44 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         state == AppLifecycleState.detached) {
       flow.pausePolling();
     }
+  }
+
+  Future<void> _discardInterruptedAnalysis() async {
+    if (_isExternalShare) {
+      context.read<SharedFilesCubit>().clear();
+    }
+    try {
+      await context.read<MedicalDocumentFlowCubit>().discardCurrentFlow();
+    } catch (_) {
+      // The local flow must still close when the user returns to the app.
+    }
+  }
+
+  Future<void> _closeInterruptedAnalysis() async {
+    if (_isClosing) return;
+    _isClosing = true;
+    await _interruptedAnalysisDiscard;
+    if (!mounted) return;
+
+    final navigator = Navigator.of(context);
+    final overlay = navigator.overlay;
+    if (navigator.canPop()) {
+      navigator.pop();
+    } else {
+      navigator.pushNamedAndRemoveUntil(
+        AppRoutes.home,
+        (_) => false,
+        arguments: const {homeInitialSectionArgument: homeMyAnimalsSection},
+      );
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (overlay != null) {
+        ErrorDisplay.showErrorOnOverlay(
+          overlay,
+          sharedFileAnalysisInterruptedMessage,
+        );
+      }
+    });
   }
 
   Future<void> _cancelExternalFlowAfterLeavingApp() async {
