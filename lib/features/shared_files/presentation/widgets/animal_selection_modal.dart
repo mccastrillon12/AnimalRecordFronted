@@ -121,11 +121,16 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
       onClose: () => Navigator.of(context).pop(),
       bottomChild: Padding(
         padding: const EdgeInsets.only(top: AppSpacing.l),
-        child: SizedBox(
-          width: 118,
-          child: CustomButton(
-            text: 'Continuar',
-            onPressed: _selectedIds.isEmpty ? null : _continue,
+        child: IntrinsicWidth(
+          child: ConstrainedBox(
+            key: const Key('animal-selection-continue-width'),
+            constraints: const BoxConstraints(minWidth: 118),
+            child: CustomButton(
+              text: 'Continuar',
+              expandWidth: false,
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
+              onPressed: _selectedIds.isEmpty ? null : _continue,
+            ),
           ),
         ),
       ),

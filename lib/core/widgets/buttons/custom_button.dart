@@ -8,6 +8,8 @@ class CustomButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final bool isLoading;
   final bool isSecondary;
+  final bool expandWidth;
+  final EdgeInsetsGeometry? padding;
 
   const CustomButton({
     super.key,
@@ -15,6 +17,8 @@ class CustomButton extends StatelessWidget {
     this.onPressed,
     this.isLoading = false,
     this.isSecondary = false,
+    this.expandWidth = true,
+    this.padding,
   });
 
   @override
@@ -29,7 +33,8 @@ class CustomButton extends StatelessWidget {
             ? AppColors.greyTextos
             : AppColors.primaryWhite,
         elevation: 0,
-        minimumSize: const Size(double.infinity, 36),
+        minimumSize: Size(expandWidth ? double.infinity : 0, 36),
+        padding: padding,
         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
         textStyle: AppTypography.body3,
         shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
