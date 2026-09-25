@@ -7,6 +7,7 @@ import 'package:animal_record/features/shared_files/presentation/cubit/shared_fi
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
@@ -227,6 +228,74 @@ void main() {
     await tester.tap(find.text('No subir'));
 
     expect(doNotUploadPressed, isTrue);
+  });
+
+  testWidgets('shows the complete analysis notice on narrow screens', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(343, 743));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const message =
+        'Análisis realizado con IA. Verifica los datos antes de subir el '
+        'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
+        'seleccionó múltiples animales este será el archivo que se le '
+        'asociará a cada uno de ellos.';
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Historia clínica',
+      documentNumber: 'HC-1',
+      date: null,
+      originalFileName: 'historia-clinica.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: 'Ema',
+        recordId: 'AR-C044',
+        species: 'Canino',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: const TextScaler.linear(1.2)),
+          child: child!,
+        ),
+        home: const SharedFileAnalysisReviewScreen(analysis: analysis),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final notice = find.byKey(const Key('analysis-ai-notice'));
+    final messageText = find.text(message);
+    final paragraph = tester.renderObject<RenderParagraph>(messageText);
+    final textBoxes = paragraph.getBoxesForSelection(
+      const TextSelection(baseOffset: 0, extentOffset: message.length),
+    );
+    final lastLineBottom = paragraph.localToGlobal(
+      Offset(0, textBoxes.last.bottom),
+    );
+    final paragraphBottom = paragraph.localToGlobal(
+      Offset(0, paragraph.size.height),
+    );
+
+    expect(messageText, findsOneWidget);
+    expect(
+      lastLineBottom.dy,
+      lessThanOrEqualTo(tester.getBottomLeft(notice).dy - AppSpacing.m),
+    );
+    expect(
+      tester.getBottomLeft(notice).dy - paragraphBottom.dy,
+      closeTo(AppSpacing.m, 0.01),
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets('renders every value received through the analysis entity', (

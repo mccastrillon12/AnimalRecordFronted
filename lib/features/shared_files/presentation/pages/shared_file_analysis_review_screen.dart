@@ -375,7 +375,7 @@ class _AnalysisNoticeHeader extends StatelessWidget {
             )
           : Container(
               key: const Key('analysis-ai-notice'),
-              height: containerHeight,
+              constraints: BoxConstraints(minHeight: containerHeight),
               padding: const EdgeInsets.all(AppSpacing.m),
               decoration: BoxDecoration(
                 gradient: AppColors.aiAnalysisGradient,
