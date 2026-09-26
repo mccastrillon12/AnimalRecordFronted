@@ -6,7 +6,7 @@ class ExportSharedFileAnalysisPdfUseCase {
 
   const ExportSharedFileAnalysisPdfUseCase(this.repository);
 
-  Future<void> call(SharedFileAnalysisEntity analysis) {
+  Future<bool> call(SharedFileAnalysisEntity analysis) {
     return repository.exportAnalysisPdf(analysis);
   }
 }

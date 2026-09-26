@@ -10,6 +10,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/analysis_detail_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -295,7 +296,12 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
         exportAnalysis = exportAnalysis.withOriginalUrl(originalUri.toString());
       }
       if (!mounted) return;
-      await context.read<SharedFilesCubit>().exportAnalysisPdf(exportAnalysis);
+      final shared = await context.read<SharedFilesCubit>().exportAnalysisPdf(
+        exportAnalysis,
+      );
+      if (shared && mounted) {
+        ErrorDisplay.showSuccess(context, 'El archivo se compartió con éxito.');
+      }
     } catch (_) {
       if (mounted) {
         ErrorDisplay.showError(
@@ -809,19 +815,10 @@ class _AnalysisValueRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final labelMaxLines = label.trim().contains(RegExp(r'\s')) ? 2 : 1;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 119,
-          child: Text(
-            label,
-            maxLines: labelMaxLines,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
-          ),
-        ),
+        SizedBox(width: 119, child: AnalysisDetailLabel(label: label)),
         const SizedBox(width: AppSpacing.xs),
         Expanded(
           child: GestureDetector(

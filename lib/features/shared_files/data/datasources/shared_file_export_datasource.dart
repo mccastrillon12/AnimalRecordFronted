@@ -5,7 +5,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:share_plus/share_plus.dart';
 
 abstract interface class SharedFileExportDataSource {
-  Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis);
+  Future<bool> exportAnalysisPdf(SharedFileAnalysisEntity analysis);
 
   Future<bool> saveAnalysisPdfs(
     List<SharedFileAnalysisEntity> analyses, {
@@ -23,14 +23,14 @@ class SharedFileExportDataSourceImpl implements SharedFileExportDataSource {
   });
 
   @override
-  Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis) async {
+  Future<bool> exportAnalysisPdf(SharedFileAnalysisEntity analysis) async {
     final bytes = await pdfBuilder.build(
       analysis: analysis,
       logoBytes: await _logoBytes(),
     );
     final fileName = '${_safeFileName(analysis.documentType)}.pdf';
 
-    await sharePlus.share(
+    final result = await sharePlus.share(
       ShareParams(
         title: 'Enviar ${analysis.documentType}',
         subject: analysis.documentType,
@@ -40,6 +40,7 @@ class SharedFileExportDataSourceImpl implements SharedFileExportDataSource {
         sharePositionOrigin: const Rect.fromLTWH(0, 0, 1, 1),
       ),
     );
+    return result.status == ShareResultStatus.success;
   }
 
   @override

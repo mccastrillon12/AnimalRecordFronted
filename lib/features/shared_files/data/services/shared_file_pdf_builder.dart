@@ -164,7 +164,7 @@ class SharedFilePdfBuilder {
     if (veterinarian?.hasData ?? false) {
       widgets.addAll([
         pw.SizedBox(height: 12),
-        _personSection(
+        ..._personSection(
           label: 'Veterinario',
           name: veterinarian!.name,
           details: [
@@ -180,7 +180,7 @@ class SharedFilePdfBuilder {
     if (analysis.tutor.hasData) {
       widgets.addAll([
         pw.SizedBox(height: 12),
-        _personSection(
+        ..._personSection(
           label: 'Tutor',
           name: analysis.tutor.name,
           details: [
@@ -196,7 +196,7 @@ class SharedFilePdfBuilder {
     if (analysis.patient.hasData) {
       widgets.addAll([
         pw.SizedBox(height: 12),
-        _personSection(
+        ..._personSection(
           label: 'Paciente',
           name: analysis.patient.name,
           details: [
@@ -223,20 +223,18 @@ class SharedFilePdfBuilder {
     }
 
     for (final section in regularSections) {
-      widgets.addAll([
-        pw.SizedBox(height: _sectionGap),
-        _analysisSection(section),
-      ]);
+      widgets.addAll(_analysisSection(section));
     }
 
     if (analysis.medications.isNotEmpty) {
       widgets.addAll([
+        pw.NewPage(freeSpace: 110),
         pw.SizedBox(height: _sectionGap),
         _sectionTitle(analysis.itemsTitle ?? 'Información médica'),
         pw.SizedBox(height: 12),
       ]);
       for (var index = 0; index < analysis.medications.length; index++) {
-        widgets.add(_medicalItem(analysis.medications[index]));
+        widgets.addAll(_medicalItem(analysis.medications[index]));
         if (index < analysis.medications.length - 1) {
           widgets.add(pw.SizedBox(height: 16));
         }
@@ -244,17 +242,13 @@ class SharedFilePdfBuilder {
     }
 
     if (analysis.observations?.trim().isNotEmpty ?? false) {
-      widgets.addAll([
-        pw.SizedBox(height: _sectionGap),
+      widgets.addAll(
         _textSection('Observaciones', analysis.observations!.trim()),
-      ]);
+      );
     }
 
     for (final section in additionalInformationSections) {
-      widgets.addAll([
-        pw.SizedBox(height: _sectionGap),
-        _analysisSection(section),
-      ]);
+      widgets.addAll(_analysisSection(section));
     }
     return widgets;
   }
@@ -264,7 +258,7 @@ class SharedFilePdfBuilder {
   ) {
     final widgets = <pw.Widget>[];
     if (analysis.tutor.hasData) {
-      widgets.add(
+      widgets.addAll(
         _personSection(
           label: 'Tutor',
           name: analysis.tutor.name,
@@ -280,7 +274,7 @@ class SharedFilePdfBuilder {
     }
     if (analysis.patient.hasData) {
       if (widgets.isNotEmpty) widgets.add(pw.SizedBox(height: 14));
-      widgets.add(
+      widgets.addAll(
         _personSection(
           label: 'Paciente',
           name: analysis.patient.name,
@@ -379,6 +373,8 @@ class SharedFilePdfBuilder {
           )
           .toList(growable: false);
       widgets.addAll([
+        // Keep vaccine/group headings with the first dose values.
+        pw.NewPage(freeSpace: startsVaccinationGroup ? 170 : 110),
         if (index == 0)
           pw.SizedBox(height: 18)
         else ...[
@@ -404,11 +400,11 @@ class SharedFilePdfBuilder {
         ),
         if (doseDetails.isNotEmpty) ...[
           pw.SizedBox(height: 12),
-          _vaccinationDetailGrid(doseDetails),
+          ..._vaccinationDetails(doseDetails),
         ],
         if (veterinarianName != null || veterinarianValues.isNotEmpty) ...[
           pw.SizedBox(height: 14),
-          _personSection(
+          ..._personSection(
             label: 'Veterinario',
             name: veterinarianName ?? '',
             details: veterinarianValues,
@@ -417,7 +413,7 @@ class SharedFilePdfBuilder {
         ],
         if (tutorName != null || tutorValues.isNotEmpty) ...[
           pw.SizedBox(height: 22),
-          _personSection(
+          ..._personSection(
             label: 'Tutor',
             name: tutorName ?? '',
             details: tutorValues,
@@ -426,7 +422,7 @@ class SharedFilePdfBuilder {
         ],
         if (patientName != null || patientValues.isNotEmpty) ...[
           pw.SizedBox(height: 22),
-          _personSection(
+          ..._personSection(
             label: 'Paciente',
             name: patientName ?? '',
             details: patientValues,
@@ -462,7 +458,7 @@ class SharedFilePdfBuilder {
                           ),
                           pw.SizedBox(height: 5),
                           pw.Text(
-                            details[index + column].$2,
+                            pdfSentenceLineBreaks(details[index + column].$2),
                             style: pw.TextStyle(
                               fontSize: _smallSize,
                               color: _text,
@@ -485,6 +481,30 @@ class SharedFilePdfBuilder {
       children: rows,
     );
   }
+
+  List<pw.Widget> _vaccinationDetails(List<(String, String)> details) {
+    final widgets = <pw.Widget>[];
+    var compact = <(String, String)>[];
+    void flushCompact() {
+      if (compact.isEmpty) return;
+      widgets.add(_vaccinationDetailGrid(compact));
+      compact = [];
+    }
+
+    for (final detail in details) {
+      if (_isLongDetail(detail)) {
+        flushCompact();
+        widgets.addAll([_flowingDetail(detail), pw.SizedBox(height: 12)]);
+      } else {
+        compact.add(detail);
+      }
+    }
+    flushCompact();
+    return widgets;
+  }
+
+  bool _isLongDetail((String, String) detail) =>
+      pdfSentenceLineBreaks(detail.$2).contains('\n') || detail.$2.length > 140;
 
   bool _isVaccinationCard(SharedFileAnalysisEntity analysis) {
     return isVaccinationPdfDocumentType(analysis.documentType);
@@ -557,7 +577,7 @@ class SharedFilePdfBuilder {
       )
       .toList(growable: false);
 
-  pw.Widget _personSection({
+  List<pw.Widget> _personSection({
     required String label,
     required String name,
     required List<(String, String)> details,
@@ -566,31 +586,52 @@ class SharedFilePdfBuilder {
     final visible = details
         .where((detail) => detail.$2.trim().isNotEmpty)
         .toList(growable: false);
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        if (name.trim().isNotEmpty)
-          pw.RichText(
-            text: pw.TextSpan(
-              style: pw.TextStyle(
-                fontSize: _bodySize,
-                fontWeight: pw.FontWeight.bold,
-                color: _text,
-              ),
-              children: [
-                pw.TextSpan(text: '$label '),
-                pw.TextSpan(
-                  text: name,
-                  style: pw.TextStyle(color: _blue),
-                ),
-              ],
+    return [
+      pw.NewPage(freeSpace: 80),
+      if (name.trim().isNotEmpty)
+        pw.RichText(
+          text: pw.TextSpan(
+            style: pw.TextStyle(
+              fontSize: _bodySize,
+              fontWeight: pw.FontWeight.bold,
+              color: _text,
             ),
+            children: [
+              pw.TextSpan(text: '$label '),
+              pw.TextSpan(
+                text: name,
+                style: pw.TextStyle(color: _blue),
+              ),
+            ],
           ),
-        if (name.trim().isNotEmpty && visible.isNotEmpty)
-          pw.SizedBox(height: 10),
-        if (visible.isNotEmpty) _detailGrid(visible, columns: columns),
-      ],
-    );
+        ),
+      if (name.trim().isNotEmpty && visible.isNotEmpty) pw.SizedBox(height: 10),
+      ..._personDetails(visible, columns: columns),
+    ];
+  }
+
+  List<pw.Widget> _personDetails(
+    List<(String, String)> details, {
+    required int columns,
+  }) {
+    final widgets = <pw.Widget>[];
+    var compact = <(String, String)>[];
+    void flushCompact() {
+      if (compact.isEmpty) return;
+      widgets.add(_detailGrid(compact, columns: columns));
+      compact = [];
+    }
+
+    for (final detail in details) {
+      if (_isLongDetail(detail)) {
+        flushCompact();
+        widgets.addAll([_flowingDetail(detail), pw.SizedBox(height: 8)]);
+      } else {
+        compact.add(detail);
+      }
+    }
+    flushCompact();
+    return widgets;
   }
 
   pw.Widget _detailGrid(
@@ -630,7 +671,7 @@ class SharedFilePdfBuilder {
               text: '${detail.$1}  ',
               style: pw.TextStyle(color: _secondary),
             ),
-            pw.TextSpan(text: detail.$2),
+            pw.TextSpan(text: pdfSentenceLineBreaks(detail.$2)),
           ],
         ),
       ),
@@ -646,85 +687,95 @@ class SharedFilePdfBuilder {
             text: '$label  ',
             style: pw.TextStyle(color: _secondary),
           ),
-          pw.TextSpan(text: value),
+          pw.TextSpan(text: pdfSentenceLineBreaks(value)),
         ],
       ),
     );
   }
 
-  pw.Widget _analysisSection(SharedFileAnalysisSectionEntity section) {
+  List<pw.Widget> _analysisSection(SharedFileAnalysisSectionEntity section) {
     final details = section.details
         .where((detail) => detail.hasData)
         .map((detail) => (detail.label, detail.value))
         .toList(growable: false);
     final body = section.body?.trim() ?? '';
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        _sectionTitle(section.title),
-        if (details.isNotEmpty || body.isNotEmpty) pw.SizedBox(height: 10),
-        if (details.isNotEmpty) _detailGrid(details, columns: 1),
-        if (details.isNotEmpty && body.isNotEmpty) pw.SizedBox(height: 6),
-        if (body.isNotEmpty) _bodyText(body),
+    return [
+      // Reserve room for the heading and the first lines of its content.
+      pw.NewPage(freeSpace: _sectionGap + _headingSize + 10 + 30),
+      pw.SizedBox(height: _sectionGap),
+      _sectionTitle(section.title),
+      if (details.isNotEmpty || body.isNotEmpty) pw.SizedBox(height: 10),
+      for (final detail in details) ...[
+        // Direct MultiPage children can span pages; a table cell cannot split
+        // a long narrative and would move it away from its heading.
+        _flowingDetail(detail),
+        pw.SizedBox(height: 8),
       ],
+      if (details.isNotEmpty && body.isNotEmpty) pw.SizedBox(height: 6),
+      if (body.isNotEmpty) _bodyText(body),
+    ];
+  }
+
+  pw.Widget _flowingDetail((String, String) detail) {
+    return pw.RichText(
+      overflow: pw.TextOverflow.span,
+      text: pw.TextSpan(
+        style: pw.TextStyle(fontSize: _smallSize, color: _text),
+        children: [
+          pw.TextSpan(
+            text: '${detail.$1}  ',
+            style: pw.TextStyle(color: _secondary),
+          ),
+          pw.TextSpan(text: pdfSentenceLineBreaks(detail.$2)),
+        ],
+      ),
     );
   }
 
-  pw.Widget _medicalItem(SharedFileMedicationAnalysisEntity item) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        pw.Row(
-          crossAxisAlignment: pw.CrossAxisAlignment.start,
-          children: [
-            pw.Text('>', style: pw.TextStyle(color: _blue, fontSize: 12)),
-            pw.SizedBox(width: 10),
-            pw.Expanded(
-              child: pw.Text(
-                item.name,
-                style: pw.TextStyle(
-                  fontSize: _bodySize,
-                  fontWeight: pw.FontWeight.bold,
-                  color: _text,
-                ),
+  List<pw.Widget> _medicalItem(SharedFileMedicationAnalysisEntity item) {
+    return [
+      pw.NewPage(freeSpace: 60),
+      pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.Text('>', style: pw.TextStyle(color: _blue, fontSize: 12)),
+          pw.SizedBox(width: 10),
+          pw.Expanded(
+            child: pw.Text(
+              item.name,
+              style: pw.TextStyle(
+                fontSize: _bodySize,
+                fontWeight: pw.FontWeight.bold,
+                color: _text,
               ),
             ),
-            if (item.quantity != null)
-              pw.Text(
-                'Dosis  x ${item.quantity}',
-                style: pw.TextStyle(fontSize: _smallSize, color: _text),
-              ),
-          ],
-        ),
-        if (item.instructions.trim().isNotEmpty)
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 20, top: 7),
-            child: _bodyText(item.instructions.trim()),
           ),
-        if (item.details.any((detail) => detail.hasData))
-          pw.Padding(
-            padding: const pw.EdgeInsets.only(left: 20, top: 8),
-            child: _detailGrid(
-              item.details
-                  .where((detail) => detail.hasData)
-                  .map((detail) => (detail.label, detail.value))
-                  .toList(growable: false),
-              columns: 1,
+          if (item.quantity != null)
+            pw.Text(
+              'Dosis  x ${item.quantity}',
+              style: pw.TextStyle(fontSize: _smallSize, color: _text),
             ),
-          ),
+        ],
+      ),
+      if (item.instructions.trim().isNotEmpty) ...[
+        pw.SizedBox(height: 7),
+        _bodyText(item.instructions.trim()),
       ],
-    );
+      for (final detail in item.details.where((detail) => detail.hasData)) ...[
+        pw.SizedBox(height: 8),
+        _flowingDetail((detail.label, detail.value)),
+      ],
+    ];
   }
 
-  pw.Widget _textSection(String title, String value) {
-    return pw.Column(
-      crossAxisAlignment: pw.CrossAxisAlignment.start,
-      children: [
-        _sectionTitle(title),
-        pw.SizedBox(height: 10),
-        _bodyText(value),
-      ],
-    );
+  List<pw.Widget> _textSection(String title, String value) {
+    return [
+      pw.NewPage(freeSpace: _sectionGap + _headingSize + 10 + 30),
+      pw.SizedBox(height: _sectionGap),
+      _sectionTitle(title),
+      pw.SizedBox(height: 10),
+      _bodyText(value),
+    ];
   }
 
   pw.Widget _sectionTitle(String value) {
@@ -763,7 +814,8 @@ class SharedFilePdfBuilder {
 
   pw.Widget _bodyText(String value) {
     return pw.Text(
-      value,
+      pdfSentenceLineBreaks(value),
+      overflow: pw.TextOverflow.span,
       style: pw.TextStyle(fontSize: _bodySize, lineSpacing: 3, color: _text),
     );
   }
@@ -806,6 +858,10 @@ class SharedFilePdfBuilder {
     return '${months[date.month - 1]} ${date.day}, ${date.year}';
   }
 }
+
+/// Adds display-only sentence breaks without splitting decimals or URLs.
+String pdfSentenceLineBreaks(String value) =>
+    value.replaceAll(RegExp(r'\.[ \t\u00A0]+(?=\S)'), '.\n');
 
 bool isVaccinationPdfDocumentType(String documentType) {
   final normalized = documentType

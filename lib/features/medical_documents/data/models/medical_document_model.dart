@@ -132,6 +132,9 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
           fallbackCategory,
       documentTypeConfidence: _double(json['documentTypeConfidence']),
       summary: json['summary']?.toString(),
+      reportedSummary: json['reportedSummary']?.toString(),
+      reportedRecommendations: json['reportedRecommendations']?.toString(),
+      reportedObservations: json['reportedObservations']?.toString(),
       documentDate: json['documentDate']?.toString(),
       issuer: _nullableMap(
         json['issuer'] ??
@@ -204,6 +207,12 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       if (extraction.documentTypeConfidence != null)
         'documentTypeConfidence': extraction.documentTypeConfidence,
       if (extraction.summary != null) 'summary': extraction.summary,
+      if (extraction.reportedSummary != null)
+        'reportedSummary': extraction.reportedSummary,
+      if (extraction.reportedRecommendations != null)
+        'reportedRecommendations': extraction.reportedRecommendations,
+      if (extraction.reportedObservations != null)
+        'reportedObservations': extraction.reportedObservations,
       if (extraction.documentDate != null)
         'documentDate': extraction.documentDate,
       if (extraction.issuer != null) 'issuer': extraction.issuer,
@@ -241,11 +250,16 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     }
 
     final lossless = _deepCopyJsonMap(extraction.rawExtraction);
-    lossless['documentType'] = extraction.documentType.wireValue;
-    lossless['additionalFields'] = _deepCopyJsonMap(
-      extraction.additionalFields,
-    );
-    return _removeConfidenceMetadata(lossless);
+    // The reviewed draft owns canonical values; raw data supplies only keys
+    // that this client does not model yet.
+    lossless.removeWhere((key, _) => _knownExtractionKeys.contains(key));
+    for (final entry in typedExtraction.entries) {
+      lossless[entry.key] = _mergeReviewedValue(
+        extraction.rawExtraction[entry.key],
+        entry.value,
+      );
+    }
+    return lossless;
   }
 
   static Map<String, dynamic> reviewRequestToJson(
@@ -267,8 +281,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       'finalCategory': request.finalCategory!.wireValue,
       'validatedExtraction': extractionToJson(
         request.validatedExtraction!,
-        preserveRawExtraction:
-            request.finalCategory != request.validatedExtraction!.documentType,
+        preserveRawExtraction: true,
       ),
       'assignments': request.assignments
           .map(
@@ -286,6 +299,9 @@ const Set<String> _knownExtractionKeys = {
   'documentType',
   'documentTypeConfidence',
   'summary',
+  'reportedSummary',
+  'reportedRecommendations',
+  'reportedObservations',
   'documentDate',
   'issuer',
   'veterinarian',
@@ -306,6 +322,53 @@ const Set<String> _knownExtractionKeys = {
   'laboratoryResults',
   'additionalFields',
   'warnings',
+};
+
+Object? _mergeReviewedValue(Object? raw, Object? reviewed) {
+  if (raw is Map && reviewed is Map) {
+    final merged = <String, dynamic>{
+      for (final entry in raw.entries)
+        entry.key.toString(): _deepCopyJsonValue(entry.value),
+    };
+    for (final entry in reviewed.entries) {
+      final key = entry.key.toString();
+      merged[key] = _mergeReviewedValue(raw[key], entry.value);
+    }
+    // A reviewer may clear one of the narrative fields. Do not restore its
+    // old value from the raw extraction during the merge.
+    for (final key in _reportedNarrativeKeys) {
+      if (!reviewed.containsKey(key)) merged.remove(key);
+    }
+    return merged;
+  }
+  if (raw is List && reviewed is List) {
+    final byId = <Object?, Object?>{
+      for (final item in raw)
+        if (item is Map && item.containsKey('id')) item['id']: item,
+    };
+    return [
+      for (var index = 0; index < reviewed.length; index++)
+        _mergeReviewedValue(
+          reviewed[index] is Map
+              ? byId[(reviewed[index] as Map)['id']]
+              : index < raw.length
+              ? raw[index]
+              : null,
+          reviewed[index],
+        ),
+    ];
+  }
+  return reviewed;
+}
+
+const _reportedNarrativeKeys = {
+  'reportedSummary',
+  'reportedRecommendations',
+  'reportedObservations',
+  'reportedTechnique',
+  'reportedFindings',
+  'reportedConclusion',
+  'reportedDiagnosis',
 };
 
 MedicalDocumentPatientEntity? _patientFromJson(Map<String, dynamic>? json) {
@@ -385,45 +448,6 @@ Object? _deepCopyJsonValue(Object? value) {
     return value.map(_deepCopyJsonValue).toList(growable: false);
   }
   return value;
-}
-
-Map<String, dynamic> _removeConfidenceMetadata(Map<String, dynamic> values) => {
-  for (final entry in values.entries)
-    if (!_isConfidenceMetadataKey(entry.key))
-      entry.key: _removeConfidenceValue(entry.value),
-};
-
-Object? _removeConfidenceValue(Object? value) {
-  if (value is Map) {
-    return _removeConfidenceMetadata(
-      value.map((key, item) => MapEntry(key.toString(), item)),
-    );
-  }
-  if (value is Iterable) {
-    return value.map(_removeConfidenceValue).toList(growable: false);
-  }
-  return value;
-}
-
-bool _isConfidenceMetadataKey(String key) {
-  final normalized = key
-      .trim()
-      .toLowerCase()
-      .replaceAll('ó', 'o')
-      .replaceAll('í', 'i')
-      .replaceAll(RegExp(r'[^a-z0-9]'), '');
-  if (normalized.contains('confidence') || normalized.contains('confianza')) {
-    return true;
-  }
-  final isClassification =
-      normalized.contains('classification') ||
-      normalized.contains('clasificacion');
-  final isScore =
-      normalized.contains('score') ||
-      normalized.contains('probability') ||
-      normalized.contains('probabilidad') ||
-      normalized.contains('puntuacion');
-  return isClassification && isScore;
 }
 
 String? _nullableString(Object? value) {

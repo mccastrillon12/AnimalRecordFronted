@@ -7,6 +7,140 @@ import 'package:flutter_test/flutter_test.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  test(
+    'starts a new PDF line after each sentence without changing decimals or links',
+    () {
+      expect(
+        pdfSentenceLineBreaks(
+          'Medida 3.58 x 2.00 cm. Normal.\tVer https://example.com/informe.pdf. Control.',
+        ),
+        'Medida 3.58 x 2.00 cm.\nNormal.\nVer https://example.com/informe.pdf.\nControl.',
+      );
+      expect(
+        pdfSentenceLineBreaks('Normal.\nControl.\n'),
+        'Normal.\nControl.\n',
+      );
+    },
+  );
+
+  for (final documentType in [
+    'Fórmula',
+    'Orden médica',
+    'Remisión',
+    'Historia clínica',
+    'Resultados de laboratorio',
+    'Archivo no identificado',
+    'Carnet de vacunación',
+    'Certificado de vacunación',
+  ]) {
+    test('flows long content across pages for $documentType', () async {
+      final narrative = List.generate(
+        100,
+        (index) => 'Línea ${index + 1}: texto completo del documento.',
+      ).join('\n');
+      final analysis = SharedFileAnalysisEntity(
+        documentType: documentType,
+        documentNumber: '',
+        date: null,
+        originalFileName: '',
+        patient: SharedFilePatientAnalysisEntity(
+          name: 'Paciente',
+          recordId: '',
+          species: '',
+          breed: '',
+          age: '',
+          weight: '',
+          additionalDetails: [
+            SharedFileAnalysisDetailEntity(label: 'Notas', value: narrative),
+          ],
+        ),
+        tutor: const SharedFileTutorAnalysisEntity(
+          name: '',
+          identification: '',
+          phoneNumber: '',
+        ),
+        medications: [
+          SharedFileMedicationAnalysisEntity(
+            name: 'Registro médico',
+            groupTitle: 'Vacuna Rabia',
+            instructions: narrative,
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Observaciones',
+                value: narrative,
+              ),
+            ],
+          ),
+        ],
+        sections: [
+          SharedFileAnalysisSectionEntity(title: 'Informe', body: narrative),
+        ],
+        observations: narrative,
+      );
+      final bytes = await SharedFilePdfBuilder().build(analysis: analysis);
+      expect(ascii.decode(bytes.take(5).toList()), '%PDF-');
+      expect(
+        RegExp(r'/Type\s*/Page\b').allMatches(latin1.decode(bytes)).length,
+        greaterThan(1),
+      );
+    });
+  }
+
+  test('paginates diagnostic findings longer than a whole page', () async {
+    final analysis = SharedFileAnalysisEntity(
+      documentType: 'Imagen diagnóstica',
+      documentNumber: '',
+      date: null,
+      originalFileName: 'ecografia.pdf',
+      patient: const SharedFilePatientAnalysisEntity(
+        name: '',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: const SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+      sections: [
+        SharedFileAnalysisSectionEntity(
+          title: 'Información general',
+          details: const [
+            SharedFileAnalysisDetailEntity(
+              label: 'Observaciones reportadas',
+              value: 'Estudio ecográfico con hallazgos narrativos completos.',
+            ),
+          ],
+        ),
+        SharedFileAnalysisSectionEntity(
+          title: 'Imágenes diagnósticas',
+          details: [
+            SharedFileAnalysisDetailEntity(
+              label: 'Hallazgos reportados',
+              value: List.generate(
+                120,
+                (index) =>
+                    'Órgano ${index + 1}: hallazgo completo del informe.',
+              ).join('\n'),
+            ),
+            const SharedFileAnalysisDetailEntity(
+              label: 'Conclusión reportada',
+              value: 'Correlacionar con los signos clínicos.',
+            ),
+          ],
+        ),
+      ],
+    );
+    final bytes = await SharedFilePdfBuilder().build(analysis: analysis);
+    final pageCount = RegExp(
+      r'/Type\s*/Page\b',
+    ).allMatches(latin1.decode(bytes)).length;
+    expect(pageCount, inInclusiveRange(2, 4));
+  });
+
   test('generates a valid PDF from variable analysis data', () async {
     final analysis = SharedFileAnalysisEntity(
       documentType: 'Fórmula médica',

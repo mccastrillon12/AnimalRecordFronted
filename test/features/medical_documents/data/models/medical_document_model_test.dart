@@ -4,6 +4,124 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
+  for (final category in MedicalDocumentCategory.values) {
+    test('preserves common reported and additional fields for $category', () {
+      final extraction = MedicalDocumentModel.extractionFromJson({
+        'documentType': category.wireValue,
+        'summary': 'Resumen histórico',
+        'reportedSummary': 'Resumen escrito',
+        'reportedRecommendations': 'Recomendación escrita',
+        'reportedObservations': 'Observación escrita',
+        'additionalFields': {'custom': 'Valor adicional'},
+        'futureField': {'nested': 'Conservar'},
+      }, category);
+      final payload = MedicalDocumentModel.reviewRequestToJson(
+        ReviewMedicalDocumentRequest.accept(
+          documentVersion: 1,
+          finalCategory: MedicalDocumentCategory.other,
+          validatedExtraction: extraction,
+          assignments: const [
+            MedicalDocumentAssignmentEntity(animalId: 'animal-1'),
+          ],
+        ),
+      );
+      final validated = payload['validatedExtraction'] as Map<String, dynamic>;
+      expect(validated['documentType'], category.wireValue);
+      expect(validated['reportedSummary'], 'Resumen escrito');
+      expect(validated['reportedRecommendations'], 'Recomendación escrita');
+      expect(validated['reportedObservations'], 'Observación escrita');
+      expect(validated['additionalFields'], {'custom': 'Valor adicional'});
+      expect(validated['futureField'], {'nested': 'Conservar'});
+    });
+  }
+
+  test('opens historical extraction without reported fields', () {
+    final extraction = MedicalDocumentModel.extractionFromJson({
+      'documentType': 'CLINICAL_HISTORY',
+      'summary': 'Resumen antiguo',
+      'additionalFields': <String, dynamic>{},
+    }, MedicalDocumentCategory.clinicalHistory);
+    expect(extraction.reportedSummary, isNull);
+    expect(extraction.reportedRecommendations, isNull);
+    expect(extraction.reportedObservations, isNull);
+    final serialized = MedicalDocumentModel.extractionToJson(extraction);
+    expect(serialized, isNot(contains('reportedSummary')));
+    expect(serialized['summary'], 'Resumen antiguo');
+  });
+
+  test('round-trips reported text and complete diagnostic image metadata', () {
+    final extraction = MedicalDocumentModel.extractionFromJson({
+      'documentType': 'DIAGNOSTIC_IMAGE',
+      'summary': 'Texto generado que no es el informe',
+      'reportedSummary': 'Resumen escrito\npor el profesional',
+      'reportedRecommendations': 'Correlacionar con signos clínicos.',
+      'reportedObservations': 'Estudio dinámico.',
+      'diagnosticImages': [
+        {
+          'id': 'diagnostic-image-1',
+          'name': 'Ecografía abdominal',
+          'modality': 'Ecografía',
+          'reportedTechnique': 'Sonda microconvexa a 9 MHz',
+          'reportedFindings': 'Hallazgos\npor órgano.',
+          'reportedConclusion': 'Imágenes sugerentes...',
+          'reportedDiagnosis': 'Diagnóstico rotulado',
+          'confidence': 0.91,
+          'source': {
+            'page': 2,
+            'text': 'Informe original',
+            'boundingBox': [1, 2, 3, 4],
+          },
+          'futureImageField': {'confirmed': true},
+        },
+      ],
+      'patientHints': <String>[],
+      'diagnoses': <Object>[],
+      'medications': <Object>[],
+      'vaccinations': <Object>[],
+      'medicalOrders': <Object>[],
+      'additionalFields': {'futureNote': 'Conservar'},
+      'warnings': <String>[],
+    }, MedicalDocumentCategory.diagnosticImage);
+
+    expect(extraction.reportedSummary, 'Resumen escrito\npor el profesional');
+    expect(
+      extraction.diagnosticImages.single.reportedDiagnosis,
+      'Diagnóstico rotulado',
+    );
+    final edited = extraction.copyWith(
+      reportedRecommendations: 'Control en 7 días',
+    );
+    final payload = MedicalDocumentModel.reviewRequestToJson(
+      ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.laboratoryResult,
+        validatedExtraction: edited,
+        assignments: const [
+          MedicalDocumentAssignmentEntity(
+            animalId: 'animal-1',
+            extractedItemIds: ['diagnostic-image-1'],
+          ),
+        ],
+      ),
+    );
+    final validated = payload['validatedExtraction'] as Map<String, dynamic>;
+    final image = (validated['diagnosticImages'] as List).single as Map;
+    expect(payload['finalCategory'], 'LABORATORY_RESULT');
+    expect(validated['documentType'], 'DIAGNOSTIC_IMAGE');
+    expect(validated['reportedSummary'], 'Resumen escrito\npor el profesional');
+    expect(validated['reportedRecommendations'], 'Control en 7 días');
+    expect(validated['reportedObservations'], 'Estudio dinámico.');
+    expect(image['reportedTechnique'], 'Sonda microconvexa a 9 MHz');
+    expect(image['reportedFindings'], 'Hallazgos\npor órgano.');
+    expect(image['reportedConclusion'], 'Imágenes sugerentes...');
+    expect(image['reportedDiagnosis'], 'Diagnóstico rotulado');
+    expect(image['confidence'], 0.91);
+    expect((image['source'] as Map)['boundingBox'], [1, 2, 3, 4]);
+    expect(image['futureImageField'], {'confirmed': true});
+    expect(validated['additionalFields'], {'futureNote': 'Conservar'});
+    expect(validated['laboratoryResults'], isNull);
+  });
+
   test('preserves unknown extraction properties during serialization', () {
     const unknownValue = {
       'futureMetadata': {'reviewed': false, 'sequence': 0},
@@ -21,7 +139,7 @@ void main() {
     );
   });
 
-  test('override sends every raw backend value except confidence metadata', () {
+  test('override preserves backend values and confidence metadata', () {
     final extraction = MedicalDocumentModel.extractionFromJson({
       'documentType': 'VACCINATION_CARD',
       'documentTypeConfidence': 0.91,
@@ -74,7 +192,7 @@ void main() {
         (validated['vaccinations'] as List).single as Map<String, dynamic>;
 
     expect(validated['documentType'], 'VACCINATION_CARD');
-    expect(validated, isNot(contains('documentTypeConfidence')));
+    expect(validated['documentTypeConfidence'], 0.91);
     expect((validated['patient'] as Map)['measurements'], {
       'weight': 12.4,
       'verified': true,
@@ -84,10 +202,13 @@ void main() {
       'enabled': true,
     });
     expect(vaccination['id'], 'vaccination-1');
-    expect(vaccination, isNot(contains('confidence')));
+    expect(vaccination['confidence'], 0.82);
     expect((vaccination['source'] as Map)['boundingBox'], [1, 2, 3, 4]);
     expect((vaccination['futureDetails'] as Map)['temperatures'], [2.5, 3.0]);
-    expect(validated['futureSection'], {'medicalValue': 'Conservar'});
+    expect(validated['futureSection'], {
+      'classificationScore': 0.72,
+      'medicalValue': 'Conservar',
+    });
   });
 
   test('matching category keeps the existing typed serialization', () {

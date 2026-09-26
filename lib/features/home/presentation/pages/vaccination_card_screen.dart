@@ -225,7 +225,12 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
         patient: _patient(widget.animal),
         tutor: _tutor(user, widget.animal),
       );
-      await di.sl<ExportSharedFileAnalysisPdfUseCase>()(analysis);
+      final shared = await di.sl<ExportSharedFileAnalysisPdfUseCase>()(
+        analysis,
+      );
+      if (shared && mounted) {
+        ErrorDisplay.showSuccess(context, 'El archivo se compartió con éxito.');
+      }
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
     } finally {

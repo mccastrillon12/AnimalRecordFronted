@@ -67,7 +67,7 @@ class SharedFilesCubit extends Cubit<SharedFilesState> {
     return pickManualSharedFileUseCase(source);
   }
 
-  Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
+  Future<bool> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
     return exportSharedFileAnalysisPdfUseCase(analysis);
   }
 

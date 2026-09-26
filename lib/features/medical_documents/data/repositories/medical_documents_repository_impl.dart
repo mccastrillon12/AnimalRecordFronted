@@ -8,6 +8,7 @@ import 'package:animal_record/features/medical_documents/domain/repositories/med
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   static const _fieldCatalogTtl = Duration(hours: 1);
+  static const _fieldCatalogVersion = '1.1.0';
 
   final MedicalDocumentsRemoteDataSource remoteDataSource;
 
@@ -30,7 +31,11 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     String locale = 'es-CO',
   }) {
     final normalizedLocale = locale.trim().isEmpty ? 'es-CO' : locale.trim();
-    final key = _MedicalFieldCatalogCacheKey(category, normalizedLocale);
+    final key = _MedicalFieldCatalogCacheKey(
+      category,
+      normalizedLocale,
+      _fieldCatalogVersion,
+    );
     final cached = _fieldCatalogCache[key];
     if (cached != null && !cached.isExpired(_fieldCatalogTtl)) {
       return Future.value(cached.catalog);
@@ -42,10 +47,12 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     request = remoteDataSource
         .getFieldCatalog(category: category, locale: normalizedLocale)
         .then((catalog) {
-          _fieldCatalogCache[key] = _CachedMedicalFieldCatalog(
-            catalog: catalog,
-            cachedAt: DateTime.now(),
-          );
+          if (catalog.catalogVersion == _fieldCatalogVersion) {
+            _fieldCatalogCache[key] = _CachedMedicalFieldCatalog(
+              catalog: catalog,
+              cachedAt: DateTime.now(),
+            );
+          }
           return catalog;
         })
         .whenComplete(() {
@@ -184,17 +191,19 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
 class _MedicalFieldCatalogCacheKey {
   final MedicalDocumentCategory category;
   final String locale;
+  final String version;
 
-  const _MedicalFieldCatalogCacheKey(this.category, this.locale);
+  const _MedicalFieldCatalogCacheKey(this.category, this.locale, this.version);
 
   @override
   bool operator ==(Object other) =>
       other is _MedicalFieldCatalogCacheKey &&
       category == other.category &&
-      locale == other.locale;
+      locale == other.locale &&
+      version == other.version;
 
   @override
-  int get hashCode => Object.hash(category, locale);
+  int get hashCode => Object.hash(category, locale, version);
 }
 
 class _CachedMedicalFieldCatalog {

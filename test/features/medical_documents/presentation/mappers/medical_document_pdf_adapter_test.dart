@@ -28,6 +28,15 @@ void main() {
     expect(medicalDocumentDisplayValue('NEEDS_REVIEW'), 'NEEDS_REVIEW');
   });
 
+  test('breaks narrative lines after periods without splitting decimals', () {
+    expect(
+      medicalDocumentNarrativeDisplayValue(
+        'Hallazgo uno. Hallazgo dos (3.58 X 2.00 cm). Conclusión.\nNota final.',
+      ),
+      'Hallazgo uno.\nHallazgo dos (3.58 X 2.00 cm).\nConclusión.\nNota final.',
+    );
+  });
+
   test('always hides warnings as technical metadata', () {
     for (final key in ['warning', 'warnings', 'advertencia', 'advertencias']) {
       expect(isMedicalDocumentTechnicalKey(key, const {}), isTrue);
@@ -296,7 +305,7 @@ void main() {
       analysis.documentType,
       MedicalDocumentCategory.diagnosticImage.label,
     );
-    expect(documentType.value, MedicalDocumentCategory.diagnosticImage.label);
+    expect(documentType.value, MedicalDocumentCategory.other.label);
   });
 
   test('keeps extracted values unchanged', () {
@@ -318,6 +327,147 @@ void main() {
     );
 
     expect(values, containsAll(['Canine', 'Neutered']));
+  });
+
+  test('shows reported narrative in full and hides legacy summary', () {
+    const narrative = 'Hallazgo del hígado. Hallazgo del bazo';
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.diagnosticImage,
+      summary: 'Resumen generado',
+      reportedSummary: 'Resumen escrito',
+      reportedRecommendations: 'Control en siete días',
+      reportedObservations: '',
+      diagnosticImages: [
+        MedicalDocumentItemEntity(
+          id: 'image-1',
+          fields: {
+            'name': 'Ecografía',
+            'reportedTechnique': 'Sonda 9 MHz',
+            'reportedFindings': narrative,
+            'reportedConclusion': 'Conclusión escrita',
+            'reportedDiagnosis': 'Diagnóstico escrito',
+          },
+        ),
+      ],
+    );
+    const catalog = MedicalFieldCatalog(
+      catalogVersion: '1.1.0',
+      locale: 'es-CO',
+      category: 'DIAGNOSTIC_IMAGE',
+      categoryLabel: 'Imagen diagnóstica',
+      sections: [
+        MedicalFieldSection(key: 'report', label: 'Informe', order: 1),
+      ],
+      fields: [
+        MedicalFieldDefinition(
+          path: 'summary',
+          label: 'Resumen anterior',
+          sectionKey: 'report',
+          order: 0,
+          kind: MedicalFieldKind.longText,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedSummary',
+          label: 'Resumen',
+          sectionKey: 'report',
+          order: 1,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedRecommendations',
+          label: 'Recomendaciones',
+          sectionKey: 'report',
+          order: 2,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedObservations',
+          label: 'Observaciones',
+          sectionKey: 'report',
+          order: 3,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: false,
+        ),
+        MedicalFieldDefinition(
+          path: 'diagnosticImages',
+          label: 'Imágenes diagnósticas',
+          sectionKey: 'report',
+          order: 4,
+          kind: MedicalFieldKind.table,
+          editable: true,
+          hideWhenEmpty: true,
+          columns: [
+            MedicalTableColumn(
+              key: 'reportedTechnique',
+              label: 'Técnica',
+              order: 1,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedFindings',
+              label: 'Hallazgos',
+              order: 2,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedConclusion',
+              label: 'Conclusión',
+              order: 3,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedDiagnosis',
+              label: 'Diagnóstico',
+              order: 4,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+          ],
+        ),
+      ],
+      hiddenTechnicalKeys: {},
+    );
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: catalog,
+      displayCategory: MedicalDocumentCategory.laboratoryResult,
+    );
+    final details = analysis.sections
+        .expand((section) => section.details)
+        .toList();
+    expect(
+      details.map((detail) => detail.value),
+      contains('Hallazgo del hígado.\nHallazgo del bazo'),
+    );
+    expect(extraction.diagnosticImages.single.reportedFindings, narrative);
+    expect(details.map((detail) => detail.value), contains('Resumen escrito'));
+    expect(
+      details.map((detail) => detail.value),
+      contains('Control en siete días'),
+    );
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Resumen anterior')),
+    );
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Observaciones')),
+    );
   });
 }
 

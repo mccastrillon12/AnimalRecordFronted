@@ -221,15 +221,6 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   void selectFinalCategory(MedicalDocumentCategory category) {
     final document = state.remoteDocument;
     if (document == null) return;
-    final draft = state.draftExtraction;
-    if (draft == null ||
-        draft.documentType == category ||
-        document.classificationOutcome ==
-            MedicalDocumentClassificationOutcome.unclassified ||
-        !_hasExtractionContent(draft)) {
-      _emitReview(document, category);
-      return;
-    }
     emit(
       state.copyWith(
         selectedFinalCategory: category,
@@ -245,7 +236,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     final document = state.remoteDocument;
     final extraction = document?.extractionsByCategory[category];
     if (document == null || extraction == null) return;
-    final draft = extraction.sanitizedFor(extraction.documentType);
+    final draft = extraction;
     emit(
       state.copyWith(
         selectedExtractionCategory: category,
@@ -264,17 +255,17 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     MedicalDocumentEntity document,
     MedicalDocumentCategory category,
   ) {
-    final sanitized = _reviewExtraction(document, category);
+    final draft = _reviewExtraction(document, category);
     emit(
       state.copyWith(
         phase: MedicalDocumentFlowPhase.reviewing,
         remoteDocument: document,
         selectedFinalCategory: category,
-        selectedExtractionCategory: sanitized.documentType,
-        draftExtraction: sanitized,
+        selectedExtractionCategory: draft.documentType,
+        draftExtraction: draft,
         assignmentsByAnimalId: {
           for (final animalId in document.animalIds)
-            animalId: List.unmodifiable(sanitized.extractedItemIds),
+            animalId: List.unmodifiable(draft.extractedItemIds),
         },
         clearMessage: true,
         versionConflict: false,
@@ -286,54 +277,19 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
     MedicalDocumentEntity document,
     MedicalDocumentCategory category,
   ) {
-    final matchingExtraction = document.extractionsByCategory[category];
-    if (matchingExtraction != null &&
-        _hasExtractionContent(matchingExtraction)) {
-      return matchingExtraction.sanitizedFor(category);
-    }
-
-    // A manually selected category has no inferred structure. The backend
-    // contract requires a clean, category-specific draft instead of reusing
-    // fields detected for a different category.
-    return MedicalDocumentExtractionEntity.empty(category);
-  }
-
-  bool _hasExtractionContent(MedicalDocumentExtractionEntity extraction) {
-    return _hasPreservedValue(extraction.summary) ||
-        _hasPreservedValue(extraction.documentDate) ||
-        _hasPreservedValue(extraction.issuer) ||
-        (extraction.patient?.hasData ?? false) ||
-        (extraction.owner?.hasData ?? false) ||
-        extraction.patientHints.isNotEmpty ||
-        extraction.diagnoses.isNotEmpty ||
-        extraction.medications.isNotEmpty ||
-        extraction.vaccinations.isNotEmpty ||
-        extraction.medicalOrders.isNotEmpty ||
-        _hasPreservedValue(extraction.clinicalHistory) ||
-        extraction.diagnosticResults.isNotEmpty ||
-        _hasPreservedValue(extraction.referral) ||
-        extraction.diagnosticImages.isNotEmpty ||
-        _hasPreservedValue(extraction.laboratoryReport) ||
-        extraction.laboratoryResults.isNotEmpty ||
-        extraction.additionalFields.isNotEmpty ||
-        extraction.warnings.isNotEmpty;
-  }
-
-  bool _hasPreservedValue(Object? value) {
-    if (value == null) return false;
-    if (value is String) return value.trim().isNotEmpty;
-    if (value is Iterable) return value.isNotEmpty;
-    if (value is Map) return value.isNotEmpty;
-    return true;
+    return document.validatedExtraction ??
+        document.extractionsByCategory[document.primaryDetectedCategory] ??
+        document.extractionsByCategory[category] ??
+        document.extractionsByCategory.values.firstOrNull ??
+        MedicalDocumentExtractionEntity.empty(MedicalDocumentCategory.other);
   }
 
   void updateDraft(MedicalDocumentExtractionEntity extraction) {
     if (state.selectedFinalCategory == null) return;
-    final sanitized = extraction.sanitizedFor(extraction.documentType);
-    final validIds = sanitized.extractedItemIds.toSet();
+    final validIds = extraction.extractedItemIds.toSet();
     emit(
       state.copyWith(
-        draftExtraction: sanitized,
+        draftExtraction: extraction,
         assignmentsByAnimalId: {
           for (final entry in state.assignmentsByAnimalId.entries)
             entry.key: entry.value
@@ -377,10 +333,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
       final request = ReviewMedicalDocumentRequest.accept(
         documentVersion: document.version,
         finalCategory: category,
-        validatedExtraction: _validatedExtractionForReview(
-          document,
-          extraction,
-        ),
+        validatedExtraction: extraction,
         assignments: document.animalIds
             .map(
               (animalId) => MedicalDocumentAssignmentEntity(
@@ -416,20 +369,6 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
         ),
       );
     }
-  }
-
-  MedicalDocumentExtractionEntity _validatedExtractionForReview(
-    MedicalDocumentEntity document,
-    MedicalDocumentExtractionEntity draft,
-  ) {
-    if (document.classificationOutcome ==
-        MedicalDocumentClassificationOutcome.unclassified) {
-      final unclassifiedExtraction =
-          document.extractionsByCategory[MedicalDocumentCategory.other] ??
-          MedicalDocumentExtractionEntity.empty(MedicalDocumentCategory.other);
-      return unclassifiedExtraction.sanitizedFor(MedicalDocumentCategory.other);
-    }
-    return draft.sanitizedFor(draft.documentType);
   }
 
   Future<void> _handleVersionConflict(String documentId) async {

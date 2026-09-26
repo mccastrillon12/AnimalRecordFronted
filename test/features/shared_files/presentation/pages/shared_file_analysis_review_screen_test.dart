@@ -2,6 +2,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
+import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_state.dart';
@@ -15,6 +16,63 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  for (final fails in [false, true]) {
+    testWidgets(
+      'does not show sharing success when ${fails ? 'sharing fails' : 'sharing is cancelled'}',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(390, 844));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        const analysis = SharedFileAnalysisEntity(
+          documentType: 'Fórmula médica',
+          documentNumber: '',
+          date: null,
+          originalFileName: 'formula.pdf',
+          patient: SharedFilePatientAnalysisEntity(
+            name: '',
+            recordId: '',
+            species: '',
+            breed: '',
+            age: '',
+            weight: '',
+          ),
+          tutor: SharedFileTutorAnalysisEntity(
+            name: '',
+            identification: '',
+            phoneNumber: '',
+          ),
+        );
+        final cubit = _MockSharedFilesCubit();
+        when(() => cubit.state).thenReturn(SharedFilesInitial());
+        when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+        when(() => cubit.exportAnalysisPdf(analysis)).thenAnswer((_) async {
+          if (fails) throw Exception('Sharing failed');
+          return false;
+        });
+        await tester.pumpWidget(
+          BlocProvider<SharedFilesCubit>.value(
+            value: cubit,
+            child: const MaterialApp(
+              home: SharedFileSendScreen(analysis: analysis),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('Enviar fórmula'));
+        await tester.pumpAndSettle();
+        expect(find.text('El archivo se compartió con éxito.'), findsNothing);
+        if (fails) {
+          expect(
+            tester.widget<CustomSnackBar>(find.byType(CustomSnackBar)).isError,
+            isTrue,
+          );
+          await tester.pump(const Duration(seconds: 4));
+          await tester.pumpAndSettle();
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets('uses the document type as the only category title', (
     tester,
   ) async {
@@ -407,7 +465,10 @@ void main() {
     expect(find.text('Medicamento variable'), findsOneWidget);
     expect(find.text('x 3'), findsOneWidget);
     expect(find.text('Indicaciones variables del backend.'), findsOneWidget);
-    expect(find.text('backendKey'), findsOneWidget);
+    final dynamicLabelFinder = find.byWidgetPredicate(
+      (widget) => widget is Text && widget.semanticsLabel == 'backendKey',
+    );
+    expect(dynamicLabelFinder, findsOneWidget);
     expect(find.text('backendValue'), findsOneWidget);
     expect(find.text('Remisión'), findsOneWidget);
     expect(find.text('Motivo'), findsOneWidget);
@@ -419,7 +480,7 @@ void main() {
     expect(tester.takeException(), isNull);
 
     final dateLabel = tester.widget<Text>(find.text('Fecha'));
-    final dynamicLabel = tester.widget<Text>(find.text('backendKey'));
+    final dynamicLabel = tester.widget<Text>(dynamicLabelFinder);
     final medicationName = tester.widget<Text>(
       find.text('Medicamento variable'),
     );
@@ -427,22 +488,18 @@ void main() {
       find.text('resultado-variable.pdf'),
     );
     expect(dateLabel.style?.fontSize, AppTypography.body4.fontSize);
-    final multiWordLabel = tester.widget<Text>(find.text('Animal Record ID'));
-    expect(dynamicLabel.maxLines, 1);
-    expect(dynamicLabel.overflow, TextOverflow.ellipsis);
-    expect(multiWordLabel.maxLines, 2);
-    expect(multiWordLabel.overflow, TextOverflow.ellipsis);
+    final multiWordLabelFinder = find.byWidgetPredicate(
+      (widget) => widget is Text && widget.semanticsLabel == 'Animal Record ID',
+    );
+    final multiWordLabel = tester.widget<Text>(multiWordLabelFinder);
+    expect(dynamicLabel.maxLines, isNull);
+    expect(multiWordLabel.maxLines, isNull);
     expect(medicationName.style?.fontSize, AppTypography.body4.fontSize);
     expect(originalFileName.maxLines, 1);
     expect(originalFileName.overflow, TextOverflow.ellipsis);
 
     final patientIdRow = tester.widget<Row>(
-      find
-          .ancestor(
-            of: find.text('Animal Record ID'),
-            matching: find.byType(Row),
-          )
-          .first,
+      find.ancestor(of: multiWordLabelFinder, matching: find.byType(Row)).first,
     );
     expect(patientIdRow.children[1], isA<SizedBox>());
     expect((patientIdRow.children[1] as SizedBox).width, AppSpacing.xs);
@@ -586,7 +643,13 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.textContaining('BENJI', findRichText: true), findsOneWidget);
-    expect(find.text('Animal Record ID'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Text && widget.semanticsLabel == 'Animal Record ID',
+      ),
+      findsOneWidget,
+    );
     expect(find.text('Especie'), findsOneWidget);
     expect(find.text('Raza'), findsOneWidget);
     expect(find.text('Edad'), findsNothing);
@@ -676,7 +739,7 @@ void main() {
     final cubit = _MockSharedFilesCubit();
     when(() => cubit.state).thenReturn(SharedFilesInitial());
     when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
-    when(() => cubit.exportAnalysisPdf(any())).thenAnswer((_) async {});
+    when(() => cubit.exportAnalysisPdf(any())).thenAnswer((_) async => true);
 
     await tester.pumpWidget(
       BlocProvider<SharedFilesCubit>.value(
@@ -708,5 +771,12 @@ void main() {
     );
     expect(analysis.medications.single.originalUrl, 'document-id');
     expect(analysis.originalUrl, isNull);
+    expect(find.text('El archivo se compartió con éxito.'), findsOneWidget);
+    expect(
+      tester.widget<CustomSnackBar>(find.byType(CustomSnackBar)).isError,
+      isFalse,
+    );
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
   });
 }

@@ -92,8 +92,14 @@ String medicalDocumentDisplayValue(
         .join(', ');
   }
 
-  return value.toString().trim();
+  // Narrative fields must retain the exact text and line breaks received.
+  return value is String ? value : value.toString();
 }
+
+/// Starts a new display line after a sentence-ending period. The extracted
+/// value itself is never changed, and decimal numbers have no following space.
+String medicalDocumentNarrativeDisplayValue(String value) =>
+    value.replaceAll(RegExp(r'\.[ \t\u00A0]+(?=\S)'), '.\n');
 
 String _normalizedKey(String value) => value
     .trim()

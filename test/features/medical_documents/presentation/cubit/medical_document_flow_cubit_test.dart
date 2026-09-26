@@ -368,7 +368,10 @@ void main() {
           MedicalDocumentCategory.other,
         );
         cubit.selectFinalCategory(finalCategory);
-        expect(cubit.state.draftExtraction?.documentType, finalCategory);
+        expect(
+          cubit.state.draftExtraction?.documentType,
+          MedicalDocumentCategory.other,
+        );
 
         await cubit.accept();
 
@@ -594,6 +597,69 @@ void main() {
       await cubit.close();
     }
   });
+
+  test(
+    'archives diagnostic narrative under laboratory without changing it',
+    () async {
+      const extraction = MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.diagnosticImage,
+        reportedSummary: 'Resumen escrito',
+        reportedRecommendations: 'Control posterior',
+        reportedObservations: 'Estudio dinámico',
+        diagnosticImages: [
+          MedicalDocumentItemEntity(
+            id: 'image-1',
+            confidence: 0.9,
+            fields: {
+              'name': 'Ecografía',
+              'reportedTechnique': 'Sonda de 9 MHz',
+              'reportedFindings': 'Hallazgos por órgano',
+              'reportedConclusion': 'Conclusión escrita',
+              'reportedDiagnosis': 'Diagnóstico escrito',
+            },
+          ),
+        ],
+        additionalFields: {'otherDocumentField': 'Conservar'},
+      );
+      final repository = _FakeMedicalDocumentsRepository(
+        analyzeResponse: _document(MedicalDocumentStatus.analyzing),
+        getResponses: [
+          _mismatchedDocument(
+            detected: MedicalDocumentCategory.diagnosticImage,
+            selected: MedicalDocumentCategory.laboratoryResult,
+            extraction: extraction,
+          ),
+        ],
+        reviewResponse: _document(MedicalDocumentStatus.accepted, version: 2),
+      );
+      final cubit = _buildCubit(repository, _MemoryPendingDataSource());
+      addTearDown(cubit.close);
+      await cubit.startAnalysis(
+        file: file,
+        animalIds: const [animal1Id, animal2Id],
+      );
+      final draft = cubit.state.draftExtraction;
+      cubit.selectFinalCategory(MedicalDocumentCategory.laboratoryResult);
+      expect(cubit.state.draftExtraction, same(draft));
+      expect(
+        cubit.state.draftExtraction?.documentType,
+        MedicalDocumentCategory.diagnosticImage,
+      );
+      expect(cubit.state.assignmentsByAnimalId[animal1Id], ['image-1']);
+      await cubit.accept();
+      final reviewed = repository.lastReviewRequest!;
+      expect(reviewed.finalCategory, MedicalDocumentCategory.laboratoryResult);
+      expect(reviewed.validatedExtraction, same(draft));
+      expect(
+        reviewed.validatedExtraction?.diagnosticImages.single.reportedFindings,
+        'Hallazgos por órgano',
+      );
+      expect(reviewed.validatedExtraction?.laboratoryResults, isEmpty);
+      expect(reviewed.validatedExtraction?.additionalFields, {
+        'otherDocumentField': 'Conservar',
+      });
+    },
+  );
 }
 
 MedicalDocumentFlowCubit _buildCubit(
@@ -627,9 +693,6 @@ MedicalDocumentEntity _document(
         id: 'medication-1',
         fields: {'name': 'ProtectionPets', 'route': 'oral'},
       ),
-    ],
-    vaccinations: [
-      MedicalDocumentItemEntity(id: 'vaccination-1', fields: {'name': 'Rabia'}),
     ],
   );
   return MedicalDocumentEntity(
