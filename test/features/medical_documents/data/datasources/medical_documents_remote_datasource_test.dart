@@ -138,6 +138,7 @@ void main() {
       ),
     ).called(1);
     expect(catalog.categoryLabel, 'Historia clínica');
+    expect(catalog.catalogVersion, '1.2.0');
     expect(catalog.fieldAt('patient.identifier')?.label, 'Identificador');
   });
 
@@ -395,7 +396,7 @@ Map<String, dynamic> _response({required String status}) => {
 };
 
 const _fieldCatalogResponse = <String, dynamic>{
-  'catalogVersion': '1.0.0',
+  'catalogVersion': '1.2.0',
   'locale': 'es-CO',
   'category': 'CLINICAL_HISTORY',
   'categoryLabel': 'Historia clínica',

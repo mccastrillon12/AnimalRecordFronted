@@ -351,7 +351,7 @@ void main() {
       ],
     );
     const catalog = MedicalFieldCatalog(
-      catalogVersion: '1.1.0',
+      catalogVersion: '1.2.0',
       locale: 'es-CO',
       category: 'DIAGNOSTIC_IMAGE',
       categoryLabel: 'Imagen diagnóstica',

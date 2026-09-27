@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:animal_record/features/medical_documents/data/models/medical_document_model.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
@@ -34,6 +36,88 @@ void main() {
       expect(validated['futureField'], {'nested': 'Conservar'});
     });
   }
+
+  test(
+    'local JSON round trip retains nested metadata and acceptance payload',
+    () {
+      const original = <String, dynamic>{
+        'documentType': 'DIAGNOSTIC_IMAGE',
+        'reportedSummary': 'Resumen escrito',
+        'reportedRecommendations': 'Control posterior.\nHome care: reposo.',
+        'reportedObservations': 'Estudio dinámico',
+        'owner': {
+          'name': 'Ana',
+          'preferredContact': {'channel': 'PHONE', 'verified': true},
+        },
+        'diagnosticImages': [
+          {
+            'id': 'image-1',
+            'name': 'Ecografía',
+            'reportedTechnique': 'Sonda 9 MHz',
+            'reportedFindings': 'Hallazgo uno. Hallazgo dos (3.58 cm).',
+            'reportedConclusion': 'Conclusión escrita',
+            'reportedDiagnosis': 'Diagnóstico rotulado',
+            'confidence': 0.91,
+            'source': {
+              'page': 2,
+              'text': 'Informe original',
+              'boundingBox': [1, 2, 3, 4],
+              'futureSource': {'verified': true},
+            },
+            'futureImageField': {'sequence': 0},
+          },
+        ],
+        'patientHints': <String>[],
+        'diagnoses': <Object>[],
+        'medications': <Object>[],
+        'vaccinations': <Object>[],
+        'medicalOrders': <Object>[],
+        'additionalFields': <String, dynamic>{},
+        'warnings': <String>[],
+        'futureExtractionField': {'enabled': false},
+      };
+      final extraction = MedicalDocumentModel.extractionFromJson(
+        original,
+        MedicalDocumentCategory.diagnosticImage,
+      );
+      final serialized = MedicalDocumentModel.extractionToJson(extraction);
+      expect(serialized, original);
+
+      final restored = MedicalDocumentModel.extractionFromJson(
+        jsonDecode(jsonEncode(serialized)) as Map<String, dynamic>,
+        MedicalDocumentCategory.diagnosticImage,
+      );
+      expect(
+        MedicalDocumentModel.extractionToJson(restored.copyWith()),
+        original,
+      );
+
+      final request = ReviewMedicalDocumentRequest.accept(
+        documentVersion: 2,
+        finalCategory: MedicalDocumentCategory.laboratoryResult,
+        validatedExtraction: restored,
+        assignments: const [
+          MedicalDocumentAssignmentEntity(
+            animalId: 'animal-1',
+            extractedItemIds: ['image-1'],
+          ),
+        ],
+      );
+      expect(MedicalDocumentModel.reviewRequestToJson(request), {
+        'decision': 'ACCEPT',
+        'documentVersion': 2,
+        'finalCategory': 'LABORATORY_RESULT',
+        'validatedExtraction': original,
+        'assignments': [
+          {
+            'animalId': 'animal-1',
+            'extractedItemIds': ['image-1'],
+          },
+        ],
+      });
+      expect(restored.laboratoryResults, isEmpty);
+    },
+  );
 
   test('opens historical extraction without reported fields', () {
     final extraction = MedicalDocumentModel.extractionFromJson({

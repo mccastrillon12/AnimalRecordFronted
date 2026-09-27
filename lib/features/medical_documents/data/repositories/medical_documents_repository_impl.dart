@@ -8,7 +8,7 @@ import 'package:animal_record/features/medical_documents/domain/repositories/med
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   static const _fieldCatalogTtl = Duration(hours: 1);
-  static const _fieldCatalogVersion = '1.1.0';
+  static const _fieldCatalogVersion = '1.2.0';
 
   final MedicalDocumentsRemoteDataSource remoteDataSource;
 

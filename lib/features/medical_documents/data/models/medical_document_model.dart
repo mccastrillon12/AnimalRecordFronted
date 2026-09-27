@@ -184,9 +184,11 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     );
   }
 
+  /// Retains unmodeled nested metadata for local round trips as well as review.
+  /// Callers can still explicitly request only the modeled representation.
   static Map<String, dynamic> extractionToJson(
     MedicalDocumentExtractionEntity extraction, {
-    bool preserveRawExtraction = false,
+    bool preserveRawExtraction = true,
   }) {
     Map<String, dynamic> itemToJson(MedicalDocumentItemEntity item) {
       return <String, dynamic>{
