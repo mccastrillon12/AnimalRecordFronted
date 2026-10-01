@@ -716,32 +716,81 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
           ),
           if (flowState.phase == MedicalDocumentFlowPhase.uploading ||
               flowState.phase == MedicalDocumentFlowPhase.analyzing)
-            Positioned.fill(
-              child: ColoredBox(
-                color: AppColors.white.withValues(alpha: 0.72),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(
-                        color: AppColors.aiViolet,
-                      ),
-                      const SizedBox(height: AppSpacing.s),
-                      Text(
-                        'La IA está analizando tu archivo\n'
-                        'Por favor, no salgas de la pantalla.',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.aiViolet,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ],
-                  ),
+            const _AnalysisProgressOverlay(),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnalysisProgressOverlay extends StatefulWidget {
+  const _AnalysisProgressOverlay();
+
+  @override
+  State<_AnalysisProgressOverlay> createState() =>
+      _AnalysisProgressOverlayState();
+}
+
+class _AnalysisProgressOverlayState extends State<_AnalysisProgressOverlay> {
+  static const _messages = [
+    'Estamos analizando tu archivo…',
+    'Estamos organizando la información encontrada…',
+    'En un momento obtendrás los resultados.',
+    'Estamos preparando la información para ti…',
+  ];
+
+  Timer? _messageTimer;
+  int _messageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      setState(() {
+        _messageIndex = (_messageIndex + 1) % _messages.length;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messageStyle = AppTypography.body4.copyWith(
+      color: AppColors.aiViolet,
+      decoration: TextDecoration.none,
+    );
+
+    return Positioned.fill(
+      child: ColoredBox(
+        color: AppColors.white.withValues(alpha: 0.72),
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const CircularProgressIndicator(color: AppColors.aiViolet),
+              const SizedBox(height: AppSpacing.s),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                child: Text(
+                  _messages[_messageIndex],
+                  key: ValueKey(_messageIndex),
+                  textAlign: TextAlign.center,
+                  style: messageStyle,
                 ),
               ),
-            ),
-        ],
+              Text(
+                'Por favor, no salgas de la pantalla.',
+                textAlign: TextAlign.center,
+                style: messageStyle,
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
