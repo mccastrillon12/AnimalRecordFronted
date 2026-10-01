@@ -75,6 +75,7 @@ class VaccinationGroupViewData extends Equatable {
 class VaccinationDoseViewData extends Equatable {
   final String title;
   final MedicalDocumentEntity document;
+  final String applicationDate;
   final String nextDoseDate;
   final String nextDoseDateLabel;
   final List<SharedFileAnalysisDetailEntity> details;
@@ -85,6 +86,7 @@ class VaccinationDoseViewData extends Equatable {
   const VaccinationDoseViewData({
     required this.title,
     required this.document,
+    required this.applicationDate,
     required this.nextDoseDate,
     required this.nextDoseDateLabel,
     required this.details,
@@ -97,6 +99,7 @@ class VaccinationDoseViewData extends Equatable {
   List<Object?> get props => [
     title,
     document,
+    applicationDate,
     nextDoseDate,
     nextDoseDateLabel,
     details,
@@ -131,6 +134,7 @@ VaccinationDetailViewData vaccinationDetailViewData(
       VaccinationDoseViewData(
         title: 'Dosis ${index + 1}',
         document: application.document,
+        applicationDate: application.applicationDate,
         nextDoseDate: application.nextDoseDate,
         nextDoseDateLabel: application.nextDoseDateLabel,
         details: _doseDetails(application.vaccination.fields, catalog),
@@ -415,9 +419,7 @@ List<VaccinationGroupViewData> groupVaccinations(
               document: document,
               vaccination: vaccination,
               sourceName: sourceName,
-              applicationDate: parsedApplicationDate == null
-                  ? applicationDate.value
-                  : formatMedicalDocumentShortDate(parsedApplicationDate),
+              applicationDate: _displayVaccinationDate(applicationDate.value),
               applicationDateLabel: _vaccinationColumnLabel(
                 catalog,
                 applicationDate.key,
@@ -473,7 +475,8 @@ List<SharedFileAnalysisDetailEntity> _doseDetails(
     details.add(
       SharedFileAnalysisDetailEntity(
         label: column.label,
-        value: column.kind == MedicalFieldKind.date
+        value: column.kind == MedicalFieldKind.date ||
+                _applicationDateKeys.contains(key)
             ? _displayVaccinationDate(value)
             : value,
       ),
@@ -704,7 +707,7 @@ DateTime? _parseFlexibleDate(String value) {
   if (namedMonth != null) {
     final month = _englishMonths[namedMonth.group(1)];
     if (month != null) {
-      return DateTime(
+      return _validVaccinationDate(
         int.parse(namedMonth.group(3)!),
         month,
         int.parse(namedMonth.group(2)!),
@@ -712,16 +715,18 @@ DateTime? _parseFlexibleDate(String value) {
     }
   }
 
-  final spanishNamedMonth = RegExp(
-    r'^(\d{1,2})\s+de\s+([a-z]+)(?:\s+de)?\s+(\d{4})$',
+  final dayNamedMonth = RegExp(
+    r'^(\d{1,2})\s+(?:de\s+)?([a-z]+)(?:\s+de)?\s+(\d{4})$',
   ).firstMatch(normalized);
-  if (spanishNamedMonth != null) {
-    final month = _spanishMonths[spanishNamedMonth.group(2)];
+  if (dayNamedMonth != null) {
+    final month =
+        _spanishMonths[dayNamedMonth.group(2)] ??
+        _englishMonths[dayNamedMonth.group(2)];
     if (month != null) {
-      return DateTime(
-        int.parse(spanishNamedMonth.group(3)!),
+      return _validVaccinationDate(
+        int.parse(dayNamedMonth.group(3)!),
         month,
-        int.parse(spanishNamedMonth.group(1)!),
+        int.parse(dayNamedMonth.group(1)!),
       );
     }
   }
@@ -737,16 +742,20 @@ DateTime? _parseFlexibleDate(String value) {
         first > 12 || (raw.contains('-') && numeric.group(3)!.length == 4);
     final month = dayFirst ? second : first;
     final day = dayFirst ? first : second;
-    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
-      return DateTime(year, month, day);
-    }
+    return _validVaccinationDate(year, month, day);
   }
   return parseMedicalDocumentDate(raw);
 }
 
+DateTime? _validVaccinationDate(int year, int month, int day) {
+  if (month < 1 || month > 12 || day < 1 || day > 31) return null;
+  final date = DateTime(year, month, day);
+  return date.month == month && date.day == day ? date : null;
+}
+
 String _displayVaccinationDate(String value) {
   final parsed = _parseFlexibleDate(value);
-  return parsed == null ? value : formatMedicalDocumentShortDate(parsed);
+  return parsed == null ? value.trim() : formatMedicalDocumentShortDate(parsed);
 }
 
 int _fourDigitYear(String value) {

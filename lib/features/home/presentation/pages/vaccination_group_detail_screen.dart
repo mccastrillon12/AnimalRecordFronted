@@ -291,13 +291,15 @@ class _GroupedVaccinationRecordBlock extends StatelessWidget {
 String _doseSearchText(String vaccineName, VaccinationDoseViewData dose) {
   return [
     vaccineName,
-    dose.nextDoseDate,
+    dose.applicationDate,
     for (final detail in dose.details)
       if (detail.hasData &&
+          detail.value.trim() != dose.applicationDate.trim() &&
           !(detail.label == 'Etiqueta' &&
               (Uri.tryParse(detail.value)?.hasScheme ?? false)))
         detail.value,
-  ].where((value) => value.trim().isNotEmpty).join(' ');
+    dose.nextDoseDate,
+  ].where((value) => value.trim().isNotEmpty).join('\n');
 }
 
 class _VaccinationRecordBlock extends StatelessWidget {

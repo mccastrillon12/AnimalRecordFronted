@@ -461,10 +461,22 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
       );
     }
     final groupedSearch = searchText.contains('\n');
+    final searchLines = searchText
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList(growable: false);
+    final applicationDate = searchLines.length > 1
+        ? _parseVaccinationSearchDate(searchLines[1])
+        : null;
+    final vaccineNameWords = applicationDate == null
+        ? const <_PdfWord>[]
+        : _pdfWords(searchLines.first);
     final windowWords = targetWords.length * 2;
     final maxWindowWords = windowWords < 12 ? 12 : windowWords;
     _PdfSearchMatch? bestOrdered;
     _PdfSearchMatch? bestOverlap;
+    _PdfSearchMatch? bestVaccination;
 
     for (final page in document.pages) {
       try {
@@ -475,13 +487,32 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
           return;
         }
         final pageWords = _pdfWords(pageText.fullText);
+        if (applicationDate != null && vaccineNameWords.isNotEmpty) {
+          final vaccination = _bestVaccinationDateMatch(
+            pageText,
+            pageWords,
+            vaccineNameWords,
+            applicationDate,
+            counts,
+            highlightCounts,
+            maxWindowWords,
+          );
+          if (vaccination != null &&
+              (bestVaccination == null ||
+                  vaccination.wordCount > bestVaccination.wordCount)) {
+            bestVaccination = vaccination;
+          }
+        }
         final ordered = _bestOrderedMatch(pageText, pageWords, targetWords);
         if (ordered != null &&
             (bestOrdered == null ||
                 ordered.wordCount > bestOrdered.wordCount)) {
           bestOrdered = ordered;
         }
-        if (ordered?.wordCount == targetWords.length) break;
+        if (applicationDate == null &&
+            ordered?.wordCount == targetWords.length) {
+          break;
+        }
 
         final overlap = _bestWindowMatch(
           pageText,
@@ -503,11 +534,12 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
     final orderedThreshold = targetWords.length <= 2
         ? 1
         : (targetWords.length / 3).ceil();
-    final best = groupedSearch && bestOverlap != null
+    final best = bestVaccination ??
+        (groupedSearch && bestOverlap != null
         ? bestOverlap
         : bestOrdered != null && bestOrdered.wordCount >= orderedThreshold
         ? bestOrdered
-        : bestOverlap ?? bestOrdered;
+        : bestOverlap ?? bestOrdered);
     if (best == null ||
         best.highlightedWords.isEmpty ||
         !mounted ||
@@ -519,14 +551,14 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
     final orderedLast = best.highlightedWords.last;
     final overlapFirst = bestOverlap?.highlightedWords.first;
     final overlapLast = bestOverlap?.highlightedWords.last;
-    final highlightedMatch =
-        bestOverlap != null &&
+    final highlightedMatch = bestVaccination ??
+        (bestOverlap != null &&
             bestOverlap.wordCount > best.wordCount &&
             overlapFirst!.pageNumber == orderedFirst.pageNumber &&
             overlapFirst.start <= orderedLast.end &&
             overlapLast!.end >= orderedFirst.start
         ? bestOverlap
-        : best;
+        : best);
     _highlightedWords = highlightedMatch.highlightedWords;
     controller.invalidate();
 
@@ -759,6 +791,157 @@ List<_PdfWord> _pdfWords(String text) => [
       match.end,
     ),
 ];
+
+DateTime? _parseVaccinationSearchDate(String value) {
+  final match = RegExp(
+    r'^(\d{1,4})[/-](\d{1,2})[/-](\d{2,4})$',
+  ).firstMatch(value);
+  if (match == null) return null;
+  final first = int.parse(match.group(1)!);
+  final second = int.parse(match.group(2)!);
+  final third = int.parse(match.group(3)!);
+  if (match.group(1)!.length == 4) {
+    return _validSearchDate(first, second, third);
+  }
+  if (match.group(3)!.length != 4) return null;
+  return second > 12
+      ? _validSearchDate(third, first, second)
+      : _validSearchDate(third, second, first);
+}
+
+DateTime? _validSearchDate(int year, int month, int day) {
+  if (year < 1900 || month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+  final date = DateTime(year, month, day);
+  return date.year == year && date.month == month && date.day == day
+      ? date
+      : null;
+}
+
+({int year, int first, int second, bool yearFirst})? _pdfDateAt(
+  String text,
+  List<_PdfWord> words,
+  int index,
+) {
+  if (index + 2 >= words.length) return null;
+  final firstWord = words[index];
+  final secondWord = words[index + 1];
+  final thirdWord = words[index + 2];
+  final first = int.tryParse(firstWord.normalized);
+  final second = int.tryParse(secondWord.normalized);
+  final third = int.tryParse(thirdWord.normalized);
+  if (first == null || second == null || third == null) return null;
+  final separator = RegExp(r'^\s*[/.-]\s*$');
+  if (!separator.hasMatch(text.substring(firstWord.end, secondWord.start)) ||
+      !separator.hasMatch(text.substring(secondWord.end, thirdWord.start))) {
+    return null;
+  }
+  if (firstWord.normalized.length == 4 &&
+      _validSearchDate(first, second, third) != null) {
+    return (year: first, first: second, second: third, yearFirst: true);
+  }
+  if (thirdWord.normalized.length != 4 ||
+      (_validSearchDate(third, first, second) == null &&
+          _validSearchDate(third, second, first) == null)) {
+    return null;
+  }
+  return (year: third, first: first, second: second, yearFirst: false);
+}
+
+_PdfSearchMatch? _bestVaccinationDateMatch(
+  PdfPageText pageText,
+  List<_PdfWord> pageWords,
+  List<_PdfWord> vaccineNameWords,
+  DateTime applicationDate,
+  Map<String, int> targetCounts,
+  Map<String, int> highlightCounts,
+  int maxWindowWords,
+) {
+  final minimumNameWords = (vaccineNameWords.length * 0.6).ceil();
+  _PdfSearchMatch? best;
+  for (var start = 0; start < pageWords.length; start++) {
+    var nameWordCount = 0;
+    while (nameWordCount < vaccineNameWords.length &&
+        start + nameWordCount < pageWords.length &&
+        pageWords[start + nameWordCount].normalized ==
+            vaccineNameWords[nameWordCount].normalized) {
+      nameWordCount++;
+    }
+    if (nameWordCount < minimumNameWords) continue;
+
+    var blockEnd = start + 120 < pageWords.length
+        ? start + 120
+        : pageWords.length;
+    for (var index = start + nameWordCount; index < blockEnd; index++) {
+      if (const {'vaccination', 'vacunacion', 'vacuna'}.contains(
+        pageWords[index].normalized,
+      )) {
+        blockEnd = index;
+        break;
+      }
+    }
+    int? firstDateIndex;
+    final dateSearchEnd = start + 55 < blockEnd ? start + 55 : blockEnd;
+    for (var index = start + nameWordCount;
+        index + 2 < dateSearchEnd;
+        index++) {
+      if (_pdfDateAt(pageText.fullText, pageWords, index) != null) {
+        firstDateIndex = index;
+        break;
+      }
+    }
+    if (firstDateIndex == null) continue;
+    final pdfDate = _pdfDateAt(pageText.fullText, pageWords, firstDateIndex)!;
+    final matchesDate = pdfDate.year == applicationDate.year &&
+        (pdfDate.yearFirst
+            ? pdfDate.first == applicationDate.month &&
+                pdfDate.second == applicationDate.day
+            : (pdfDate.first == applicationDate.day &&
+                    pdfDate.second == applicationDate.month) ||
+                (pdfDate.second == applicationDate.day &&
+                    pdfDate.first == applicationDate.month));
+    if (!matchesDate) continue;
+
+    final overlap = _bestWindowMatch(
+      pageText,
+      pageWords.sublist(start, blockEnd),
+      targetCounts,
+      highlightCounts,
+      maxWindowWords,
+    );
+    final ranges = <int, PdfPageTextRange>{};
+    for (final range in overlap?.highlightedWords ?? const <PdfPageTextRange>[]) {
+      ranges[range.start] = range;
+    }
+    for (var index = start; index < start + nameWordCount; index++) {
+      final word = pageWords[index];
+      ranges[word.start] = PdfPageTextRange(
+        pageText: pageText,
+        start: word.start,
+        end: word.end,
+      );
+    }
+    for (var index = firstDateIndex; index < firstDateIndex + 3; index++) {
+      final word = pageWords[index];
+      ranges[word.start] = PdfPageTextRange(
+        pageText: pageText,
+        start: word.start,
+        end: word.end,
+      );
+    }
+    final highlightedWords = ranges.values.toList()
+      ..sort((left, right) => left.start.compareTo(right.start));
+    final candidate = _PdfSearchMatch(
+      highlightedWords,
+      overlap?.wordCount ?? nameWordCount + 3,
+    );
+    if (best == null || candidate.wordCount > best.wordCount) {
+      best = candidate;
+    }
+  }
+  return best;
+}
 
 _PdfSearchMatch? _bestOrderedMatch(
   PdfPageText pageText,

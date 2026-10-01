@@ -7,6 +7,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
@@ -579,8 +580,12 @@ class _AnalysisDocumentCard extends StatelessWidget {
                 section: analysis.sections[index],
                 onViewOriginal: viewOriginal,
                 singleOriginalLink:
-                    analysis.documentType.toLowerCase().contains('fórmula') &&
-                    _isMedicationSection(analysis.sections[index].title),
+                    (analysis.documentType.toLowerCase().contains('fórmula') &&
+                        _isMedicationSection(analysis.sections[index].title)) ||
+                    (analysis.documentType.toLowerCase().contains(
+                          'vacunación',
+                        ) &&
+                        _isVaccinationSection(analysis.sections[index].title)),
               ),
             ],
             if (analysis.observations?.trim().isNotEmpty ?? false) ...[
@@ -593,7 +598,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.m),
               Text(
-                analysis.observations!,
+                medicalDocumentNarrativeDisplayValue(analysis.observations!),
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                   height: 1.55,
@@ -854,7 +859,7 @@ class _AnalysisValueRow extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: onTap,
             child: Text(
-              value,
+              medicalDocumentNarrativeDisplayValue(value),
               maxLines: maxLines,
               overflow: overflow,
               style: AppTypography.body4.copyWith(
@@ -900,7 +905,7 @@ class _AnalysisSectionDetails extends StatelessWidget {
           const SizedBox(height: AppSpacing.m),
         if (body.isNotEmpty) ...[
           Text(
-            body,
+            medicalDocumentNarrativeDisplayValue(body),
             style: AppTypography.body4.copyWith(
               color: AppColors.greyTextos,
               height: 1.55,
@@ -931,10 +936,7 @@ class _AnalysisSectionDetails extends StatelessWidget {
           const SizedBox(height: AppSpacing.xs),
           _OriginalLink(
             onTap: () => onViewOriginal(
-              _searchTextFromParts([
-                for (final detail in details) detail.value,
-                body,
-              ]),
+              _sectionSearchText(section, details, body),
             ),
           ),
         ],
@@ -945,6 +947,35 @@ class _AnalysisSectionDetails extends StatelessWidget {
 
 bool _isMedicationSection(String title) =>
     RegExp(r'^medicamentos?\b', caseSensitive: false).hasMatch(title.trim());
+
+bool _isVaccinationSection(String title) =>
+    RegExp(r'^vacunas?\b', caseSensitive: false).hasMatch(title.trim());
+
+String _sectionSearchText(
+  SharedFileAnalysisSectionEntity section,
+  List<SharedFileAnalysisDetailEntity> details,
+  String body,
+) {
+  if (!_isVaccinationSection(section.title)) {
+    return _searchTextFromParts([
+      for (final detail in details) detail.value,
+      body,
+    ]);
+  }
+  final vaccineIndex = details.indexWhere(
+    (detail) => detail.label.trim().toLowerCase() == 'vacuna',
+  );
+  final dateIndex = details.indexWhere(
+    (detail) => detail.label.trim().toLowerCase().startsWith('fecha de apli'),
+  );
+  return _searchTextFromParts([
+    if (vaccineIndex >= 0) details[vaccineIndex].value,
+    if (dateIndex >= 0) details[dateIndex].value,
+    for (var index = 0; index < details.length; index++)
+      if (index != vaccineIndex && index != dateIndex) details[index].value,
+    body,
+  ]);
+}
 
 class _MedicationDetails extends StatelessWidget {
   final SharedFileMedicationAnalysisEntity medication;
@@ -976,7 +1007,7 @@ class _MedicationDetails extends StatelessWidget {
               if (medication.name.trim().isNotEmpty)
                 Expanded(
                   child: Text(
-                    medication.name,
+                    medicalDocumentNarrativeDisplayValue(medication.name),
                     style: AppTypography.body4.copyWith(
                       color: AppColors.greyTextos,
                       height: 1.5,
@@ -1000,7 +1031,7 @@ class _MedicationDetails extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 22, top: AppSpacing.xs),
             child: Text(
-              medication.instructions,
+              medicalDocumentNarrativeDisplayValue(medication.instructions),
               style: AppTypography.body4.copyWith(
                 color: AppColors.greyTextos,
                 height: 1.55,
