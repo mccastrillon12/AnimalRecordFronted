@@ -11,6 +11,7 @@ import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
@@ -194,22 +195,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       Positioned(
                         top: AppSpacing.xs,
                         right: AppSpacing.xs,
-                        child: GestureDetector(
-                          onTap: onEditPhoto,
-                          child: Container(
-                            width: AppSpacing.xl,
-                            height: AppSpacing.xl,
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.6),
-                              borderRadius: AppBorders.small(),
-                            ),
-                            child: const Icon(
-                              Icons.edit,
-                              color: Colors.white,
-                              size: AppSpacing.m,
-                            ),
-                          ),
-                        ),
+                        child: AnimalPhotoEditButton(onTap: onEditPhoto),
                       ),
                   ],
                 ),

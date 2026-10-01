@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/layout/top_menu_overlay.dart';
@@ -7,8 +9,11 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_family_icon_box.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -18,6 +23,145 @@ import 'package:mocktail/mocktail.dart';
 class _MockAnimalCubit extends Mock implements AnimalCubit {}
 
 void main() {
+  testWidgets('active animal shows photo edit button and photo sources', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(() => animalCubit.state).thenReturn(AnimalInitial());
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: const MaterialApp(home: AnimalDetailScreen(animal: _animal)),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(AnimalCard),
+        matching: find.byType(AnimalPhotoEditButton),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(AnimalPhotoEditButton));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Foto del animal'), findsOneWidget);
+    expect(find.text('Tomar foto'), findsOneWidget);
+    expect(find.text('Elegir de la galería'), findsOneWidget);
+    expect(find.text('Eliminar foto'), findsNothing);
+  });
+
+  testWidgets('inactive animal hides photo edit button', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(() => animalCubit.state).thenReturn(AnimalInitial());
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: const MaterialApp(
+          home: AnimalDetailScreen(
+            animal: AnimalModel(
+              id: 'animal-1',
+              name: 'Umi',
+              code: 'AR-F025',
+              family: 'Felino',
+              isActive: false,
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.byType(AnimalPhotoEditButton), findsNothing);
+  });
+
+  testWidgets('deleting photo shows feedback and keeps the edit button', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(600, 1000));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final animalCubit = _MockAnimalCubit();
+    when(() => animalCubit.state).thenReturn(AnimalInitial());
+    when(() => animalCubit.stream).thenAnswer((_) => const Stream.empty());
+    final deletion = Completer<void>();
+    when(
+      () => animalCubit.deleteProfilePicture('animal-1'),
+    ).thenAnswer((_) => deletion.future);
+
+    await tester.pumpWidget(
+      BlocProvider<AnimalCubit>.value(
+        value: animalCubit,
+        child: const MaterialApp(
+          home: AnimalDetailScreen(
+            animal: AnimalModel(
+              id: 'animal-1',
+              name: 'Umi',
+              code: 'AR-F025',
+              family: 'Felino',
+              imageUrl: 'https://example.com/umi.jpg',
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byType(AnimalCard),
+        matching: find.byType(CachedNetworkImage),
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byType(AnimalPhotoEditButton));
+    await tester.pumpAndSettle();
+    expect(find.text('Eliminar foto'), findsOneWidget);
+
+    await tester.tap(find.text('Eliminar foto'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+
+    verify(() => animalCubit.deleteProfilePicture('animal-1')).called(1);
+    expect(find.byType(AnimalPhotoEditButton), findsOneWidget);
+    expect(find.text('Foto eliminada exitosamente.'), findsOneWidget);
+    expect(
+      tester.widget<AnimalCard>(find.byType(AnimalCard)).photoDeleted,
+      isTrue,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(AnimalCard),
+        matching: find.byType(CachedNetworkImage),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: find.byType(AnimalCard),
+        matching: find.byType(SvgPicture),
+      ),
+      findsOneWidget,
+    );
+    deletion.complete();
+    await tester.pump(const Duration(seconds: 3));
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('floating vaccination item opens the same animal screen', (
     tester,
   ) async {
@@ -198,10 +342,7 @@ void main() {
     );
     expect(find.text('Continuar'), findsOneWidget);
     expect(find.text('Cancelar'), findsNothing);
-    expect(
-      find.byKey(const Key('close-animal-empty-feature')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('close-animal-empty-feature')), findsOneWidget);
     final familyIconBox = find.byType(AnimalFamilyIconBox);
     expect(familyIconBox, findsOneWidget);
     expect(
@@ -275,10 +416,7 @@ void main() {
     );
     expect(find.text('Continuar'), findsOneWidget);
     expect(find.text('Cancelar'), findsNothing);
-    expect(
-      find.byKey(const Key('close-animal-empty-feature')),
-      findsOneWidget,
-    );
+    expect(find.byKey(const Key('close-animal-empty-feature')), findsOneWidget);
 
     final labContentRect = tester.getRect(
       find.byKey(const Key('animal-empty-feature-content')),
@@ -393,10 +531,7 @@ void main() {
       await tester.tap(documents);
       await tester.pumpAndSettle();
 
-      expect(
-        find.text('Fórmulas, órdenes y remisiones'),
-        findsOneWidget,
-      );
+      expect(find.text('Fórmulas, órdenes y remisiones'), findsOneWidget);
       expect(find.text('Actualmente no tiene registros'), findsOneWidget);
       expect(
         find.text(

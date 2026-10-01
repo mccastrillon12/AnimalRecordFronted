@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -22,7 +21,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/features/auth/presentation/widgets/id_selector.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
-import 'package:animal_record/core/widgets/media/animal_photo_cropper.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 
 class AnimalInfoScreen extends StatefulWidget {
   final AnimalModel animal;
@@ -585,136 +584,33 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     });
   }
 
-  void _showImageSourceSheet() {
-    final picker = ImagePicker();
-    final hasExistingPicture =
-        _currentAnimal.imageUrl != null || _localPhotoPath != null;
-
-    showModalBottomSheet(
+  Future<void> _showImageSourceSheet() {
+    return showAnimalPhotoSourceSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.greyBordes,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  'Foto del animal',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Tomar foto'),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    final picked = await picker.pickImage(
-                      source: ImageSource.camera,
-                      maxWidth: 1920,
-                      maxHeight: 1920,
-                      imageQuality: 95,
-                    );
-                    if (picked != null && mounted) {
-                      final croppedPath = await showAnimalPhotoCropper(
-                        context,
-                        imagePath: picked.path,
-                      );
-                      if (croppedPath == null || !mounted) return;
-                      // Instant visual feedback
-                      setState(() {
-                        _localPhotoPath = croppedPath;
-                        _photoDeleted = false;
-                      });
-                      ErrorDisplay.showSuccess(
-                        context,
-                        'Foto actualizada exitosamente.',
-                      );
-                      // Then upload in background
-                      context.read<AnimalCubit>().updateProfilePicture(
-                        _currentAnimal.id,
-                        croppedPath,
-                      );
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Elegir de la galería'),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    final picked = await picker.pickImage(
-                      source: ImageSource.gallery,
-                      maxWidth: 1920,
-                      maxHeight: 1920,
-                      imageQuality: 95,
-                    );
-                    if (picked != null && mounted) {
-                      final croppedPath = await showAnimalPhotoCropper(
-                        context,
-                        imagePath: picked.path,
-                      );
-                      if (croppedPath == null || !mounted) return;
-                      // Instant visual feedback
-                      setState(() {
-                        _localPhotoPath = croppedPath;
-                        _photoDeleted = false;
-                      });
-                      ErrorDisplay.showSuccess(
-                        context,
-                        'Foto actualizada exitosamente.',
-                      );
-                      // Then upload in background
-                      context.read<AnimalCubit>().updateProfilePicture(
-                        _currentAnimal.id,
-                        croppedPath,
-                      );
-                    }
-                  },
-                ),
-                if (hasExistingPicture)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.errorRojo,
-                    ),
-                    title: Text(
-                      'Eliminar foto',
-                      style: TextStyle(color: AppColors.errorRojo),
-                    ),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      // Instant visual feedback
-                      setState(() {
-                        _localPhotoPath = null;
-                        _photoDeleted = true;
-                      });
-                      ErrorDisplay.showSuccess(
-                        context,
-                        'Foto eliminada exitosamente.',
-                      );
-                      // Then delete in background
-                      context.read<AnimalCubit>().deleteProfilePicture(
-                        _currentAnimal.id,
-                      );
-                    },
-                  ),
-              ],
-            ),
-          ),
+      hasPhoto:
+          !_photoDeleted &&
+          ((_currentAnimal.imageUrl?.trim().isNotEmpty ?? false) ||
+              _localPhotoPath != null),
+      onPhotoSelected: (croppedPath) {
+        // Show the crop immediately, then upload it in the background.
+        setState(() {
+          _localPhotoPath = croppedPath;
+          _photoDeleted = false;
+        });
+        ErrorDisplay.showSuccess(context, 'Foto actualizada exitosamente.');
+        context.read<AnimalCubit>().updateProfilePicture(
+          _currentAnimal.id,
+          croppedPath,
         );
+      },
+      onPhotoRemoved: () {
+        // Show the placeholder immediately, then delete it in the background.
+        setState(() {
+          _localPhotoPath = null;
+          _photoDeleted = true;
+        });
+        ErrorDisplay.showSuccess(context, 'Foto eliminada exitosamente.');
+        context.read<AnimalCubit>().deleteProfilePicture(_currentAnimal.id);
       },
     );
   }
