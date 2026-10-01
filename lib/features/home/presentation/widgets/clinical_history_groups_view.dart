@@ -199,7 +199,8 @@ class _ClinicalHistoryDocumentScreenState
           analysis: analysis,
           closeIconKey: _closeIconKey,
           actionIconKey: _actionIconKey,
-          onViewOriginal: () => _showOriginal(context),
+          onViewOriginalText: (text) =>
+              _showOriginal(context, searchText: text),
           resolveOriginalUri: () =>
               di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
           actionLabel: medicalDocumentSendActionLabel(
@@ -210,7 +211,7 @@ class _ClinicalHistoryDocumentScreenState
     );
   }
 
-  Future<void> _showOriginal(BuildContext context) async {
+  Future<void> _showOriginal(BuildContext context, {String? searchText}) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
       saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
@@ -222,6 +223,7 @@ class _ClinicalHistoryDocumentScreenState
       mimeType: widget.document.mimeType,
       closeIconKey: _closeIconKey,
       downloadIconKey: _actionIconKey,
+      searchText: searchText,
     );
   }
 }
@@ -902,25 +904,11 @@ DateTime _documentTimestamp(MedicalDocumentEntity document) {
 }
 
 String _documentDate(MedicalDocumentEntity document) {
-  final backendDate = displayMedicalDocumentDate(
+  final backendDate = displayMedicalDocumentShortDate(
     document.validatedExtraction?.documentDate,
   );
   if (backendDate.isNotEmpty) return backendDate;
   final date = _documentTimestamp(document);
   if (date.millisecondsSinceEpoch == 0) return '';
-  const months = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre',
-  ];
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  return formatMedicalDocumentShortDate(date);
 }

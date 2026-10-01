@@ -28,6 +28,20 @@ DateTime? parseMedicalDocumentDate(String? value) {
     }
   }
 
+  final englishMatch = RegExp(
+    r'^([a-z]+)\s+(\d{1,2}),?\s+(\d{4})$',
+  ).firstMatch(normalized);
+  if (englishMatch != null) {
+    final month = _englishMonths[englishMatch.group(1)];
+    if (month != null) {
+      return DateTime(
+        int.parse(englishMatch.group(3)!),
+        month,
+        int.parse(englishMatch.group(2)!),
+      );
+    }
+  }
+
   final numericMatch = RegExp(
     r'^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$',
   ).firstMatch(normalized);
@@ -43,6 +57,18 @@ DateTime? parseMedicalDocumentDate(String? value) {
 
 String displayMedicalDocumentDate(String? value) {
   return value?.trim() ?? '';
+}
+
+String displayMedicalDocumentShortDate(String? value) {
+  final raw = displayMedicalDocumentDate(value);
+  final date = parseMedicalDocumentDate(raw);
+  return date == null ? raw : formatMedicalDocumentShortDate(date);
+}
+
+String formatMedicalDocumentShortDate(DateTime date) {
+  final day = date.day.toString().padLeft(2, '0');
+  final month = date.month.toString().padLeft(2, '0');
+  return '$day/$month/${date.year}';
 }
 
 String formatMedicalDocumentDate(DateTime date) {
@@ -77,6 +103,21 @@ const _months = {
   'octubre': 10,
   'noviembre': 11,
   'diciembre': 12,
+};
+
+const _englishMonths = {
+  'january': 1,
+  'february': 2,
+  'march': 3,
+  'april': 4,
+  'may': 5,
+  'june': 6,
+  'july': 7,
+  'august': 8,
+  'september': 9,
+  'october': 10,
+  'november': 11,
+  'december': 12,
 };
 
 String _normalize(String value) {

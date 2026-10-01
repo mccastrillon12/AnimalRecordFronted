@@ -158,12 +158,17 @@ class _VaccinationGroupDetailScreenState
         child: VaccinationRecordList(
           detail: detail,
           onViewOriginal: _showOriginal,
+          onViewOriginalWithText: (document, searchText) =>
+              _showOriginal(document, searchText: searchText),
         ),
       ),
     );
   }
 
-  Future<void> _showOriginal(MedicalDocumentEntity document) async {
+  Future<void> _showOriginal(
+    MedicalDocumentEntity document, {
+    String? searchText,
+  }) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
       saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
@@ -175,6 +180,7 @@ class _VaccinationGroupDetailScreenState
         fileName: document.originalFileName,
         mimeType: document.mimeType,
         closeIconKey: _closeIconKey,
+        searchText: searchText,
       );
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
@@ -185,6 +191,8 @@ class _VaccinationGroupDetailScreenState
 class VaccinationRecordList extends StatelessWidget {
   final VaccinationDetailViewData detail;
   final ValueChanged<MedicalDocumentEntity> onViewOriginal;
+  final void Function(MedicalDocumentEntity document, String searchText)?
+  onViewOriginalWithText;
   final double recordSpacing;
   final bool groupDoses;
 
@@ -192,6 +200,7 @@ class VaccinationRecordList extends StatelessWidget {
     super.key,
     required this.detail,
     required this.onViewOriginal,
+    this.onViewOriginalWithText,
     this.recordSpacing = AppSpacing.xl,
     this.groupDoses = false,
   });
@@ -202,7 +211,7 @@ class VaccinationRecordList extends StatelessWidget {
       return _GroupedVaccinationRecordBlock(
         key: Key('vaccination-type-${detail.vaccineName.toLowerCase()}'),
         detail: detail,
-        onViewOriginal: onViewOriginal,
+        onViewOriginal: _openOriginal,
       );
     }
     return SizedBox(
@@ -217,8 +226,7 @@ class VaccinationRecordList extends StatelessWidget {
               ),
               vaccineName: detail.vaccineName,
               dose: detail.doses[index],
-              onViewOriginal: () =>
-                  onViewOriginal(detail.doses[index].document),
+              onViewOriginal: () => _openOriginal(detail.doses[index]),
             ),
             if (index < detail.doses.length - 1)
               SizedBox(height: recordSpacing),
@@ -227,11 +235,19 @@ class VaccinationRecordList extends StatelessWidget {
       ),
     );
   }
+
+  void _openOriginal(VaccinationDoseViewData dose) {
+    if (onViewOriginalWithText case final callback?) {
+      callback(dose.document, _doseSearchText(detail.vaccineName, dose));
+    } else {
+      onViewOriginal(dose.document);
+    }
+  }
 }
 
 class _GroupedVaccinationRecordBlock extends StatelessWidget {
   final VaccinationDetailViewData detail;
-  final ValueChanged<MedicalDocumentEntity> onViewOriginal;
+  final ValueChanged<VaccinationDoseViewData> onViewOriginal;
 
   const _GroupedVaccinationRecordBlock({
     super.key,
@@ -257,8 +273,7 @@ class _GroupedVaccinationRecordBlock extends StatelessWidget {
                 dose: detail.doses[index],
                 showHeader: index == 0,
                 headerTitle: 'Vacuna',
-                onViewOriginal: () =>
-                    onViewOriginal(detail.doses[index].document),
+                onViewOriginal: () => onViewOriginal(detail.doses[index]),
               ),
               if (index < detail.doses.length - 1) ...[
                 const SizedBox(height: AppSpacing.l),
@@ -271,6 +286,18 @@ class _GroupedVaccinationRecordBlock extends StatelessWidget {
       ),
     );
   }
+}
+
+String _doseSearchText(String vaccineName, VaccinationDoseViewData dose) {
+  return [
+    vaccineName,
+    dose.nextDoseDate,
+    for (final detail in dose.details)
+      if (detail.hasData &&
+          !(detail.label == 'Etiqueta' &&
+              (Uri.tryParse(detail.value)?.hasScheme ?? false)))
+        detail.value,
+  ].where((value) => value.trim().isNotEmpty).join(' ');
 }
 
 class _VaccinationRecordBlock extends StatelessWidget {
@@ -419,10 +446,6 @@ class _DoseSection extends StatelessWidget {
             ),
           ],
         ],
-        if (dose.veterinarian?.hasData ?? false) ...[
-          const SizedBox(height: AppSpacing.l),
-          _VeterinarianSection(veterinarian: dose.veterinarian!),
-        ],
         const SizedBox(height: AppSpacing.xs),
         Align(
           alignment: Alignment.centerRight,
@@ -437,6 +460,10 @@ class _DoseSection extends StatelessWidget {
             ),
           ),
         ),
+        if (dose.veterinarian?.hasData ?? false) ...[
+          const SizedBox(height: AppSpacing.l),
+          _VeterinarianSection(veterinarian: dose.veterinarian!),
+        ],
       ],
     );
   }

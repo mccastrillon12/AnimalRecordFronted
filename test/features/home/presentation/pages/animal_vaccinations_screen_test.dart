@@ -172,8 +172,8 @@ void main() {
     expect(find.text('Rabia'), findsOneWidget);
     expect(find.text('Canine distemper'), findsOneWidget);
     expect(find.text('CANINE DISTEMPER'), findsNothing);
-    expect(find.text('10/27/2025'), findsOneWidget);
-    expect(find.text('10/27/2028'), findsOneWidget);
+    expect(find.text('27/10/2025'), findsOneWidget);
+    expect(find.text('27/10/2028'), findsOneWidget);
     expect(find.text('Última aplicación:'), findsNWidgets(2));
     expect(find.text('Fecha de aplicación:'), findsNothing);
     expect(find.text('Próxima dosis:'), findsOneWidget);
@@ -181,8 +181,8 @@ void main() {
     expect(find.text('Refuerzo anual'), findsNothing);
     for (final finder in [
       find.text('Rabia'),
-      find.text('10/27/2025'),
-      find.text('10/27/2028'),
+      find.text('27/10/2025'),
+      find.text('27/10/2028'),
       find.text('Próxima dosis:'),
     ]) {
       final text = tester.widget<Text>(finder);
@@ -207,16 +207,16 @@ void main() {
       tester.getTopLeft(find.text('Rabia')).dx,
     );
     expect(
-      tester.getTopLeft(find.text('10/27/2025')).dx,
-      tester.getTopLeft(find.text('10/27/2028')).dx,
+      tester.getTopLeft(find.text('27/10/2025')).dx,
+      tester.getTopLeft(find.text('27/10/2028')).dx,
     );
     expect(
-      tester.getTopLeft(find.text('10/27/2025')).dx,
+      tester.getTopLeft(find.text('27/10/2025')).dx,
       greaterThan(tester.getTopRight(lastApplicationLabel).dx),
     );
     expect(
       tester.getCenter(find.text('Próxima dosis:')).dy,
-      tester.getCenter(find.text('10/27/2028')).dy,
+      tester.getCenter(find.text('27/10/2028')).dy,
     );
     expect(find.byKey(const Key('vaccination-group-rabies')), findsOneWidget);
     expect(
@@ -459,7 +459,7 @@ void main() {
     );
     expect(find.text('Detalle de vacunación'), findsNWidgets(2));
     expect(find.text('Próxima dosis'), findsOneWidget);
-    expect(find.text('10/27/2028'), findsOneWidget);
+    expect(find.text('27/10/2028'), findsOneWidget);
     expect(find.text('Dosis 1'), findsOneWidget);
     expect(find.text('Dosis 2'), findsOneWidget);
     expect(find.text('Ver original'), findsNWidgets(2));

@@ -328,6 +328,111 @@ void main() {
     expect(find.text('Cambiar privacidad'), findsNothing);
   });
 
+  testWidgets('shows clinical history dates in the same format', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final authBloc = MockAuthBloc();
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    final accountOwner = UserEntity.empty().copyWith(name: 'Barbara James');
+    when(() => authBloc.state).thenReturn(AuthSuccess(accountOwner));
+    when(() => authBloc.stream).thenAnswer((_) => const Stream.empty());
+    when(() => documentsCubit.state).thenReturn(
+      const AnimalMedicalDocumentsLoaded([
+        MedicalDocumentEntity(
+          id: 'hyphenated-date',
+          animalIds: ['animal-1'],
+          originalFileName: 'hyphenated-date.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+            documentDate: '01-12-2026',
+          ),
+          version: 1,
+        ),
+        MedicalDocumentEntity(
+          id: 'iso-date',
+          animalIds: ['animal-1'],
+          originalFileName: 'iso-date.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+            documentDate: '2026-09-24',
+          ),
+          version: 1,
+        ),
+        MedicalDocumentEntity(
+          id: 'slash-date',
+          animalIds: ['animal-1'],
+          originalFileName: 'slash-date.pdf',
+          mimeType: 'application/pdf',
+          fileSize: 100,
+          status: MedicalDocumentStatus.accepted,
+          finalCategory: MedicalDocumentCategory.clinicalHistory,
+          validatedExtraction: MedicalDocumentExtractionEntity(
+            documentType: MedicalDocumentCategory.clinicalHistory,
+            documentDate: '25/09/2025',
+          ),
+          version: 1,
+        ),
+      ], category: MedicalDocumentCategory.clinicalHistory),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+    await tester.pumpWidget(
+      MultiBlocProvider(
+        providers: [
+          BlocProvider<AuthBloc>.value(value: authBloc),
+          BlocProvider<AnimalMedicalDocumentsCubit>.value(
+            value: documentsCubit,
+          ),
+        ],
+        child: const MaterialApp(
+          home: AnimalClinicalHistoryScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    final groupCard = find.byKey(
+      const Key('clinical-history-group-Barbara James'),
+    );
+    await tester.tapAt(tester.getTopLeft(groupCard) + const Offset(12, 12));
+    await tester.pumpAndSettle();
+
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('clinical-history-shadow-hyphenated-date')),
+        matching: find.text('01/12/2026'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('clinical-history-shadow-iso-date')),
+        matching: find.text('24/09/2026'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('clinical-history-shadow-slash-date')),
+        matching: find.text('25/09/2025'),
+      ),
+      findsOneWidget,
+    );
+    expect(find.text('01-12-2026'), findsNothing);
+    expect(find.text('2026-09-24'), findsNothing);
+  });
+
   testWidgets('opens the only history detail from its overview card', (
     tester,
   ) async {
@@ -404,14 +509,18 @@ void main() {
     );
     await tester.pumpAndSettle();
 
+    Finder detailLabel(String label) => find.byWidgetPredicate(
+      (widget) => widget is Text && widget.semanticsLabel == label,
+    );
+
     expect(find.text('Enviar historia clínica'), findsOneWidget);
-    expect(find.text('Fecha del documento'), findsOneWidget);
+    expect(detailLabel('Fecha del documento'), findsOneWidget);
     expect(find.text('December 1, 2026'), findsOneWidget);
-    expect(find.text('Archivo original'), findsOneWidget);
-    expect(find.text('Identificador'), findsOneWidget);
+    expect(detailLabel('Archivo original'), findsOneWidget);
+    expect(detailLabel('Identificador'), findsOneWidget);
     expect(find.text('101077'), findsOneWidget);
-    expect(find.text('Especie'), findsOneWidget);
-    expect(find.text('Estado reproductivo'), findsOneWidget);
+    expect(detailLabel('Especie'), findsOneWidget);
+    expect(detailLabel('Estado reproductivo'), findsOneWidget);
     expect(find.text('Neutered'), findsOneWidget);
     expect(
       find.byKey(const Key('clinical-history-search-field')),
@@ -497,6 +606,22 @@ void main() {
 
       expect(find.text('01/10/2025'), findsOneWidget);
       expect(find.text('25/09/2025'), findsNothing);
+
+      final groupCard = find.byKey(
+        const Key('clinical-history-group-Barbara James'),
+      );
+      await tester.tapAt(tester.getTopLeft(groupCard) + const Offset(12, 12));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.descendant(
+          of: find.byKey(
+            const Key('clinical-history-shadow-missing-document-date'),
+          ),
+          matching: find.text('01/01/2027'),
+        ),
+        findsOneWidget,
+      );
     },
   );
 

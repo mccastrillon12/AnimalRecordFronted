@@ -507,6 +507,8 @@ class _VaccinationCardDocuments extends StatelessWidget {
               VaccinationRecordList(
                 detail: vaccinationDetailViewData(groups[index], catalog),
                 onViewOriginal: (document) => _showOriginal(context, document),
+                onViewOriginalWithText: (document, searchText) =>
+                    _showOriginal(context, document, searchText: searchText),
                 recordSpacing: 20,
                 groupDoses: true,
               ),
@@ -520,8 +522,9 @@ class _VaccinationCardDocuments extends StatelessWidget {
 
   Future<void> _showOriginal(
     BuildContext context,
-    MedicalDocumentEntity document,
-  ) async {
+    MedicalDocumentEntity document, {
+    String? searchText,
+  }) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
       saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
@@ -532,6 +535,7 @@ class _VaccinationCardDocuments extends StatelessWidget {
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        searchText: searchText,
       );
     } catch (error) {
       if (context.mounted) ErrorDisplay.showError(context, error.toString());

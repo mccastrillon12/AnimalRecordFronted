@@ -22,6 +22,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
   final VoidCallback? onSubmit;
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final VoidCallback? onClose;
   final GlobalKey? closeIconKey;
   final String submitLabel;
@@ -33,6 +34,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
     this.onSubmit,
     this.onDoNotUpload,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.onClose,
     this.closeIconKey,
     this.submitLabel = 'Subir archivo',
@@ -47,6 +49,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
       onSubmit: onSubmit,
       onDoNotUpload: onDoNotUpload,
       onViewOriginal: onViewOriginal,
+      onViewOriginalText: onViewOriginalText,
       onClose: onClose,
       closeIconKey: closeIconKey,
       submitLabel: submitLabel,
@@ -58,6 +61,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
 class SharedFileSendScreen extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final SharedFileOriginalUriResolver? resolveOriginalUri;
   final String actionLabel;
   final GlobalKey? closeIconKey;
@@ -67,6 +71,7 @@ class SharedFileSendScreen extends StatelessWidget {
     super.key,
     required this.analysis,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.resolveOriginalUri,
     this.actionLabel = 'Enviar fórmula',
     this.closeIconKey,
@@ -79,6 +84,7 @@ class SharedFileSendScreen extends StatelessWidget {
       analysis: analysis,
       mode: _SharedFileAnalysisMode.send,
       onViewOriginal: onViewOriginal,
+      onViewOriginalText: onViewOriginalText,
       resolveOriginalUri: resolveOriginalUri,
       actionLabel: actionLabel,
       closeIconKey: closeIconKey,
@@ -105,6 +111,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final VoidCallback? onSubmit;
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final VoidCallback? onClose;
   final GlobalKey? closeIconKey;
   final GlobalKey? actionIconKey;
@@ -119,6 +126,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.onSubmit,
     this.onDoNotUpload,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.onClose,
     this.closeIconKey,
     this.actionIconKey,
@@ -274,6 +282,7 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
         child: _AnalysisDocumentCard(
           analysis: widget.analysis,
           onViewOriginal: widget.onViewOriginal,
+          onViewOriginalText: widget.onViewOriginalText,
         ),
       ),
     );
@@ -418,12 +427,26 @@ class _AnalysisNoticeHeader extends StatelessWidget {
 class _AnalysisDocumentCard extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
 
-  const _AnalysisDocumentCard({required this.analysis, this.onViewOriginal});
+  const _AnalysisDocumentCard({
+    required this.analysis,
+    this.onViewOriginal,
+    this.onViewOriginalText,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final viewOriginal = onViewOriginal ?? () => _showOriginalMessage(context);
+    void viewOriginal(String? text) {
+      if (onViewOriginalText != null) {
+        onViewOriginalText!(text);
+      } else if (onViewOriginal != null) {
+        onViewOriginal!();
+      } else {
+        _showOriginalMessage(context);
+      }
+    }
+
     final hasDetailedOriginalLinks =
         analysis.medications.isNotEmpty ||
         analysis.sections.isNotEmpty ||
@@ -489,11 +512,11 @@ class _AnalysisDocumentCard extends StatelessWidget {
                   valueColor: AppColors.primaryFrances,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  onTap: viewOriginal,
+                  onTap: () => viewOriginal(null),
                 ),
               if (showStandaloneOriginalLink) ...[
                 const SizedBox(height: AppSpacing.xs),
-                _OriginalLink(onTap: viewOriginal),
+                _OriginalLink(onTap: () => viewOriginal(null)),
               ],
             ],
             if (analysis.patient.hasData) ...[
@@ -538,7 +561,9 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ) ...[
                 _MedicationDetails(
                   medication: analysis.medications[index],
-                  onViewOriginal: viewOriginal,
+                  onViewOriginal: () => viewOriginal(
+                    _medicationSearchText(analysis.medications[index]),
+                  ),
                 ),
                 if (index < analysis.medications.length - 1)
                   const SizedBox(height: AppSpacing.l),
@@ -550,9 +575,13 @@ class _AnalysisDocumentCard extends StatelessWidget {
                     ? AppSpacing.xl
                     : AppSpacing.l,
               ),
-              _AnalysisSectionDetails(section: analysis.sections[index]),
-              const SizedBox(height: AppSpacing.xs),
-              _OriginalLink(onTap: viewOriginal),
+              _AnalysisSectionDetails(
+                section: analysis.sections[index],
+                onViewOriginal: viewOriginal,
+                singleOriginalLink:
+                    analysis.documentType.toLowerCase().contains('fórmula') &&
+                    _isMedicationSection(analysis.sections[index].title),
+              ),
             ],
             if (analysis.observations?.trim().isNotEmpty ?? false) ...[
               const SizedBox(height: AppSpacing.xl),
@@ -571,7 +600,7 @@ class _AnalysisDocumentCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
-              _OriginalLink(onTap: viewOriginal),
+              _OriginalLink(onTap: () => viewOriginal(analysis.observations)),
             ],
           ],
         ),
@@ -841,8 +870,14 @@ class _AnalysisValueRow extends StatelessWidget {
 
 class _AnalysisSectionDetails extends StatelessWidget {
   final SharedFileAnalysisSectionEntity section;
+  final ValueChanged<String?> onViewOriginal;
+  final bool singleOriginalLink;
 
-  const _AnalysisSectionDetails({required this.section});
+  const _AnalysisSectionDetails({
+    required this.section,
+    required this.onViewOriginal,
+    this.singleOriginalLink = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -850,6 +885,8 @@ class _AnalysisSectionDetails extends StatelessWidget {
         .where((detail) => detail.hasData)
         .toList(growable: false);
     final body = section.body?.trim() ?? '';
+    final isGeneralInformation =
+        section.title.trim().toLowerCase() == 'información general';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -861,7 +898,7 @@ class _AnalysisSectionDetails extends StatelessWidget {
         ),
         if (body.isNotEmpty || details.isNotEmpty)
           const SizedBox(height: AppSpacing.m),
-        if (body.isNotEmpty)
+        if (body.isNotEmpty) ...[
           Text(
             body,
             style: AppTypography.body4.copyWith(
@@ -869,6 +906,11 @@ class _AnalysisSectionDetails extends StatelessWidget {
               height: 1.55,
             ),
           ),
+          if (!singleOriginalLink) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _OriginalLink(onTap: () => onViewOriginal(body)),
+          ],
+        ],
         if (body.isNotEmpty && details.isNotEmpty)
           const SizedBox(height: AppSpacing.m),
         for (var index = 0; index < details.length; index++) ...[
@@ -877,11 +919,32 @@ class _AnalysisSectionDetails extends StatelessWidget {
             label: details[index].label,
             value: details[index].value,
           ),
+          if (!singleOriginalLink &&
+              !(isGeneralInformation &&
+                  details[index].label.trim().toLowerCase() ==
+                      'tipo de documento')) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _OriginalLink(onTap: () => onViewOriginal(details[index].value)),
+          ],
+        ],
+        if (singleOriginalLink && (body.isNotEmpty || details.isNotEmpty)) ...[
+          const SizedBox(height: AppSpacing.xs),
+          _OriginalLink(
+            onTap: () => onViewOriginal(
+              _searchTextFromParts([
+                for (final detail in details) detail.value,
+                body,
+              ]),
+            ),
+          ),
         ],
       ],
     );
   }
 }
+
+bool _isMedicationSection(String title) =>
+    RegExp(r'^medicamentos?\b', caseSensitive: false).hasMatch(title.trim());
 
 class _MedicationDetails extends StatelessWidget {
   final SharedFileMedicationAnalysisEntity medication;
@@ -991,3 +1054,17 @@ class _OriginalLink extends StatelessWidget {
     );
   }
 }
+
+String _medicationSearchText(SharedFileMedicationAnalysisEntity medication) =>
+    _searchTextFromParts([
+      medication.name,
+      if (medication.quantity != null) medication.quantity.toString(),
+      medication.instructions,
+      for (final detail in medication.details)
+        if (detail.hasData) detail.value,
+    ]);
+
+String _searchTextFromParts(Iterable<String> parts) => parts
+    .map((part) => part.trim())
+    .where((part) => part.isNotEmpty)
+    .join('\n');

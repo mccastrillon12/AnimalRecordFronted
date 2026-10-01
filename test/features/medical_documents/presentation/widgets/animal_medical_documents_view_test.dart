@@ -74,10 +74,7 @@ void main() {
       findsOneWidget,
     );
     expect(find.text('Adjunto: Fórmula N° FORM-007'), findsOneWidget);
-    expect(
-      find.text('miércoles, 14 de mayo de 2025, 7:21 p.m.'),
-      findsOneWidget,
-    );
+    expect(find.text('14/05/2025'), findsOneWidget);
     expect(find.text('JAKE 2025-05-15 Formula médica.pdf'), findsOneWidget);
     expect(find.text('Descripción:'), findsOneWidget);
     expect(find.text('Control hepático'), findsOneWidget);
@@ -148,6 +145,53 @@ void main() {
     expect(feedbackDismissed, isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  for (final dateCase in [
+    (
+      category: MedicalDocumentCategory.medicalOrder,
+      source: '2026-09-24',
+      expected: '24/09/2026',
+    ),
+    (
+      category: MedicalDocumentCategory.referral,
+      source: '25-09-2025',
+      expected: '25/09/2025',
+    ),
+  ]) {
+    testWidgets('formats the ${dateCase.category.label} summary date', (
+      tester,
+    ) async {
+      final document = MedicalDocumentEntity(
+        id: 'dated-document',
+        animalIds: const ['animal-1'],
+        originalFileName: 'documento.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 100,
+        status: MedicalDocumentStatus.accepted,
+        finalCategory: dateCase.category,
+        validatedExtraction: MedicalDocumentExtractionEntity(
+          documentType: dateCase.category,
+          documentDate: dateCase.source,
+        ),
+        version: 1,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: MedicalDocumentSummaryCard(
+              document: document,
+              category: dateCase.category,
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Fecha:'), findsOneWidget);
+      expect(find.text(dateCase.expected), findsOneWidget);
+      expect(find.text(dateCase.source), findsNothing);
+    });
+  }
 
   testWidgets('shows the thank-you message after negative AI feedback', (
     tester,

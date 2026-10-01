@@ -105,7 +105,8 @@ class _MedicalDocumentReviewScreenState
                       onSubmit: () =>
                           context.read<MedicalDocumentFlowCubit>().accept(),
                       onDoNotUpload: _showRejectionDialog,
-                      onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+                      onViewOriginalText: (text) =>
+                          _showOriginal(_reviewCloseIconKey, searchText: text),
                       onClose: _discardAndClose,
                       closeIconKey: _reviewCloseIconKey,
                     ),
@@ -201,6 +202,7 @@ class _MedicalDocumentReviewScreenState
   Future<void> _showOriginal(
     GlobalKey closeIconKey, {
     GlobalKey? downloadIconKey,
+    String? searchText,
   }) async {
     final state = context.read<MedicalDocumentFlowCubit>().state;
     final document = state.remoteDocument!;
@@ -215,6 +217,7 @@ class _MedicalDocumentReviewScreenState
         mimeType: document.mimeType,
         closeIconKey: closeIconKey,
         downloadIconKey: downloadIconKey,
+        searchText: searchText,
       );
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());

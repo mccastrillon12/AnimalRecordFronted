@@ -243,7 +243,7 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extraction = document.validatedExtraction;
-    final date = displayMedicalDocumentDate(extraction?.documentDate);
+    final date = displayMedicalDocumentShortDate(extraction?.documentDate);
     final description = showDescription ? document.description.trim() : '';
     final number = _documentNumber(document);
     final defaultTitle = [
@@ -369,11 +369,12 @@ Future<void> _showMedicalDocumentDetail(
         analysis: analysis,
         closeIconKey: closeIconKey,
         actionIconKey: actionIconKey,
-        onViewOriginal: () => _showMedicalDocumentOriginal(
+        onViewOriginalText: (text) => _showMedicalDocumentOriginal(
           detailContext,
           document: document,
           closeIconKey: closeIconKey,
           downloadIconKey: actionIconKey,
+          searchText: text,
         ),
         resolveOriginalUri: () =>
             di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
@@ -388,6 +389,7 @@ Future<void> _showMedicalDocumentOriginal(
   required MedicalDocumentEntity document,
   GlobalKey? closeIconKey,
   GlobalKey? downloadIconKey,
+  String? searchText,
 }) async {
   final preview = MedicalDocumentOriginalPreview(
     getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
@@ -401,6 +403,7 @@ Future<void> _showMedicalDocumentOriginal(
       mimeType: document.mimeType,
       closeIconKey: closeIconKey,
       downloadIconKey: downloadIconKey,
+      searchText: searchText,
     );
   } catch (error) {
     if (context.mounted) ErrorDisplay.showError(context, error.toString());

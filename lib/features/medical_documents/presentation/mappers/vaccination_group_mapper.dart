@@ -415,12 +415,14 @@ List<VaccinationGroupViewData> groupVaccinations(
               document: document,
               vaccination: vaccination,
               sourceName: sourceName,
-              applicationDate: applicationDate.value,
+              applicationDate: parsedApplicationDate == null
+                  ? applicationDate.value
+                  : formatMedicalDocumentShortDate(parsedApplicationDate),
               applicationDateLabel: _vaccinationColumnLabel(
                 catalog,
                 applicationDate.key,
               ),
-              nextDoseDate: nextDoseDate.value,
+              nextDoseDate: _displayVaccinationDate(nextDoseDate.value),
               nextDoseDateLabel: _vaccinationColumnLabel(
                 catalog,
                 nextDoseDate.key,
@@ -469,7 +471,12 @@ List<SharedFileAnalysisDetailEntity> _doseDetails(
     );
     if (value.isEmpty) continue;
     details.add(
-      SharedFileAnalysisDetailEntity(label: column.label, value: value),
+      SharedFileAnalysisDetailEntity(
+        label: column.label,
+        value: column.kind == MedicalFieldKind.date
+            ? _displayVaccinationDate(value)
+            : value,
+      ),
     );
   }
   return details;
@@ -726,13 +733,20 @@ DateTime? _parseFlexibleDate(String value) {
     final first = int.parse(numeric.group(1)!);
     final second = int.parse(numeric.group(2)!);
     final year = _fourDigitYear(numeric.group(3)!);
-    final month = first > 12 ? second : first;
-    final day = first > 12 ? first : second;
+    final dayFirst =
+        first > 12 || (raw.contains('-') && numeric.group(3)!.length == 4);
+    final month = dayFirst ? second : first;
+    final day = dayFirst ? first : second;
     if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
       return DateTime(year, month, day);
     }
   }
   return parseMedicalDocumentDate(raw);
+}
+
+String _displayVaccinationDate(String value) {
+  final parsed = _parseFlexibleDate(value);
+  return parsed == null ? value : formatMedicalDocumentShortDate(parsed);
 }
 
 int _fourDigitYear(String value) {
