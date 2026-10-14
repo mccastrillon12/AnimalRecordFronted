@@ -127,10 +127,11 @@ void main() {
     );
     expect(title.style?.fontSize, AppTypography.heading1.fontSize);
     expect(title.style?.fontWeight, AppTypography.heading1.fontWeight);
-    expect(
-      find.byKey(const Key('vaccination-card-background')),
-      findsOneWidget,
+    final cardBackground = find.byKey(
+      const Key('vaccination-card-background'),
     );
+    expect(cardBackground, findsOneWidget);
+    expect(tester.getSize(cardBackground).height, 296);
     final gradientBackground = tester.widget<DecoratedBox>(
       find.byKey(const Key('vaccination-card-gradient-background')),
     );

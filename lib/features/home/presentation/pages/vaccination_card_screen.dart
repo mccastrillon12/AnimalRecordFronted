@@ -96,16 +96,14 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
             left: 0,
             right: 0,
             child: SvgPicture.asset(
-              _isCertificate
-                  ? AppIcons.vaccinationCertificateBackground
-                  : AppIcons.vaccinationCardBackground,
+              AppIcons.vaccinationCertificateBackground,
               key: Key(
                 _isCertificate
                     ? 'vaccination-certificate-background'
                     : 'vaccination-card-background',
               ),
               width: double.infinity,
-              height: _isCertificate ? 296 : 562,
+              height: 296,
               fit: BoxFit.fill,
             ),
           ),
