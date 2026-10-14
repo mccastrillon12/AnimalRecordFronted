@@ -211,6 +211,7 @@ SharedFileAnalysisEntity vaccinationGroupToPdfAnalysis(
             ],
           ],
           originalUrl: originalUrls[detail.doses[index].document.id],
+          originalMimeType: detail.doses[index].document.mimeType,
         ),
     ],
   );
@@ -225,12 +226,26 @@ SharedFileAnalysisEntity vaccinationGroupsToPdfAnalysis(
   Map<String, String> originalUrls = const {},
 }) {
   final orderedGroups = sortVaccinationGroupsByLatest(groups);
+  final extractedWeight = _firstExtractedWeight(orderedGroups);
+  final resolvedPatient = extractedWeight == null
+      ? patient
+      : SharedFilePatientAnalysisEntity(
+          name: patient.name,
+          recordId: patient.recordId,
+          species: patient.species,
+          breed: patient.breed,
+          sex: patient.sex,
+          color: patient.color,
+          age: patient.age,
+          weight: extractedWeight,
+          additionalDetails: patient.additionalDetails,
+        );
   return SharedFileAnalysisEntity(
     documentType: documentType,
     documentNumber: '',
     date: null,
     originalFileName: '',
-    patient: patient,
+    patient: resolvedPatient,
     tutor: tutor,
     medications: [
       for (final group in orderedGroups)
@@ -271,9 +286,24 @@ SharedFileAnalysisEntity vaccinationGroupsToPdfAnalysis(
               ],
             ],
             originalUrl: originalUrls[dose.document.id],
+            originalMimeType: dose.document.mimeType,
           ),
     ],
   );
+}
+
+String? _firstExtractedWeight(Iterable<VaccinationGroupViewData> groups) {
+  for (final group in groups) {
+    for (final application in group.applications) {
+      final patient = application.document.validatedExtraction?.patient;
+      if (patient == null) continue;
+      for (final value in [patient.fields['weight'], patient.weight]) {
+        final normalized = medicalDocumentDisplayValue(value).trim();
+        if (normalized.isNotEmpty) return normalized;
+      }
+    }
+  }
+  return null;
 }
 
 List<VaccinationGroupViewData> sortVaccinationGroupsByLatest(
@@ -475,7 +505,8 @@ List<SharedFileAnalysisDetailEntity> _doseDetails(
     details.add(
       SharedFileAnalysisDetailEntity(
         label: column.label,
-        value: column.kind == MedicalFieldKind.date ||
+        value:
+            column.kind == MedicalFieldKind.date ||
                 _applicationDateKeys.contains(key)
             ? _displayVaccinationDate(value)
             : value,

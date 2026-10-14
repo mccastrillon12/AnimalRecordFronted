@@ -613,7 +613,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         await Navigator.pushNamed(
           context,
           AppRoutes.animalDocuments,
-          arguments: animal.id,
+          arguments: {'animalId': animal.id, 'animal': animal},
         );
       }
       return;
@@ -624,7 +624,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       await Navigator.pushNamed(
         context,
         AppRoutes.animalDocuments,
-        arguments: animal.id,
+        arguments: {'animalId': animal.id, 'animal': animal},
       );
       return;
     }
@@ -636,7 +636,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       subText:
           'Aquí podrá encontrar todas las fórmulas, órdenes y remisiones '
           'médicas que se le han realizado al animal.',
-      continueArguments: animal.id,
+      continueArguments: {'animalId': animal.id, 'animal': animal},
     );
   }
 

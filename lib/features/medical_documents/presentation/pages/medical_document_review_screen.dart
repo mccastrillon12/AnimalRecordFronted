@@ -7,6 +7,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_rejection_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
@@ -142,10 +143,22 @@ class _MedicalDocumentReviewScreenState
         _analysisFuture == null) {
       _analysisExtraction = extraction;
       _analysisFinalCategory = finalCategory;
+      final flowAnimalIds = context
+          .read<MedicalDocumentFlowCubit>()
+          .state
+          .animalIds;
+      final animalId = document.animalIds.isNotEmpty
+          ? document.animalIds.first
+          : (flowAnimalIds.isEmpty ? null : flowAnimalIds.first);
+      final appProfile = animalId == null
+          ? null
+          : sharedFileAppProfileByAnimalId(context, animalId);
       _analysisFuture = di.sl<MedicalDocumentAnalysisPresenter>().forReview(
         document: document,
         extraction: extraction,
         finalCategory: finalCategory,
+        appPatient: appProfile?.patient,
+        appTutor: appProfile?.tutor,
       );
     }
     return _analysisFuture!;

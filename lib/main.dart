@@ -212,6 +212,10 @@ class MyApp extends StatelessWidget {
             final animalId = arguments is String
                 ? arguments
                 : (arguments as Map)['animalId'] as String;
+            final animal =
+                arguments is Map && arguments['animal'] is AnimalModel
+                ? arguments['animal'] as AnimalModel
+                : null;
             final initialCategory =
                 arguments is Map &&
                     arguments['initialCategory'] is MedicalDocumentCategory
@@ -223,6 +227,7 @@ class MyApp extends StatelessWidget {
                     ..load(animalId, category: initialCategory),
               child: AnimalDocumentsScreen(
                 animalId: animalId,
+                animal: animal,
                 initialCategory: initialCategory,
               ),
             );

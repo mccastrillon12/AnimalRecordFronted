@@ -16,6 +16,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
@@ -121,7 +122,10 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
                     ? group.documents.single
                     : null;
                 final destination = singleDocument?.validatedExtraction != null
-                    ? ClinicalHistoryDocumentScreen(document: singleDocument!)
+                    ? ClinicalHistoryDocumentScreen(
+                        document: singleDocument!,
+                        animal: animal,
+                      )
                     : ClinicalHistoryGroupScreen(animal: animal, group: group);
                 Navigator.push<void>(
                   context,
@@ -153,8 +157,13 @@ class ClinicalHistoryGroupScreen extends StatefulWidget {
 
 class ClinicalHistoryDocumentScreen extends StatefulWidget {
   final MedicalDocumentEntity document;
+  final AnimalModel animal;
 
-  const ClinicalHistoryDocumentScreen({super.key, required this.document});
+  const ClinicalHistoryDocumentScreen({
+    super.key,
+    required this.document,
+    required this.animal,
+  });
 
   @override
   State<ClinicalHistoryDocumentScreen> createState() =>
@@ -170,8 +179,15 @@ class _ClinicalHistoryDocumentScreenState
   @override
   void initState() {
     super.initState();
-    _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
+    _analysis = _loadAnalysis();
+  }
+
+  Future<SharedFileAnalysisEntity> _loadAnalysis() {
+    final profile = sharedFileAppProfile(context, widget.animal);
+    return di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
       widget.document,
+      appPatient: profile.patient,
+      appTutor: profile.tutor,
     );
   }
 
@@ -189,9 +205,7 @@ class _ClinicalHistoryDocumentScreenState
         if (analysis == null) {
           return _MedicalCatalogError(
             onRetry: () => setState(() {
-              _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
-                widget.document,
-              );
+              _analysis = _loadAnalysis();
             }),
           );
         }
@@ -386,6 +400,7 @@ class _ClinicalHistoryGroupScreenState
     setState(() => _downloading = true);
     try {
       final downloadUri = di.sl<GetMedicalDocumentDownloadUriUseCase>();
+      final profile = sharedFileAppProfile(context, widget.animal);
       final analyses = await Future.wait(
         widget.group.documents
             .where((document) => document.validatedExtraction != null)
@@ -393,7 +408,11 @@ class _ClinicalHistoryGroupScreenState
               final uri = await downloadUri(document.id);
               final analysis = await di
                   .sl<MedicalDocumentAnalysisPresenter>()
-                  .forAccepted(document);
+                  .forAccepted(
+                    document,
+                    appPatient: profile.patient,
+                    appTutor: profile.tutor,
+                  );
               return analysis.withOriginalUrl(uri.toString());
             }),
       );
@@ -420,12 +439,15 @@ class _ClinicalHistoryGroupScreenState
   Future<void> _downloadDocument(MedicalDocumentEntity document) async {
     if (document.validatedExtraction == null) return;
     try {
+      final profile = sharedFileAppProfile(context, widget.animal);
       final uri = await di.sl<GetMedicalDocumentDownloadUriUseCase>()(
         document.id,
       );
       final analysis =
           (await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
             document,
+            appPatient: profile.patient,
+            appTutor: profile.tutor,
           )).withOriginalUrl(uri.toString());
       await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
         analysis,
@@ -440,7 +462,10 @@ class _ClinicalHistoryGroupScreenState
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => ClinicalHistoryDocumentScreen(document: document),
+        builder: (_) => ClinicalHistoryDocumentScreen(
+          document: document,
+          animal: widget.animal,
+        ),
       ),
     );
   }

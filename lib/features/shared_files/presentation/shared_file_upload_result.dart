@@ -40,7 +40,11 @@ SharedFileUploadDestination? resolveSharedFileUploadDestination(
     MedicalDocumentCategory.referral => SharedFileUploadDestination(
       animal: animalModel,
       sectionRouteName: AppRoutes.animalDocuments,
-      sectionArguments: {'animalId': animal.id, 'initialCategory': category},
+      sectionArguments: {
+        'animalId': animal.id,
+        'animal': animalModel,
+        'initialCategory': category,
+      },
     ),
     MedicalDocumentCategory.vaccinationCard => SharedFileUploadDestination(
       animal: animalModel,

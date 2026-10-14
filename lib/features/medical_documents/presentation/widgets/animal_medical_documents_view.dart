@@ -1,6 +1,5 @@
 import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -12,6 +11,8 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/anim
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
@@ -24,6 +25,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class AnimalMedicalDocumentsView extends StatelessWidget {
   final String animalId;
+  final AnimalModel? animal;
   final MedicalDocumentCategory category;
   final String emptyTitle;
   final String emptyDescription;
@@ -41,6 +43,7 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   const AnimalMedicalDocumentsView({
     super.key,
     required this.animalId,
+    this.animal,
     required this.category,
     required this.emptyTitle,
     required this.emptyDescription,
@@ -115,6 +118,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           });
         }
         final shouldShowAiFeedback = showAiFeedback && documents.isNotEmpty;
+        final appProfile = animal == null
+            ? sharedFileAppProfileByAnimalId(context, animalId)
+            : sharedFileAppProfile(context, animal!);
         final aiFeedbackBanner = shouldShowAiFeedback
             ? MedicalDocumentAiFeedbackBanner(
                 key: ValueKey(aiFeedbackRequestId),
@@ -143,6 +149,21 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
                       documents[index - (shouldShowAiFeedback ? 1 : 0)]
                           .finalCategory ??
                       category,
+                  onDetail:
+                      documents[index - (shouldShowAiFeedback ? 1 : 0)]
+                              .validatedExtraction ==
+                          null
+                      ? null
+                      : () => _showMedicalDocumentDetail(
+                          context,
+                          document:
+                              documents[index - (shouldShowAiFeedback ? 1 : 0)],
+                          category:
+                              documents[index - (shouldShowAiFeedback ? 1 : 0)]
+                                  .finalCategory ??
+                              category,
+                          appProfile: appProfile,
+                        ),
                 ),
         );
       },
@@ -349,6 +370,7 @@ Future<void> _showMedicalDocumentDetail(
   BuildContext context, {
   required MedicalDocumentEntity document,
   required MedicalDocumentCategory category,
+  SharedFileAppProfile? appProfile,
 }) async {
   final closeIconKey = GlobalKey();
   final actionIconKey = GlobalKey();
@@ -356,6 +378,8 @@ Future<void> _showMedicalDocumentDetail(
   try {
     analysis = await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
       document,
+      appPatient: appProfile?.patient,
+      appTutor: appProfile?.tutor,
     );
   } catch (error) {
     if (context.mounted) ErrorDisplay.showError(context, error.toString());
@@ -451,182 +475,6 @@ class _DocumentCardValue extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _AiFeedbackBanner extends StatefulWidget {
-  final VoidCallback? onDismissed;
-  final Future<void> Function(MedicalDocumentAiFeedback feedback) onSubmit;
-  final bool initialHasResponded;
-  final Future<void> Function()? onSubmitted;
-
-  const _AiFeedbackBanner({
-    super.key,
-    this.onDismissed,
-    required this.onSubmit,
-    this.initialHasResponded = false,
-    this.onSubmitted,
-  });
-
-  @override
-  State<_AiFeedbackBanner> createState() => _AiFeedbackBannerState();
-}
-
-class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
-  late bool _hasResponded;
-  bool _isDismissed = false;
-  bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hasResponded = widget.initialHasResponded;
-  }
-
-  @override
-  void didUpdateWidget(covariant _AiFeedbackBanner oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_hasResponded && widget.initialHasResponded) {
-      _hasResponded = true;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isDismissed) return const SizedBox.shrink();
-
-    if (_hasResponded) {
-      return Container(
-        key: const Key('medical-document-ai-feedback-thanks'),
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          gradient: AppColors.aiAnalysisGradient,
-          borderRadius: AppBorders.large(),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Gracias por tu respuesta, la tendremos en cuenta para seguir '
-                'entrenando la IA.',
-                style: AppTypography.body6.copyWith(
-                  color: AppColors.greyNegro,
-                  height: 1.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.m),
-            IconButton(
-              key: const Key('medical-document-ai-feedback-close'),
-              onPressed: _dismiss,
-              icon: const Icon(
-                Icons.close,
-                color: AppColors.greyIconos,
-                size: 24,
-              ),
-              tooltip: 'Cerrar',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: AppSpacing.xl,
-                minHeight: AppSpacing.xl,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        gradient: AppColors.aiAnalysisGradient,
-        borderRadius: AppBorders.small(),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '¿La ayuda de la IA te fue útil para leer tu archivo?',
-              style: AppTypography.body6.copyWith(
-                color: const Color.fromARGB(255, 0, 0, 0),
-                height: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          _AiFeedbackButton(
-            key: const Key('medical-document-ai-not-useful'),
-            icon: Icons.thumb_down_alt,
-            onTap: _isSubmitting
-                ? null
-                : () => _submitFeedback(MedicalDocumentAiFeedback.dislike),
-          ),
-          const SizedBox(width: AppSpacing.m),
-          _AiFeedbackButton(
-            key: const Key('medical-document-ai-useful'),
-            icon: Icons.thumb_up_alt,
-            onTap: _isSubmitting
-                ? null
-                : () => _submitFeedback(MedicalDocumentAiFeedback.like),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _submitFeedback(MedicalDocumentAiFeedback feedback) async {
-    if (_isSubmitting || _hasResponded) return;
-    setState(() => _isSubmitting = true);
-    try {
-      await widget.onSubmit(feedback);
-      await widget.onSubmitted?.call();
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-        _hasResponded = true;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      ErrorDisplay.showError(context, error.toString());
-    }
-  }
-
-  void _dismiss() {
-    setState(() => _isDismissed = true);
-    widget.onDismissed?.call();
-  }
-}
-
-class _AiFeedbackButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _AiFeedbackButton({super.key, required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppSpacing.xs),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.xs),
-        child: Ink(
-          width: 62,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            border: Border.all(color: AppColors.primaryFrances),
-            borderRadius: BorderRadius.circular(AppSpacing.xs),
-          ),
-          child: Center(
-            child: Icon(icon, size: 23, color: AppColors.primaryFrances),
-          ),
-        ),
       ),
     );
   }

@@ -17,8 +17,8 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
-import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -218,12 +218,25 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
     if (groups.isEmpty || _exporting) return;
     setState(() => _exporting = true);
     try {
+      final documents = <String, MedicalDocumentEntity>{
+        for (final group in groups)
+          for (final application in group.applications)
+            application.document.id: application.document,
+      };
+      final downloadUri = di.sl<GetMedicalDocumentDownloadUriUseCase>();
+      final originalEntries = await Future.wait(
+        documents.values.map((document) async {
+          final uri = await downloadUri(document.id);
+          return MapEntry(document.id, uri.toString());
+        }),
+      );
       final analysis = vaccinationGroupsToPdfAnalysis(
         groups,
         catalog: _catalog!,
         documentType: _title,
-        patient: _patient(widget.animal),
-        tutor: _tutor(user, widget.animal),
+        patient: sharedFilePatientFromAnimal(widget.animal),
+        tutor: sharedFileTutorFromApp(user, widget.animal),
+        originalUrls: Map.fromEntries(originalEntries),
       );
       final shared = await di.sl<ExportSharedFileAnalysisPdfUseCase>()(
         analysis,
@@ -570,36 +583,6 @@ class _VaccinationCardFooter extends StatelessWidget {
       ],
     );
   }
-}
-
-SharedFilePatientAnalysisEntity _patient(AnimalModel animal) {
-  return SharedFilePatientAnalysisEntity(
-    name: animal.name,
-    recordId: animal.code,
-    species: animal.family,
-    breed: animal.breed?.trim() ?? '',
-    sex: animal.sexDisplay,
-    age: animal.ageDisplay,
-    weight: _weight(animal.weight),
-  );
-}
-
-SharedFileTutorAnalysisEntity _tutor(UserEntity? user, AnimalModel animal) {
-  return SharedFileTutorAnalysisEntity(
-    name: _firstNotEmpty([user?.name, animal.ownerName]),
-    identification: _maskedIdentification(
-      user?.identificationType,
-      user?.identificationNumber,
-    ),
-    phoneNumber: _colombianPhone(user?.cellPhone),
-    additionalDetails: [
-      if (user?.email.trim().isNotEmpty ?? false)
-        SharedFileAnalysisDetailEntity(
-          label: 'Correo electrónico',
-          value: user!.email.trim(),
-        ),
-    ],
-  );
 }
 
 String _familyIcon(String family) {

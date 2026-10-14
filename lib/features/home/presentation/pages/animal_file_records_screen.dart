@@ -196,6 +196,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                           Expanded(
                             child: AnimalMedicalDocumentsView(
                               animalId: widget.animal.id,
+                              animal: widget.animal,
                               category: widget.section.category,
                               searchQuery: _searchController.text,
                               documentFilter: (document) =>
