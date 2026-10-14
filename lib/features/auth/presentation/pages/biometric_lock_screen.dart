@@ -84,7 +84,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
   Future<void> _authenticate() async {
     try {
       final bool didAuthenticate = await auth.authenticate(
-        localizedReason: 'Por favor autentícate para acceder',
+        localizedReason: 'Por favor, autentícate para acceder.',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,
@@ -100,7 +100,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       if (e.code == auth_error.notAvailable ||
           e.code == auth_error.notEnrolled) {
         if (mounted) {
-          ErrorDisplay.showError(context, 'Biometría no disponible');
+          ErrorDisplay.showError(context, 'Biometría no disponible.');
         }
       }
     }

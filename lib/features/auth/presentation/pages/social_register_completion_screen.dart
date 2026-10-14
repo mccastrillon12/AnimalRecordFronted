@@ -390,7 +390,7 @@ class _SocialRegisterCompletionViewState
                                 onIdTypeChanged:
                                     cubit.identificationTypeChanged,
                                 errorText: registerState.idError
-                                    ? 'ID ya registrado'
+                                    ? 'ID ya registrado.'
                                     : (registerState.isIdAttempted &&
                                               registerState
                                                   .identificationNumber
@@ -424,7 +424,7 @@ class _SocialRegisterCompletionViewState
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
                                 errorText: registerState.phoneError
-                                    ? 'Celular ya registrado'
+                                    ? 'Celular ya registrado.'
                                     : (registerState.isPhoneAttempted &&
                                               registerState.phone.isNotValid &&
                                               registerState

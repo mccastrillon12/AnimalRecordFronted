@@ -114,7 +114,7 @@ void main() {
     expect(fileSaver.request?.mimeType, 'image/png');
     expect(fileSaver.request?.bytes, image.bytes);
     expect(fileSaver.request?.remoteUri, isNull);
-    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    expect(find.text('Se descargó correctamente.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 
@@ -213,7 +213,7 @@ void main() {
       fileSaver.request?.remoteUri,
       Uri.parse('https://example.test/original'),
     );
-    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    expect(find.text('Se descargó correctamente.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 }

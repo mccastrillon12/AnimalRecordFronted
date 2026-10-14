@@ -261,20 +261,20 @@ class _MyAccountScreenState extends State<MyAccountScreen>
 
             if (errorMsg.contains('Error del servidor')) {
               if (emailChanged && phoneChanged) {
-                errorMsg = 'Parece que este correo electrónico o número celular ya están asociados a otra cuenta';
+                errorMsg = 'Parece que este correo electrónico o número celular ya están asociados a otra cuenta.';
                 showPrefix = false;
               } else if (emailChanged) {
-                errorMsg = 'Parece que este correo electrónico ya está asociado a otra cuenta';
+                errorMsg = 'Parece que este correo electrónico ya está asociado a otra cuenta.';
                 showPrefix = false;
               } else if (phoneChanged) {
-                errorMsg = 'Parece que este número celular ya está asociado a otra cuenta';
+                errorMsg = 'Parece que este número celular ya está asociado a otra cuenta.';
                 showPrefix = false;
               }
             }
 
             ErrorDisplay.showError(context, showPrefix ? 'Error: $errorMsg' : errorMsg);
           } else if (state.isUpdating == false && state.updateError == null) {
-            ErrorDisplay.showSuccess(context, 'Cambios guardados');
+            ErrorDisplay.showSuccess(context, 'Cambios guardados.');
             Navigator.pop(context);
           }
         }

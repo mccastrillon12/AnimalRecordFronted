@@ -67,7 +67,7 @@ class _ResetPinScreenState extends State<ResetPinScreen> {
           setState(() => _errorMessage = state.message);
         }
         if (state is ResetPinSuccess) {
-          ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente');
+          ErrorDisplay.showSuccess(context, 'PIN restablecido exitosamente.');
           Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       },

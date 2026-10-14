@@ -98,7 +98,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final rawIdentifier = _identifierController.text.trim();
 
     if (rawIdentifier.isEmpty) {
-      ErrorDisplay.showError(context, 'Por favor ingresa tu correo o celular');
+      ErrorDisplay.showError(context, 'Por favor, ingresa tu correo o celular.');
       return;
     }
 
@@ -238,7 +238,7 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) setState(() => _isSocialLoading = false);
       sl<Logger>().e('Apple Sign-In failed: $error');
       if (mounted) {
-        ErrorDisplay.showError(context, 'Error al iniciar sesión con Apple');
+        ErrorDisplay.showError(context, 'Error al iniciar sesión con Apple.');
       }
     }
   }
@@ -517,7 +517,7 @@ class _BiometricButton extends StatelessWidget {
                 );
                 ErrorDisplay.showSuccess(
                   context,
-                  'Biometría desactivada exitosamente',
+                  'Biometría desactivada exitosamente.',
                 );
               },
             ),

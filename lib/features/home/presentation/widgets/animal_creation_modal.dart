@@ -1206,7 +1206,7 @@ class _AnimalInfoStep extends StatelessWidget {
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
                                     patternErrorMessage:
-                                        'Solo se permiten números y comas',
+                                        'Solo se permiten números y comas.',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1244,7 +1244,7 @@ class _AnimalInfoStep extends StatelessWidget {
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
                                     patternErrorMessage:
-                                        'Solo se permiten números y comas',
+                                        'Solo se permiten números y comas.',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {

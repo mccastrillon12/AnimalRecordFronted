@@ -46,8 +46,8 @@ class _SecurityStepState extends State<SecurityStep> {
               obscureText: _obscureConfirmPassword,
               initialValue: state.confirmPassword.value,
               onChanged: cubit.confirmPasswordChanged,
-              errorText: state.confirmPassword.value.isNotEmpty && state.password.value != state.confirmPassword.value 
-                  ? 'Las contraseñas no coinciden' 
+              errorText: state.confirmPassword.value.isNotEmpty && state.password.value != state.confirmPassword.value
+                  ? 'Las contraseñas no coinciden.'
                   : null,
               onToggleVisibility: () {
                 setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);

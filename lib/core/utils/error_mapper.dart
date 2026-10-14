@@ -16,15 +16,15 @@ class ErrorMapper {
   }
 
   static const Map<String, String> _errorCodeMessages = {
-    'INVALID_CREDENTIALS': 'Credenciales inválidas',
-    'USER_NOT_FOUND': 'Usuario no encontrado',
-    'USER_NOT_VERIFIED': 'Usuario no verificado',
+    'INVALID_CREDENTIALS': 'Credenciales inválidas.',
+    'USER_NOT_FOUND': 'Usuario no encontrado.',
+    'USER_NOT_VERIFIED': 'Usuario no verificado.',
     'INVALID_TOKEN': 'Sesión expirada. Por favor, inicia sesión nuevamente.',
     'NETWORK_ERROR': 'Error de conexión. Verifica tu internet.',
     'VALIDATION_ERROR': 'Datos inválidos. Por favor, verifica la información.',
-    'DUPLICATE_USER': 'Este usuario ya existe',
-    'DUPLICATE_EMAIL': 'Este correo ya está registrado',
-    'DUPLICATE_PHONE': 'Este teléfono ya está registrado',
+    'DUPLICATE_USER': 'Este usuario ya existe.',
+    'DUPLICATE_EMAIL': 'Este correo ya está registrado.',
+    'DUPLICATE_PHONE': 'Este teléfono ya está registrado.',
     'INVALID_CODE': 'Código incorrecto. Intente nuevamente.',
   };
 

@@ -55,7 +55,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> login(Map<String, dynamic> credentials) async {
     final response = await apiClient.post('/auth/login', data: credentials);
     if (response.data is List) {
-      throw Exception('Error del servidor: formato de respuesta inválido');
+      throw Exception('Error del servidor: formato de respuesta inválido.');
     }
     return response.data;
   }
@@ -132,7 +132,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       data: {'provider': provider, 'token': token},
     );
     if (response.data is List) {
-      throw Exception('Error del servidor: formato de respuesta inválido');
+      throw Exception('Error del servidor: formato de respuesta inválido.');
     }
     return response.data;
   }
@@ -141,7 +141,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Future<Map<String, dynamic>> registerSocial(Map<String, dynamic> data) async {
     final response = await apiClient.post('/auth/social/register', data: data);
     if (response.data is List) {
-      throw Exception('Error del servidor: formato de respuesta inválido');
+      throw Exception('Error del servidor: formato de respuesta inválido.');
     }
     return response.data;
   }
@@ -149,7 +149,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   @override
   Future<UserModel> getUserProfile(String id) async {
     final response = await apiClient.get('/users/$id');
-    if (response.data is List) throw Exception('Error del servidor');
+    if (response.data is List) throw Exception('Error del servidor.');
     return UserModel.fromJson(response.data);
   }
 

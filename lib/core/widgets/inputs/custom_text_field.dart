@@ -445,13 +445,13 @@ class ErrorTriggeringTextInputFormatter extends TextInputFormatter {
     }
 
     if (maxLength != null && newValue.text.length > maxLength!) {
-      onError('Este campo recibe un máximo de $maxLength caracteres');
+      onError('Este campo recibe un máximo de $maxLength caracteres.');
       return oldValue;
     }
 
     if (allowPattern != null && !allowPattern!.hasMatch(newValue.text)) {
       onError(
-        patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9',
+        patternErrorMessage ?? 'Los caracteres permitidos son: A-Z, a-z, 0-9.',
       );
       return oldValue;
     }

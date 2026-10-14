@@ -232,7 +232,7 @@ class _EditProfileScreenViewState extends State<EditProfileScreenView> {
               } else {
                 ErrorDisplay.showSuccess(
                   context,
-                  'Cambios guardados correctamente',
+                  'Cambios guardados correctamente.',
                 );
                 Navigator.pop(context);
               }

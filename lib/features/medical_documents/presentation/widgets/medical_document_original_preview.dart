@@ -166,7 +166,7 @@ class MedicalDocumentOriginalPreview {
         ),
       );
       if (saved && context.mounted) {
-        ErrorDisplay.showSuccess(context, 'Se descargo correctamente');
+        ErrorDisplay.showSuccess(context, 'Se descargó correctamente.');
       }
     } catch (error) {
       if (context.mounted) {
@@ -624,7 +624,7 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
         ),
       );
       if (saved && mounted) {
-        ErrorDisplay.showSuccess(context, 'Se descargo correctamente');
+        ErrorDisplay.showSuccess(context, 'Se descargó correctamente.');
       }
     } catch (error) {
       if (mounted) {

@@ -784,13 +784,13 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                     bool hasError = false;
                                     setDialogState(() {
                                       if (selectedReason == null) {
-                                        reasonError = 'Seleccione un motivo';
+                                        reasonError = 'Seleccione un motivo.';
                                         hasError = true;
                                       }
                                       if (ccController.text.trim() !=
                                           ownerIdNumber) {
                                         ccError =
-                                            'El número no coincide con el propietario';
+                                            'El número no coincide con el propietario.';
                                         hasError = true;
                                       }
                                     });
