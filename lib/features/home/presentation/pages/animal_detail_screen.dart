@@ -51,6 +51,7 @@ class AnimalDetailScreen extends StatefulWidget {
 class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   bool _isMenuOpen = false;
   bool _isPhotoUpdating = false;
+  bool _isOptionNavigationInProgress = false;
   String? _localPhotoPath;
   bool _photoDeleted = false;
 
@@ -538,51 +539,58 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                 : null,
             title: entry.value,
             onTap: () async {
-              if (entry.value == 'Información') {
-                await Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalInfo,
-                  arguments: animal,
-                );
-                if (mounted) {
-                  setState(() {
-                    _localPhotoPath = null;
-                    _photoDeleted = false;
-                  });
+              if (_isOptionNavigationInProgress) return;
+              _isOptionNavigationInProgress = true;
+
+              try {
+                if (entry.value == 'Información') {
+                  await Navigator.pushNamed(
+                    context,
+                    AppRoutes.animalInfo,
+                    arguments: animal,
+                  );
+                  if (mounted) {
+                    setState(() {
+                      _localPhotoPath = null;
+                      _photoDeleted = false;
+                    });
+                  }
+                } else if (entry.value == 'Historia clínica') {
+                  await _openClinicalHistory(animal);
+                } else if (entry.value == 'Carné de vacunas') {
+                  await Navigator.pushNamed(
+                    context,
+                    AppRoutes.animalVaccinations,
+                    arguments: animal,
+                  );
+                } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
+                  await _openDocumentsSection(animal);
+                } else if (entry.value == 'Imágenes diagnósticas') {
+                  await _openMedicalFileSection(
+                    animal: animal,
+                    category: MedicalDocumentCategory.diagnosticImage,
+                    title: 'Imágenes diagnósticas',
+                    continueRoute: AppRoutes.animalDiagnosticImages,
+                    mainText: 'Actualmente no tiene archivos subidos',
+                    subText:
+                        'Recopila todas las imágenes\n'
+                        'diagnósticas importantes '
+                        'del animal.',
+                  );
+                } else if (entry.value == 'Resultados de laboratorio') {
+                  await _openMedicalFileSection(
+                    animal: animal,
+                    category: MedicalDocumentCategory.laboratoryResult,
+                    title: 'Resultados de laboratorio',
+                    continueRoute: AppRoutes.animalLaboratoryResults,
+                    mainText: 'Actualmente no tiene registros',
+                    subText:
+                        'Aquí podrá encontrar todos los resultados de '
+                        'laboratorio que se suban del animal.',
+                  );
                 }
-              } else if (entry.value == 'Historia clínica') {
-                _openClinicalHistory(animal);
-              } else if (entry.value == 'Carné de vacunas') {
-                Navigator.pushNamed(
-                  context,
-                  AppRoutes.animalVaccinations,
-                  arguments: animal,
-                );
-              } else if (entry.value == 'Órdenes, fórmulas y remisiones') {
-                _openDocumentsSection(animal);
-              } else if (entry.value == 'Imágenes diagnósticas') {
-                _openMedicalFileSection(
-                  animal: animal,
-                  category: MedicalDocumentCategory.diagnosticImage,
-                  title: 'Imágenes diagnósticas',
-                  continueRoute: AppRoutes.animalDiagnosticImages,
-                  mainText: 'Actualmente no tiene archivos subidos',
-                  subText:
-                      'Recopila todas las imágenes\n'
-                      'diagnósticas importantes '
-                      'del animal.',
-                );
-              } else if (entry.value == 'Resultados de laboratorio') {
-                _openMedicalFileSection(
-                  animal: animal,
-                  category: MedicalDocumentCategory.laboratoryResult,
-                  title: 'Resultados de laboratorio',
-                  continueRoute: AppRoutes.animalLaboratoryResults,
-                  mainText: 'Actualmente no tiene registros',
-                  subText:
-                      'Aquí podrá encontrar todos los resultados de '
-                      'laboratorio que se suban del animal.',
-                );
+              } finally {
+                _isOptionNavigationInProgress = false;
               }
             },
             showArrow: true,
@@ -592,8 +600,8 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     );
   }
 
-  void _openClinicalHistory(AnimalModel animal) {
-    Navigator.pushNamed(
+  Future<void> _openClinicalHistory(AnimalModel animal) async {
+    await Navigator.pushNamed(
       context,
       AppRoutes.animalClinicalHistory,
       arguments: animal,
@@ -628,7 +636,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       );
       return;
     }
-    _openEmptyFeature(
+    await _openEmptyFeature(
       animal: animal,
       title: 'Fórmulas, órdenes y remisiones',
       continueRoute: AppRoutes.animalDocuments,
@@ -665,7 +673,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       await Navigator.pushNamed(context, continueRoute, arguments: animal);
       return;
     }
-    _openEmptyFeature(
+    await _openEmptyFeature(
       animal: animal,
       title: title,
       continueRoute: continueRoute,
@@ -699,7 +707,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     return availability.any((hasDocuments) => hasDocuments);
   }
 
-  void _openEmptyFeature({
+  Future<void> _openEmptyFeature({
     required AnimalModel animal,
     required String title,
     required String continueRoute,
@@ -707,7 +715,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     required String subText,
     Object? continueArguments,
   }) {
-    _openModalPage(
+    return _openModalPage(
       AnimalEmptyFeatureScreen(
         animalFamily: animal.family,
         title: title,
@@ -722,8 +730,8 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     );
   }
 
-  void _openModalPage(Widget page) {
-    Navigator.push(
+  Future<void> _openModalPage(Widget page) async {
+    await Navigator.push(
       context,
       PageRouteBuilder<void>(
         opaque: false,
