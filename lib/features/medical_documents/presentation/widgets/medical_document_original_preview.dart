@@ -593,17 +593,12 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
       return;
     }
     final paint = Paint()
-      ..color = Colors.yellow
-      ..strokeWidth = 2;
+      ..color = const Color(0x66FFEB3B)
+      ..style = PaintingStyle.fill;
     for (final word in _highlightedWords) {
       final rect = word.bounds.toRectInDocument(page: page, pageRect: pageRect);
       if (rect.width <= 0 || rect.height <= 0) continue;
-      final underlineY = rect.bottom - 1;
-      canvas.drawLine(
-        Offset(rect.left, underlineY),
-        Offset(rect.right, underlineY),
-        paint,
-      );
+      canvas.drawRect(rect, paint);
     }
   }
 
