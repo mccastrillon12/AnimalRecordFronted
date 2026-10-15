@@ -372,9 +372,18 @@ class _ClinicalHistoryGroupScreenState
             appPatient: profile.patient,
             appTutor: profile.tutor,
           )).withOriginalUrl(uri.toString());
-      await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
+      final saved = await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
         analysis,
       ], fileName: 'historia_clinica_${widget.animal.name}');
+      if (mounted && saved) {
+        final overlay = Navigator.of(context).overlay;
+        if (overlay != null) {
+          ErrorDisplay.showSuccessOnOverlay(
+            overlay,
+            'Historia clínica descargada.',
+          );
+        }
+      }
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
     }

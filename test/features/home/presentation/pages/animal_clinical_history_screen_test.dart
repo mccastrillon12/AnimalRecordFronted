@@ -1,4 +1,5 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/features/auth/domain/entities/user_entity.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
@@ -9,7 +10,11 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/home/presentation/widgets/clinical_history_groups_view.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
+import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -23,8 +28,17 @@ class MockAuthBloc extends Mock implements AuthBloc {}
 class MockAnimalMedicalDocumentsCubit extends Mock
     implements AnimalMedicalDocumentsCubit {}
 
+class MockGetMedicalDocumentDownloadUriUseCase extends Mock
+    implements GetMedicalDocumentDownloadUriUseCase {}
+
+class MockSaveSharedFileAnalysesPdfUseCase extends Mock
+    implements SaveSharedFileAnalysesPdfUseCase {}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(() {
+    registerFallbackValue(<SharedFileAnalysisEntity>[]);
+  });
   setUp(registerMedicalFieldCatalogTestDependencies);
   tearDown(unregisterMedicalFieldCatalogTestDependencies);
 
@@ -326,6 +340,75 @@ void main() {
 
     expect(find.text('Descargar historia'), findsOneWidget);
     expect(find.text('Cambiar privacidad'), findsNothing);
+  });
+
+  testWidgets('shows success after downloading one clinical history', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final getDownloadUri = MockGetMedicalDocumentDownloadUriUseCase();
+    final savePdfs = MockSaveSharedFileAnalysesPdfUseCase();
+    when(
+      () => getDownloadUri.call('history-1'),
+    ).thenAnswer((_) async => Uri.parse('https://example.test/history-1.pdf'));
+    when(
+      () => savePdfs.call(any(), fileName: any(named: 'fileName')),
+    ).thenAnswer((_) async => true);
+    di.sl.registerSingleton<GetMedicalDocumentDownloadUriUseCase>(
+      getDownloadUri,
+    );
+    di.sl.registerSingleton<SaveSharedFileAnalysesPdfUseCase>(savePdfs);
+    addTearDown(() {
+      di.sl.unregister<SaveSharedFileAnalysesPdfUseCase>();
+      di.sl.unregister<GetMedicalDocumentDownloadUriUseCase>();
+    });
+
+    const document = MedicalDocumentEntity(
+      id: 'history-1',
+      animalIds: ['animal-1'],
+      originalFileName: 'history-1.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.clinicalHistory,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.clinicalHistory,
+        documentDate: '2026-10-15',
+      ),
+      version: 1,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: ClinicalHistoryGroupScreen(
+          animal: animal,
+          group: ClinicalHistoryGroup(
+            name: 'Barbara James',
+            clinic: '',
+            isCurrentUser: true,
+            documents: [document],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('clinical-history-menu-history-1')));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(const Key('medical-document-download-history-1')),
+    );
+    await tester.pump(const Duration(milliseconds: 350));
+    await tester.pump();
+
+    expect(find.text('Historia clínica descargada.'), findsOneWidget);
+    verify(
+      () => savePdfs.call(any(), fileName: 'historia_clinica_Brownie'),
+    ).called(1);
+
+    await tester.pump(const Duration(seconds: 4));
   });
 
   testWidgets('shows clinical history dates in the same format', (
