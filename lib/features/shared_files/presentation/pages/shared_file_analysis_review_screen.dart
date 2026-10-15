@@ -800,7 +800,10 @@ class _AnalysisDocumentCard extends StatelessWidget {
                     (analysis.documentType.toLowerCase().contains(
                           'vacunación',
                         ) &&
-                        _isVaccinationSection(analysis.sections[index].title)),
+                        _isVaccinationSection(
+                          analysis.sections[index].title,
+                        )) ||
+                    _isLaboratoryResultDocument(analysis.documentType),
               ),
             ],
             if (analysis.observations?.trim().isNotEmpty ?? false) ...[
@@ -1164,6 +1167,9 @@ bool _isMedicationSection(String title) =>
 
 bool _isVaccinationSection(String title) =>
     RegExp(r'^vacunas?\b', caseSensitive: false).hasMatch(title.trim());
+
+bool _isLaboratoryResultDocument(String documentType) =>
+    documentType.trim().toLowerCase().contains('laboratorio');
 
 String _sectionSearchText(
   SharedFileAnalysisSectionEntity section,

@@ -302,6 +302,94 @@ void main() {
     expect(originalOpened, isTrue);
   });
 
+  testWidgets(
+    'shows one original link per laboratory result and selects every field',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? selectedText;
+      const analysis = SharedFileAnalysisEntity(
+        documentType: 'Resultados de laboratorio',
+        documentNumber: 'LAB-1',
+        date: null,
+        originalFileName: 'laboratorio.pdf',
+        patient: SharedFilePatientAnalysisEntity(
+          name: '',
+          recordId: '',
+          species: '',
+          breed: '',
+          age: '',
+          weight: '',
+        ),
+        tutor: SharedFileTutorAnalysisEntity(
+          name: '',
+          identification: '',
+          phoneNumber: '',
+        ),
+        sections: [
+          SharedFileAnalysisSectionEntity(
+            title: 'Resultados de laboratorio 1',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Prueba o analito',
+                value: 'Eritrocitos',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Panel',
+                value: 'HEMOGRAMA COMPLETO',
+              ),
+              SharedFileAnalysisDetailEntity(label: 'Resultado', value: '7,67'),
+              SharedFileAnalysisDetailEntity(
+                label: 'Unidad',
+                value: 'X 10³cel/ul',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Rango de referencia',
+                value: '5.4-7.8 X 10³cel/ul',
+              ),
+            ],
+          ),
+          SharedFileAnalysisSectionEntity(
+            title: 'Resultados de laboratorio 2',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Prueba o analito',
+                value: 'Hemoglobina',
+              ),
+              SharedFileAnalysisDetailEntity(label: 'Resultado', value: '15,2'),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SharedFileAnalysisReviewScreen(
+            analysis: analysis,
+            onViewOriginalText: (text) => selectedText = text,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final originalLinks = find.text('Ver original');
+      expect(originalLinks, findsNWidgets(2));
+
+      await tester.ensureVisible(originalLinks.first);
+      await tester.pumpAndSettle();
+      await tester.tap(originalLinks.first);
+
+      expect(
+        selectedText,
+        'Eritrocitos\n'
+        'HEMOGRAMA COMPLETO\n'
+        '7,67\n'
+        'X 10³cel/ul\n'
+        '5.4-7.8 X 10³cel/ul',
+      );
+    },
+  );
+
   testWidgets('shows the no-upload action and invokes its callback', (
     tester,
   ) async {
