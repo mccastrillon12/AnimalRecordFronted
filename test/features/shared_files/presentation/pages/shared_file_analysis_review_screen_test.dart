@@ -390,6 +390,90 @@ void main() {
     },
   );
 
+  testWidgets(
+    'shows one original link per medical order and selects every field',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? selectedText;
+      const analysis = SharedFileAnalysisEntity(
+        documentType: 'Orden médica',
+        documentNumber: 'ORD-1',
+        date: null,
+        originalFileName: 'orden.pdf',
+        patient: SharedFilePatientAnalysisEntity(
+          name: '',
+          recordId: '',
+          species: '',
+          breed: '',
+          age: '',
+          weight: '',
+        ),
+        tutor: SharedFileTutorAnalysisEntity(
+          name: '',
+          identification: '',
+          phoneNumber: '',
+        ),
+        sections: [
+          SharedFileAnalysisSectionEntity(
+            title: 'Órdenes médicas 1',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Examen o procedimiento',
+                value: 'Radiografía',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Tipo de orden',
+                value: 'Imagen diagnóstica',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Instrucciones',
+                value: 'Rx de tórax VD y L',
+              ),
+            ],
+          ),
+          SharedFileAnalysisSectionEntity(
+            title: 'Órdenes médicas 2',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Examen o procedimiento',
+                value: 'Ecografía abdominal',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Tipo de orden',
+                value: 'Imagen diagnóstica',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SharedFileAnalysisReviewScreen(
+            analysis: analysis,
+            onViewOriginalText: (text) => selectedText = text,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final originalLinks = find.text('Ver original');
+      expect(originalLinks, findsNWidgets(2));
+
+      await tester.ensureVisible(originalLinks.first);
+      await tester.pumpAndSettle();
+      await tester.tap(originalLinks.first);
+
+      expect(
+        selectedText,
+        'Radiografía\n'
+        'Imagen diagnóstica\n'
+        'Rx de tórax VD y L',
+      );
+    },
+  );
+
   testWidgets('shows the no-upload action and invokes its callback', (
     tester,
   ) async {
