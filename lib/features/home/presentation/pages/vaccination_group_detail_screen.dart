@@ -10,6 +10,7 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
@@ -31,11 +32,13 @@ const _vaccinationFixedHeaderHeight =
     _vaccinationNoticeGap;
 
 class VaccinationGroupDetailScreen extends StatefulWidget {
+  final String animalId;
   final VaccinationGroupViewData group;
   final VoidCallback onSend;
 
   const VaccinationGroupDetailScreen({
     super.key,
+    required this.animalId,
     required this.group,
     required this.onSend,
   });
@@ -157,6 +160,8 @@ class _VaccinationGroupDetailScreenState
         ),
         child: VaccinationRecordList(
           detail: detail,
+          animalId: widget.animalId,
+          onDocumentChanged: () => Navigator.pop(context),
           onViewOriginal: _showOriginal,
           onViewOriginalWithText: (document, searchText) =>
               _showOriginal(document, searchText: searchText),
@@ -190,6 +195,8 @@ class _VaccinationGroupDetailScreenState
 
 class VaccinationRecordList extends StatelessWidget {
   final VaccinationDetailViewData detail;
+  final String? animalId;
+  final VoidCallback? onDocumentChanged;
   final ValueChanged<MedicalDocumentEntity> onViewOriginal;
   final void Function(MedicalDocumentEntity document, String searchText)?
   onViewOriginalWithText;
@@ -199,6 +206,8 @@ class VaccinationRecordList extends StatelessWidget {
   const VaccinationRecordList({
     super.key,
     required this.detail,
+    this.animalId,
+    this.onDocumentChanged,
     required this.onViewOriginal,
     this.onViewOriginalWithText,
     this.recordSpacing = AppSpacing.xl,
@@ -214,6 +223,13 @@ class VaccinationRecordList extends StatelessWidget {
         onViewOriginal: _openOriginal,
       );
     }
+    final firstDoseIndexByDocument = <String, int>{};
+    final lastDoseIndexByDocument = <String, int>{};
+    for (var index = 0; index < detail.doses.length; index++) {
+      final documentId = detail.doses[index].document.id;
+      firstDoseIndexByDocument.putIfAbsent(documentId, () => index);
+      lastDoseIndexByDocument[documentId] = index;
+    }
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -226,6 +242,15 @@ class VaccinationRecordList extends StatelessWidget {
               ),
               vaccineName: detail.vaccineName,
               dose: detail.doses[index],
+              animalId: animalId,
+              editingInstanceKey: '${detail.doses[index].document.id}-$index',
+              showEditingExpiration:
+                  firstDoseIndexByDocument[detail.doses[index].document.id] ==
+                  index,
+              showEditingActions:
+                  lastDoseIndexByDocument[detail.doses[index].document.id] ==
+                  index,
+              onDocumentChanged: onDocumentChanged,
               onViewOriginal: () => _openOriginal(detail.doses[index]),
             ),
             if (index < detail.doses.length - 1)
@@ -305,12 +330,22 @@ String _doseSearchText(String vaccineName, VaccinationDoseViewData dose) {
 class _VaccinationRecordBlock extends StatelessWidget {
   final String vaccineName;
   final VaccinationDoseViewData dose;
+  final String? animalId;
+  final String editingInstanceKey;
+  final bool showEditingExpiration;
+  final bool showEditingActions;
+  final VoidCallback? onDocumentChanged;
   final VoidCallback onViewOriginal;
 
   const _VaccinationRecordBlock({
     super.key,
     required this.vaccineName,
     required this.dose,
+    required this.animalId,
+    required this.editingInstanceKey,
+    required this.showEditingExpiration,
+    required this.showEditingActions,
+    this.onDocumentChanged,
     required this.onViewOriginal,
   });
 
@@ -326,11 +361,29 @@ class _VaccinationRecordBlock extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DoseSection(
-              vaccineName: vaccineName,
-              dose: dose,
-              onViewOriginal: onViewOriginal,
-            ),
+            if (animalId case final value?)
+              MedicalDocumentEditingControls(
+                animalId: value,
+                document: dose.document,
+                category: MedicalDocumentCategory.vaccinationCard,
+                instanceKey: editingInstanceKey,
+                onChanged: onDocumentChanged,
+                showExpiration: showEditingExpiration,
+                showActions: showEditingActions,
+                builder: (_, expiration, actions) => _DoseSection(
+                  vaccineName: vaccineName,
+                  dose: dose,
+                  expiration: expiration,
+                  editingActions: actions,
+                  onViewOriginal: onViewOriginal,
+                ),
+              )
+            else
+              _DoseSection(
+                vaccineName: vaccineName,
+                dose: dose,
+                onViewOriginal: onViewOriginal,
+              ),
           ],
         ),
       ),
@@ -374,6 +427,8 @@ class _DoseSection extends StatelessWidget {
   final VoidCallback onViewOriginal;
   final bool showHeader;
   final String headerTitle;
+  final Widget? expiration;
+  final Widget? editingActions;
 
   const _DoseSection({
     required this.vaccineName,
@@ -381,6 +436,8 @@ class _DoseSection extends StatelessWidget {
     required this.onViewOriginal,
     this.showHeader = true,
     this.headerTitle = 'Detalle de vacunación',
+    this.expiration,
+    this.editingActions,
   });
 
   @override
@@ -416,6 +473,10 @@ class _DoseSection extends StatelessWidget {
                     color: AppColors.greyTextos,
                   ),
                 ),
+                if (expiration != null) ...[
+                  const SizedBox(height: AppSpacing.m),
+                  expiration!,
+                ],
               ],
             ),
           ),
@@ -465,6 +526,10 @@ class _DoseSection extends StatelessWidget {
         if (dose.veterinarian?.hasData ?? false) ...[
           const SizedBox(height: AppSpacing.l),
           _VeterinarianSection(veterinarian: dose.veterinarian!),
+        ],
+        if (editingActions != null) ...[
+          const SizedBox(height: AppSpacing.l),
+          editingActions!,
         ],
       ],
     );

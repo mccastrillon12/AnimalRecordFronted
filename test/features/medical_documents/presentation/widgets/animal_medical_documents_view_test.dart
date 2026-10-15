@@ -16,6 +16,54 @@ class _MockAnimalMedicalDocumentsCubit extends Mock
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('counts down and hides editing controls when 48 hours expire', (
+    tester,
+  ) async {
+    var now = DateTime(2026, 10, 15, 11);
+    final document = MedicalDocumentEntity(
+      id: 'countdown-document',
+      animalIds: const ['animal-1'],
+      originalFileName: 'vacuna.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.vaccinationCard,
+      version: 1,
+      updatedAt: now.subtract(const Duration(hours: 47)),
+      canReplace: true,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MedicalDocumentEditingControls(
+            animalId: 'animal-1',
+            document: document,
+            category: MedicalDocumentCategory.vaccinationCard,
+            instanceKey: 'countdown-document-0',
+            now: () => now,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('Modo edición expira en: 01:00:00'), findsOneWidget);
+    now = now.add(const Duration(seconds: 1));
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('Modo edición expira en: 00:59:59'), findsOneWidget);
+
+    now = now.add(const Duration(minutes: 59, seconds: 59));
+    await tester.pump(const Duration(seconds: 1));
+    expect(
+      find.byKey(
+        const Key('medical-document-editing-controls-countdown-document-0'),
+      ),
+      findsNothing,
+    );
+    expect(find.text('Continuar editando'), findsNothing);
+    expect(find.text('Eliminar archivo'), findsNothing);
+  });
+
   testWidgets('opens detail when tapping anywhere on a summary card', (
     tester,
   ) async {

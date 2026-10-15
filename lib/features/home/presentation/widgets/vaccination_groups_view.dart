@@ -182,19 +182,24 @@ class VaccinationGroupsView extends StatelessWidget {
     BuildContext context,
     VaccinationGroupViewData group,
   ) async {
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => VaccinationGroupDetailScreen(
-          group: group,
-          onSend: () => Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<AnimalMedicalDocumentsCubit>(),
-                child: VaccinationCardScreen(
-                  animal: animal,
-                  selectedGroup: group,
+        builder: (_) => BlocProvider.value(
+          value: documentsCubit,
+          child: VaccinationGroupDetailScreen(
+            animalId: animal.id,
+            group: group,
+            onSend: () => Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: documentsCubit,
+                  child: VaccinationCardScreen(
+                    animal: animal,
+                    selectedGroup: group,
+                  ),
                 ),
               ),
             ),

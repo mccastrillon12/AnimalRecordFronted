@@ -1,3 +1,5 @@
+import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_shadows.dart';
@@ -5,7 +7,9 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +18,9 @@ import '../../../../helpers/medical_field_catalog_test_data.dart';
 
 class MockAnimalMedicalDocumentsCubit extends Mock
     implements AnimalMedicalDocumentsCubit {}
+
+class MockMedicalDocumentDetailCubit extends Mock
+    implements MedicalDocumentDetailCubit {}
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -254,6 +261,198 @@ void main() {
     expect(find.text('Rabia'), findsOneWidget);
     expect(find.text('Moquillo canino'), findsNothing);
 
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets(
+    'shows editing controls only on doses inside the 48-hour window',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final documentsCubit = MockAnimalMedicalDocumentsCubit();
+      when(() => documentsCubit.state).thenReturn(
+        AnimalMedicalDocumentsLoaded([
+          _vaccinationDocument(
+            id: 'editable-rabies',
+            vaccinationId: 'rabies-1',
+            fields: const {
+              'name': 'Rabia',
+              'applicationDate': 'October 15, 2026',
+            },
+            canReplace: true,
+            updatedAt: DateTime.now().subtract(const Duration(hours: 47)),
+          ),
+          _vaccinationDocument(
+            id: 'expired-rabies',
+            vaccinationId: 'rabies-2',
+            fields: const {
+              'name': 'Rabia',
+              'applicationDate': 'October 12, 2026',
+            },
+            canReplace: true,
+            updatedAt: DateTime.now().subtract(const Duration(hours: 49)),
+          ),
+        ], category: MedicalDocumentCategory.vaccinationCard),
+      );
+      when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+
+      await tester.pumpWidget(
+        BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: documentsCubit,
+          child: const MaterialApp(
+            home: AnimalVaccinationsScreen(animal: animal),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const Key('vaccination-group-rabies')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.byKey(
+          const Key('medical-document-editing-controls-editable-rabies-0'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(
+          const Key('medical-document-editing-controls-expired-rabies-1'),
+        ),
+        findsNothing,
+      );
+      expect(find.text('Continuar editando'), findsOneWidget);
+      expect(find.text('Eliminar archivo'), findsOneWidget);
+      expect(find.textContaining('Modo edición expira en:'), findsOneWidget);
+      final editableRecord = find.byKey(
+        const Key('vaccination-record-editable-rabies-0'),
+      );
+      final vaccineName = find.descendant(
+        of: editableRecord,
+        matching: find.text('Rabia'),
+      );
+      final expiration = find.descendant(
+        of: editableRecord,
+        matching: find.byKey(
+          const Key('medical-document-edit-expiration-editable-rabies-0'),
+        ),
+      );
+      expect(
+        tester.getTopLeft(expiration).dy,
+        greaterThan(tester.getBottomLeft(vaccineName).dy),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets('edits and deletes an eligible vaccination dose', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(390, 844));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+
+    final document = _vaccinationDocument(
+      id: 'editable-dose',
+      vaccinationId: 'rabies-editable',
+      fields: const {'name': 'Rabia', 'applicationDate': 'October 15, 2026'},
+      canReplace: true,
+      updatedAt: DateTime.now().subtract(const Duration(hours: 1)),
+    );
+    final documentsCubit = MockAnimalMedicalDocumentsCubit();
+    when(() => documentsCubit.state).thenReturn(
+      AnimalMedicalDocumentsLoaded([
+        document,
+      ], category: MedicalDocumentCategory.vaccinationCard),
+    );
+    when(() => documentsCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(
+      () => documentsCubit.load(
+        'animal-1',
+        category: MedicalDocumentCategory.vaccinationCard,
+      ),
+    ).thenAnswer((_) async {});
+
+    final detailCubit = MockMedicalDocumentDetailCubit();
+    when(
+      () => detailCubit.state,
+    ).thenReturn(const MedicalDocumentDetailState());
+    when(() => detailCubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => detailCubit.close()).thenAnswer((_) async {});
+    when(
+      () => detailCubit.loadRelatedDocuments('editable-dose'),
+    ).thenAnswer((_) async => [document]);
+    when(() => detailCubit.loadOriginalFile(document)).thenAnswer(
+      (_) async => const SharedFileEntity(
+        path: 'vacuna.pdf',
+        name: 'vacuna.pdf',
+        mimeType: 'application/pdf',
+        type: SharedFileType.pdf,
+      ),
+    );
+    when(
+      () => detailCubit.deleteDocument(
+        animalId: 'animal-1',
+        documentId: 'editable-dose',
+        documentVersion: 1,
+      ),
+    ).thenAnswer((_) async => true);
+    di.sl.unregister<MedicalDocumentDetailCubit>();
+    di.sl.registerFactory<MedicalDocumentDetailCubit>(() => detailCubit);
+
+    await tester.pumpWidget(
+      MaterialApp(
+        routes: {
+          AppRoutes.sharedFileUpload: (_) =>
+              const Scaffold(body: Center(child: Text('Edición de la dosis'))),
+        },
+        home: BlocProvider<AnimalMedicalDocumentsCubit>.value(
+          value: documentsCubit,
+          child: const AnimalVaccinationsScreen(animal: animal),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('vaccination-group-rabies')));
+    await tester.pumpAndSettle();
+
+    final continueButton = find.byKey(
+      const Key('medical-document-continue-editing-editable-dose-0'),
+    );
+    await tester.ensureVisible(continueButton);
+    await tester.tap(continueButton);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Edición de la dosis'), findsOneWidget);
+    verify(() => detailCubit.loadRelatedDocuments('editable-dose')).called(1);
+    verify(() => detailCubit.loadOriginalFile(document)).called(1);
+
+    Navigator.of(tester.element(find.text('Edición de la dosis'))).pop();
+    await tester.pumpAndSettle();
+
+    final deleteButton = find.byKey(
+      const Key('medical-document-delete-file-editable-dose-0'),
+    );
+    await tester.ensureVisible(deleteButton);
+    await tester.tap(deleteButton);
+    await tester.pumpAndSettle();
+    expect(find.text('¿Desea eliminar el archivo?'), findsOneWidget);
+
+    await tester.tap(find.text('Sí'));
+    await tester.pumpAndSettle();
+
+    verify(
+      () => detailCubit.deleteDocument(
+        animalId: 'animal-1',
+        documentId: 'editable-dose',
+        documentVersion: 1,
+      ),
+    ).called(1);
+    verify(
+      () => documentsCubit.load(
+        'animal-1',
+        category: MedicalDocumentCategory.vaccinationCard,
+      ),
+    ).called(1);
+    expect(find.byKey(const Key('vaccinations-panel')), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -539,6 +738,8 @@ void main() {
               },
             ),
           ],
+          canReplace: true,
+          updatedAt: DateTime.now().subtract(const Duration(hours: 1)),
         ),
       ], category: MedicalDocumentCategory.vaccinationCard),
     );
@@ -559,16 +760,41 @@ void main() {
 
     expect(find.text('Bordetella'), findsNWidgets(2));
     expect(find.text('BORDETELLA'), findsNothing);
-    expect(
-      find.byKey(const Key('vaccination-record-shared-vaccine-document-0')),
-      findsOneWidget,
+    final firstDose = find.byKey(
+      const Key('vaccination-record-shared-vaccine-document-0'),
     );
-    expect(
-      find.byKey(const Key('vaccination-record-shared-vaccine-document-1')),
-      findsOneWidget,
+    final lastDose = find.byKey(
+      const Key('vaccination-record-shared-vaccine-document-1'),
     );
+    expect(firstDose, findsOneWidget);
+    expect(lastDose, findsOneWidget);
     expect(find.text('Dosis 1'), findsOneWidget);
     expect(find.text('Dosis 2'), findsOneWidget);
+    expect(find.textContaining('Modo edición expira en:'), findsOneWidget);
+    expect(find.text('Continuar editando'), findsOneWidget);
+    expect(find.text('Eliminar archivo'), findsOneWidget);
+    expect(
+      find.descendant(
+        of: firstDose,
+        matching: find.textContaining('Modo edición expira en:'),
+      ),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: firstDose, matching: find.text('Continuar editando')),
+      findsNothing,
+    );
+    expect(
+      find.descendant(
+        of: lastDose,
+        matching: find.textContaining('Modo edición expira en:'),
+      ),
+      findsNothing,
+    );
+    expect(
+      find.descendant(of: lastDose, matching: find.text('Continuar editando')),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }
@@ -582,6 +808,8 @@ MedicalDocumentEntity _vaccinationDocument({
   MedicalDocumentPatientEntity? patient,
   MedicalDocumentOwnerEntity? owner,
   List<MedicalDocumentItemEntity> additionalVaccinations = const [],
+  DateTime? updatedAt,
+  bool canReplace = false,
 }) {
   return MedicalDocumentEntity(
     id: id,
@@ -603,5 +831,7 @@ MedicalDocumentEntity _vaccinationDocument({
       ],
     ),
     version: 1,
+    updatedAt: updatedAt,
+    canReplace: canReplace,
   );
 }

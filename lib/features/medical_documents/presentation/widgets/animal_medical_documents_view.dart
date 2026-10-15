@@ -8,6 +8,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/feedback/app_loading_overlay.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
 import 'package:animal_record/core/widgets/menus/app_popup_action_menu.dart';
@@ -627,6 +628,331 @@ class _MedicalDocumentActionsMenuState
       _loadingOverlay.hide();
       if (mounted) setState(() => _isBusy = false);
     }
+  }
+
+  Future<void> _continueEditing() async {
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    Object? result;
+    try {
+      result = await _startMedicalDocumentReplacement(
+        context,
+        cubit: _resolvedDetailCubit,
+        document: widget.document,
+        replacementAnimalId: widget.animalId,
+        onReadyToNavigate: _loadingOverlay.hide,
+      );
+    } finally {
+      _loadingOverlay.hide();
+    }
+    if (!mounted) return;
+
+    if (result is SharedFileUploadResult &&
+        _openReplacementDestination(
+          context,
+          result: result,
+          currentCategory: widget.category,
+        )) {
+      return;
+    }
+    if (result == true || result is SharedFileUploadResult) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) widget.onChanged?.call();
+    } else if (result == false) {
+      final overlay = Navigator.of(context).overlay;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (overlay != null) {
+          ErrorDisplay.showErrorOnOverlay(
+            overlay,
+            _medicalDocumentUploadFailureMessage,
+          );
+        }
+      });
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
+  }
+
+  void _confirmDelete() {
+    if (!_hasActiveEditingWindow) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => ConfirmDialog(
+        title: '¿Desea eliminar el archivo?',
+        description:
+            'Al eliminar este archivo, no podrás recuperarlo ni volver a verlo.',
+        confirmLabel: 'Sí',
+        cancelLabel: 'No',
+        onConfirm: _delete,
+      ),
+    );
+  }
+
+  Future<void> _delete() async {
+    if (!_hasActiveEditingWindow) {
+      ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
+      return;
+    }
+
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    late final bool deleted;
+    try {
+      deleted = await _resolvedDetailCubit.deleteDocument(
+        animalId: widget.animalId,
+        documentId: widget.document.id,
+        documentVersion: widget.document.version,
+      );
+    } finally {
+      _loadingOverlay.hide();
+    }
+    if (!mounted) return;
+
+    if (deleted) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) widget.onChanged?.call();
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
+  }
+
+  void _showCubitError() {
+    final message = _resolvedDetailCubit.state.message;
+    if (message?.isNotEmpty == true) ErrorDisplay.showError(context, message!);
+  }
+}
+
+class MedicalDocumentEditingControls extends StatefulWidget {
+  final String animalId;
+  final MedicalDocumentEntity document;
+  final MedicalDocumentCategory category;
+  final String instanceKey;
+  final VoidCallback? onChanged;
+  final DateTime Function()? now;
+  final bool showExpiration;
+  final bool showActions;
+  final Widget Function(
+    BuildContext context,
+    Widget? expiration,
+    Widget? actions,
+  )?
+  builder;
+
+  const MedicalDocumentEditingControls({
+    super.key,
+    required this.animalId,
+    required this.document,
+    required this.category,
+    required this.instanceKey,
+    this.onChanged,
+    this.now,
+    this.showExpiration = true,
+    this.showActions = true,
+    this.builder,
+  });
+
+  @override
+  State<MedicalDocumentEditingControls> createState() =>
+      _MedicalDocumentEditingControlsState();
+}
+
+class _MedicalDocumentEditingControlsState
+    extends State<MedicalDocumentEditingControls> {
+  MedicalDocumentDetailCubit? _detailCubit;
+  final _loadingOverlay = AppLoadingOverlay();
+  Timer? _expirationTimer;
+  late DateTime _currentTime;
+  bool _isBusy = false;
+
+  MedicalDocumentDetailCubit get _resolvedDetailCubit =>
+      _detailCubit ??= di.sl<MedicalDocumentDetailCubit>();
+
+  DateTime? get _deadline => _medicalDocumentEditingDeadline(widget.document);
+
+  bool get _hasActiveEditingWindow {
+    final deadline = _deadline;
+    return widget.document.canReplace &&
+        deadline != null &&
+        deadline.isAfter(_currentTime);
+  }
+
+  int get _remainingSeconds {
+    final deadline = _deadline;
+    if (deadline == null) return 0;
+    final remainingMilliseconds = deadline
+        .difference(_currentTime)
+        .inMilliseconds;
+    if (remainingMilliseconds <= 0) return 0;
+    return (remainingMilliseconds + 999) ~/ 1000;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = _readCurrentTime();
+    _startExpirationTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant MedicalDocumentEditingControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document != widget.document || oldWidget.now != widget.now) {
+      _currentTime = _readCurrentTime();
+      _startExpirationTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _expirationTimer?.cancel();
+    _loadingOverlay.hide();
+    _detailCubit?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keySuffix = widget.instanceKey;
+    final hasActiveEditingWindow = _hasActiveEditingWindow;
+    final expiration = hasActiveEditingWindow && widget.showExpiration
+        ? _buildExpiration(keySuffix)
+        : null;
+    final actions = hasActiveEditingWindow && widget.showActions
+        ? _buildActions(keySuffix)
+        : null;
+    if (widget.builder case final builder?) {
+      final child = builder(context, expiration, actions);
+      return hasActiveEditingWindow
+          ? KeyedSubtree(
+              key: Key('medical-document-editing-controls-$keySuffix'),
+              child: child,
+            )
+          : child;
+    }
+    if (!hasActiveEditingWindow) return const SizedBox.shrink();
+
+    return Column(
+      key: Key('medical-document-editing-controls-$keySuffix'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (expiration != null) ...[
+          const SizedBox(height: AppSpacing.l),
+          expiration,
+        ],
+        if (actions != null) ...[
+          if (expiration != null) const SizedBox(height: AppSpacing.m),
+          actions,
+        ],
+      ],
+    );
+  }
+
+  Widget _buildExpiration(String keySuffix) {
+    return Align(
+      child: Container(
+        key: Key('medical-document-edit-expiration-$keySuffix'),
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppBorders.xLarge(),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F0F1925),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.settings,
+              size: 12,
+              color: AppColors.primaryFrances,
+            ),
+            const SizedBox(width: AppSpacing.xxs),
+            Flexible(
+              child: Text(
+                _expirationLabel(_remainingSeconds),
+                key: Key('medical-document-edit-expiration-text-$keySuffix'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.body5.copyWith(
+                  color: AppColors.primaryFrances,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActions(String keySuffix) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomButton(
+          key: Key('medical-document-continue-editing-$keySuffix'),
+          text: 'Continuar editando',
+          onPressed: _continueEditing,
+          isLoading: _isBusy,
+        ),
+        const SizedBox(height: AppSpacing.m),
+        TextButton(
+          key: Key('medical-document-delete-file-$keySuffix'),
+          onPressed: _isBusy ? null : _confirmDelete,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.primaryFrances,
+            minimumSize: const Size(double.infinity, 36),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
+          ),
+          child: Text(
+            'Eliminar archivo',
+            style: AppTypography.body3.copyWith(
+              color: AppColors.primaryFrances,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  DateTime _readCurrentTime() => widget.now?.call() ?? DateTime.now();
+
+  void _startExpirationTimer() {
+    _expirationTimer?.cancel();
+    if (!_hasActiveEditingWindow) return;
+    _expirationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final currentTime = _readCurrentTime();
+      setState(() => _currentTime = currentTime);
+      final deadline = _deadline;
+      if (deadline == null || !deadline.isAfter(currentTime)) {
+        _expirationTimer?.cancel();
+        _expirationTimer = null;
+      }
+    });
+  }
+
+  String _expirationLabel(int totalSeconds) {
+    final hours = totalSeconds ~/ Duration.secondsPerHour;
+    final minutes =
+        (totalSeconds % Duration.secondsPerHour) ~/ Duration.secondsPerMinute;
+    final seconds = totalSeconds % Duration.secondsPerMinute;
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    return 'Modo edición expira en: '
+        '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
   }
 
   Future<void> _continueEditing() async {
