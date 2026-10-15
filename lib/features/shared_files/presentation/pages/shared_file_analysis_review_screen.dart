@@ -1074,7 +1074,7 @@ class _AnalysisValueRow extends StatelessWidget {
             behavior: HitTestBehavior.opaque,
             onTap: onTap,
             child: Text(
-              medicalDocumentNarrativeDisplayValue(value),
+              value,
               maxLines: maxLines,
               overflow: overflow,
               style: AppTypography.body4.copyWith(

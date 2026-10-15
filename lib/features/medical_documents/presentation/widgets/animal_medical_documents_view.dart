@@ -500,10 +500,13 @@ class _MedicalDocumentActionsMenuState
   static const _editingMenuWidth = 215.0;
   static const _downloadMenuWidth = 203.0;
 
-  late final MedicalDocumentDetailCubit _detailCubit;
+  MedicalDocumentDetailCubit? _detailCubit;
   final _loadingOverlay = AppLoadingOverlay();
   Timer? _expiryTimer;
   bool _isBusy = false;
+
+  MedicalDocumentDetailCubit get _resolvedDetailCubit =>
+      _detailCubit ??= di.sl<MedicalDocumentDetailCubit>();
 
   bool get _hasActiveEditingWindow =>
       _hasActiveMedicalDocumentEditingWindow(widget.document);
@@ -511,7 +514,6 @@ class _MedicalDocumentActionsMenuState
   @override
   void initState() {
     super.initState();
-    _detailCubit = di.sl<MedicalDocumentDetailCubit>();
     _scheduleExpiry();
   }
 
@@ -525,7 +527,7 @@ class _MedicalDocumentActionsMenuState
   void dispose() {
     _expiryTimer?.cancel();
     _loadingOverlay.hide();
-    _detailCubit.close();
+    _detailCubit?.close();
     super.dispose();
   }
 
@@ -635,7 +637,7 @@ class _MedicalDocumentActionsMenuState
     try {
       result = await _startMedicalDocumentReplacement(
         context,
-        cubit: _detailCubit,
+        cubit: _resolvedDetailCubit,
         document: widget.document,
         replacementAnimalId: widget.animalId,
         onReadyToNavigate: _loadingOverlay.hide,
@@ -698,7 +700,7 @@ class _MedicalDocumentActionsMenuState
     _loadingOverlay.show(context);
     late final bool deleted;
     try {
-      deleted = await _detailCubit.deleteDocument(
+      deleted = await _resolvedDetailCubit.deleteDocument(
         animalId: widget.animalId,
         documentId: widget.document.id,
         documentVersion: widget.document.version,
@@ -718,7 +720,7 @@ class _MedicalDocumentActionsMenuState
   }
 
   void _showCubitError() {
-    final message = _detailCubit.state.message;
+    final message = _resolvedDetailCubit.state.message;
     if (message?.isNotEmpty == true) ErrorDisplay.showError(context, message!);
   }
 }

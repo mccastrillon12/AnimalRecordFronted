@@ -885,10 +885,20 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   }
 
   @override
+  Future<MedicalDocumentEntity> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) => throw UnimplementedError();
+
+  @override
   Future<MedicalDocumentEntity> getById(String documentId) async {
     if (getResponses.isEmpty) throw StateError('No GET response configured');
     return getResponses.removeAt(0);
   }
+
+  @override
+  Future<List<MedicalDocumentEntity>> getRelatedDocuments(String documentId) =>
+      throw UnimplementedError();
 
   @override
   Future<List<MedicalDocumentRejectionReasonEntity>>
@@ -908,6 +918,12 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   }
 
   @override
+  Future<List<MedicalDocumentEntity>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  ) => throw UnimplementedError();
+
+  @override
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
@@ -917,6 +933,13 @@ class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
   @override
   Future<Uri> getDownloadUri(String documentId) async =>
       Uri.parse('https://example.test/original');
+
+  @override
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  ) => throw UnimplementedError();
 }
 
 class _DelayedAnalyzeMedicalDocumentsRepository
