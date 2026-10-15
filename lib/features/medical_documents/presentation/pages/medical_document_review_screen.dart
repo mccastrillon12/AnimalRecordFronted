@@ -62,7 +62,8 @@ class _MedicalDocumentReviewScreenState
           if (state.message?.isNotEmpty ?? false) {
             ErrorDisplay.showError(context, state.message!);
           }
-          if (state.phase == MedicalDocumentFlowPhase.rejected) {
+          if (state.phase == MedicalDocumentFlowPhase.rejected &&
+              !_isDiscarding) {
             _popWithResult(MedicalDocumentReviewOutcome.rejected);
           }
           if (state.phase == MedicalDocumentFlowPhase.completed) {
@@ -174,28 +175,50 @@ class _MedicalDocumentReviewScreenState
     final confirmed = await showProcessCancellationDialog(context);
     if (!mounted) return;
     if (confirmed) {
-      _popWithResult(MedicalDocumentReviewOutcome.cancelled);
+      await _discardFlowAndClose();
     } else {
       _isDiscarding = false;
     }
   }
 
+  Future<void> _discardFlowAndClose() async {
+    _isDiscarding = true;
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    final discarded = await flow.discardCurrentFlow();
+    if (!mounted) return;
+    if (!discarded) {
+      _isDiscarding = false;
+      ErrorDisplay.showError(
+        context,
+        flow.state.message ??
+            'No fue posible cancelar el análisis. Inténtalo nuevamente.',
+      );
+      return;
+    }
+    _removeWithResult(MedicalDocumentReviewOutcome.cancelled);
+  }
+
   Future<void> _showRejectionDialog() async {
+    final flow = context.read<MedicalDocumentFlowCubit>();
     final reason = await showMedicalDocumentRejectionDialog(
       context: context,
       loadReasons: di.sl<GetMedicalDocumentRejectionReasonsUseCase>(),
       onCancel: () async {
-        if (mounted) {
-          _popWithResult(MedicalDocumentReviewOutcome.cancelled);
-        }
+        if (mounted) await _discardFlowAndClose();
       },
     );
     if (!mounted) return;
     if (reason == null) return;
-    await context.read<MedicalDocumentFlowCubit>().reject(
-      reasonCode: reason.reason.code,
-      comment: reason.comment,
-    );
+    if (flow.state.isReplacement) {
+      // Replacement rejection has no reason fields in the backend contract.
+      // The shared dialog is still used to preserve the same retry UX.
+      await flow.reject();
+    } else {
+      await flow.reject(
+        reasonCode: reason.reason.code,
+        comment: reason.comment,
+      );
+    }
   }
 
   void _popWithResult(MedicalDocumentReviewOutcome result) {
@@ -206,10 +229,29 @@ class _MedicalDocumentReviewScreenState
     });
   }
 
+  void _removeWithResult(MedicalDocumentReviewOutcome result) {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route == null) {
+      _popWithResult(result);
+      return;
+    }
+    Navigator.of(context).removeRoute(route, result);
+  }
+
   void _finishAcceptedDocument() {
     if (_completionHandled) return;
     _completionHandled = true;
-    if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
+    if (!mounted) return;
+    final isReplacement = context
+        .read<MedicalDocumentFlowCubit>()
+        .state
+        .isReplacement;
+    if (isReplacement) {
+      _removeWithResult(MedicalDocumentReviewOutcome.accepted);
+      return;
+    }
+    _popWithResult(MedicalDocumentReviewOutcome.accepted);
   }
 
   Future<void> _showOriginal(

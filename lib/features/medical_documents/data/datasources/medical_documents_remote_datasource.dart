@@ -18,7 +18,14 @@ abstract interface class MedicalDocumentsRemoteDataSource {
 
   Future<MedicalDocumentModel> analyze(AnalyzeMedicalDocumentRequest request);
 
+  Future<MedicalDocumentModel> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  );
+
   Future<MedicalDocumentModel> getById(String documentId);
+
+  Future<List<MedicalDocumentModel>> getRelatedDocuments(String documentId);
 
   Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons();
 
@@ -29,12 +36,23 @@ abstract interface class MedicalDocumentsRemoteDataSource {
     ReviewMedicalDocumentRequest request,
   );
 
+  Future<List<MedicalDocumentModel>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  );
+
   Future<List<MedicalDocumentModel>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
   });
 
   Future<Uri> getDownloadUri(String documentId);
+
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  );
 }
 
 class MedicalDocumentsRemoteDataSourceImpl
@@ -115,6 +133,48 @@ class MedicalDocumentsRemoteDataSourceImpl
   }
 
   @override
+  Future<MedicalDocumentModel> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) async {
+    final file = request.file;
+    final multipartFile = file.bytes != null && file.bytes!.isNotEmpty
+        ? MultipartFile.fromBytes(
+            file.bytes!,
+            filename: file.name,
+            contentType: DioMediaType.parse(file.mimeType),
+          )
+        : await MultipartFile.fromFile(
+            file.path,
+            filename: file.name,
+            contentType: DioMediaType.parse(file.mimeType),
+          );
+    final formData = FormData.fromMap({
+      'file': multipartFile,
+      'documentVersion': request.documentVersion,
+      'animalIds': jsonEncode(request.animalIds),
+      if (request.description?.trim().isNotEmpty == true)
+        'description': request.description!.trim(),
+    });
+    final response = await apiClient.post<Map<String, dynamic>>(
+      '/medical-documents/$documentId/replacement-analysis',
+      data: formData,
+    );
+    responseLogger.logResponse(
+      operation: 'REPLACEMENT_ANALYSIS',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    if (response.statusCode != 202) {
+      throw FormatException(
+        'El análisis de reemplazo debía iniciar con HTTP 202, pero respondió '
+        '${response.statusCode ?? 'sin estado'}.',
+      );
+    }
+    return MedicalDocumentModel.fromJson(_responseMap(response.data));
+  }
+
+  @override
   Future<MedicalDocumentModel> getById(String documentId) async {
     final response = await apiClient.get<Map<String, dynamic>>(
       '/medical-documents/$documentId',
@@ -125,6 +185,23 @@ class MedicalDocumentsRemoteDataSourceImpl
       response: response.data,
     );
     return MedicalDocumentModel.fromJson(_responseMap(response.data));
+  }
+
+  @override
+  Future<List<MedicalDocumentModel>> getRelatedDocuments(
+    String documentId,
+  ) async {
+    final response = await apiClient.get<List<dynamic>>(
+      '/medical-documents/$documentId/related-documents',
+    );
+    responseLogger.logResponse(
+      operation: 'RELATED_DOCUMENTS',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    return (response.data ?? const [])
+        .map((item) => MedicalDocumentModel.fromJson(_responseMap(item)))
+        .toList(growable: false);
   }
 
   @override
@@ -188,6 +265,25 @@ class MedicalDocumentsRemoteDataSourceImpl
   }
 
   @override
+  Future<List<MedicalDocumentModel>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  ) async {
+    final response = await apiClient.put<List<dynamic>>(
+      '/medical-documents/$documentId/replacement-review',
+      data: MedicalDocumentModel.replacementReviewRequestToJson(request),
+    );
+    responseLogger.logResponse(
+      operation: 'REPLACEMENT_REVIEW',
+      statusCode: response.statusCode,
+      response: response.data,
+    );
+    return (response.data ?? const [])
+        .map((item) => MedicalDocumentModel.fromJson(_responseMap(item)))
+        .toList(growable: false);
+  }
+
+  @override
   Future<List<MedicalDocumentModel>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
@@ -222,6 +318,29 @@ class MedicalDocumentsRemoteDataSourceImpl
       throw const FormatException('El servidor no devolvió una URL válida.');
     }
     return uri;
+  }
+
+  @override
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  ) async {
+    final response = await apiClient.delete<void>(
+      '/animals/$animalId/medical-documents/$documentId',
+      queryParameters: {'documentVersion': documentVersion},
+    );
+    responseLogger.logResponse(
+      operation: 'DELETE_BY_ANIMAL',
+      statusCode: response.statusCode,
+      response: null,
+    );
+    if (response.statusCode != 204) {
+      throw FormatException(
+        'La eliminación debía responder HTTP 204, pero respondió '
+        '${response.statusCode ?? 'sin estado'}.',
+      );
+    }
   }
 
   Map<String, dynamic> _responseMap(Object? value) {

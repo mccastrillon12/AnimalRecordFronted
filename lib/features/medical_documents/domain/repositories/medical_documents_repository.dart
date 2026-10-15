@@ -12,7 +12,14 @@ abstract interface class MedicalDocumentsRepository {
 
   Future<MedicalDocumentEntity> analyze(AnalyzeMedicalDocumentRequest request);
 
+  Future<MedicalDocumentEntity> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  );
+
   Future<MedicalDocumentEntity> getById(String documentId);
+
+  Future<List<MedicalDocumentEntity>> getRelatedDocuments(String documentId);
 
   Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons();
 
@@ -21,6 +28,11 @@ abstract interface class MedicalDocumentsRepository {
   Future<MedicalDocumentEntity> review(
     String documentId,
     ReviewMedicalDocumentRequest request,
+  );
+
+  Future<List<MedicalDocumentEntity>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
   );
 
   Future<List<MedicalDocumentEntity>> getByAnimal(
@@ -32,4 +44,10 @@ abstract interface class MedicalDocumentsRepository {
   void clearCache();
 
   Future<Uri> getDownloadUri(String documentId);
+
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  );
 }

@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
@@ -16,6 +17,63 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  testWidgets('delete action highlight matches the primary button radius', (
+    tester,
+  ) async {
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Fórmula médica',
+      documentNumber: 'N° 123',
+      date: null,
+      originalFileName: 'formula.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: '',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SharedFileSendScreen(
+          analysis: analysis,
+          replacementDeadline: DateTime(2026, 1, 1, 0, 1),
+          canReplace: true,
+          now: () => DateTime(2026),
+          onContinueEditing: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final continueButton = tester.widget<ElevatedButton>(
+      find.descendant(
+        of: find.byKey(const Key('analysis-continue-editing-button')),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    final deleteButton = tester.widget<TextButton>(
+      find.byKey(const Key('analysis-delete-file-button')),
+    );
+    final continueShape =
+        continueButton.style?.shape?.resolve({}) as RoundedRectangleBorder;
+    final deleteShape =
+        deleteButton.style?.shape?.resolve({}) as RoundedRectangleBorder;
+
+    expect(deleteShape.borderRadius, continueShape.borderRadius);
+    expect(deleteShape.borderRadius, AppBorders.medium());
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   for (final fails in [false, true]) {
     testWidgets(
       'does not show sharing success when ${fails ? 'sharing fails' : 'sharing is cancelled'}',

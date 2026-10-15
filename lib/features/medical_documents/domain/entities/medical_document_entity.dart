@@ -661,6 +661,7 @@ class MedicalDocumentTutorEntity extends Equatable {
 
 class MedicalDocumentEntity extends Equatable {
   final String id;
+  final String? documentGroupId;
   final String documentCode;
   final String description;
   final List<String> animalIds;
@@ -683,9 +684,14 @@ class MedicalDocumentEntity extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? reviewedAt;
+  final DateTime? acceptedAt;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final String? replacementOfDocumentId;
 
   const MedicalDocumentEntity({
     required this.id,
+    this.documentGroupId,
     this.documentCode = '',
     this.description = '',
     required this.animalIds,
@@ -707,11 +713,16 @@ class MedicalDocumentEntity extends Equatable {
     this.createdAt,
     this.updatedAt,
     this.reviewedAt,
+    this.acceptedAt,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.replacementOfDocumentId,
   });
 
   @override
   List<Object?> get props => [
     id,
+    documentGroupId,
     documentCode,
     description,
     animalIds,
@@ -733,5 +744,9 @@ class MedicalDocumentEntity extends Equatable {
     createdAt,
     updatedAt,
     reviewedAt,
+    acceptedAt,
+    replacementDeadline,
+    canReplace,
+    replacementOfDocumentId,
   ];
 }

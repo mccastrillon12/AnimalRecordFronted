@@ -70,8 +70,18 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   ) => remoteDataSource.analyze(request);
 
   @override
+  Future<MedicalDocumentEntity> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) => remoteDataSource.analyzeReplacement(documentId, request);
+
+  @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
       remoteDataSource.getById(documentId);
+
+  @override
+  Future<List<MedicalDocumentEntity>> getRelatedDocuments(String documentId) =>
+      remoteDataSource.getRelatedDocuments(documentId);
 
   @override
   Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons() {
@@ -109,11 +119,36 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   ) async {
     final document = await remoteDataSource.review(documentId, request);
     if (document.status == MedicalDocumentStatus.accepted) {
-      for (final animalId in document.animalIds) {
+      final affectedAnimalIds = {
+        ...document.animalIds,
+        ...request.assignments.map((assignment) => assignment.animalId),
+      };
+      for (final animalId in affectedAnimalIds) {
         _invalidateAnimal(animalId);
       }
     }
     return document;
+  }
+
+  @override
+  Future<List<MedicalDocumentEntity>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  ) async {
+    final documents = await remoteDataSource.reviewReplacement(
+      documentId,
+      request,
+    );
+    if (request.decision == MedicalDocumentReviewDecision.accept) {
+      final affectedAnimalIds = {
+        ...documents.expand((document) => document.animalIds),
+        ...request.assignments.map((assignment) => assignment.animalId),
+      };
+      for (final animalId in affectedAnimalIds) {
+        _invalidateAnimal(animalId);
+      }
+    }
+    return List<MedicalDocumentEntity>.unmodifiable(documents);
   }
 
   @override
@@ -174,6 +209,20 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   @override
   Future<Uri> getDownloadUri(String documentId) =>
       remoteDataSource.getDownloadUri(documentId);
+
+  @override
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  ) async {
+    await remoteDataSource.deleteDocument(
+      animalId,
+      documentId,
+      documentVersion,
+    );
+    _invalidateAnimal(animalId);
+  }
 
   void _invalidateAnimal(String animalId) {
     final keys = {

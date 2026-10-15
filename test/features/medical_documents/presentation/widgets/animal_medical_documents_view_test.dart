@@ -16,6 +16,41 @@ class _MockAnimalMedicalDocumentsCubit extends Mock
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
+  testWidgets('opens detail when tapping anywhere on a summary card', (
+    tester,
+  ) async {
+    var detailOpened = false;
+    const document = MedicalDocumentEntity(
+      id: 'document-tap-target',
+      animalIds: ['animal-1'],
+      originalFileName: 'formula.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 100,
+      status: MedicalDocumentStatus.accepted,
+      finalCategory: MedicalDocumentCategory.prescription,
+      validatedExtraction: MedicalDocumentExtractionEntity(
+        documentType: MedicalDocumentCategory.prescription,
+      ),
+      version: 1,
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: MedicalDocumentSummaryCard(
+            document: document,
+            category: MedicalDocumentCategory.prescription,
+            onDetail: () => detailOpened = true,
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.text('Adjunto: Fórmula'));
+
+    expect(detailOpened, isTrue);
+  });
+
   testWidgets('renders an accepted formula with the compact saved design', (
     tester,
   ) async {

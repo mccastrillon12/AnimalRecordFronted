@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
@@ -67,6 +69,12 @@ class SharedFileSendScreen extends StatelessWidget {
   final String actionLabel;
   final GlobalKey? closeIconKey;
   final GlobalKey? actionIconKey;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final VoidCallback? onContinueEditing;
+  final VoidCallback? onDelete;
+  final bool isActionLoading;
+  final DateTime Function()? now;
 
   const SharedFileSendScreen({
     super.key,
@@ -77,6 +85,12 @@ class SharedFileSendScreen extends StatelessWidget {
     this.actionLabel = 'Enviar fórmula',
     this.closeIconKey,
     this.actionIconKey,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.onContinueEditing,
+    this.onDelete,
+    this.isActionLoading = false,
+    this.now,
   });
 
   @override
@@ -90,6 +104,12 @@ class SharedFileSendScreen extends StatelessWidget {
       actionLabel: actionLabel,
       closeIconKey: closeIconKey,
       actionIconKey: actionIconKey,
+      replacementDeadline: replacementDeadline,
+      canReplace: canReplace,
+      onContinueEditing: onContinueEditing,
+      onDelete: onDelete,
+      isActionLoading: isActionLoading,
+      now: now,
     );
   }
 }
@@ -120,6 +140,12 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final String actionLabel;
   final String submitLabel;
   final bool isSubmitting;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final VoidCallback? onContinueEditing;
+  final VoidCallback? onDelete;
+  final bool isActionLoading;
+  final DateTime Function()? now;
 
   const _SharedFileAnalysisLayout({
     required this.analysis,
@@ -135,6 +161,12 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.actionLabel = 'Enviar fórmula',
     this.submitLabel = 'Subir archivo',
     this.isSubmitting = false,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.onContinueEditing,
+    this.onDelete,
+    this.isActionLoading = false,
+    this.now,
   });
 
   @override
@@ -144,11 +176,57 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
 
 class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
   bool _isExporting = false;
+  Timer? _expirationTimer;
+  late DateTime _currentTime;
 
   bool get _isSendMode => widget.mode == _SharedFileAnalysisMode.send;
 
+  bool get _hasActiveReplacementWindow {
+    final deadline = widget.replacementDeadline;
+    return _isSendMode &&
+        widget.canReplace &&
+        deadline != null &&
+        deadline.isAfter(_currentTime);
+  }
+
+  int get _remainingSeconds {
+    final deadline = widget.replacementDeadline;
+    if (deadline == null) return 0;
+    final remainingMilliseconds = deadline
+        .difference(_currentTime)
+        .inMilliseconds;
+    if (remainingMilliseconds <= 0) return 0;
+    return (remainingMilliseconds + 999) ~/ 1000;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = _readCurrentTime();
+    _startExpirationTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SharedFileAnalysisLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.replacementDeadline != widget.replacementDeadline ||
+        oldWidget.canReplace != widget.canReplace ||
+        oldWidget.mode != widget.mode ||
+        oldWidget.now != widget.now) {
+      _currentTime = _readCurrentTime();
+      _startExpirationTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _expirationTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasActiveReplacementWindow = _hasActiveReplacementWindow;
     final noticeHeight = _AnalysisNoticeHeader.containerHeightFor(
       context,
       isSendMode: _isSendMode,
@@ -159,7 +237,10 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       titlePadding: EdgeInsets.zero,
       titleStyle: const TextStyle(fontSize: 0, height: 0),
       fixedTitle: true,
-      fixedHeaderHeight: _AnalysisNoticeHeader.totalHeightFor(noticeHeight),
+      fixedHeaderHeight: _AnalysisNoticeHeader.totalHeightFor(
+        noticeHeight,
+        hasExpiration: hasActiveReplacementWindow,
+      ),
       trailingTop: AppSpacing.l,
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
@@ -223,18 +304,19 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       fixedHeaderChild: _AnalysisNoticeHeader(
         isSendMode: _isSendMode,
         containerHeight: noticeHeight,
+        expirationLabel: hasActiveReplacementWindow
+            ? _expirationLabel(_remainingSeconds)
+            : null,
       ),
       bottomSafeAreaColor: AppColors.white,
-      bottomPadding: _isSendMode
-          ? null
-          : const EdgeInsets.fromLTRB(
-              AppSpacing.l,
-              AppSpacing.l,
-              AppSpacing.l,
-              0,
-            ),
+      bottomPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.l,
+        AppSpacing.l,
+        AppSpacing.l,
+        0,
+      ),
       bottomChild: _isSendMode
-          ? null
+          ? _buildSendActions(hasActiveReplacementWindow)
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -289,6 +371,78 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
     );
   }
 
+  Widget? _buildSendActions(bool hasActiveReplacementWindow) {
+    final showContinueEditing =
+        hasActiveReplacementWindow && widget.onContinueEditing != null;
+    final showDelete = hasActiveReplacementWindow && widget.onDelete != null;
+    if (!showContinueEditing && !showDelete) return null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showContinueEditing)
+          CustomButton(
+            key: const Key('analysis-continue-editing-button'),
+            text: 'Continuar editando',
+            onPressed: widget.onContinueEditing,
+            isLoading: widget.isActionLoading,
+          ),
+        if (showDelete) ...[
+          if (showContinueEditing) const SizedBox(height: AppSpacing.m),
+          TextButton(
+            key: const Key('analysis-delete-file-button'),
+            onPressed: widget.isActionLoading ? null : widget.onDelete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryFrances,
+              minimumSize: const Size(double.infinity, 36),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
+            ),
+            child: Text(
+              'Eliminar archivo',
+              style: AppTypography.body3.copyWith(
+                color: AppColors.primaryFrances,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  DateTime _readCurrentTime() => widget.now?.call() ?? DateTime.now();
+
+  void _startExpirationTimer() {
+    _expirationTimer?.cancel();
+    if (!_hasActiveReplacementWindow) return;
+    _expirationTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateExpiration(),
+    );
+  }
+
+  void _updateExpiration() {
+    if (!mounted) return;
+    final currentTime = _readCurrentTime();
+    final deadline = widget.replacementDeadline;
+    setState(() => _currentTime = currentTime);
+    if (deadline == null || !deadline.isAfter(currentTime)) {
+      _expirationTimer?.cancel();
+      _expirationTimer = null;
+    }
+  }
+
+  String _expirationLabel(int totalSeconds) {
+    final hours = totalSeconds ~/ Duration.secondsPerHour;
+    final minutes =
+        (totalSeconds % Duration.secondsPerHour) ~/ Duration.secondsPerMinute;
+    final seconds = totalSeconds % Duration.secondsPerMinute;
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    return 'Modo edición expira en: '
+        '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
+  }
+
   void _openSendScreen() {
     Navigator.pushNamed(
       context,
@@ -327,6 +481,8 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 
 class _AnalysisNoticeHeader extends StatelessWidget {
   static const _reviewMinimumContainerHeight = 84.0;
+  static const _expirationChipHeight = 24.0;
+  static const _expirationNoticeGap = AppSpacing.m;
   static const _reviewMessage =
       'Análisis realizado con IA. Verifica los datos antes de subir el '
       'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
@@ -335,10 +491,12 @@ class _AnalysisNoticeHeader extends StatelessWidget {
 
   final bool isSendMode;
   final double containerHeight;
+  final String? expirationLabel;
 
   const _AnalysisNoticeHeader({
     required this.isSendMode,
     required this.containerHeight,
+    this.expirationLabel,
   });
 
   static double containerHeightFor(
@@ -372,11 +530,54 @@ class _AnalysisNoticeHeader extends StatelessWidget {
         : _reviewMinimumContainerHeight;
   }
 
-  static double totalHeightFor(double containerHeight) =>
-      _analysisNoticeTopPadding + containerHeight + _analysisNoticeGap;
+  static double totalHeightFor(
+    double containerHeight, {
+    bool hasExpiration = false,
+  }) =>
+      _analysisNoticeTopPadding +
+      (hasExpiration ? _expirationChipHeight + _expirationNoticeGap : 0) +
+      containerHeight +
+      _analysisNoticeGap;
 
   @override
   Widget build(BuildContext context) {
+    final notice = isSendMode
+        ? AnalysisAiNotice(
+            key: const Key('analysis-ai-notice'),
+            height: containerHeight,
+          )
+        : Container(
+            key: const Key('analysis-ai-notice'),
+            constraints: BoxConstraints(minHeight: containerHeight),
+            padding: const EdgeInsets.all(AppSpacing.m),
+            decoration: BoxDecoration(
+              gradient: AppColors.aiAnalysisGradient,
+              borderRadius: AppBorders.small(),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 0),
+                  child: SvgPicture.asset(
+                    AppIcons.magicStar,
+                    width: 12,
+                    height: 12,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s),
+                Expanded(
+                  child: Text(
+                    _reviewMessage,
+                    style: AppTypography.body6.copyWith(
+                      color: const Color.fromARGB(255, 0, 0, 0),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.l,
@@ -384,43 +585,57 @@ class _AnalysisNoticeHeader extends StatelessWidget {
         AppSpacing.l,
         _analysisNoticeGap,
       ),
-      child: isSendMode
-          ? AnalysisAiNotice(
-              key: const Key('analysis-ai-notice'),
-              height: containerHeight,
-            )
-          : Container(
-              key: const Key('analysis-ai-notice'),
-              constraints: BoxConstraints(minHeight: containerHeight),
-              padding: const EdgeInsets.all(AppSpacing.m),
-              decoration: BoxDecoration(
-                gradient: AppColors.aiAnalysisGradient,
-                borderRadius: AppBorders.small(),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 0),
-                    child: SvgPicture.asset(
-                      AppIcons.magicStar,
-                      width: 12,
-                      height: 12,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s),
-                  Expanded(
-                    child: Text(
-                      _reviewMessage,
-                      style: AppTypography.body6.copyWith(
-                        color: const Color.fromARGB(255, 0, 0, 0),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      child: expirationLabel == null
+          ? notice
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(child: _AnalysisExpirationChip(label: expirationLabel!)),
+                const SizedBox(height: _expirationNoticeGap),
+                notice,
+              ],
             ),
+    );
+  }
+}
+
+class _AnalysisExpirationChip extends StatelessWidget {
+  final String label;
+
+  const _AnalysisExpirationChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('analysis-edit-expiration-chip'),
+      height: _AnalysisNoticeHeader._expirationChipHeight,
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+      decoration: BoxDecoration(
+        color: AppColors.white,
+        borderRadius: AppBorders.xLarge(),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x1F0F1925),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.settings, size: 12, color: AppColors.primaryFrances),
+          const SizedBox(width: AppSpacing.xxs),
+          Text(
+            label,
+            key: const Key('analysis-edit-expiration-text'),
+            style: AppTypography.body5.copyWith(
+              color: AppColors.primaryFrances,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -935,9 +1150,8 @@ class _AnalysisSectionDetails extends StatelessWidget {
         if (singleOriginalLink && (body.isNotEmpty || details.isNotEmpty)) ...[
           const SizedBox(height: AppSpacing.xs),
           _OriginalLink(
-            onTap: () => onViewOriginal(
-              _sectionSearchText(section, details, body),
-            ),
+            onTap: () =>
+                onViewOriginal(_sectionSearchText(section, details, body)),
           ),
         ],
       ],
