@@ -21,6 +21,9 @@ const _vaccinationHeaderActionHeight = 48.0;
 const _vaccinationHeaderActionIconSize = 20.0;
 const _vaccinationHeaderActionTop = AppSpacing.l;
 const _vaccinationNoticeGap = AppSpacing.l;
+const _vaccinationExpirationChipHeight = 24.0;
+const _vaccinationExpirationNoticeGap = AppSpacing.m;
+const _vaccinationEditingWindow = Duration(hours: 48);
 const _vaccinationNoticeTopPadding =
     _vaccinationHeaderActionTop +
     ((_vaccinationHeaderActionHeight - _vaccinationHeaderActionIconSize) / 2) +
@@ -88,85 +91,115 @@ class _VaccinationGroupDetailScreenState
       );
     }
     final detail = vaccinationDetailViewData(widget.group, catalog);
-    return ModalPageLayout(
-      title: '',
-      titlePadding: EdgeInsets.zero,
-      titleStyle: const TextStyle(fontSize: 0, height: 0),
-      fixedTitle: true,
-      fixedHeaderHeight: _vaccinationFixedHeaderHeight,
-      trailingTop: AppSpacing.l,
-      trailingRight: AppSpacing.l,
-      trailingIcon: IconButton(
-        onPressed: () => Navigator.pop(context),
-        icon: Icon(
-          key: _closeIconKey,
-          Icons.close,
-          size: 24,
-          color: AppColors.greyIconos,
+    final editableDocument = _latestEditableVaccinationDocument(detail.doses);
+
+    Widget buildPage(Widget? expiration, Widget? actions) {
+      return ModalPageLayout(
+        title: '',
+        titlePadding: EdgeInsets.zero,
+        titleStyle: const TextStyle(fontSize: 0, height: 0),
+        fixedTitle: true,
+        fixedHeaderHeight:
+            _vaccinationFixedHeaderHeight +
+            (expiration == null
+                ? 0
+                : _vaccinationExpirationChipHeight +
+                      _vaccinationExpirationNoticeGap),
+        trailingTop: AppSpacing.l,
+        trailingRight: AppSpacing.l,
+        trailingIcon: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: Icon(
+            key: _closeIconKey,
+            Icons.close,
+            size: 24,
+            color: AppColors.greyIconos,
+          ),
+          padding: EdgeInsets.zero,
+          constraints: const BoxConstraints(),
         ),
-        padding: EdgeInsets.zero,
-        constraints: const BoxConstraints(),
-      ),
-      headerChildren: [
-        Positioned(
-          top: _vaccinationHeaderActionTop,
-          left: AppSpacing.l,
-          child: GestureDetector(
-            key: const Key('export-vaccination-group'),
-            behavior: HitTestBehavior.opaque,
-            onTap: widget.onSend,
-            child: SizedBox(
-              height: _vaccinationHeaderActionHeight,
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    SvgPicture.asset(
-                      AppIcons.export,
-                      width: _vaccinationHeaderActionIconSize,
-                      height: _vaccinationHeaderActionIconSize,
-                    ),
-                    const SizedBox(width: AppSpacing.xs),
-                    Text(
-                      'Enviar',
-                      style: AppTypography.body4.copyWith(
-                        color: AppColors.greyMedio,
+        headerChildren: [
+          Positioned(
+            top: _vaccinationHeaderActionTop,
+            left: AppSpacing.l,
+            child: GestureDetector(
+              key: const Key('export-vaccination-group'),
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onSend,
+              child: SizedBox(
+                height: _vaccinationHeaderActionHeight,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      SvgPicture.asset(
+                        AppIcons.export,
+                        width: _vaccinationHeaderActionIconSize,
+                        height: _vaccinationHeaderActionIconSize,
                       ),
-                    ),
-                  ],
+                      const SizedBox(width: AppSpacing.xs),
+                      Text(
+                        'Enviar',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyMedio,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
+        ],
+        fixedHeaderChild: Padding(
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.l,
+            _vaccinationNoticeTopPadding,
+            AppSpacing.l,
+            _vaccinationNoticeGap,
+          ),
+          child: expiration == null
+              ? const AnalysisAiNotice(key: Key('vaccination-ai-notice'))
+              : Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    expiration,
+                    const SizedBox(height: _vaccinationExpirationNoticeGap),
+                    const AnalysisAiNotice(key: Key('vaccination-ai-notice')),
+                  ],
+                ),
         ),
-      ],
-      fixedHeaderChild: const Padding(
-        padding: EdgeInsets.fromLTRB(
+        bottomSafeAreaColor: AppColors.white,
+        bottomPadding: const EdgeInsets.fromLTRB(
           AppSpacing.l,
-          _vaccinationNoticeTopPadding,
           AppSpacing.l,
-          _vaccinationNoticeGap,
-        ),
-        child: AnalysisAiNotice(key: Key('vaccination-ai-notice')),
-      ),
-      bottomSafeAreaColor: AppColors.white,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
           AppSpacing.l,
           0,
-          AppSpacing.l,
-          AppSpacing.xl,
         ),
-        child: VaccinationRecordList(
-          detail: detail,
-          animalId: widget.animalId,
-          onDocumentChanged: () => Navigator.pop(context),
-          onViewOriginal: _showOriginal,
-          onViewOriginalWithText: (document, searchText) =>
-              _showOriginal(document, searchText: searchText),
+        bottomChild: actions,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: VaccinationRecordList(
+            detail: detail,
+            onViewOriginal: _showOriginal,
+            onViewOriginalWithText: (document, searchText) =>
+                _showOriginal(document, searchText: searchText),
+          ),
         ),
-      ),
+      );
+    }
+
+    if (editableDocument == null) return buildPage(null, null);
+
+    return MedicalDocumentEditingControls(
+      animalId: widget.animalId,
+      document: editableDocument,
+      category: MedicalDocumentCategory.vaccinationCard,
+      instanceKey: editableDocument.id,
+      onChanged: () => Navigator.pop(context),
+      builder: (_, expiration, actions) => buildPage(expiration, actions),
     );
   }
 
@@ -195,8 +228,6 @@ class _VaccinationGroupDetailScreenState
 
 class VaccinationRecordList extends StatelessWidget {
   final VaccinationDetailViewData detail;
-  final String? animalId;
-  final VoidCallback? onDocumentChanged;
   final ValueChanged<MedicalDocumentEntity> onViewOriginal;
   final void Function(MedicalDocumentEntity document, String searchText)?
   onViewOriginalWithText;
@@ -206,8 +237,6 @@ class VaccinationRecordList extends StatelessWidget {
   const VaccinationRecordList({
     super.key,
     required this.detail,
-    this.animalId,
-    this.onDocumentChanged,
     required this.onViewOriginal,
     this.onViewOriginalWithText,
     this.recordSpacing = AppSpacing.xl,
@@ -223,13 +252,6 @@ class VaccinationRecordList extends StatelessWidget {
         onViewOriginal: _openOriginal,
       );
     }
-    final firstDoseIndexByDocument = <String, int>{};
-    final lastDoseIndexByDocument = <String, int>{};
-    for (var index = 0; index < detail.doses.length; index++) {
-      final documentId = detail.doses[index].document.id;
-      firstDoseIndexByDocument.putIfAbsent(documentId, () => index);
-      lastDoseIndexByDocument[documentId] = index;
-    }
     return SizedBox(
       width: double.infinity,
       child: Column(
@@ -242,15 +264,6 @@ class VaccinationRecordList extends StatelessWidget {
               ),
               vaccineName: detail.vaccineName,
               dose: detail.doses[index],
-              animalId: animalId,
-              editingInstanceKey: '${detail.doses[index].document.id}-$index',
-              showEditingExpiration:
-                  firstDoseIndexByDocument[detail.doses[index].document.id] ==
-                  index,
-              showEditingActions:
-                  lastDoseIndexByDocument[detail.doses[index].document.id] ==
-                  index,
-              onDocumentChanged: onDocumentChanged,
               onViewOriginal: () => _openOriginal(detail.doses[index]),
             ),
             if (index < detail.doses.length - 1)
@@ -330,22 +343,12 @@ String _doseSearchText(String vaccineName, VaccinationDoseViewData dose) {
 class _VaccinationRecordBlock extends StatelessWidget {
   final String vaccineName;
   final VaccinationDoseViewData dose;
-  final String? animalId;
-  final String editingInstanceKey;
-  final bool showEditingExpiration;
-  final bool showEditingActions;
-  final VoidCallback? onDocumentChanged;
   final VoidCallback onViewOriginal;
 
   const _VaccinationRecordBlock({
     super.key,
     required this.vaccineName,
     required this.dose,
-    required this.animalId,
-    required this.editingInstanceKey,
-    required this.showEditingExpiration,
-    required this.showEditingActions,
-    this.onDocumentChanged,
     required this.onViewOriginal,
   });
 
@@ -358,33 +361,10 @@ class _VaccinationRecordBlock extends StatelessWidget {
         borderRadius: AppBorders.large(),
       ),
       child: _VaccinationSectionCard(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (animalId case final value?)
-              MedicalDocumentEditingControls(
-                animalId: value,
-                document: dose.document,
-                category: MedicalDocumentCategory.vaccinationCard,
-                instanceKey: editingInstanceKey,
-                onChanged: onDocumentChanged,
-                showExpiration: showEditingExpiration,
-                showActions: showEditingActions,
-                builder: (_, expiration, actions) => _DoseSection(
-                  vaccineName: vaccineName,
-                  dose: dose,
-                  expiration: expiration,
-                  editingActions: actions,
-                  onViewOriginal: onViewOriginal,
-                ),
-              )
-            else
-              _DoseSection(
-                vaccineName: vaccineName,
-                dose: dose,
-                onViewOriginal: onViewOriginal,
-              ),
-          ],
+        child: _DoseSection(
+          vaccineName: vaccineName,
+          dose: dose,
+          onViewOriginal: onViewOriginal,
         ),
       ),
     );
@@ -427,8 +407,6 @@ class _DoseSection extends StatelessWidget {
   final VoidCallback onViewOriginal;
   final bool showHeader;
   final String headerTitle;
-  final Widget? expiration;
-  final Widget? editingActions;
 
   const _DoseSection({
     required this.vaccineName,
@@ -436,8 +414,6 @@ class _DoseSection extends StatelessWidget {
     required this.onViewOriginal,
     this.showHeader = true,
     this.headerTitle = 'Detalle de vacunación',
-    this.expiration,
-    this.editingActions,
   });
 
   @override
@@ -473,10 +449,6 @@ class _DoseSection extends StatelessWidget {
                     color: AppColors.greyTextos,
                   ),
                 ),
-                if (expiration != null) ...[
-                  const SizedBox(height: AppSpacing.m),
-                  expiration!,
-                ],
               ],
             ),
           ),
@@ -527,13 +499,48 @@ class _DoseSection extends StatelessWidget {
           const SizedBox(height: AppSpacing.l),
           _VeterinarianSection(veterinarian: dose.veterinarian!),
         ],
-        if (editingActions != null) ...[
-          const SizedBox(height: AppSpacing.l),
-          editingActions!,
-        ],
       ],
     );
   }
+}
+
+MedicalDocumentEntity? _latestEditableVaccinationDocument(
+  Iterable<VaccinationDoseViewData> doses, {
+  DateTime? now,
+}) {
+  final documentsById = <String, MedicalDocumentEntity>{};
+  for (final dose in doses) {
+    documentsById[dose.document.id] = dose.document;
+  }
+
+  final currentTime = now ?? DateTime.now();
+  final editableDocuments = documentsById.values.where((document) {
+    final deadline = _vaccinationEditingDeadline(document);
+    return document.canReplace &&
+        deadline != null &&
+        deadline.isAfter(currentTime);
+  }).toList();
+  editableDocuments.sort((left, right) {
+    final rightUploadTime = _vaccinationUploadTime(right);
+    final leftUploadTime = _vaccinationUploadTime(left);
+    final byUploadTime = rightUploadTime.compareTo(leftUploadTime);
+    return byUploadTime != 0 ? byUploadTime : right.id.compareTo(left.id);
+  });
+  return editableDocuments.isEmpty ? null : editableDocuments.first;
+}
+
+DateTime? _vaccinationEditingDeadline(MedicalDocumentEntity document) {
+  final updatedAt = document.updatedAt;
+  if (updatedAt != null) return updatedAt.add(_vaccinationEditingWindow);
+  return document.replacementDeadline;
+}
+
+DateTime _vaccinationUploadTime(MedicalDocumentEntity document) {
+  return document.updatedAt ??
+      document.acceptedAt ??
+      document.createdAt ??
+      document.replacementDeadline?.subtract(_vaccinationEditingWindow) ??
+      DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 class _DetailValue extends StatelessWidget {

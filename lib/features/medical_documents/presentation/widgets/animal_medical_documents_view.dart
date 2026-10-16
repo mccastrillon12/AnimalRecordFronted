@@ -161,11 +161,14 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
               key: ValueKey('medical-document-summary-${document.id}'),
               document: document,
               category: documentCategory,
-              trailing: MedicalDocumentActionsMenu(
-                key: ValueKey('medical-document-actions-${document.id}'),
-                animalId: animalId,
-                document: document,
-                category: documentCategory,
+              trailing: Transform.translate(
+                offset: const Offset(AppSpacing.xs, 0),
+                child: MedicalDocumentActionsMenu(
+                  key: ValueKey('medical-document-actions-${document.id}'),
+                  animalId: animalId,
+                  document: document,
+                  category: documentCategory,
+                ),
               ),
               trailingSpacing: 0,
               onDetail: document.validatedExtraction == null
@@ -870,7 +873,7 @@ class _MedicalDocumentEditingControlsState
           ],
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(
               Icons.settings,
@@ -878,15 +881,11 @@ class _MedicalDocumentEditingControlsState
               color: AppColors.primaryFrances,
             ),
             const SizedBox(width: AppSpacing.xxs),
-            Flexible(
-              child: Text(
-                _expirationLabel(_remainingSeconds),
-                key: Key('medical-document-edit-expiration-text-$keySuffix'),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTypography.body5.copyWith(
-                  color: AppColors.primaryFrances,
-                ),
+            Text(
+              _expirationLabel(_remainingSeconds),
+              key: Key('medical-document-edit-expiration-text-$keySuffix'),
+              style: AppTypography.body5.copyWith(
+                color: AppColors.primaryFrances,
               ),
             ),
           ],
