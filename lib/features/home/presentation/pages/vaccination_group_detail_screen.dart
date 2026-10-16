@@ -92,6 +92,7 @@ class _VaccinationGroupDetailScreenState
     }
     final detail = vaccinationDetailViewData(widget.group, catalog);
     final editableDocument = _latestEditableVaccinationDocument(detail.doses);
+    final showExpirationOutsideCard = detail.doses.length == 1;
 
     Widget buildPage(Widget? expiration, Widget? actions) {
       return ModalPageLayout(
@@ -183,6 +184,7 @@ class _VaccinationGroupDetailScreenState
           padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
           child: VaccinationRecordList(
             detail: detail,
+            animalId: showExpirationOutsideCard ? null : widget.animalId,
             onViewOriginal: _showOriginal,
             onViewOriginalWithText: (document, searchText) =>
                 _showOriginal(document, searchText: searchText),
@@ -199,6 +201,7 @@ class _VaccinationGroupDetailScreenState
       category: MedicalDocumentCategory.vaccinationCard,
       instanceKey: editableDocument.id,
       onChanged: () => Navigator.pop(context),
+      showExpiration: showExpirationOutsideCard,
       builder: (_, expiration, actions) => buildPage(expiration, actions),
     );
   }
@@ -228,6 +231,7 @@ class _VaccinationGroupDetailScreenState
 
 class VaccinationRecordList extends StatelessWidget {
   final VaccinationDetailViewData detail;
+  final String? animalId;
   final ValueChanged<MedicalDocumentEntity> onViewOriginal;
   final void Function(MedicalDocumentEntity document, String searchText)?
   onViewOriginalWithText;
@@ -237,6 +241,7 @@ class VaccinationRecordList extends StatelessWidget {
   const VaccinationRecordList({
     super.key,
     required this.detail,
+    this.animalId,
     required this.onViewOriginal,
     this.onViewOriginalWithText,
     this.recordSpacing = AppSpacing.xl,
@@ -264,6 +269,9 @@ class VaccinationRecordList extends StatelessWidget {
               ),
               vaccineName: detail.vaccineName,
               dose: detail.doses[index],
+              animalId: animalId,
+              editingInstanceKey:
+                  '${detail.doses[index].document.id}-$index-inline-expiration',
               onViewOriginal: () => _openOriginal(detail.doses[index]),
             ),
             if (index < detail.doses.length - 1)
@@ -343,12 +351,16 @@ String _doseSearchText(String vaccineName, VaccinationDoseViewData dose) {
 class _VaccinationRecordBlock extends StatelessWidget {
   final String vaccineName;
   final VaccinationDoseViewData dose;
+  final String? animalId;
+  final String editingInstanceKey;
   final VoidCallback onViewOriginal;
 
   const _VaccinationRecordBlock({
     super.key,
     required this.vaccineName,
     required this.dose,
+    required this.animalId,
+    required this.editingInstanceKey,
     required this.onViewOriginal,
   });
 
@@ -361,11 +373,25 @@ class _VaccinationRecordBlock extends StatelessWidget {
         borderRadius: AppBorders.large(),
       ),
       child: _VaccinationSectionCard(
-        child: _DoseSection(
-          vaccineName: vaccineName,
-          dose: dose,
-          onViewOriginal: onViewOriginal,
-        ),
+        child: animalId != null
+            ? MedicalDocumentEditingControls(
+                animalId: animalId!,
+                document: dose.document,
+                category: MedicalDocumentCategory.vaccinationCard,
+                instanceKey: editingInstanceKey,
+                showActions: false,
+                builder: (_, expiration, _) => _DoseSection(
+                  vaccineName: vaccineName,
+                  dose: dose,
+                  expiration: expiration,
+                  onViewOriginal: onViewOriginal,
+                ),
+              )
+            : _DoseSection(
+                vaccineName: vaccineName,
+                dose: dose,
+                onViewOriginal: onViewOriginal,
+              ),
       ),
     );
   }
@@ -407,6 +433,7 @@ class _DoseSection extends StatelessWidget {
   final VoidCallback onViewOriginal;
   final bool showHeader;
   final String headerTitle;
+  final Widget? expiration;
 
   const _DoseSection({
     required this.vaccineName,
@@ -414,6 +441,7 @@ class _DoseSection extends StatelessWidget {
     required this.onViewOriginal,
     this.showHeader = true,
     this.headerTitle = 'Detalle de vacunación',
+    this.expiration,
   });
 
   @override
@@ -449,6 +477,10 @@ class _DoseSection extends StatelessWidget {
                     color: AppColors.greyTextos,
                   ),
                 ),
+                if (expiration != null) ...[
+                  const SizedBox(height: AppSpacing.m),
+                  expiration!,
+                ],
               ],
             ),
           ),
