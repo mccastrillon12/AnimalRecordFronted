@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
@@ -268,8 +269,29 @@ void main() {
     final analysisLabel = tester.widget<Text>(
       find.text(_progressMessages.first),
     );
-    expect(analysisLabel.style?.color, AppColors.aiViolet);
+    final safetyLabel = tester.widget<Text>(find.text(_safetyMessage));
+    final overlay = tester.widget<ColoredBox>(
+      find.byKey(const Key('analysis-progress-overlay')),
+    );
+    final indicator = tester.widget<CircularProgressIndicator>(
+      find.descendant(
+        of: find.byKey(const Key('analysis-progress-indicator')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+    );
+    expect(overlay.color, Colors.black.withValues(alpha: 0.8));
+    expect(analysisLabel.style?.color, AppColors.white);
+    expect(analysisLabel.style?.fontSize, AppTypography.body1.fontSize);
+    expect(analysisLabel.style?.fontWeight, FontWeight.w600);
+    expect(analysisLabel.style?.height, 1.5);
     expect(analysisLabel.style?.decoration, TextDecoration.none);
+    expect(safetyLabel.style, analysisLabel.style);
+    expect(
+      tester.getTopLeft(find.text(_safetyMessage)).dy,
+      tester.getBottomLeft(find.text(_progressMessages.first)).dy,
+    );
+    expect(indicator.color, AppColors.white);
+    expect(indicator.strokeWidth, 6);
     expect(find.text(_safetyMessage), findsOneWidget);
     expect(find.text('La IA está analizando tu archivo'), findsNothing);
     expect(

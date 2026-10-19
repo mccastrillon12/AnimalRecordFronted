@@ -1016,35 +1016,54 @@ class _AnalysisProgressOverlayState extends State<_AnalysisProgressOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    final messageStyle = AppTypography.body4.copyWith(
-      color: AppColors.aiViolet,
+    final messageStyle = AppTypography.body1.copyWith(
+      color: AppColors.white,
+      fontWeight: FontWeight.w600,
+      height: 1.5,
       decoration: TextDecoration.none,
     );
 
     return Positioned.fill(
       child: ColoredBox(
-        color: AppColors.white.withValues(alpha: 0.72),
+        key: const Key('analysis-progress-overlay'),
+        color: Colors.black.withValues(alpha: 0.8),
         child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const CircularProgressIndicator(color: AppColors.aiViolet),
-              const SizedBox(height: AppSpacing.s),
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: Text(
-                  _messages[_messageIndex],
-                  key: ValueKey(_messageIndex),
-                  textAlign: TextAlign.center,
-                  style: messageStyle,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox.square(
+                  key: Key('analysis-progress-indicator'),
+                  dimension: 48,
+                  child: CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 6,
+                  ),
                 ),
-              ),
-              Text(
-                'Por favor, no salgas de la pantalla.',
-                textAlign: TextAlign.center,
-                style: messageStyle,
-              ),
-            ],
+                const SizedBox(height: AppSpacing.m),
+                SizedBox(
+                  width: double.infinity,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: Text(
+                      _messages[_messageIndex],
+                      key: ValueKey(_messageIndex),
+                      textAlign: TextAlign.center,
+                      style: messageStyle,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Por favor, no salgas de la pantalla.',
+                    textAlign: TextAlign.center,
+                    style: messageStyle,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

@@ -601,43 +601,120 @@ class _AnalysisNoticeHeader extends StatelessWidget {
 }
 
 class _AnalysisExpirationChip extends StatelessWidget {
+  static const _tooltipMessage =
+      'Solo podrás editar la información de este documento en el tiempo '
+      'restante, una vez culminado no podrás ni editar ni eliminarlo.';
+
   final String label;
 
   const _AnalysisExpirationChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      key: const Key('analysis-edit-expiration-chip'),
-      height: _AnalysisNoticeHeader._expirationChipHeight,
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: AppBorders.xLarge(),
-        boxShadow: const [
+    return Tooltip(
+      key: const Key('analysis-edit-expiration-tooltip'),
+      message: _tooltipMessage,
+      triggerMode: TooltipTriggerMode.tap,
+      waitDuration: Duration.zero,
+      showDuration: const Duration(seconds: 8),
+      preferBelow: true,
+      verticalOffset: 14,
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+      padding: const EdgeInsets.all(AppSpacing.m),
+      constraints: const BoxConstraints(maxWidth: 332),
+      decoration: ShapeDecoration(
+        color: AppColors.greyNegro,
+        shape: const _TopArrowTooltipBorder(),
+        shadows: const [
           BoxShadow(
-            color: Color(0x1F0F1925),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Color(0x290F1925),
+            blurRadius: 8,
+            offset: Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.settings, size: 12, color: AppColors.primaryFrances),
-          const SizedBox(width: AppSpacing.xxs),
-          Text(
-            label,
-            key: const Key('analysis-edit-expiration-text'),
-            style: AppTypography.body5.copyWith(
+      textStyle: AppTypography.body6.copyWith(
+        color: AppColors.white,
+        height: 1.5,
+      ),
+      child: Container(
+        key: const Key('analysis-edit-expiration-chip'),
+        height: _AnalysisNoticeHeader._expirationChipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppBorders.xLarge(),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F0F1925),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.settings,
+              size: 12,
               color: AppColors.primaryFrances,
             ),
-          ),
-        ],
+            const SizedBox(width: AppSpacing.xxs),
+            Text(
+              label,
+              key: const Key('analysis-edit-expiration-text'),
+              style: AppTypography.body5.copyWith(
+                color: AppColors.primaryFrances,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
+}
+
+class _TopArrowTooltipBorder extends ShapeBorder {
+  static const _arrowHeight = 10.0;
+  static const _arrowHalfWidth = 10.0;
+
+  const _TopArrowTooltipBorder();
+
+  @override
+  EdgeInsetsGeometry get dimensions => const EdgeInsets.only(top: _arrowHeight);
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final bodyRect = Rect.fromLTRB(
+      rect.left,
+      rect.top + _arrowHeight,
+      rect.right,
+      rect.bottom,
+    );
+    final arrowCenter = rect.center.dx;
+    return Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          bodyRect,
+          const Radius.circular(AppBorders.radiusLarge),
+        ),
+      )
+      ..moveTo(arrowCenter - _arrowHalfWidth, bodyRect.top)
+      ..lineTo(arrowCenter, rect.top)
+      ..lineTo(arrowCenter + _arrowHalfWidth, bodyRect.top)
+      ..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
 }
 
 class _AnalysisDocumentCard extends StatelessWidget {

@@ -70,6 +70,27 @@ void main() {
 
     expect(deleteShape.borderRadius, continueShape.borderRadius);
     expect(deleteShape.borderRadius, AppBorders.medium());
+    expect(
+      find.byTooltip(
+        'Solo podrás editar la información de este documento en el tiempo '
+        'restante, una vez culminado no podrás ni editar ni eliminarlo.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('analysis-edit-expiration-chip')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final tooltipText = tester.widget<Text>(
+      find.text(
+        'Solo podrás editar la información de este documento en el tiempo '
+        'restante, una vez culminado no podrás ni editar ni eliminarlo.',
+      ),
+    );
+    expect(tooltipText.style?.color, AppColors.white);
+    expect(tooltipText.style?.fontSize, AppTypography.body1.fontSize);
+    expect(tooltipText.style?.fontWeight, FontWeight.w600);
+    expect(tooltipText.style?.height, 1.5);
 
     await tester.pumpWidget(const SizedBox.shrink());
   });
