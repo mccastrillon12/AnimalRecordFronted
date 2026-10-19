@@ -662,6 +662,8 @@ class _MedicalDocumentActionsMenuState
     if (result == true || result is SharedFileUploadResult) {
       await documentsCubit.load(widget.animalId, category: widget.category);
       if (mounted) widget.onChanged?.call();
+    } else if (result == SharedFileUploadCancellation.replacementDismissed) {
+      // Closing the upload screen from its X is intentionally silent.
     } else if (result == false) {
       final overlay = Navigator.of(context).overlay;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -983,6 +985,8 @@ class _MedicalDocumentEditingControlsState
     if (result == true || result is SharedFileUploadResult) {
       await documentsCubit.load(widget.animalId, category: widget.category);
       if (mounted) widget.onChanged?.call();
+    } else if (result == SharedFileUploadCancellation.replacementDismissed) {
+      // Closing the upload screen from its X is intentionally silent.
     } else if (result == false) {
       final overlay = Navigator.of(context).overlay;
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -1171,18 +1175,24 @@ class _AcceptedMedicalDocumentDetailScreenState
     );
     if (mounted && (replaced == true || replaced is SharedFileUploadResult)) {
       Navigator.pop(context, replaced);
-    } else if (mounted && replaced == false) {
+    } else if (mounted &&
+        (replaced == false ||
+            replaced == SharedFileUploadCancellation.replacementDismissed)) {
+      final isSilentDismissal =
+          replaced == SharedFileUploadCancellation.replacementDismissed;
       final navigator = Navigator.of(context);
       final overlay = navigator.overlay;
       navigator.pop(false);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (overlay != null) {
-          ErrorDisplay.showErrorOnOverlay(
-            overlay,
-            _medicalDocumentUploadFailureMessage,
-          );
-        }
-      });
+      if (!isSilentDismissal) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (overlay != null) {
+            ErrorDisplay.showErrorOnOverlay(
+              overlay,
+              _medicalDocumentUploadFailureMessage,
+            );
+          }
+        });
+      }
     }
   }
 

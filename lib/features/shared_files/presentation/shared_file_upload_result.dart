@@ -5,6 +5,8 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 
 const sharedFileReturnUploadResultArgument = 'returnUploadResult';
 
+enum SharedFileUploadCancellation { replacementDismissed }
+
 class SharedFileUploadResult {
   final List<AnimalEntity> animals;
   final MedicalDocumentCategory? category;

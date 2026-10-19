@@ -224,7 +224,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     return discarded;
   }
 
-  Future<void> _close() async {
+  Future<void> _close({bool silentlyDismissReplacement = false}) async {
     if (_isClosing) return;
     _isClosing = true;
     if (_hasEnteredData) {
@@ -235,7 +235,11 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         return;
       }
     }
-    await _cancelAndClose();
+    await _cancelAndClose(
+      result: _isReplacement && silentlyDismissReplacement
+          ? SharedFileUploadCancellation.replacementDismissed
+          : false,
+    );
   }
 
   bool get _hasEnteredData {
@@ -251,7 +255,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         flow.pendingFlow != null;
   }
 
-  Future<void> _cancelAndClose() async {
+  Future<void> _cancelAndClose({Object? result = false}) async {
     if (!await _discardPendingFlow() || !mounted) {
       _isClosing = false;
       return;
@@ -261,22 +265,24 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     }
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
-      _popUploadRoute(false);
+      _popUploadRoute(result);
     } else {
       navigator.pushNamedAndRemoveUntil(
         AppRoutes.home,
         (_) => false,
         arguments: const {homeInitialSectionArgument: homeMyAnimalsSection},
       );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final overlay = navigator.overlay;
-        if (overlay != null) {
-          ErrorDisplay.showErrorOnOverlay(
-            overlay,
-            sharedFileUploadErrorMessage,
-          );
-        }
-      });
+      if (result != SharedFileUploadCancellation.replacementDismissed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final overlay = navigator.overlay;
+          if (overlay != null) {
+            ErrorDisplay.showErrorOnOverlay(
+              overlay,
+              sharedFileUploadErrorMessage,
+            );
+          }
+        });
+      }
     }
   }
 
@@ -813,7 +819,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
               titleStyle: AppTypography.body1.copyWith(
                 color: AppColors.greyTextos,
               ),
-              onClose: _close,
+              onClose: () => _close(silentlyDismissReplacement: true),
               bottomSafeAreaColor: AppColors.white,
               bottomPadding: const EdgeInsets.only(
                 left: 24,
