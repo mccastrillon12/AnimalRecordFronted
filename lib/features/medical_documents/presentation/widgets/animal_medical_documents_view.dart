@@ -392,6 +392,7 @@ const _medicalDocumentUploadFailureMessage =
     'No fue posible subir el documento. Inténtalo nuevamente.';
 const _medicalDocumentEditingExpiredMessage =
     'El tiempo disponible para editar este archivo ya finalizó.';
+const _medicalDocumentDeletedMessage = 'Archivo eliminado exitosamente';
 
 DateTime? _medicalDocumentEditingDeadline(MedicalDocumentEntity document) {
   final updatedAt = document.updatedAt;
@@ -718,7 +719,10 @@ class _MedicalDocumentActionsMenuState
 
     if (deleted) {
       await documentsCubit.load(widget.animalId, category: widget.category);
-      if (mounted) widget.onChanged?.call();
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, _medicalDocumentDeletedMessage);
+        widget.onChanged?.call();
+      }
     } else {
       _showCubitError();
     }
@@ -1041,7 +1045,10 @@ class _MedicalDocumentEditingControlsState
 
     if (deleted) {
       await documentsCubit.load(widget.animalId, category: widget.category);
-      if (mounted) widget.onChanged?.call();
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, _medicalDocumentDeletedMessage);
+        widget.onChanged?.call();
+      }
     } else {
       _showCubitError();
     }
@@ -1231,7 +1238,19 @@ class _AcceptedMedicalDocumentDetailScreenState
           documentId: widget.document.id,
           documentVersion: widget.document.version,
         );
-    if (mounted && deleted) Navigator.pop(context, true);
+    if (mounted && deleted) {
+      final navigator = Navigator.of(context);
+      final overlay = navigator.overlay;
+      navigator.pop(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (overlay != null) {
+          ErrorDisplay.showSuccessOnOverlay(
+            overlay,
+            _medicalDocumentDeletedMessage,
+          );
+        }
+      });
+    }
   }
 }
 
