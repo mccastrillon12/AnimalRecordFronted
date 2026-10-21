@@ -119,7 +119,7 @@ void main() {
     expect(
       result,
       const Left<Failure, String>(
-        ServerFailure('No se pudo comprimir la imagen'),
+        ServerFailure('No se pudo comprimir la imagen.'),
       ),
     );
     verifyNever(() => repository.getProfilePictureUploadUrl(any(), any()));
@@ -136,7 +136,7 @@ void main() {
     expect(
       result,
       const Left<Failure, String>(
-        ServerFailure('Respuesta inválida del servidor'),
+        ServerFailure('Respuesta inválida del servidor.'),
       ),
     );
   });
@@ -161,7 +161,7 @@ void main() {
     expect(
       result,
       const Left<Failure, String>(
-        ServerFailure('Error inesperado: Exception: falló S3'),
+        ServerFailure('Error inesperado: Exception: falló S3.'),
       ),
     );
     verifyNever(() => repository.confirmProfilePicture(any()));

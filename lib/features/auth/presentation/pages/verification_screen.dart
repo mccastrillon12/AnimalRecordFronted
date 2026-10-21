@@ -65,14 +65,14 @@ class _VerificationScreenState extends State<VerificationScreen> {
 
     if (code.length != 5) {
       setState(() {
-        _errorMessage = 'Por favor ingresa el código completo de 5 dígitos';
+        _errorMessage = 'Por favor, ingresa el código completo de 5 dígitos.';
       });
       return;
     }
 
     if (!RegExp(r'^[a-zA-Z0-9]{5}$').hasMatch(code)) {
       setState(() {
-        _errorMessage = 'El código debe ser alfanumérico';
+        _errorMessage = 'El código debe ser alfanumérico.';
       });
       return;
     }

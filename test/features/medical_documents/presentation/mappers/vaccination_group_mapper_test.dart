@@ -34,6 +34,8 @@ void main() {
     expect(groups, hasLength(1));
     expect(groups.single.key, 'rabies');
     expect(groups.single.latest.document.id, 'new');
+    expect(groups.single.latest.applicationDate, '01/07/2025');
+    expect(groups.single.latest.nextDoseDate, '01/07/2026');
     expect(groups.single.latest.applicationDateLabel, 'Fecha de aplicación');
     expect(groups.single.latest.nextDoseDateLabel, 'Próxima dosis');
   });
@@ -61,9 +63,68 @@ void main() {
       'Fecha de aplicación',
       'Marca',
     ]);
+    expect(detail.doses.single.details.first.value, '01/07/2025');
     expect(
       detail.doses.single.details.map((item) => item.value),
       isNot(contains('No mostrar')),
+    );
+  });
+
+  test('formats date columns and preserves unrecognized date text', () {
+    final group = groupVaccinations([
+      _document(
+        'document-1',
+        const MedicalDocumentItemEntity(
+          id: 'one',
+          fields: {
+            'name': 'Rabia',
+            'applicationDate': '2025-09-24',
+            'nextDoseDate': 'Pendiente de confirmar',
+            'expiryDate': '10/27/2028',
+          },
+        ),
+      ),
+    ], _catalog).single;
+
+    final detail = vaccinationDetailViewData(group, _catalog);
+    final pdf = vaccinationGroupToPdfAnalysis(group, _catalog);
+
+    expect(group.latest.applicationDate, '24/09/2025');
+    expect(group.latest.nextDoseDate, 'Pendiente de confirmar');
+    expect(detail.doses.single.details.map((item) => item.value), [
+      '24/09/2025',
+      '27/10/2028',
+    ]);
+    expect(pdf.medications.single.details.map((item) => item.value), [
+      'Pendiente de confirmar',
+      '24/09/2025',
+      '27/10/2028',
+    ]);
+  });
+
+  test('reads hyphenated long-year dates as day, month, year', () {
+    final group = groupVaccinations([
+      _document(
+        'document-1',
+        const MedicalDocumentItemEntity(
+          id: 'one',
+          fields: {
+            'name': 'Rabia',
+            'applicationDate': '01-12-2026',
+            'nextDoseDate': '24-09-2027',
+          },
+        ),
+      ),
+    ], _catalog).single;
+
+    expect(group.latest.applicationDate, '01/12/2026');
+    expect(group.latest.nextDoseDate, '24/09/2027');
+    expect(
+      vaccinationDetailViewData(
+        group,
+        _catalog,
+      ).doses.single.details.first.value,
+      '01/12/2026',
     );
   });
 
@@ -264,6 +325,14 @@ const _catalog = MedicalFieldCatalog(
           label: 'Marca',
           order: 40,
           kind: MedicalFieldKind.text,
+          editable: true,
+          hideWhenEmpty: true,
+        ),
+        MedicalTableColumn(
+          key: 'expiryDate',
+          label: 'Fecha de vencimiento',
+          order: 45,
+          kind: MedicalFieldKind.date,
           editable: true,
           hideWhenEmpty: true,
         ),

@@ -153,7 +153,7 @@ Future<void> _onSocialAuthChecked(
       await _saveUserToCacheImpl(bloc, user);
       await _emitAuthSuccessWithBiometricsImpl(bloc, user, emit);
     } else {
-      emit(AuthError('Respuesta inesperada del servidor'));
+      emit(AuthError('Respuesta inesperada del servidor.'));
     }
   });
 }

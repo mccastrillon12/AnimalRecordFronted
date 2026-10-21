@@ -59,6 +59,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     sourceDateText: extraction.documentDate,
     sourceDateLabel: catalog.fieldAt('documentDate')?.label,
     originalFileName: document.originalFileName,
+    originalMimeType: document.mimeType,
     originalFileNameLabel: 'Archivo original',
     patient: _patient(document, extraction.patient, catalog),
     tutor: _tutor(document, extraction.owner, catalog),

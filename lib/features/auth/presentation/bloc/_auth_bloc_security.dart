@@ -93,7 +93,7 @@ Future<void> _onChangePinRequested(
 ) async {
   final currentState = bloc.state;
   if (currentState is! AuthSuccess) {
-    emit(AuthError('Debe estar autenticado para cambiar el PIN'));
+    emit(AuthError('Debe estar autenticado para cambiar el PIN.'));
     return;
   }
 

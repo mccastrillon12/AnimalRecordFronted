@@ -137,7 +137,7 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
     if (!state.isCurrentStepValid) {
       ErrorDisplay.showError(
         context,
-        'Por favor completa correctamente todos los campos requeridos',
+        'Por favor, completa correctamente todos los campos requeridos.',
       );
       return;
     }
@@ -275,7 +275,7 @@ class _RegisterScreenViewState extends State<RegisterScreenView> {
                   (ModalRoute.of(context)?.isCurrent ?? false)) {
                 ErrorDisplay.showSuccess(
                   context,
-                  'Registro exitoso. Por favor inicia sesión.',
+                  'Registro exitoso. Por favor, inicia sesión.',
                 );
                 Navigator.pushReplacementNamed(context, AppRoutes.splash);
               } else if (authState is AuthError) {

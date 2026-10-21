@@ -5,6 +5,8 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 
 const sharedFileReturnUploadResultArgument = 'returnUploadResult';
 
+enum SharedFileUploadCancellation { replacementDismissed }
+
 class SharedFileUploadResult {
   final List<AnimalEntity> animals;
   final MedicalDocumentCategory? category;
@@ -40,7 +42,11 @@ SharedFileUploadDestination? resolveSharedFileUploadDestination(
     MedicalDocumentCategory.referral => SharedFileUploadDestination(
       animal: animalModel,
       sectionRouteName: AppRoutes.animalDocuments,
-      sectionArguments: {'animalId': animal.id, 'initialCategory': category},
+      sectionArguments: {
+        'animalId': animal.id,
+        'animal': animalModel,
+        'initialCategory': category,
+      },
     ),
     MedicalDocumentCategory.vaccinationCard => SharedFileUploadDestination(
       animal: animalModel,

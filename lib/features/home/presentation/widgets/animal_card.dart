@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -6,6 +8,7 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 
 /// Display mode for the animal card.
 enum AnimalCardMode { list, grid, compactList, detailHeader }
@@ -76,6 +79,9 @@ class AnimalCard extends StatelessWidget {
   final AnimalCardMode mode;
   final VoidCallback? onTap;
   final VoidCallback? onMenuTap;
+  final VoidCallback? onEditPhoto;
+  final String? localPhotoPath;
+  final bool photoDeleted;
 
   const AnimalCard({
     super.key,
@@ -83,6 +89,9 @@ class AnimalCard extends StatelessWidget {
     this.mode = AnimalCardMode.list,
     this.onTap,
     this.onMenuTap,
+    this.onEditPhoto,
+    this.localPhotoPath,
+    this.photoDeleted = false,
   });
 
   @override
@@ -357,9 +366,16 @@ class AnimalCard extends StatelessWidget {
         fit: StackFit.expand,
         children: [
           // Background image
-          if (animal.imageUrl != null)
+          if (localPhotoPath != null)
+            Image.file(
+              File(localPhotoPath!),
+              fit: BoxFit.cover,
+              alignment: Alignment.center,
+            )
+          else if (!photoDeleted &&
+              (animal.imageUrl?.trim().isNotEmpty ?? false))
             CachedNetworkImage(
-              imageUrl: animal.imageUrl!,
+              imageUrl: animal.imageUrl!.trim(),
               fit: BoxFit.cover,
               fadeInDuration: Duration.zero,
               fadeOutDuration: Duration.zero,
@@ -433,6 +449,12 @@ class AnimalCard extends StatelessWidget {
               ],
             ),
           ),
+          if (onEditPhoto != null)
+            Positioned(
+              top: AppSpacing.xs,
+              right: AppSpacing.xs,
+              child: AnimalPhotoEditButton(onTap: onEditPhoto),
+            ),
         ],
       ),
     );

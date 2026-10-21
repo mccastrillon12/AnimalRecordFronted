@@ -25,6 +25,9 @@ class MedicalDocumentFlowState extends Equatable {
   final MedicalDocumentCategory? selectedExtractionCategory;
   final MedicalDocumentExtractionEntity? draftExtraction;
   final Map<String, List<String>> assignmentsByAnimalId;
+  final MedicalDocumentEntity? replacementAnchor;
+  final List<MedicalDocumentEntity> relatedDocuments;
+  final List<MedicalDocumentEntity> replacementResultDocuments;
   final String? message;
   final bool versionConflict;
 
@@ -38,9 +41,14 @@ class MedicalDocumentFlowState extends Equatable {
     this.selectedExtractionCategory,
     this.draftExtraction,
     this.assignmentsByAnimalId = const {},
+    this.replacementAnchor,
+    this.relatedDocuments = const [],
+    this.replacementResultDocuments = const [],
     this.message,
     this.versionConflict = false,
   });
+
+  bool get isReplacement => replacementAnchor != null;
 
   bool get isBusy =>
       phase == MedicalDocumentFlowPhase.uploading ||
@@ -58,6 +66,9 @@ class MedicalDocumentFlowState extends Equatable {
     MedicalDocumentCategory? selectedExtractionCategory,
     MedicalDocumentExtractionEntity? draftExtraction,
     Map<String, List<String>>? assignmentsByAnimalId,
+    MedicalDocumentEntity? replacementAnchor,
+    List<MedicalDocumentEntity>? relatedDocuments,
+    List<MedicalDocumentEntity>? replacementResultDocuments,
     String? message,
     bool clearMessage = false,
     bool? versionConflict,
@@ -75,6 +86,10 @@ class MedicalDocumentFlowState extends Equatable {
       draftExtraction: draftExtraction ?? this.draftExtraction,
       assignmentsByAnimalId:
           assignmentsByAnimalId ?? this.assignmentsByAnimalId,
+      replacementAnchor: replacementAnchor ?? this.replacementAnchor,
+      relatedDocuments: relatedDocuments ?? this.relatedDocuments,
+      replacementResultDocuments:
+          replacementResultDocuments ?? this.replacementResultDocuments,
       message: clearMessage ? null : message ?? this.message,
       versionConflict: versionConflict ?? this.versionConflict,
     );
@@ -91,6 +106,9 @@ class MedicalDocumentFlowState extends Equatable {
     selectedExtractionCategory,
     draftExtraction,
     assignmentsByAnimalId,
+    replacementAnchor,
+    relatedDocuments,
+    replacementResultDocuments,
     message,
     versionConflict,
   ];

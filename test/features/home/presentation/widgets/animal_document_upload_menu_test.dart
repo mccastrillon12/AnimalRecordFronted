@@ -2,6 +2,7 @@ import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
@@ -89,10 +90,17 @@ void main() {
       expect(uploaded, isTrue);
       expect(uploadedCategory, MedicalDocumentCategory.referral);
       expect(destinationSettings?.name, AppRoutes.animalDocuments);
-      expect(destinationSettings?.arguments, {
-        'animalId': _animal.id,
-        'initialCategory': MedicalDocumentCategory.referral,
-      });
+      final destinationArguments =
+          destinationSettings?.arguments as Map<String, dynamic>;
+      expect(destinationArguments['animalId'], _animal.id);
+      expect(
+        destinationArguments['animal'],
+        isA<AnimalModel>().having((animal) => animal.id, 'id', _animal.id),
+      );
+      expect(
+        destinationArguments['initialCategory'],
+        MedicalDocumentCategory.referral,
+      );
       expect(find.text('Sección final'), findsOneWidget);
       final successFeedback = find.text(
         'El archivo ha sido subido exitosamente.',

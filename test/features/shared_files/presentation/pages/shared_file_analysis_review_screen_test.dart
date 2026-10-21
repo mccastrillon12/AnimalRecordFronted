@@ -1,4 +1,5 @@
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
@@ -16,6 +17,84 @@ import 'package:mocktail/mocktail.dart';
 class _MockSharedFilesCubit extends Mock implements SharedFilesCubit {}
 
 void main() {
+  testWidgets('delete action highlight matches the primary button radius', (
+    tester,
+  ) async {
+    const analysis = SharedFileAnalysisEntity(
+      documentType: 'Fórmula médica',
+      documentNumber: 'N° 123',
+      date: null,
+      originalFileName: 'formula.pdf',
+      patient: SharedFilePatientAnalysisEntity(
+        name: '',
+        recordId: '',
+        species: '',
+        breed: '',
+        age: '',
+        weight: '',
+      ),
+      tutor: SharedFileTutorAnalysisEntity(
+        name: '',
+        identification: '',
+        phoneNumber: '',
+      ),
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SharedFileSendScreen(
+          analysis: analysis,
+          replacementDeadline: DateTime(2026, 1, 1, 0, 1),
+          canReplace: true,
+          now: () => DateTime(2026),
+          onContinueEditing: () {},
+          onDelete: () {},
+        ),
+      ),
+    );
+    await tester.pump();
+
+    final continueButton = tester.widget<ElevatedButton>(
+      find.descendant(
+        of: find.byKey(const Key('analysis-continue-editing-button')),
+        matching: find.byType(ElevatedButton),
+      ),
+    );
+    final deleteButton = tester.widget<TextButton>(
+      find.byKey(const Key('analysis-delete-file-button')),
+    );
+    final continueShape =
+        continueButton.style?.shape?.resolve({}) as RoundedRectangleBorder;
+    final deleteShape =
+        deleteButton.style?.shape?.resolve({}) as RoundedRectangleBorder;
+
+    expect(deleteShape.borderRadius, continueShape.borderRadius);
+    expect(deleteShape.borderRadius, AppBorders.medium());
+    expect(
+      find.byTooltip(
+        'Solo podrás editar la información de este documento en el tiempo '
+        'restante, una vez culminado no podrás ni editar ni eliminarlo.',
+      ),
+      findsOneWidget,
+    );
+
+    await tester.tap(find.byKey(const Key('analysis-edit-expiration-chip')));
+    await tester.pump(const Duration(milliseconds: 100));
+
+    final tooltipText = tester.widget<Text>(
+      find.text(
+        'Solo podrás editar la información de este documento en el tiempo '
+        'restante, una vez culminado no podrás ni editar ni eliminarlo.',
+      ),
+    );
+    expect(tooltipText.style?.color, AppColors.white);
+    expect(tooltipText.style?.fontSize, AppTypography.body1.fontSize);
+    expect(tooltipText.style?.fontWeight, FontWeight.w600);
+    expect(tooltipText.style?.height, 1.5);
+
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
   for (final fails in [false, true]) {
     testWidgets(
       'does not show sharing success when ${fails ? 'sharing fails' : 'sharing is cancelled'}',
@@ -243,6 +322,178 @@ void main() {
     await tester.tap(find.text('Ver original').last);
     expect(originalOpened, isTrue);
   });
+
+  testWidgets(
+    'shows one original link per laboratory result and selects every field',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? selectedText;
+      const analysis = SharedFileAnalysisEntity(
+        documentType: 'Resultados de laboratorio',
+        documentNumber: 'LAB-1',
+        date: null,
+        originalFileName: 'laboratorio.pdf',
+        patient: SharedFilePatientAnalysisEntity(
+          name: '',
+          recordId: '',
+          species: '',
+          breed: '',
+          age: '',
+          weight: '',
+        ),
+        tutor: SharedFileTutorAnalysisEntity(
+          name: '',
+          identification: '',
+          phoneNumber: '',
+        ),
+        sections: [
+          SharedFileAnalysisSectionEntity(
+            title: 'Resultados de laboratorio 1',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Prueba o analito',
+                value: 'Eritrocitos',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Panel',
+                value: 'HEMOGRAMA COMPLETO',
+              ),
+              SharedFileAnalysisDetailEntity(label: 'Resultado', value: '7,67'),
+              SharedFileAnalysisDetailEntity(
+                label: 'Unidad',
+                value: 'X 10³cel/ul',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Rango de referencia',
+                value: '5.4-7.8 X 10³cel/ul',
+              ),
+            ],
+          ),
+          SharedFileAnalysisSectionEntity(
+            title: 'Resultados de laboratorio 2',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Prueba o analito',
+                value: 'Hemoglobina',
+              ),
+              SharedFileAnalysisDetailEntity(label: 'Resultado', value: '15,2'),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SharedFileAnalysisReviewScreen(
+            analysis: analysis,
+            onViewOriginalText: (text) => selectedText = text,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final originalLinks = find.text('Ver original');
+      expect(originalLinks, findsNWidgets(2));
+
+      await tester.ensureVisible(originalLinks.first);
+      await tester.pumpAndSettle();
+      await tester.tap(originalLinks.first);
+
+      expect(
+        selectedText,
+        'Eritrocitos\n'
+        'HEMOGRAMA COMPLETO\n'
+        '7,67\n'
+        'X 10³cel/ul\n'
+        '5.4-7.8 X 10³cel/ul',
+      );
+    },
+  );
+
+  testWidgets(
+    'shows one original link per medical order and selects every field',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      String? selectedText;
+      const analysis = SharedFileAnalysisEntity(
+        documentType: 'Orden médica',
+        documentNumber: 'ORD-1',
+        date: null,
+        originalFileName: 'orden.pdf',
+        patient: SharedFilePatientAnalysisEntity(
+          name: '',
+          recordId: '',
+          species: '',
+          breed: '',
+          age: '',
+          weight: '',
+        ),
+        tutor: SharedFileTutorAnalysisEntity(
+          name: '',
+          identification: '',
+          phoneNumber: '',
+        ),
+        sections: [
+          SharedFileAnalysisSectionEntity(
+            title: 'Órdenes médicas 1',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Examen o procedimiento',
+                value: 'Radiografía',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Tipo de orden',
+                value: 'Imagen diagnóstica',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Instrucciones',
+                value: 'Rx de tórax VD y L',
+              ),
+            ],
+          ),
+          SharedFileAnalysisSectionEntity(
+            title: 'Órdenes médicas 2',
+            details: [
+              SharedFileAnalysisDetailEntity(
+                label: 'Examen o procedimiento',
+                value: 'Ecografía abdominal',
+              ),
+              SharedFileAnalysisDetailEntity(
+                label: 'Tipo de orden',
+                value: 'Imagen diagnóstica',
+              ),
+            ],
+          ),
+        ],
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SharedFileAnalysisReviewScreen(
+            analysis: analysis,
+            onViewOriginalText: (text) => selectedText = text,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final originalLinks = find.text('Ver original');
+      expect(originalLinks, findsNWidgets(2));
+
+      await tester.ensureVisible(originalLinks.first);
+      await tester.pumpAndSettle();
+      await tester.tap(originalLinks.first);
+
+      expect(
+        selectedText,
+        'Radiografía\n'
+        'Imagen diagnóstica\n'
+        'Rx de tórax VD y L',
+      );
+    },
+  );
 
   testWidgets('shows the no-upload action and invokes its callback', (
     tester,

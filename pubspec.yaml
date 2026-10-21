@@ -89,6 +89,12 @@ dev_dependencies:
   build_runner: ^2.4.0
   flutter_launcher_icons: ^0.13.1
 
+dependency_overrides:
+  # pdfrx_engine 0.3.9 loses null promotion after an async gap during iOS builds.
+  # Keep the same package version and API, with the two required null checks.
+  pdfrx_engine:
+    path: third_party/pdfrx_engine
+
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
 

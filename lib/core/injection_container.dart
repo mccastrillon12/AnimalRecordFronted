@@ -104,12 +104,15 @@ import 'package:animal_record/features/medical_documents/data/datasources/medica
 import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
 import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
-import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
+import 'package:animal_record/features/medical_documents/data/services/medical_document_file_loader_impl.dart';
 import 'package:animal_record/features/medical_documents/data/services/medical_document_file_saver_impl.dart';
+import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_loader.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 
@@ -397,30 +400,53 @@ Future<void> init() async {
   sl.registerFactory(
     () => MedicalDocumentFlowCubit(
       analyzeUseCase: sl(),
+      analyzeReplacementUseCase: sl(),
       getDocumentUseCase: sl(),
+      getRelatedDocumentsUseCase: sl(),
       reviewUseCase: sl(),
+      reviewReplacementUseCase: sl(),
       pendingLocalDataSource: sl(),
     ),
   );
   sl.registerFactory(
     () => AnimalMedicalDocumentsCubit(getDocumentsUseCase: sl()),
   );
+  sl.registerFactory(
+    () => MedicalDocumentDetailCubit(
+      getRelatedDocumentsUseCase: sl(),
+      deleteDocumentUseCase: sl(),
+      loadOriginalUseCase: sl(),
+    ),
+  );
   sl.registerLazySingleton(() => AnalyzeMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(
+    () => AnalyzeMedicalDocumentReplacementUseCase(sl()),
+  );
   sl.registerLazySingleton(() => GetMedicalFieldCatalogUseCase(sl()));
   sl.registerLazySingleton(
     () => MedicalDocumentAnalysisPresenter(getFieldCatalog: sl()),
   );
   sl.registerLazySingleton(() => GetMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => GetRelatedMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(
     () => GetMedicalDocumentRejectionReasonsUseCase(sl()),
   );
   sl.registerLazySingleton(() => SubmitMedicalDocumentAiFeedbackUseCase(sl()));
   sl.registerLazySingleton(() => ReviewMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => ReviewMedicalDocumentReplacementUseCase(sl()));
   sl.registerLazySingleton(() => GetAnimalMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(() => GetMedicalDocumentDownloadUriUseCase(sl()));
+  sl.registerLazySingleton(
+    () =>
+        LoadMedicalDocumentOriginalUseCase(repository: sl(), fileLoader: sl()),
+  );
+  sl.registerLazySingleton(() => DeleteMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(() => SaveMedicalDocumentOriginalUseCase(sl()));
   sl.registerLazySingleton<MedicalDocumentFileSaver>(
     () => MedicalDocumentFileSaverImpl(dio: Dio()),
+  );
+  sl.registerLazySingleton<MedicalDocumentFileLoader>(
+    () => MedicalDocumentFileLoaderImpl(dio: Dio()),
   );
   sl.registerLazySingleton<MedicalDocumentsRepository>(
     () => MedicalDocumentsRepositoryImpl(remoteDataSource: sl()),

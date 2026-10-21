@@ -57,15 +57,26 @@ abstract final class MedicalDocumentContractValidator {
     }
   }
 
-  static void validateReview({
-    required ReviewMedicalDocumentRequest request,
-    required List<String> originalAnimalIds,
-  }) {
-    if (request.documentVersion < 1) {
+  static void validateReplacementAnalysis(
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) {
+    validateAnalysis(file: request.file, animalIds: request.animalIds);
+    validateDocumentVersion(request.documentVersion);
+  }
+
+  static void validateDocumentVersion(int documentVersion) {
+    if (documentVersion < 1) {
       throw const MedicalDocumentContractException(
         'No se recibió una versión válida del archivo.',
       );
     }
+  }
+
+  static void validateReview({
+    required ReviewMedicalDocumentRequest request,
+    required List<String> originalAnimalIds,
+  }) {
+    validateDocumentVersion(request.documentVersion);
     if (request.decision == MedicalDocumentReviewDecision.reject) {
       const validReasons = {'INCORRECT_INFORMATION', 'WRONG_ANIMAL', 'OTHER'};
       final reason = request.rejectionReasonCode?.trim();
@@ -94,6 +105,57 @@ abstract final class MedicalDocumentContractValidator {
         'La categoría final y la extracción validada son obligatorias.',
       );
     }
+    _validateAcceptedExtraction(
+      extraction: extraction,
+      assignments: request.assignments,
+      expectedAnimalIds: originalAnimalIds,
+    );
+  }
+
+  static void validateReplacementReview(
+    ReviewMedicalDocumentReplacementRequest request,
+  ) {
+    if (request.candidateDocumentId.trim().isEmpty) {
+      throw const MedicalDocumentContractException(
+        'No se recibió el identificador del análisis de reemplazo.',
+      );
+    }
+    validateDocumentVersion(request.documentVersion);
+    validateDocumentVersion(request.candidateVersion);
+    if (request.decision == MedicalDocumentReviewDecision.reject) return;
+
+    final versions = request.documentVersions;
+    final documentIds = versions
+        .map((document) => document.documentId.trim())
+        .toList(growable: false);
+    if (versions.isEmpty ||
+        documentIds.any((id) => id.isEmpty) ||
+        documentIds.toSet().length != documentIds.length ||
+        versions.any((document) => document.version < 1)) {
+      throw const MedicalDocumentContractException(
+        'Los documentos seleccionados contienen versiones inválidas.',
+      );
+    }
+
+    final extraction = request.validatedExtraction;
+    if (request.finalCategory == null || extraction == null) {
+      throw const MedicalDocumentContractException(
+        'La categoría final y la extracción validada del reemplazo son obligatorias.',
+      );
+    }
+    _validateAcceptedExtraction(
+      extraction: extraction,
+      assignments: request.assignments,
+      expectedAssignmentCount: versions.length,
+    );
+  }
+
+  static void _validateAcceptedExtraction({
+    required MedicalDocumentExtractionEntity extraction,
+    required List<MedicalDocumentAssignmentEntity> assignments,
+    List<String>? expectedAnimalIds,
+    int? expectedAssignmentCount,
+  }) {
     if (_hasDisallowedCategoryData(extraction, extraction.documentType)) {
       throw const MedicalDocumentContractException(
         'La extracción validada mezcla información de categorías diferentes.',
@@ -108,21 +170,32 @@ abstract final class MedicalDocumentContractValidator {
       );
     }
 
-    final expectedAnimals = originalAnimalIds.toSet();
-    final assignedAnimals = request.assignments
+    final expectedAnimals = expectedAnimalIds?.toSet();
+    final assignedAnimals = assignments
         .map((assignment) => assignment.animalId)
         .toList(growable: false);
-    if (assignedAnimals.length != originalAnimalIds.length ||
+    final hasInvalidAssignments =
+        assignedAnimals.any((animalId) => animalId.trim().isEmpty) ||
         assignedAnimals.toSet().length != assignedAnimals.length ||
-        assignedAnimals.toSet().difference(expectedAnimals).isNotEmpty ||
-        expectedAnimals.difference(assignedAnimals.toSet()).isNotEmpty) {
+        (expectedAssignmentCount != null &&
+            assignedAnimals.length != expectedAssignmentCount) ||
+        (expectedAnimals != null &&
+            (assignedAnimals.length != expectedAnimalIds!.length ||
+                assignedAnimals
+                    .toSet()
+                    .difference(expectedAnimals)
+                    .isNotEmpty ||
+                expectedAnimals
+                    .difference(assignedAnimals.toSet())
+                    .isNotEmpty));
+    if (hasInvalidAssignments) {
       throw const MedicalDocumentContractException(
         'Debe existir exactamente una asignación por cada animal.',
       );
     }
 
     final validItemIds = itemIds.toSet();
-    for (final assignment in request.assignments) {
+    for (final assignment in assignments) {
       if (assignment.extractedItemIds.toSet().length !=
               assignment.extractedItemIds.length ||
           assignment.extractedItemIds.any(

@@ -97,7 +97,7 @@ class ApiClient {
       if (e.response?.statusCode == 401) {
         throw ApiException(
           statusCode: statusCode,
-          message: 'No se pudo iniciar sesión. Verifica tus credenciales',
+          message: 'No se pudo iniciar sesión. Verifica tus credenciales.',
           data: e.response?.data,
           path: path,
         );
@@ -111,7 +111,7 @@ class ApiClient {
       if (e.response?.statusCode == 404) {
         throw ApiException(
           statusCode: statusCode,
-          message: 'Recurso no encontrado (404)',
+          message: 'Recurso no encontrado (404).',
           data: e.response?.data,
           path: path,
         );
@@ -122,7 +122,7 @@ class ApiClient {
           statusCode: statusCode,
           message: isMedicalDocument
               ? ErrorMapper.mapToUserMessage(e.response?.data)
-              : 'El correo/celular ya se encuentra registrado, por favor inicie sesión',
+              : 'El correo/celular ya se encuentra registrado. Por favor, inicie sesión.',
           data: e.response?.data,
           path: path,
         );
@@ -135,7 +135,7 @@ class ApiClient {
       );
     } catch (e) {
       if (e is Exception) rethrow;
-      throw Exception('Error inesperado: \$e');
+      throw Exception('Error inesperado: \$e.');
     }
   }
 }

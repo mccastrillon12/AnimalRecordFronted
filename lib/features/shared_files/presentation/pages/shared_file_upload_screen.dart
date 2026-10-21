@@ -23,6 +23,7 @@ import 'package:animal_record/features/medical_documents/presentation/cubit/medi
 import 'package:animal_record/features/medical_documents/presentation/pages/medical_document_review_screen.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_classification_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/navigation/shared_file_upload_arguments.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/animal_selection_modal.dart';
@@ -54,8 +55,10 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   bool _pendingResumeChecked = false;
   bool _classificationCancellationConfirmed = false;
   bool _isClosing = false;
+  bool _canPop = false;
   bool _analysisInterruptedByBackground = false;
   Future<void>? _interruptedAnalysisDiscard;
+  bool _replacementInitialized = false;
 
   @override
   void initState() {
@@ -72,7 +75,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       if (authState is AuthSuccess) {
         await context.read<AnimalCubit>().loadAnimals(authState.user.id);
       }
-      if (mounted && _selectOnlyActiveAnimalForExternalShare()) {
+      if (mounted && _syncReplacementSelection()) {
+        setState(() {});
+      } else if (mounted && _selectOnlyActiveAnimalForExternalShare()) {
         setState(() {});
       }
       if (mounted && _shouldResumePending) {
@@ -84,7 +89,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (_selectedAnimals.isEmpty) {
+    _initializeReplacementFlow();
+    if (!_isReplacement && _selectedAnimals.isEmpty) {
       final preselected = _preselectedAnimal;
       if (preselected != null) {
         _selectedAnimals = [preselected];
@@ -94,7 +100,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   }
 
   bool _selectOnlyActiveAnimalForExternalShare() {
-    if (!_isExternalShare || _selectedAnimals.isNotEmpty) return false;
+    if (_isReplacement || !_isExternalShare || _selectedAnimals.isNotEmpty) {
+      return false;
+    }
     final activeAnimals = context
         .read<AnimalCubit>()
         .animals
@@ -124,6 +132,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final flow = context.read<MedicalDocumentFlowCubit>();
     if ((state == AppLifecycleState.paused ||
             state == AppLifecycleState.detached) &&
+        !flow.state.isReplacement &&
         (flow.state.phase == MedicalDocumentFlowPhase.uploading ||
             flow.state.phase == MedicalDocumentFlowPhase.analyzing)) {
       _analysisInterruptedByBackground = true;
@@ -166,7 +175,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final navigator = Navigator.of(context);
     final overlay = navigator.overlay;
     if (navigator.canPop()) {
-      navigator.pop();
+      _popUploadRoute();
     } else {
       navigator.pushNamedAndRemoveUntil(
         AppRoutes.home,
@@ -196,7 +205,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     if (!mounted) return;
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
-      navigator.pop();
+      _popUploadRoute();
     } else {
       navigator.pushNamedAndRemoveUntil(AppRoutes.home, (_) => false);
     }
@@ -215,7 +224,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     return discarded;
   }
 
-  Future<void> _close() async {
+  Future<void> _close({bool silentlyDismissReplacement = false}) async {
     if (_isClosing) return;
     _isClosing = true;
     if (_hasEnteredData) {
@@ -226,7 +235,11 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         return;
       }
     }
-    await _cancelAndClose();
+    await _cancelAndClose(
+      result: _isReplacement && silentlyDismissReplacement
+          ? SharedFileUploadCancellation.replacementDismissed
+          : false,
+    );
   }
 
   bool get _hasEnteredData {
@@ -242,35 +255,157 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         flow.pendingFlow != null;
   }
 
-  Future<void> _cancelAndClose() async {
-    if (!await _discardPendingFlow() || !mounted) return;
+  Future<void> _cancelAndClose({Object? result = false}) async {
+    if (!await _discardPendingFlow() || !mounted) {
+      _isClosing = false;
+      return;
+    }
     if (!_isManualUpload) {
       context.read<SharedFilesCubit>().clear();
     }
     final navigator = Navigator.of(context);
     if (navigator.canPop()) {
-      navigator.pop(false);
+      _popUploadRoute(result);
     } else {
       navigator.pushNamedAndRemoveUntil(
         AppRoutes.home,
         (_) => false,
         arguments: const {homeInitialSectionArgument: homeMyAnimalsSection},
       );
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        final overlay = navigator.overlay;
-        if (overlay != null) {
-          ErrorDisplay.showErrorOnOverlay(
-            overlay,
-            sharedFileUploadErrorMessage,
-          );
-        }
-      });
+      if (result != SharedFileUploadCancellation.replacementDismissed) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          final overlay = navigator.overlay;
+          if (overlay != null) {
+            ErrorDisplay.showErrorOnOverlay(
+              overlay,
+              sharedFileUploadErrorMessage,
+            );
+          }
+        });
+      }
     }
+  }
+
+  void _popUploadRoute([Object? result]) {
+    if (!mounted) return;
+    setState(() => _canPop = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) Navigator.pop(context, result);
+    });
   }
 
   bool get _isManualUpload {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     return arguments is Map && arguments['manualUpload'] == true;
+  }
+
+  MedicalDocumentEntity? get _replacementAnchor {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map &&
+        arguments[medicalDocumentReplacementAnchorArgument]
+            is MedicalDocumentEntity) {
+      return arguments[medicalDocumentReplacementAnchorArgument]
+          as MedicalDocumentEntity;
+    }
+    return null;
+  }
+
+  List<MedicalDocumentEntity> get _relatedDocuments {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    final value = arguments is Map
+        ? arguments[medicalDocumentRelatedDocumentsArgument]
+        : null;
+    if (value is! List) return const [];
+    return value.whereType<MedicalDocumentEntity>().toList(growable: false);
+  }
+
+  SharedFileEntity? get _replacementFile {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map &&
+        arguments[medicalDocumentReplacementFileArgument] is SharedFileEntity) {
+      return arguments[medicalDocumentReplacementFileArgument]
+          as SharedFileEntity;
+    }
+    return null;
+  }
+
+  DateTime? get _replacementFileDate {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map &&
+        arguments[medicalDocumentReplacementFileDateArgument] is DateTime) {
+      return arguments[medicalDocumentReplacementFileDateArgument] as DateTime;
+    }
+    return null;
+  }
+
+  String? get _replacementAnimalId {
+    final arguments = ModalRoute.of(context)?.settings.arguments;
+    if (arguments is Map &&
+        arguments[medicalDocumentReplacementAnimalIdArgument] is String) {
+      return arguments[medicalDocumentReplacementAnimalIdArgument] as String;
+    }
+    return null;
+  }
+
+  bool get _isReplacement => _replacementAnchor != null;
+
+  void _initializeReplacementFlow() {
+    if (_replacementInitialized) return;
+    final anchor = _replacementAnchor;
+    if (anchor == null) return;
+    final related = _relatedDocuments;
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    flow.initializeReplacement(
+      anchor: anchor,
+      relatedDocuments: related.isEmpty ? [anchor] : related,
+    );
+    final replacementAnimalId = _replacementAnimalId;
+    if (replacementAnimalId?.isNotEmpty == true) {
+      flow.selectReplacementAnimalIds([replacementAnimalId!]);
+    }
+    final replacementFile = _replacementFile;
+    if (replacementFile != null) {
+      _manualFile = replacementFile;
+      _manualFileSelectedAt = _replacementFileDate;
+      _fileNameController.text = replacementFile.name;
+    }
+    _descriptionController.text = anchor.description;
+    _replacementInitialized = true;
+  }
+
+  bool _syncReplacementSelection() {
+    if (!_isReplacement) return false;
+    final selectedIds = context
+        .read<MedicalDocumentFlowCubit>()
+        .state
+        .animalIds
+        .toSet();
+    final selected = context
+        .read<AnimalCubit>()
+        .animals
+        .where((animal) => selectedIds.contains(animal.id))
+        .toList(growable: false);
+    if (selected.length == _selectedAnimals.length &&
+        selected.every(_selectedAnimals.contains)) {
+      return false;
+    }
+    _selectedAnimals = selected;
+    return true;
+  }
+
+  Set<String> get _editableReplacementAnimalIds {
+    if (!_isReplacement) return const {};
+    final anchor = _replacementAnchor!;
+    final documents = [
+      ..._relatedDocuments,
+      if (!_relatedDocuments.any((document) => document.id == anchor.id))
+        anchor,
+    ];
+    return {
+      for (final document in documents)
+        if (document.canReplace && document.animalIds.length == 1)
+          document.animalIds.single,
+    };
   }
 
   bool get _isExternalShare {
@@ -305,7 +440,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
 
   bool get _shouldResumePending {
     final arguments = ModalRoute.of(context)?.settings.arguments;
-    return arguments is Map && arguments['resumePending'] == true;
+    return !_isReplacement &&
+        arguments is Map &&
+        arguments['resumePending'] == true;
   }
 
   Future<void> _resumeCompatiblePendingFlow() async {
@@ -349,7 +486,10 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       );
       if (!mounted || file == null) return;
 
-      if (!await _discardPendingFlow() || !mounted) return;
+      if (!_isReplacement && (!await _discardPendingFlow() || !mounted)) {
+        return;
+      }
+      if (!mounted) return;
       setState(() {
         _manualFile = file;
         _manualFileSelectedAt = DateTime.now();
@@ -423,7 +563,10 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   }
 
   Future<void> _removeManualFile() async {
-    if (!await _discardPendingFlow() || !mounted) return;
+    if (!_isReplacement && (!await _discardPendingFlow() || !mounted)) {
+      return;
+    }
+    if (!mounted) return;
     setState(() {
       _manualFile = null;
       _manualFileSelectedAt = null;
@@ -439,6 +582,11 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     );
     if (!mounted || selected == null) return;
     setState(() => _selectedAnimals = selected);
+    if (_isReplacement) {
+      context.read<MedicalDocumentFlowCubit>().selectReplacementAnimalIds(
+        selected.map((animal) => animal.id).toList(growable: false),
+      );
+    }
   }
 
   Future<void> _startAnalysis() async {
@@ -450,17 +598,29 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         : pendingFiles.first;
     if (sourceFile == null || _selectedAnimals.isEmpty) return;
     final flow = context.read<MedicalDocumentFlowCubit>();
-    if ((flow.state.remoteDocument != null || flow.pendingFlow != null) &&
+    if (!_isReplacement &&
+        (flow.state.remoteDocument != null || flow.pendingFlow != null) &&
         !await _discardPendingFlow()) {
       return;
     }
     if (!mounted) return;
-    await flow.startAnalysis(
-      file: sourceFile,
-      animalIds: _selectedAnimals.map((animal) => animal.id).toList(),
-      requestedCategory: _requestedCategory,
-      description: _descriptionController.text,
-    );
+    final animalIds = _selectedAnimals
+        .map((animal) => animal.id)
+        .toList(growable: false);
+    if (_isReplacement) {
+      await flow.startReplacementAnalysis(
+        file: sourceFile,
+        animalIds: animalIds,
+        description: _descriptionController.text,
+      );
+    } else {
+      await flow.startAnalysis(
+        file: sourceFile,
+        animalIds: animalIds,
+        requestedCategory: _requestedCategory,
+        description: _descriptionController.text,
+      );
+    }
   }
 
   Future<void> _presentReview(MedicalDocumentFlowState state) async {
@@ -471,7 +631,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       context: context,
       document: state.remoteDocument!,
       initialCategory:
-          state.selectedFinalCategory ?? MedicalDocumentCategory.other,
+          state.selectedFinalCategory ??
+          state.replacementAnchor?.finalCategory ??
+          MedicalDocumentCategory.other,
       onProcessCancellationConfirmed: () {
         _classificationCancellationConfirmed = true;
       },
@@ -502,11 +664,29 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     if (!mounted) return;
     switch (outcome) {
       case MedicalDocumentReviewOutcome.accepted:
+        if (state.isReplacement) {
+          _reviewPresented = false;
+          context.read<SharedFilesCubit>().clear();
+          final resultCategory =
+              flow
+                  .state
+                  .replacementResultDocuments
+                  .firstOrNull
+                  ?.finalCategory ??
+              flow.state.remoteDocument?.finalCategory ??
+              flow.state.selectedFinalCategory;
+          _removeUploadRoute(
+            SharedFileUploadResult(
+              animals: List.unmodifiable(_selectedAnimals),
+              category: resultCategory,
+            ),
+          );
+          return;
+        }
         unawaited(_markAiFeedbackPendingForAcceptedDocument(flow.state));
         _reviewPresented = false;
         context.read<SharedFilesCubit>().clear();
-        Navigator.pop(
-          context,
+        _popUploadRoute(
           _shouldReturnUploadResult
               ? SharedFileUploadResult(
                   animals: List.unmodifiable(_selectedAnimals),
@@ -518,24 +698,62 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         );
       case MedicalDocumentReviewOutcome.cancelled:
         _reviewPresented = false;
-        await _cancelAndClose();
+        _isClosing = true;
+        _removeUploadRoute(false);
         return;
       case MedicalDocumentReviewOutcome.dismissed:
         final discarded = await flow.discardCurrentFlow(
           showSubmittingState: false,
         );
-        if (!discarded) await flow.reset();
         if (!mounted) return;
-        _reviewPresented = false;
         if (!discarded) {
+          _reviewPresented = false;
           ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+          return;
         }
+        if (_isReplacement) {
+          _replacementInitialized = false;
+          _initializeReplacementFlow();
+          _syncReplacementSelection();
+        }
+        _reviewPresented = false;
       case MedicalDocumentReviewOutcome.rejected:
         _reviewPresented = false;
+        if (_isReplacement) {
+          final replacementState = flow.state;
+          final anchor = replacementState.replacementAnchor;
+          if (anchor == null) {
+            ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+            return;
+          }
+          var refreshedAnchor = anchor;
+          for (final document in replacementState.relatedDocuments) {
+            if (document.id == anchor.id) {
+              refreshedAnchor = document;
+              break;
+            }
+          }
+          flow.initializeReplacement(
+            anchor: refreshedAnchor,
+            relatedDocuments: replacementState.relatedDocuments,
+          );
+          _syncReplacementSelection();
+          return;
+        }
       case null:
         _reviewPresented = false;
         break;
     }
+  }
+
+  void _removeUploadRoute([Object? result]) {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route == null) {
+      _popUploadRoute(result);
+      return;
+    }
+    Navigator.of(context).removeRoute(route, result);
   }
 
   Future<void> _markAiFeedbackPendingForAcceptedDocument(
@@ -569,179 +787,285 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         ? _manualFile != null
         : _fileNameController.text.isNotEmpty;
 
-    return BlocConsumer<MedicalDocumentFlowCubit, MedicalDocumentFlowState>(
-      listenWhen: (previous, current) =>
-          previous.phase != current.phase ||
-          previous.message != current.message,
-      listener: (context, state) {
-        if (state.phase == MedicalDocumentFlowPhase.reviewing &&
-            !_reviewPresented) {
-          _presentReview(state);
-        } else if (state.phase == MedicalDocumentFlowPhase.pollingPaused &&
-            (state.message?.isNotEmpty ?? false)) {
-          ErrorDisplay.showError(context, state.message!);
-        } else if (state.phase == MedicalDocumentFlowPhase.failed &&
-            (state.message?.isNotEmpty ?? false)) {
-          ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
-        }
+    return PopScope(
+      canPop: _canPop,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) unawaited(_close());
       },
-      builder: (context, flowState) => Stack(
-        children: [
-          ModalPageLayout(
-            title: 'Subir archivo',
-            fixedTitle: true,
-            fixedHeaderHeight: 126,
-            titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
-            titleStyle: AppTypography.body1.copyWith(
-              color: AppColors.greyTextos,
-            ),
-            onClose: _close,
-            bottomSafeAreaColor: AppColors.white,
-            bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24),
-            bottomChild: CustomButton(
-              text: switch (flowState.phase) {
-                MedicalDocumentFlowPhase.pollingPaused => 'Reanudar análisis',
-                MedicalDocumentFlowPhase.reviewing => 'Revisar análisis',
-                _ => 'Subir archivo',
-              },
-              onPressed:
-                  !hasFile || _selectedAnimals.isEmpty || flowState.isBusy
-                  ? null
-                  : switch (flowState.phase) {
-                      MedicalDocumentFlowPhase.pollingPaused =>
-                        () => context
-                            .read<MedicalDocumentFlowCubit>()
-                            .resumePolling(),
-                      MedicalDocumentFlowPhase.reviewing => _startAnalysis,
-                      _ => _startAnalysis,
-                    },
-            ),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (isManualUpload) ...[
-                    _ManualFilePicker(
-                      hasSelectedFile: _manualFile != null,
-                      onTap: _onManualFilePickerTap,
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    if (_manualFile case final file?) ...[
-                      _SelectedManualFile(
-                        file: file,
-                        selectedAt: _manualFileSelectedAt ?? DateTime.now(),
-                        onDelete: _removeManualFile,
+      child: BlocConsumer<MedicalDocumentFlowCubit, MedicalDocumentFlowState>(
+        listenWhen: (previous, current) =>
+            previous.phase != current.phase ||
+            previous.message != current.message,
+        listener: (context, state) {
+          if (state.phase == MedicalDocumentFlowPhase.reviewing &&
+              !_reviewPresented &&
+              !_isClosing) {
+            _presentReview(state);
+          } else if (state.phase == MedicalDocumentFlowPhase.pollingPaused &&
+              (state.message?.isNotEmpty ?? false)) {
+            ErrorDisplay.showError(context, state.message!);
+          } else if (state.phase == MedicalDocumentFlowPhase.failed &&
+              (state.message?.isNotEmpty ?? false)) {
+            ErrorDisplay.showError(context, sharedFileUploadErrorMessage);
+          }
+        },
+        builder: (context, flowState) => Stack(
+          children: [
+            ModalPageLayout(
+              title: 'Subir archivo',
+              fixedTitle: true,
+              fixedHeaderHeight: 126,
+              titlePadding: const EdgeInsets.only(top: 80, bottom: 12),
+              titleStyle: AppTypography.body1.copyWith(
+                color: AppColors.greyTextos,
+              ),
+              onClose: () => _close(silentlyDismissReplacement: true),
+              bottomSafeAreaColor: AppColors.white,
+              bottomPadding: const EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+              ),
+              bottomChild: CustomButton(
+                text: switch (flowState.phase) {
+                  MedicalDocumentFlowPhase.pollingPaused => 'Reanudar análisis',
+                  MedicalDocumentFlowPhase.reviewing => 'Revisar análisis',
+                  _ => 'Subir archivo',
+                },
+                onPressed:
+                    !hasFile || _selectedAnimals.isEmpty || flowState.isBusy
+                    ? null
+                    : switch (flowState.phase) {
+                        MedicalDocumentFlowPhase.pollingPaused =>
+                          () => context
+                              .read<MedicalDocumentFlowCubit>()
+                              .resumePolling(),
+                        MedicalDocumentFlowPhase.reviewing => _startAnalysis,
+                        _ => _startAnalysis,
+                      },
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (isManualUpload) ...[
+                      _ManualFilePicker(
+                        hasSelectedFile: _manualFile != null,
+                        onTap: _onManualFilePickerTap,
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      if (_manualFile case final file?) ...[
+                        _SelectedManualFile(
+                          file: file,
+                          selectedAt: _manualFileSelectedAt ?? DateTime.now(),
+                          onDelete: _removeManualFile,
+                        ),
+                        const SizedBox(height: AppSpacing.m),
+                      ],
+                    ] else ...[
+                      Text(
+                        'Los archivos cargados estarán disponibles en la sección '
+                        'correspondiente a su tipo de archivo.',
+                        style: AppTypography.body4.copyWith(
+                          color: AppColors.greyTextos,
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.m),
+                      CustomTextField(
+                        label: 'Nombre del archivo',
+                        controller: _fileNameController,
+                        enabled: false,
+                        labelStyle: AppTypography.body6.copyWith(
+                          color: AppColors.greyTextos.withValues(alpha: 0.6),
+                        ),
                       ),
                       const SizedBox(height: AppSpacing.m),
                     ],
-                  ] else ...[
-                    Text(
-                      'Los archivos cargados estarán disponibles en la sección '
-                      'correspondiente a su tipo de archivo.',
-                      style: AppTypography.body4.copyWith(
-                        color: AppColors.greyTextos,
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                    CustomTextField(
-                      label: 'Nombre del archivo',
-                      controller: _fileNameController,
-                      enabled: false,
-                      labelStyle: AppTypography.body6.copyWith(
-                        color: AppColors.greyTextos.withValues(alpha: 0.6),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.m),
-                  ],
-                  if (_preselectedAnimal != null)
-                    AppDropdown<AnimalEntity>(
-                      label: 'Animal',
-                      hint: '',
-                      value: _preselectedAnimal,
-                      items: [_preselectedAnimal!],
-                      itemAsString: (animal) => animal.name,
-                      enabled: false,
-                      onChanged: null,
-                    )
-                  else
-                    BlocBuilder<AnimalCubit, AnimalState>(
-                      builder: (context, state) {
-                        final cubit = context.read<AnimalCubit>();
-                        final animals = cubit.animals
-                            .where((animal) => animal.isActive)
-                            .toList(growable: false);
-                        if (_isExternalShare && animals.length == 1) {
-                          return AppDropdown<AnimalEntity>(
-                            label: 'Animal',
-                            hint: '',
-                            value: animals.single,
+                    if (_preselectedAnimal != null)
+                      AppDropdown<AnimalEntity>(
+                        label: 'Animal',
+                        hint: '',
+                        value: _preselectedAnimal,
+                        items: [_preselectedAnimal!],
+                        itemAsString: (animal) => animal.name,
+                        enabled: false,
+                        onChanged: null,
+                      )
+                    else
+                      BlocBuilder<AnimalCubit, AnimalState>(
+                        builder: (context, state) {
+                          final cubit = context.read<AnimalCubit>();
+                          final animals = cubit.animals
+                              .where(
+                                (animal) => _isReplacement
+                                    ? _editableReplacementAnimalIds.contains(
+                                        animal.id,
+                                      )
+                                    : animal.isActive,
+                              )
+                              .toList(growable: false);
+                          if (_isReplacement && _selectedAnimals.length == 1) {
+                            final selectedAnimal = _selectedAnimals.single;
+                            return AppDropdown<AnimalEntity>(
+                              label: 'Animal',
+                              hint: '',
+                              value: selectedAnimal,
+                              items: [selectedAnimal],
+                              itemAsString: (animal) => animal.name,
+                              enabled: false,
+                              onChanged: null,
+                            );
+                          }
+                          if (animals.length == 1) {
+                            return AppDropdown<AnimalEntity>(
+                              label: 'Animal',
+                              hint: '',
+                              value: animals.single,
+                              items: animals,
+                              itemAsString: (animal) => animal.name,
+                              enabled: false,
+                              onChanged: null,
+                            );
+                          }
+                          return AppMultiSearchDropdown<AnimalEntity>(
+                            label: 'Animal(es)',
+                            hint: state is AnimalsLoading
+                                ? 'Cargando animales...'
+                                : 'Seleccione el animal o animales',
+                            selectedItems: _selectedAnimals,
                             items: animals,
                             itemAsString: (animal) => animal.name,
-                            enabled: false,
-                            onChanged: null,
+                            enabled: state is! AnimalsLoading,
+                            searchable: false,
+                            pushContentDown: false,
+                            onTap: () {
+                              _selectAnimals(animals);
+                            },
+                            onChanged: (animals) {
+                              setState(() => _selectedAnimals = animals);
+                              if (_isReplacement) {
+                                context
+                                    .read<MedicalDocumentFlowCubit>()
+                                    .selectReplacementAnimalIds(
+                                      animals
+                                          .map((animal) => animal.id)
+                                          .toList(growable: false),
+                                    );
+                              }
+                            },
                           );
-                        }
-                        return AppMultiSearchDropdown<AnimalEntity>(
-                          label: 'Animal(es)',
-                          hint: state is AnimalsLoading
-                              ? 'Cargando animales...'
-                              : 'Seleccione el animal o animales',
-                          selectedItems: _selectedAnimals,
-                          items: animals,
-                          itemAsString: (animal) => animal.name,
-                          enabled: state is! AnimalsLoading,
-                          searchable: false,
-                          pushContentDown: false,
-                          onTap: () {
-                            _selectAnimals(animals);
-                          },
-                          onChanged: (animals) {
-                            setState(() => _selectedAnimals = animals);
-                          },
-                        );
-                      },
+                        },
+                      ),
+                    const SizedBox(height: AppSpacing.m),
+                    CustomTextField(
+                      label: 'Descripción (Opcional)',
+                      controller: _descriptionController,
+                      maxLength: 50,
+                      textCapitalization: TextCapitalization.sentences,
                     ),
-                  const SizedBox(height: AppSpacing.m),
-                  CustomTextField(
-                    label: 'Descripción (Opcional)',
-                    controller: _descriptionController,
-                    maxLength: 50,
-                    textCapitalization: TextCapitalization.sentences,
-                  ),
-                  const SizedBox(height: AppSpacing.xl),
-                ],
-              ),
-            ),
-          ),
-          if (flowState.phase == MedicalDocumentFlowPhase.uploading ||
-              flowState.phase == MedicalDocumentFlowPhase.analyzing)
-            Positioned.fill(
-              child: ColoredBox(
-                color: AppColors.white.withValues(alpha: 0.72),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const CircularProgressIndicator(
-                        color: AppColors.aiViolet,
-                      ),
-                      const SizedBox(height: AppSpacing.s),
-                      Text(
-                        'La IA está analizando tu archivo\n'
-                        'Por favor, no salgas de la pantalla.',
-                        textAlign: TextAlign.center,
-                        style: AppTypography.body4.copyWith(
-                          color: AppColors.aiViolet,
-                          decoration: TextDecoration.none,
-                        ),
-                      ),
-                    ],
-                  ),
+                    const SizedBox(height: AppSpacing.xl),
+                  ],
                 ),
               ),
             ),
-        ],
+            if (flowState.phase == MedicalDocumentFlowPhase.uploading ||
+                flowState.phase == MedicalDocumentFlowPhase.analyzing)
+              const _AnalysisProgressOverlay(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalysisProgressOverlay extends StatefulWidget {
+  const _AnalysisProgressOverlay();
+
+  @override
+  State<_AnalysisProgressOverlay> createState() =>
+      _AnalysisProgressOverlayState();
+}
+
+class _AnalysisProgressOverlayState extends State<_AnalysisProgressOverlay> {
+  static const _messages = [
+    'Estamos analizando tu archivo…',
+    'Estamos organizando la información encontrada…',
+    'En un momento obtendrás los resultados.',
+    'Estamos preparando la información para ti…',
+  ];
+
+  Timer? _messageTimer;
+  int _messageIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _messageTimer = Timer.periodic(const Duration(seconds: 10), (_) {
+      setState(() {
+        _messageIndex = (_messageIndex + 1) % _messages.length;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _messageTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final messageStyle = AppTypography.body1.copyWith(
+      color: AppColors.white,
+      fontWeight: FontWeight.w600,
+      height: 1.5,
+      decoration: TextDecoration.none,
+    );
+
+    return Positioned.fill(
+      child: ColoredBox(
+        key: const Key('analysis-progress-overlay'),
+        color: Colors.black.withValues(alpha: 0.8),
+        child: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox.square(
+                  key: Key('analysis-progress-indicator'),
+                  dimension: 48,
+                  child: CircularProgressIndicator(
+                    color: AppColors.white,
+                    strokeWidth: 6,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                SizedBox(
+                  width: double.infinity,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    child: Text(
+                      _messages[_messageIndex],
+                      key: ValueKey(_messageIndex),
+                      textAlign: TextAlign.center,
+                      style: messageStyle,
+                    ),
+                  ),
+                ),
+                SizedBox(
+                  width: double.infinity,
+                  child: Text(
+                    'Por favor, no salgas de la pantalla.',
+                    textAlign: TextAlign.center,
+                    style: messageStyle,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

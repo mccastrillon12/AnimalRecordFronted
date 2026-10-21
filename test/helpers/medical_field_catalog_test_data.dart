@@ -3,7 +3,12 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
+import 'package:mocktail/mocktail.dart';
+
+class _MockMedicalDocumentDetailCubit extends Mock
+    implements MedicalDocumentDetailCubit {}
 
 void registerMedicalFieldCatalogTestDependencies() {
   final useCase = _TestMedicalFieldCatalogUseCase();
@@ -13,13 +18,26 @@ void registerMedicalFieldCatalogTestDependencies() {
   if (di.sl.isRegistered<MedicalDocumentAnalysisPresenter>()) {
     di.sl.unregister<MedicalDocumentAnalysisPresenter>();
   }
+  if (di.sl.isRegistered<MedicalDocumentDetailCubit>()) {
+    di.sl.unregister<MedicalDocumentDetailCubit>();
+  }
   di.sl.registerSingleton<GetMedicalFieldCatalogUseCase>(useCase);
   di.sl.registerSingleton<MedicalDocumentAnalysisPresenter>(
     MedicalDocumentAnalysisPresenter(getFieldCatalog: useCase),
   );
+  di.sl.registerFactory<MedicalDocumentDetailCubit>(() {
+    final cubit = _MockMedicalDocumentDetailCubit();
+    when(() => cubit.state).thenReturn(const MedicalDocumentDetailState());
+    when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+    when(() => cubit.close()).thenAnswer((_) async {});
+    return cubit;
+  });
 }
 
 void unregisterMedicalFieldCatalogTestDependencies() {
+  if (di.sl.isRegistered<MedicalDocumentDetailCubit>()) {
+    di.sl.unregister<MedicalDocumentDetailCubit>();
+  }
   if (di.sl.isRegistered<MedicalDocumentAnalysisPresenter>()) {
     di.sl.unregister<MedicalDocumentAnalysisPresenter>();
   }

@@ -74,7 +74,7 @@ class AuthRepositoryImpl implements AuthRepository {
 
       if (userId.isEmpty || userId == 'null') {
         throw Exception(
-          'Error del servidor: No se pudo identificar al usuario',
+          'Error del servidor: No se pudo identificar al usuario.',
         );
       }
 
@@ -159,7 +159,7 @@ class AuthRepositoryImpl implements AuthRepository {
       }
 
       if (accessToken != null) {
-        return Left(ServerFailure('No se pudo obtener el ID del usuario'));
+        return Left(ServerFailure('No se pudo obtener el ID del usuario.'));
       }
 
       return Left(

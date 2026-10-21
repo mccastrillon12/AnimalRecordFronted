@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
+import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
@@ -214,12 +215,15 @@ void main() {
     when(() => sharedFilesCubit.state).thenReturn(SharedFilesInitial());
     when(() => sharedFilesCubit.stream).thenAnswer((_) => const Stream.empty());
     when(() => sharedFilesCubit.pendingFiles).thenReturn(const []);
-    when(() => medicalDocumentFlowCubit.state).thenReturn(
-      const MedicalDocumentFlowState(phase: MedicalDocumentFlowPhase.uploading),
+    var flowState = const MedicalDocumentFlowState(
+      phase: MedicalDocumentFlowPhase.uploading,
     );
+    final flowStates = StreamController<MedicalDocumentFlowState>.broadcast();
+    addTearDown(flowStates.close);
+    when(() => medicalDocumentFlowCubit.state).thenAnswer((_) => flowState);
     when(
       () => medicalDocumentFlowCubit.stream,
-    ).thenAnswer((_) => const Stream.empty());
+    ).thenAnswer((_) => flowStates.stream);
 
     await tester.pumpWidget(
       MultiBlocProvider(
@@ -262,9 +266,34 @@ void main() {
     expect(selector.value, same(_animal));
     expect(selector.enabled, isFalse);
     expect(find.byType(AppMultiSearchDropdown<AnimalEntity>), findsNothing);
-    final analysisLabel = tester.widget<Text>(find.text(_analysisMessage));
-    expect(analysisLabel.style?.color, AppColors.aiViolet);
+    final analysisLabel = tester.widget<Text>(
+      find.text(_progressMessages.first),
+    );
+    final safetyLabel = tester.widget<Text>(find.text(_safetyMessage));
+    final overlay = tester.widget<ColoredBox>(
+      find.byKey(const Key('analysis-progress-overlay')),
+    );
+    final indicator = tester.widget<CircularProgressIndicator>(
+      find.descendant(
+        of: find.byKey(const Key('analysis-progress-indicator')),
+        matching: find.byType(CircularProgressIndicator),
+      ),
+    );
+    expect(overlay.color, Colors.black.withValues(alpha: 0.8));
+    expect(analysisLabel.style?.color, AppColors.white);
+    expect(analysisLabel.style?.fontSize, AppTypography.body1.fontSize);
+    expect(analysisLabel.style?.fontWeight, FontWeight.w600);
+    expect(analysisLabel.style?.height, 1.5);
     expect(analysisLabel.style?.decoration, TextDecoration.none);
+    expect(safetyLabel.style, analysisLabel.style);
+    expect(
+      tester.getTopLeft(find.text(_safetyMessage)).dy,
+      tester.getBottomLeft(find.text(_progressMessages.first)).dy,
+    );
+    expect(indicator.color, AppColors.white);
+    expect(indicator.strokeWidth, 6);
+    expect(find.text(_safetyMessage), findsOneWidget);
+    expect(find.text('La IA está analizando tu archivo'), findsNothing);
     expect(
       tester.widget<CustomButton>(find.byType(CustomButton)).text,
       'Subir archivo',
@@ -273,14 +302,35 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
 
-    expect(find.text(_analysisMessage), findsOneWidget);
+    expect(find.text(_progressMessages.first), findsOneWidget);
+    expect(find.text(_safetyMessage), findsOneWidget);
     verifyNever(() => medicalDocumentFlowCubit.pausePolling());
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     await tester.pump();
 
-    expect(find.text(_analysisMessage), findsOneWidget);
+    expect(find.text(_progressMessages.first), findsOneWidget);
+    expect(find.text(_safetyMessage), findsOneWidget);
     verifyNever(() => medicalDocumentFlowCubit.resumePolling());
+
+    for (var index = 1; index <= _progressMessages.length; index++) {
+      await tester.pump(const Duration(seconds: 10));
+      await tester.pump(const Duration(milliseconds: 250));
+      expect(
+        find.text(_progressMessages[index % _progressMessages.length]),
+        findsOneWidget,
+      );
+      expect(find.text(_safetyMessage), findsOneWidget);
+    }
+
+    flowState = const MedicalDocumentFlowState(
+      phase: MedicalDocumentFlowPhase.completed,
+    );
+    flowStates.add(flowState);
+    await tester.pump();
+    expect(find.text(_progressMessages.first), findsNothing);
+    expect(find.text(_safetyMessage), findsNothing);
+    await tester.pump(const Duration(seconds: 10));
     expect(tester.takeException(), isNull);
   });
 
@@ -424,7 +474,8 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SharedFileUploadScreen), findsOneWidget);
-      expect(find.text(_analysisMessage), findsOneWidget);
+      expect(find.text(_progressMessages.first), findsOneWidget);
+      expect(find.text(_safetyMessage), findsOneWidget);
       verifyNever(() => medicalDocumentFlowCubit.pausePolling());
       verifyNever(() => sharedFilesCubit.clear());
       verifyNever(() => medicalDocumentFlowCubit.discardCurrentFlow());
@@ -433,7 +484,8 @@ void main() {
       await tester.pump();
 
       expect(find.byType(SharedFileUploadScreen), findsOneWidget);
-      expect(find.text(_analysisMessage), findsOneWidget);
+      expect(find.text(_progressMessages.first), findsOneWidget);
+      expect(find.text(_safetyMessage), findsOneWidget);
       verifyNever(() => medicalDocumentFlowCubit.resumePolling());
       expect(tester.takeException(), isNull);
     },
@@ -605,7 +657,8 @@ void main() {
       await tester.tap(find.text('Abrir subida'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 400));
-      expect(find.text(_analysisMessage), findsOneWidget);
+      expect(find.text(_progressMessages.first), findsOneWidget);
+      expect(find.text(_safetyMessage), findsOneWidget);
 
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
       await tester.pump();
@@ -630,9 +683,14 @@ void main() {
   );
 }
 
-const _analysisMessage =
-    'La IA está analizando tu archivo\n'
-    'Por favor, no salgas de la pantalla.';
+const _progressMessages = [
+  'Estamos analizando tu archivo…',
+  'Estamos organizando la información encontrada…',
+  'En un momento obtendrás los resultados.',
+  'Estamos preparando la información para ti…',
+];
+
+const _safetyMessage = 'Por favor, no salgas de la pantalla.';
 
 const _animal = AnimalEntity(
   id: 'animal-1',

@@ -230,7 +230,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                                         'Guarda notas, fotos y comentarios sobre la evolución, salud y momentos importantes de tu animal. ',
                                   ),
                                   TextSpan(
-                                    text: 'Max 15 notas.',
+                                    text: 'Máx. 15 notas.',
                                     style: AppTypography.body5.copyWith(
                                       color: AppColors.greyNegro,
                                     ),
@@ -376,7 +376,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                             'Guarda notas, fotos y comentarios\nsobre la evolución, salud y momentos\nimportantes de tu animal.\n',
                       ),
                       TextSpan(
-                        text: 'Max 15 notas.',
+                        text: 'Máx. 15 notas.',
                         style: AppTypography.body4.copyWith(
                           fontWeight: FontWeight.w700,
                         ),

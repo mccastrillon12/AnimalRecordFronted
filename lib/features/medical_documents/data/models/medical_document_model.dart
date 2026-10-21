@@ -5,6 +5,7 @@ import 'package:animal_record/features/medical_documents/data/models/medical_doc
 class MedicalDocumentModel extends MedicalDocumentEntity {
   const MedicalDocumentModel({
     required super.id,
+    super.documentGroupId,
     super.documentCode,
     super.description,
     required super.animalIds,
@@ -26,6 +27,10 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     super.createdAt,
     super.updatedAt,
     super.reviewedAt,
+    super.acceptedAt,
+    super.replacementDeadline,
+    super.canReplace,
+    super.replacementOfDocumentId,
   });
 
   factory MedicalDocumentModel.fromJson(Map<String, dynamic> json) {
@@ -47,6 +52,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
 
     return MedicalDocumentModel(
       id: json['id']?.toString() ?? '',
+      documentGroupId: _nullableString(json['documentGroupId']),
       documentCode: json['documentCode']?.toString().trim() ?? '',
       description: json['description']?.toString().trim() ?? '',
       animalIds: _strings(json['animalIds']),
@@ -110,6 +116,10 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       createdAt: _date(json['createdAt']),
       updatedAt: _date(json['updatedAt']),
       reviewedAt: _date(json['reviewedAt']),
+      acceptedAt: _date(json['acceptedAt']),
+      replacementDeadline: _date(json['replacementDeadline']),
+      canReplace: json['canReplace'] == true,
+      replacementOfDocumentId: _nullableString(json['replacementOfDocumentId']),
     );
   }
 
@@ -293,6 +303,46 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
             },
           )
           .toList(),
+    };
+  }
+
+  static Map<String, dynamic> replacementReviewRequestToJson(
+    ReviewMedicalDocumentReplacementRequest request,
+  ) {
+    final common = <String, dynamic>{
+      'decision': request.decision == MedicalDocumentReviewDecision.accept
+          ? 'ACCEPT'
+          : 'REJECT',
+      'candidateDocumentId': request.candidateDocumentId,
+      'documentVersion': request.documentVersion,
+      'candidateVersion': request.candidateVersion,
+    };
+    if (request.decision == MedicalDocumentReviewDecision.reject) {
+      return common;
+    }
+    return {
+      ...common,
+      'documentVersions': request.documentVersions
+          .map(
+            (document) => {
+              'documentId': document.documentId,
+              'version': document.version,
+            },
+          )
+          .toList(growable: false),
+      'finalCategory': request.finalCategory!.wireValue,
+      'validatedExtraction': extractionToJson(
+        request.validatedExtraction!,
+        preserveRawExtraction: true,
+      ),
+      'assignments': request.assignments
+          .map(
+            (assignment) => {
+              'animalId': assignment.animalId,
+              'extractedItemIds': assignment.extractedItemIds,
+            },
+          )
+          .toList(growable: false),
     };
   }
 }

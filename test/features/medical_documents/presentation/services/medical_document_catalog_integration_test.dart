@@ -9,6 +9,7 @@ import 'package:animal_record/features/medical_documents/data/services/medical_d
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
@@ -24,6 +25,9 @@ class _MockResponseLogger extends Mock
     implements MedicalDocumentResponseLogger {}
 
 class _MockDocumentsCubit extends Mock implements AnimalMedicalDocumentsCubit {}
+
+class _MockDocumentDetailCubit extends Mock
+    implements MedicalDocumentDetailCubit {}
 
 void main() {
   late _MockApiClient apiClient;
@@ -116,6 +120,16 @@ void main() {
       addTearDown(() => tester.binding.setSurfaceSize(null));
       di.sl.registerSingleton<MedicalDocumentAnalysisPresenter>(presenter);
       addTearDown(() => di.sl.unregister<MedicalDocumentAnalysisPresenter>());
+      di.sl.registerFactory<MedicalDocumentDetailCubit>(() {
+        final detailCubit = _MockDocumentDetailCubit();
+        when(
+          () => detailCubit.state,
+        ).thenReturn(const MedicalDocumentDetailState());
+        when(() => detailCubit.stream).thenAnswer((_) => const Stream.empty());
+        when(() => detailCubit.close()).thenAnswer((_) async {});
+        return detailCubit;
+      });
+      addTearDown(() => di.sl.unregister<MedicalDocumentDetailCubit>());
       final document = _document(narrative);
       final cubit = _MockDocumentsCubit();
       when(() => cubit.state).thenReturn(

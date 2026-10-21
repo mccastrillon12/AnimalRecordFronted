@@ -42,7 +42,7 @@ class CheckMessagesScreen extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.m),
               Text(
-                'Si no encuentras las instrucciones, recuerda revisar la carpeta de correo no deseados. (En caso de correo electrónico) o verifica los mensajes SMS recientes. Si aún tienes inconvenientes intenta:',
+              'Si no encuentras las instrucciones, recuerda revisar la carpeta de correo no deseados. (En caso de correo electrónico) o verifica los mensajes SMS recientes. Si aún tienes inconvenientes, intenta:',
                 textAlign: TextAlign.center,
                 style: AppTypography.body4,
               ),

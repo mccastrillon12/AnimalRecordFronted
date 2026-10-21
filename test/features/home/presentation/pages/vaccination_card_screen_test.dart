@@ -127,10 +127,11 @@ void main() {
     );
     expect(title.style?.fontSize, AppTypography.heading1.fontSize);
     expect(title.style?.fontWeight, AppTypography.heading1.fontWeight);
-    expect(
-      find.byKey(const Key('vaccination-card-background')),
-      findsOneWidget,
+    final cardBackground = find.byKey(
+      const Key('vaccination-card-background'),
     );
+    expect(cardBackground, findsOneWidget);
+    expect(tester.getSize(cardBackground).height, 296);
     final gradientBackground = tester.widget<DecoratedBox>(
       find.byKey(const Key('vaccination-card-gradient-background')),
     );
@@ -173,8 +174,8 @@ void main() {
     expect(find.text('Vacuna'), findsNWidgets(2));
     expect(find.text('Dosis 1'), findsNWidgets(2));
     expect(find.text('Dosis 2'), findsOneWidget);
-    expect(find.text('7/01/25'), findsOneWidget);
-    expect(find.text('7/01/26'), findsOneWidget);
+    expect(find.text('01/07/2025'), findsOneWidget);
+    expect(find.text('01/07/2026'), findsOneWidget);
     final photo = find.byKey(const Key('vaccination-card-animal-photo-card'));
     final profile = find.byKey(const Key('vaccination-card-app-information'));
     final vaccination = find.byKey(const Key('vaccination-type-rabia'));

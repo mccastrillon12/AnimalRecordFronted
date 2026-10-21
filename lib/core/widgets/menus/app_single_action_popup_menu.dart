@@ -1,10 +1,7 @@
 import 'dart:async';
 
-import 'package:animal_record/core/theme/app_colors.dart';
-import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_typography.dart';
+import 'package:animal_record/core/widgets/menus/app_popup_action_menu.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 
 class AppSingleActionPopupMenu extends StatelessWidget {
   final Key? menuKey;
@@ -38,55 +35,23 @@ class AppSingleActionPopupMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        splashColor: Colors.transparent,
-        highlightColor: Colors.transparent,
-      ),
-      child: PopupMenuButton<String>(
-        key: menuKey,
-        padding: EdgeInsets.zero,
-        position: position,
-        offset: offset,
-        menuPadding: menuPadding,
-        shape: const RoundedRectangleBorder(),
-        constraints: BoxConstraints(minWidth: menuWidth, maxWidth: menuWidth),
-        color: AppColors.white,
-        elevation: 4,
-        onSelected: onSelected,
-        itemBuilder: (_) => [
-          PopupMenuItem<String>(
-            key: itemKey,
-            value: value,
-            height: 47,
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-            child: Row(
-              children: [
-                SvgPicture.asset(
-                  iconAsset,
-                  width: AppSpacing.iconSizeSmall,
-                  height: AppSpacing.iconSizeSmall,
-                  colorFilter: iconColor == null
-                      ? null
-                      : ColorFilter.mode(iconColor!, BlendMode.srcIn),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTypography.body4.copyWith(
-                      color: AppColors.greyTextos,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        child: trigger,
-      ),
+    return AppPopupActionMenu<String>(
+      menuKey: menuKey,
+      actions: [
+        AppPopupMenuAction(
+          key: itemKey,
+          value: value,
+          label: label,
+          iconAsset: iconAsset,
+          iconColor: iconColor,
+        ),
+      ],
+      offset: offset,
+      position: position,
+      menuPadding: menuPadding,
+      menuWidth: menuWidth,
+      trigger: trigger,
+      onSelected: onSelected,
     );
   }
 }

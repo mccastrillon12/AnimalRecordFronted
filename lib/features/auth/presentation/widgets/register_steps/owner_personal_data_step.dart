@@ -60,7 +60,7 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                   initialValue: registerState.name.value,
                   onChanged: cubit.nameChanged,
                   textCapitalization: TextCapitalization.words,
-                  errorText: registerState.isNameAttempted && registerState.name.isNotValid ? 'Requerido' : null,
+                  errorText: registerState.isNameAttempted && registerState.name.isNotValid ? 'Requerido.' : null,
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
                       RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ ]'),
@@ -95,10 +95,10 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                 IdSelector(
                   initialValue: registerState.identificationNumber.value,
                   onChanged: cubit.identificationNumberChanged,
-                  errorText: registerState.idError 
-                      ? 'ID ya registrado'
-                      : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid 
-                          ? 'Requerido' 
+                  errorText: registerState.idError
+                      ? 'ID ya registrado.'
+                      : (registerState.isIdAttempted && registerState.identificationNumber.isNotValid
+                          ? 'Requerido.'
                           : null),
                   hideErrorText: registerState.idError,
                   onIdTypeChanged: cubit.identificationTypeChanged,
@@ -116,9 +116,9 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                     keyboardType: TextInputType.emailAddress,
                     maxLength: 50,
                     errorText: registerState.emailError
-                        ? 'Email ya registrado'
-                        : (registerState.isEmailAttempted && registerState.email.isNotValid 
-                            ? 'Introduzca una dirección de correo electrónico válida' 
+                        ? 'Email ya registrado.'
+                        : (registerState.isEmailAttempted && registerState.email.isNotValid
+                            ? 'Introduzca una dirección de correo electrónico válida.'
                             : null),
                     hideErrorText: registerState.emailError,
                   ),
@@ -142,9 +142,9 @@ class _OwnerPersonalDataStepState extends State<OwnerPersonalDataStep> {
                       maxLength: 15,
                       inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                       errorText: registerState.phoneError
-                          ? 'Celular ya registrado'
+                          ? 'Celular ya registrado.'
                           : (registerState.isPhoneAttempted && registerState.phone.isNotValid && registerState.phone.value.isNotEmpty
-                              ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX' 
+                              ? 'Introduzca su número de celular en el formato XXX-XXX-XX-XX.'
                               : null),
                       hideErrorText: registerState.phoneError,
                     ),

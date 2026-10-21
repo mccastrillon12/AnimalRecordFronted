@@ -102,7 +102,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
           debugPrint("📌 Navigating to /home");
 
           if (context.mounted) {
-            ErrorDisplay.showSuccess(context, 'PIN configurado correctamente');
+            ErrorDisplay.showSuccess(context, 'PIN configurado correctamente.');
           }
 
           final isBiometricPending = await sl<TokenStorage>()
@@ -113,7 +113,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             if (context.mounted) {
               ErrorDisplay.showSecondSuccess(
                 context,
-                'Biometría activada exitosamente',
+                'Biometría activada exitosamente.',
               );
             }
             if (context.mounted) {
@@ -186,7 +186,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                     context.read<AuthBloc>().add(LogoutRequested());
                     ErrorDisplay.showError(
                       context,
-                      'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+                      'Ha habido un error y no se ha podido registrar correctamente la Biometría. Intente nuevamente.',
                     );
                     Navigator.pushNamedAndRemoveUntil(
                       context,

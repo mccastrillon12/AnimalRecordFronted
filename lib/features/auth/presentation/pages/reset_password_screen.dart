@@ -77,7 +77,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     setState(() {
       if (_confirmPasswordController.text.isNotEmpty &&
           _passwordController.text != _confirmPasswordController.text) {
-        _confirmPasswordError = 'Las contraseñas no coinciden';
+        _confirmPasswordError = 'Las contraseñas no coinciden.';
       } else {
         _confirmPasswordError = null;
       }
@@ -102,7 +102,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     if (_token == null || _identifier == null) {
       ErrorDisplay.showError(
         context,
-        'Enlace inválido o incompleto. Por favor solicite uno nuevo.',
+        'Enlace inválido o incompleto. Por favor, solicite uno nuevo.',
       );
       return;
     }

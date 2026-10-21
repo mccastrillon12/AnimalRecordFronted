@@ -65,7 +65,7 @@ class UploadDiaryAttachmentUseCase {
         },
       );
     } catch (e) {
-      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+      return Left(ServerFailure('Error inesperado: ${e.toString()}.'));
     }
   }
 
