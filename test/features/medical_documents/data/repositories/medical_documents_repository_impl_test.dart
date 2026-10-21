@@ -61,6 +61,41 @@ void main() {
     ).called(1);
   });
 
+  for (final obsoleteVersion in ['1.0.0', '1.1.0']) {
+    test('does not cache obsolete catalog $obsoleteVersion', () async {
+      final oldCatalog = MedicalFieldCatalogModel(
+        catalogVersion: obsoleteVersion,
+        locale: 'es-CO',
+        category: 'VACCINATION_CARD',
+        categoryLabel: 'Carné de vacunación',
+        sections: [],
+        fields: [],
+        hiddenTechnicalKeys: {},
+      );
+      var calls = 0;
+      when(
+        () => remoteDataSource.getFieldCatalog(
+          category: category,
+          locale: 'es-CO',
+        ),
+      ).thenAnswer((_) async => ++calls == 1 ? oldCatalog : _catalog);
+
+      expect(
+        (await repository.getFieldCatalog(category: category)).catalogVersion,
+        obsoleteVersion,
+      );
+      expect(
+        (await repository.getFieldCatalog(category: category)).catalogVersion,
+        '1.2.0',
+      );
+      expect(
+        (await repository.getFieldCatalog(category: category)).catalogVersion,
+        '1.2.0',
+      );
+      expect(calls, 2);
+    });
+  }
+
   test(
     'coalesces simultaneous loads for the same animal and category',
     () async {
@@ -150,7 +185,7 @@ MedicalDocumentModel _document(String id) {
 }
 
 const _catalog = MedicalFieldCatalogModel(
-  catalogVersion: '1.0.0',
+  catalogVersion: '1.2.0',
   locale: 'es-CO',
   category: 'VACCINATION_CARD',
   categoryLabel: 'Carné de vacunación',

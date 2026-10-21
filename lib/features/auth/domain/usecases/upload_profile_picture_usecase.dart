@@ -27,7 +27,7 @@ class UploadProfilePictureUseCase {
       );
 
       if (compressedBytes == null) {
-        return const Left(ServerFailure('No se pudo comprimir la imagen'));
+        return const Left(ServerFailure('No se pudo comprimir la imagen.'));
       }
 
       final urlResult = await repository.getProfilePictureUploadUrl(
@@ -42,7 +42,7 @@ class UploadProfilePictureUseCase {
           final finalUrl = urlData['finalUrl'] as String?;
 
           if (uploadUrl == null || finalUrl == null) {
-            return const Left(ServerFailure('Respuesta inválida del servidor'));
+            return const Left(ServerFailure('Respuesta inválida del servidor.'));
           }
 
           await fileUploader.upload(
@@ -62,7 +62,7 @@ class UploadProfilePictureUseCase {
         },
       );
     } catch (e) {
-      return Left(ServerFailure('Error inesperado: ${e.toString()}'));
+      return Left(ServerFailure('Error inesperado: ${e.toString()}.'));
     }
   }
 }

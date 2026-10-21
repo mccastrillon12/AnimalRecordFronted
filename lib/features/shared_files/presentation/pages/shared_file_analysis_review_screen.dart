@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_icons.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/theme/app_borders.dart';
@@ -7,9 +9,11 @@ import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/widgets/analysis_ai_notice.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/analysis_detail_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -21,6 +25,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
   final VoidCallback? onSubmit;
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final VoidCallback? onClose;
   final GlobalKey? closeIconKey;
   final String submitLabel;
@@ -32,6 +37,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
     this.onSubmit,
     this.onDoNotUpload,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.onClose,
     this.closeIconKey,
     this.submitLabel = 'Subir archivo',
@@ -46,6 +52,7 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
       onSubmit: onSubmit,
       onDoNotUpload: onDoNotUpload,
       onViewOriginal: onViewOriginal,
+      onViewOriginalText: onViewOriginalText,
       onClose: onClose,
       closeIconKey: closeIconKey,
       submitLabel: submitLabel,
@@ -57,19 +64,33 @@ class SharedFileAnalysisReviewScreen extends StatelessWidget {
 class SharedFileSendScreen extends StatelessWidget {
   final SharedFileAnalysisEntity analysis;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final SharedFileOriginalUriResolver? resolveOriginalUri;
   final String actionLabel;
   final GlobalKey? closeIconKey;
   final GlobalKey? actionIconKey;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final VoidCallback? onContinueEditing;
+  final VoidCallback? onDelete;
+  final bool isActionLoading;
+  final DateTime Function()? now;
 
   const SharedFileSendScreen({
     super.key,
     required this.analysis,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.resolveOriginalUri,
     this.actionLabel = 'Enviar fórmula',
     this.closeIconKey,
     this.actionIconKey,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.onContinueEditing,
+    this.onDelete,
+    this.isActionLoading = false,
+    this.now,
   });
 
   @override
@@ -78,10 +99,17 @@ class SharedFileSendScreen extends StatelessWidget {
       analysis: analysis,
       mode: _SharedFileAnalysisMode.send,
       onViewOriginal: onViewOriginal,
+      onViewOriginalText: onViewOriginalText,
       resolveOriginalUri: resolveOriginalUri,
       actionLabel: actionLabel,
       closeIconKey: closeIconKey,
       actionIconKey: actionIconKey,
+      replacementDeadline: replacementDeadline,
+      canReplace: canReplace,
+      onContinueEditing: onContinueEditing,
+      onDelete: onDelete,
+      isActionLoading: isActionLoading,
+      now: now,
     );
   }
 }
@@ -104,6 +132,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final VoidCallback? onSubmit;
   final VoidCallback? onDoNotUpload;
   final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
   final VoidCallback? onClose;
   final GlobalKey? closeIconKey;
   final GlobalKey? actionIconKey;
@@ -111,6 +140,12 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
   final String actionLabel;
   final String submitLabel;
   final bool isSubmitting;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final VoidCallback? onContinueEditing;
+  final VoidCallback? onDelete;
+  final bool isActionLoading;
+  final DateTime Function()? now;
 
   const _SharedFileAnalysisLayout({
     required this.analysis,
@@ -118,6 +153,7 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.onSubmit,
     this.onDoNotUpload,
     this.onViewOriginal,
+    this.onViewOriginalText,
     this.onClose,
     this.closeIconKey,
     this.actionIconKey,
@@ -125,6 +161,12 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
     this.actionLabel = 'Enviar fórmula',
     this.submitLabel = 'Subir archivo',
     this.isSubmitting = false,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.onContinueEditing,
+    this.onDelete,
+    this.isActionLoading = false,
+    this.now,
   });
 
   @override
@@ -134,11 +176,57 @@ class _SharedFileAnalysisLayout extends StatefulWidget {
 
 class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
   bool _isExporting = false;
+  Timer? _expirationTimer;
+  late DateTime _currentTime;
 
   bool get _isSendMode => widget.mode == _SharedFileAnalysisMode.send;
 
+  bool get _hasActiveReplacementWindow {
+    final deadline = widget.replacementDeadline;
+    return _isSendMode &&
+        widget.canReplace &&
+        deadline != null &&
+        deadline.isAfter(_currentTime);
+  }
+
+  int get _remainingSeconds {
+    final deadline = widget.replacementDeadline;
+    if (deadline == null) return 0;
+    final remainingMilliseconds = deadline
+        .difference(_currentTime)
+        .inMilliseconds;
+    if (remainingMilliseconds <= 0) return 0;
+    return (remainingMilliseconds + 999) ~/ 1000;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = _readCurrentTime();
+    _startExpirationTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant _SharedFileAnalysisLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.replacementDeadline != widget.replacementDeadline ||
+        oldWidget.canReplace != widget.canReplace ||
+        oldWidget.mode != widget.mode ||
+        oldWidget.now != widget.now) {
+      _currentTime = _readCurrentTime();
+      _startExpirationTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _expirationTimer?.cancel();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final hasActiveReplacementWindow = _hasActiveReplacementWindow;
     final noticeHeight = _AnalysisNoticeHeader.containerHeightFor(
       context,
       isSendMode: _isSendMode,
@@ -149,7 +237,10 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       titlePadding: EdgeInsets.zero,
       titleStyle: const TextStyle(fontSize: 0, height: 0),
       fixedTitle: true,
-      fixedHeaderHeight: _AnalysisNoticeHeader.totalHeightFor(noticeHeight),
+      fixedHeaderHeight: _AnalysisNoticeHeader.totalHeightFor(
+        noticeHeight,
+        hasExpiration: hasActiveReplacementWindow,
+      ),
       trailingTop: AppSpacing.l,
       trailingRight: AppSpacing.l,
       trailingIcon: IconButton(
@@ -213,18 +304,19 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
       fixedHeaderChild: _AnalysisNoticeHeader(
         isSendMode: _isSendMode,
         containerHeight: noticeHeight,
+        expirationLabel: hasActiveReplacementWindow
+            ? _expirationLabel(_remainingSeconds)
+            : null,
       ),
       bottomSafeAreaColor: AppColors.white,
-      bottomPadding: _isSendMode
-          ? null
-          : const EdgeInsets.fromLTRB(
-              AppSpacing.l,
-              AppSpacing.l,
-              AppSpacing.l,
-              0,
-            ),
+      bottomPadding: const EdgeInsets.fromLTRB(
+        AppSpacing.l,
+        AppSpacing.l,
+        AppSpacing.l,
+        0,
+      ),
       bottomChild: _isSendMode
-          ? null
+          ? _buildSendActions(hasActiveReplacementWindow)
           : Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -273,9 +365,82 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
         child: _AnalysisDocumentCard(
           analysis: widget.analysis,
           onViewOriginal: widget.onViewOriginal,
+          onViewOriginalText: widget.onViewOriginalText,
         ),
       ),
     );
+  }
+
+  Widget? _buildSendActions(bool hasActiveReplacementWindow) {
+    final showContinueEditing =
+        hasActiveReplacementWindow && widget.onContinueEditing != null;
+    final showDelete = hasActiveReplacementWindow && widget.onDelete != null;
+    if (!showContinueEditing && !showDelete) return null;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showContinueEditing)
+          CustomButton(
+            key: const Key('analysis-continue-editing-button'),
+            text: 'Continuar editando',
+            onPressed: widget.onContinueEditing,
+            isLoading: widget.isActionLoading,
+          ),
+        if (showDelete) ...[
+          if (showContinueEditing) const SizedBox(height: AppSpacing.m),
+          TextButton(
+            key: const Key('analysis-delete-file-button'),
+            onPressed: widget.isActionLoading ? null : widget.onDelete,
+            style: TextButton.styleFrom(
+              foregroundColor: AppColors.primaryFrances,
+              minimumSize: const Size(double.infinity, 36),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
+            ),
+            child: Text(
+              'Eliminar archivo',
+              style: AppTypography.body3.copyWith(
+                color: AppColors.primaryFrances,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  DateTime _readCurrentTime() => widget.now?.call() ?? DateTime.now();
+
+  void _startExpirationTimer() {
+    _expirationTimer?.cancel();
+    if (!_hasActiveReplacementWindow) return;
+    _expirationTimer = Timer.periodic(
+      const Duration(seconds: 1),
+      (_) => _updateExpiration(),
+    );
+  }
+
+  void _updateExpiration() {
+    if (!mounted) return;
+    final currentTime = _readCurrentTime();
+    final deadline = widget.replacementDeadline;
+    setState(() => _currentTime = currentTime);
+    if (deadline == null || !deadline.isAfter(currentTime)) {
+      _expirationTimer?.cancel();
+      _expirationTimer = null;
+    }
+  }
+
+  String _expirationLabel(int totalSeconds) {
+    final hours = totalSeconds ~/ Duration.secondsPerHour;
+    final minutes =
+        (totalSeconds % Duration.secondsPerHour) ~/ Duration.secondsPerMinute;
+    final seconds = totalSeconds % Duration.secondsPerMinute;
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    return 'Modo edición expira en: '
+        '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
   }
 
   void _openSendScreen() {
@@ -295,7 +460,12 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
         exportAnalysis = exportAnalysis.withOriginalUrl(originalUri.toString());
       }
       if (!mounted) return;
-      await context.read<SharedFilesCubit>().exportAnalysisPdf(exportAnalysis);
+      final shared = await context.read<SharedFilesCubit>().exportAnalysisPdf(
+        exportAnalysis,
+      );
+      if (shared && mounted) {
+        ErrorDisplay.showSuccess(context, 'El archivo se compartió con éxito.');
+      }
     } catch (_) {
       if (mounted) {
         ErrorDisplay.showError(
@@ -311,6 +481,8 @@ class _SharedFileAnalysisLayoutState extends State<_SharedFileAnalysisLayout> {
 
 class _AnalysisNoticeHeader extends StatelessWidget {
   static const _reviewMinimumContainerHeight = 84.0;
+  static const _expirationChipHeight = 24.0;
+  static const _expirationNoticeGap = AppSpacing.m;
   static const _reviewMessage =
       'Análisis realizado con IA. Verifica los datos antes de subir el '
       'archivo; una vez enviado, no se admiten cambios ni eliminaciones. Si '
@@ -319,10 +491,12 @@ class _AnalysisNoticeHeader extends StatelessWidget {
 
   final bool isSendMode;
   final double containerHeight;
+  final String? expirationLabel;
 
   const _AnalysisNoticeHeader({
     required this.isSendMode,
     required this.containerHeight,
+    this.expirationLabel,
   });
 
   static double containerHeightFor(
@@ -356,11 +530,54 @@ class _AnalysisNoticeHeader extends StatelessWidget {
         : _reviewMinimumContainerHeight;
   }
 
-  static double totalHeightFor(double containerHeight) =>
-      _analysisNoticeTopPadding + containerHeight + _analysisNoticeGap;
+  static double totalHeightFor(
+    double containerHeight, {
+    bool hasExpiration = false,
+  }) =>
+      _analysisNoticeTopPadding +
+      (hasExpiration ? _expirationChipHeight + _expirationNoticeGap : 0) +
+      containerHeight +
+      _analysisNoticeGap;
 
   @override
   Widget build(BuildContext context) {
+    final notice = isSendMode
+        ? AnalysisAiNotice(
+            key: const Key('analysis-ai-notice'),
+            height: containerHeight,
+          )
+        : Container(
+            key: const Key('analysis-ai-notice'),
+            constraints: BoxConstraints(minHeight: containerHeight),
+            padding: const EdgeInsets.all(AppSpacing.m),
+            decoration: BoxDecoration(
+              gradient: AppColors.aiAnalysisGradient,
+              borderRadius: AppBorders.small(),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 0),
+                  child: SvgPicture.asset(
+                    AppIcons.magicStar,
+                    width: 12,
+                    height: 12,
+                  ),
+                ),
+                const SizedBox(width: AppSpacing.s),
+                Expanded(
+                  child: Text(
+                    _reviewMessage,
+                    style: AppTypography.body6.copyWith(
+                      color: const Color.fromARGB(255, 0, 0, 0),
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppSpacing.l,
@@ -368,56 +585,161 @@ class _AnalysisNoticeHeader extends StatelessWidget {
         AppSpacing.l,
         _analysisNoticeGap,
       ),
-      child: isSendMode
-          ? AnalysisAiNotice(
-              key: const Key('analysis-ai-notice'),
-              height: containerHeight,
-            )
-          : Container(
-              key: const Key('analysis-ai-notice'),
-              height: containerHeight,
-              padding: const EdgeInsets.all(AppSpacing.m),
-              decoration: BoxDecoration(
-                gradient: AppColors.aiAnalysisGradient,
-                borderRadius: AppBorders.small(),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(top: 0),
-                    child: SvgPicture.asset(
-                      AppIcons.magicStar,
-                      width: 12,
-                      height: 12,
-                    ),
-                  ),
-                  const SizedBox(width: AppSpacing.s),
-                  Expanded(
-                    child: Text(
-                      _reviewMessage,
-                      style: AppTypography.body6.copyWith(
-                        color: const Color.fromARGB(255, 0, 0, 0),
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+      child: expirationLabel == null
+          ? notice
+          : Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(child: _AnalysisExpirationChip(label: expirationLabel!)),
+                const SizedBox(height: _expirationNoticeGap),
+                notice,
+              ],
             ),
     );
   }
 }
 
-class _AnalysisDocumentCard extends StatelessWidget {
-  final SharedFileAnalysisEntity analysis;
-  final VoidCallback? onViewOriginal;
+class _AnalysisExpirationChip extends StatelessWidget {
+  static const _tooltipMessage =
+      'Solo podrás editar la información de este documento en el tiempo '
+      'restante, una vez culminado no podrás ni editar ni eliminarlo.';
 
-  const _AnalysisDocumentCard({required this.analysis, this.onViewOriginal});
+  final String label;
+
+  const _AnalysisExpirationChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
-    final viewOriginal = onViewOriginal ?? () => _showOriginalMessage(context);
+    return Tooltip(
+      key: const Key('analysis-edit-expiration-tooltip'),
+      message: _tooltipMessage,
+      triggerMode: TooltipTriggerMode.tap,
+      waitDuration: Duration.zero,
+      showDuration: const Duration(seconds: 8),
+      preferBelow: true,
+      verticalOffset: 14,
+      margin: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+      padding: const EdgeInsets.all(AppSpacing.m),
+      constraints: const BoxConstraints(maxWidth: 332),
+      decoration: ShapeDecoration(
+        color: AppColors.greyNegro,
+        shape: const _TopArrowTooltipBorder(),
+        shadows: const [
+          BoxShadow(
+            color: Color(0x290F1925),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      textStyle: AppTypography.body6.copyWith(
+        color: AppColors.white,
+        height: 1.5,
+      ),
+      child: Container(
+        key: const Key('analysis-edit-expiration-chip'),
+        height: _AnalysisNoticeHeader._expirationChipHeight,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppBorders.xLarge(),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F0F1925),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.settings,
+              size: 12,
+              color: AppColors.primaryFrances,
+            ),
+            const SizedBox(width: AppSpacing.xxs),
+            Text(
+              label,
+              key: const Key('analysis-edit-expiration-text'),
+              style: AppTypography.body5.copyWith(
+                color: AppColors.primaryFrances,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TopArrowTooltipBorder extends ShapeBorder {
+  static const _arrowHeight = 10.0;
+  static const _arrowHalfWidth = 10.0;
+
+  const _TopArrowTooltipBorder();
+
+  @override
+  EdgeInsetsGeometry get dimensions => const EdgeInsets.only(top: _arrowHeight);
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) =>
+      getOuterPath(rect, textDirection: textDirection);
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final bodyRect = Rect.fromLTRB(
+      rect.left,
+      rect.top + _arrowHeight,
+      rect.right,
+      rect.bottom,
+    );
+    final arrowCenter = rect.center.dx;
+    return Path()
+      ..addRRect(
+        RRect.fromRectAndRadius(
+          bodyRect,
+          const Radius.circular(AppBorders.radiusLarge),
+        ),
+      )
+      ..moveTo(arrowCenter - _arrowHalfWidth, bodyRect.top)
+      ..lineTo(arrowCenter, rect.top)
+      ..lineTo(arrowCenter + _arrowHalfWidth, bodyRect.top)
+      ..close();
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
+class _AnalysisDocumentCard extends StatelessWidget {
+  final SharedFileAnalysisEntity analysis;
+  final VoidCallback? onViewOriginal;
+  final ValueChanged<String?>? onViewOriginalText;
+
+  const _AnalysisDocumentCard({
+    required this.analysis,
+    this.onViewOriginal,
+    this.onViewOriginalText,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    void viewOriginal(String? text) {
+      if (onViewOriginalText != null) {
+        onViewOriginalText!(text);
+      } else if (onViewOriginal != null) {
+        onViewOriginal!();
+      } else {
+        _showOriginalMessage(context);
+      }
+    }
+
     final hasDetailedOriginalLinks =
         analysis.medications.isNotEmpty ||
         analysis.sections.isNotEmpty ||
@@ -483,10 +805,11 @@ class _AnalysisDocumentCard extends StatelessWidget {
                   valueColor: AppColors.primaryFrances,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
+                  onTap: () => viewOriginal(null),
                 ),
               if (showStandaloneOriginalLink) ...[
                 const SizedBox(height: AppSpacing.xs),
-                _OriginalLink(onTap: viewOriginal),
+                _OriginalLink(onTap: () => viewOriginal(null)),
               ],
             ],
             if (analysis.patient.hasData) ...[
@@ -531,7 +854,9 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ) ...[
                 _MedicationDetails(
                   medication: analysis.medications[index],
-                  onViewOriginal: viewOriginal,
+                  onViewOriginal: () => viewOriginal(
+                    _medicationSearchText(analysis.medications[index]),
+                  ),
                 ),
                 if (index < analysis.medications.length - 1)
                   const SizedBox(height: AppSpacing.l),
@@ -543,9 +868,21 @@ class _AnalysisDocumentCard extends StatelessWidget {
                     ? AppSpacing.xl
                     : AppSpacing.l,
               ),
-              _AnalysisSectionDetails(section: analysis.sections[index]),
-              const SizedBox(height: AppSpacing.xs),
-              _OriginalLink(onTap: viewOriginal),
+              _AnalysisSectionDetails(
+                section: analysis.sections[index],
+                onViewOriginal: viewOriginal,
+                singleOriginalLink:
+                    (analysis.documentType.toLowerCase().contains('fórmula') &&
+                        _isMedicationSection(analysis.sections[index].title)) ||
+                    (analysis.documentType.toLowerCase().contains(
+                          'vacunación',
+                        ) &&
+                        _isVaccinationSection(
+                          analysis.sections[index].title,
+                        )) ||
+                    _isLaboratoryResultDocument(analysis.documentType) ||
+                    _isMedicalOrderDocument(analysis.documentType),
+              ),
             ],
             if (analysis.observations?.trim().isNotEmpty ?? false) ...[
               const SizedBox(height: AppSpacing.xl),
@@ -557,14 +894,14 @@ class _AnalysisDocumentCard extends StatelessWidget {
               ),
               const SizedBox(height: AppSpacing.m),
               Text(
-                analysis.observations!,
+                medicalDocumentNarrativeDisplayValue(analysis.observations!),
                 style: AppTypography.body4.copyWith(
                   color: AppColors.greyTextos,
                   height: 1.55,
                 ),
               ),
               const SizedBox(height: AppSpacing.xs),
-              _OriginalLink(onTap: viewOriginal),
+              _OriginalLink(onTap: () => viewOriginal(analysis.observations)),
             ],
           ],
         ),
@@ -795,6 +1132,7 @@ class _AnalysisValueRow extends StatelessWidget {
   final Color? valueColor;
   final int? maxLines;
   final TextOverflow? overflow;
+  final VoidCallback? onTap;
 
   const _AnalysisValueRow({
     required this.label,
@@ -802,31 +1140,27 @@ class _AnalysisValueRow extends StatelessWidget {
     this.valueColor,
     this.maxLines,
     this.overflow,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final labelMaxLines = label.trim().contains(RegExp(r'\s')) ? 2 : 1;
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 119,
-          child: Text(
-            label,
-            maxLines: labelMaxLines,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
-          ),
-        ),
+        SizedBox(width: 119, child: AnalysisDetailLabel(label: label)),
         const SizedBox(width: AppSpacing.xs),
         Expanded(
-          child: Text(
-            value,
-            maxLines: maxLines,
-            overflow: overflow,
-            style: AppTypography.body4.copyWith(
-              color: valueColor ?? AppColors.greyTextos,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onTap,
+            child: Text(
+              value,
+              maxLines: maxLines,
+              overflow: overflow,
+              style: AppTypography.body4.copyWith(
+                color: valueColor ?? AppColors.greyTextos,
+              ),
             ),
           ),
         ),
@@ -837,8 +1171,14 @@ class _AnalysisValueRow extends StatelessWidget {
 
 class _AnalysisSectionDetails extends StatelessWidget {
   final SharedFileAnalysisSectionEntity section;
+  final ValueChanged<String?> onViewOriginal;
+  final bool singleOriginalLink;
 
-  const _AnalysisSectionDetails({required this.section});
+  const _AnalysisSectionDetails({
+    required this.section,
+    required this.onViewOriginal,
+    this.singleOriginalLink = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -846,6 +1186,8 @@ class _AnalysisSectionDetails extends StatelessWidget {
         .where((detail) => detail.hasData)
         .toList(growable: false);
     final body = section.body?.trim() ?? '';
+    final isGeneralInformation =
+        section.title.trim().toLowerCase() == 'información general';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -857,14 +1199,19 @@ class _AnalysisSectionDetails extends StatelessWidget {
         ),
         if (body.isNotEmpty || details.isNotEmpty)
           const SizedBox(height: AppSpacing.m),
-        if (body.isNotEmpty)
+        if (body.isNotEmpty) ...[
           Text(
-            body,
+            medicalDocumentNarrativeDisplayValue(body),
             style: AppTypography.body4.copyWith(
               color: AppColors.greyTextos,
               height: 1.55,
             ),
           ),
+          if (!singleOriginalLink) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _OriginalLink(onTap: () => onViewOriginal(body)),
+          ],
+        ],
         if (body.isNotEmpty && details.isNotEmpty)
           const SizedBox(height: AppSpacing.m),
         for (var index = 0; index < details.length; index++) ...[
@@ -873,10 +1220,68 @@ class _AnalysisSectionDetails extends StatelessWidget {
             label: details[index].label,
             value: details[index].value,
           ),
+          if (!singleOriginalLink &&
+              !(isGeneralInformation &&
+                  details[index].label.trim().toLowerCase() ==
+                      'tipo de documento')) ...[
+            const SizedBox(height: AppSpacing.xs),
+            _OriginalLink(onTap: () => onViewOriginal(details[index].value)),
+          ],
+        ],
+        if (singleOriginalLink && (body.isNotEmpty || details.isNotEmpty)) ...[
+          const SizedBox(height: AppSpacing.xs),
+          _OriginalLink(
+            onTap: () =>
+                onViewOriginal(_sectionSearchText(section, details, body)),
+          ),
         ],
       ],
     );
   }
+}
+
+bool _isMedicationSection(String title) =>
+    RegExp(r'^medicamentos?\b', caseSensitive: false).hasMatch(title.trim());
+
+bool _isVaccinationSection(String title) =>
+    RegExp(r'^vacunas?\b', caseSensitive: false).hasMatch(title.trim());
+
+bool _isLaboratoryResultDocument(String documentType) =>
+    documentType.trim().toLowerCase().contains('laboratorio');
+
+bool _isMedicalOrderDocument(String documentType) {
+  final normalized = documentType
+      .trim()
+      .toLowerCase()
+      .replaceAll('ó', 'o')
+      .replaceAll('é', 'e');
+  return RegExp(r'^orden(?:es)?\b').hasMatch(normalized);
+}
+
+String _sectionSearchText(
+  SharedFileAnalysisSectionEntity section,
+  List<SharedFileAnalysisDetailEntity> details,
+  String body,
+) {
+  if (!_isVaccinationSection(section.title)) {
+    return _searchTextFromParts([
+      for (final detail in details) detail.value,
+      body,
+    ]);
+  }
+  final vaccineIndex = details.indexWhere(
+    (detail) => detail.label.trim().toLowerCase() == 'vacuna',
+  );
+  final dateIndex = details.indexWhere(
+    (detail) => detail.label.trim().toLowerCase().startsWith('fecha de apli'),
+  );
+  return _searchTextFromParts([
+    if (vaccineIndex >= 0) details[vaccineIndex].value,
+    if (dateIndex >= 0) details[dateIndex].value,
+    for (var index = 0; index < details.length; index++)
+      if (index != vaccineIndex && index != dateIndex) details[index].value,
+    body,
+  ]);
 }
 
 class _MedicationDetails extends StatelessWidget {
@@ -909,7 +1314,7 @@ class _MedicationDetails extends StatelessWidget {
               if (medication.name.trim().isNotEmpty)
                 Expanded(
                   child: Text(
-                    medication.name,
+                    medicalDocumentNarrativeDisplayValue(medication.name),
                     style: AppTypography.body4.copyWith(
                       color: AppColors.greyTextos,
                       height: 1.5,
@@ -933,7 +1338,7 @@ class _MedicationDetails extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(left: 22, top: AppSpacing.xs),
             child: Text(
-              medication.instructions,
+              medicalDocumentNarrativeDisplayValue(medication.instructions),
               style: AppTypography.body4.copyWith(
                 color: AppColors.greyTextos,
                 height: 1.55,
@@ -987,3 +1392,17 @@ class _OriginalLink extends StatelessWidget {
     );
   }
 }
+
+String _medicationSearchText(SharedFileMedicationAnalysisEntity medication) =>
+    _searchTextFromParts([
+      medication.name,
+      if (medication.quantity != null) medication.quantity.toString(),
+      medication.instructions,
+      for (final detail in medication.details)
+        if (detail.hasData) detail.value,
+    ]);
+
+String _searchTextFromParts(Iterable<String> parts) => parts
+    .map((part) => part.trim())
+    .where((part) => part.isNotEmpty)
+    .join('\n');

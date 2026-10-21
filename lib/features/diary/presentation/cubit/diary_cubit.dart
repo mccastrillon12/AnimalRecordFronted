@@ -91,7 +91,7 @@ class DiaryCubit extends Cubit<DiaryState> {
       if (createError != null || createdEntry == null) {
         emit(
           DiaryError(
-            createError ?? 'Error al crear la nota',
+            createError ?? 'Error al crear la nota.',
             existingEntries: _entries,
           ),
         );
@@ -126,7 +126,7 @@ class DiaryCubit extends Cubit<DiaryState> {
     } catch (e) {
       emit(
         DiaryError(
-          'Error inesperado: ${e.toString()}',
+          'Error inesperado: ${e.toString()}.',
           existingEntries: _entries,
         ),
       );
@@ -164,7 +164,7 @@ class DiaryCubit extends Cubit<DiaryState> {
       if (updateError != null || updatedEntry == null) {
         emit(
           DiaryError(
-            updateError ?? 'Error al actualizar la nota',
+            updateError ?? 'Error al actualizar la nota.',
             existingEntries: _entries,
           ),
         );
@@ -213,7 +213,7 @@ class DiaryCubit extends Cubit<DiaryState> {
     } catch (e) {
       emit(
         DiaryError(
-          'Error inesperado: ${e.toString()}',
+          'Error inesperado: ${e.toString()}.',
           existingEntries: _entries,
         ),
       );

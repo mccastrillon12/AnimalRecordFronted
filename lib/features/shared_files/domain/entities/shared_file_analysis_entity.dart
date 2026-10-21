@@ -7,9 +7,12 @@ class SharedFileAnalysisEntity extends Equatable {
   final String? sourceDateText;
   final String? sourceDateLabel;
   final String originalFileName;
+  final String? originalMimeType;
   final String? originalFileNameLabel;
   final SharedFilePatientAnalysisEntity patient;
   final SharedFileTutorAnalysisEntity tutor;
+  final SharedFilePatientAnalysisEntity? pdfPatient;
+  final SharedFileTutorAnalysisEntity? pdfTutor;
   final SharedFileVeterinarianAnalysisEntity? veterinarian;
   final String? itemsTitle;
   final List<SharedFileMedicationAnalysisEntity> medications;
@@ -24,9 +27,12 @@ class SharedFileAnalysisEntity extends Equatable {
     this.sourceDateText,
     this.sourceDateLabel,
     required this.originalFileName,
+    this.originalMimeType,
     this.originalFileNameLabel,
     required this.patient,
     required this.tutor,
+    this.pdfPatient,
+    this.pdfTutor,
     this.veterinarian,
     this.itemsTitle,
     this.medications = const [],
@@ -45,9 +51,12 @@ class SharedFileAnalysisEntity extends Equatable {
       sourceDateText: sourceDateText,
       sourceDateLabel: sourceDateLabel,
       originalFileName: originalFileName,
+      originalMimeType: originalMimeType,
       originalFileNameLabel: originalFileNameLabel,
       patient: patient,
       tutor: tutor,
+      pdfPatient: pdfPatient,
+      pdfTutor: pdfTutor,
       veterinarian: veterinarian,
       itemsTitle: itemsTitle,
       medications: medications,
@@ -65,9 +74,12 @@ class SharedFileAnalysisEntity extends Equatable {
       sourceDateText: sourceDateText,
       sourceDateLabel: sourceDateLabel,
       originalFileName: originalFileName,
+      originalMimeType: originalMimeType,
       originalFileNameLabel: originalFileNameLabel,
       patient: patient,
       tutor: tutor,
+      pdfPatient: pdfPatient,
+      pdfTutor: pdfTutor,
       veterinarian: veterinarian,
       itemsTitle: itemsTitle,
       medications: medications
@@ -79,6 +91,32 @@ class SharedFileAnalysisEntity extends Equatable {
     );
   }
 
+  SharedFileAnalysisEntity withPdfProfile({
+    SharedFilePatientAnalysisEntity? patient,
+    SharedFileTutorAnalysisEntity? tutor,
+  }) {
+    return SharedFileAnalysisEntity(
+      documentType: documentType,
+      documentNumber: documentNumber,
+      date: date,
+      sourceDateText: sourceDateText,
+      sourceDateLabel: sourceDateLabel,
+      originalFileName: originalFileName,
+      originalMimeType: originalMimeType,
+      originalFileNameLabel: originalFileNameLabel,
+      patient: this.patient,
+      tutor: this.tutor,
+      pdfPatient: patient ?? pdfPatient,
+      pdfTutor: tutor ?? pdfTutor,
+      veterinarian: veterinarian,
+      itemsTitle: itemsTitle,
+      medications: medications,
+      sections: sections,
+      observations: observations,
+      originalUrl: originalUrl,
+    );
+  }
+
   @override
   List<Object?> get props => [
     documentType,
@@ -87,9 +125,12 @@ class SharedFileAnalysisEntity extends Equatable {
     sourceDateText,
     sourceDateLabel,
     originalFileName,
+    originalMimeType,
     originalFileNameLabel,
     patient,
     tutor,
+    pdfPatient,
+    pdfTutor,
     veterinarian,
     itemsTitle,
     medications,
@@ -126,12 +167,14 @@ class SharedFileTutorAnalysisEntity extends Equatable {
   final String name;
   final String identification;
   final String phoneNumber;
+  final String email;
   final List<SharedFileAnalysisDetailEntity> additionalDetails;
 
   const SharedFileTutorAnalysisEntity({
     required this.name,
     required this.identification,
     required this.phoneNumber,
+    this.email = '',
     this.additionalDetails = const [],
   });
 
@@ -139,6 +182,7 @@ class SharedFileTutorAnalysisEntity extends Equatable {
       name.trim().isNotEmpty ||
       identification.trim().isNotEmpty ||
       phoneNumber.trim().isNotEmpty ||
+      email.trim().isNotEmpty ||
       additionalDetails.any((detail) => detail.hasData);
 
   @override
@@ -146,6 +190,7 @@ class SharedFileTutorAnalysisEntity extends Equatable {
     name,
     identification,
     phoneNumber,
+    email,
     additionalDetails,
   ];
 }
@@ -240,6 +285,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
   final String instructions;
   final List<SharedFileAnalysisDetailEntity> details;
   final String? originalUrl;
+  final String? originalMimeType;
 
   const SharedFileMedicationAnalysisEntity({
     required this.name,
@@ -248,6 +294,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
     required this.instructions,
     this.details = const [],
     this.originalUrl,
+    this.originalMimeType,
   });
 
   SharedFileMedicationAnalysisEntity withOriginalUrl(String originalUrl) {
@@ -258,6 +305,7 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
       instructions: instructions,
       details: details,
       originalUrl: originalUrl,
+      originalMimeType: originalMimeType,
     );
   }
 
@@ -269,5 +317,6 @@ class SharedFileMedicationAnalysisEntity extends Equatable {
     instructions,
     details,
     originalUrl,
+    originalMimeType,
   ];
 }

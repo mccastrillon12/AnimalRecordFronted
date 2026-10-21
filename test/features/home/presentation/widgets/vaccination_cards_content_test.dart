@@ -98,7 +98,7 @@ void main() {
     expect(find.text('Brownie'), findsOneWidget);
     expect(find.text('AR-C012'), findsOneWidget);
     expect(find.text('Rabies'), findsOneWidget);
-    expect(find.text('August 12, 2027'), findsOneWidget);
+    expect(find.text('12/08/2027'), findsOneWidget);
     expect(find.text('Lukas'), findsOneWidget);
     expect(find.text('No tiene dosis pendiente'), findsOneWidget);
     final titleRect = tester.getRect(

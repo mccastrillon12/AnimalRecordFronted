@@ -18,6 +18,7 @@ void main() {
     expect(destination.sectionRouteName, AppRoutes.animalDocuments);
     expect(destination.sectionArguments, {
       'animalId': _animal.id,
+      'animal': destination.animal,
       'initialCategory': MedicalDocumentCategory.prescription,
     });
   });

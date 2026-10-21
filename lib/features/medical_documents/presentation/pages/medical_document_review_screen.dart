@@ -7,6 +7,7 @@ import 'package:animal_record/features/medical_documents/domain/usecases/medical
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_flow_state.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_rejection_dialog.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
@@ -61,7 +62,8 @@ class _MedicalDocumentReviewScreenState
           if (state.message?.isNotEmpty ?? false) {
             ErrorDisplay.showError(context, state.message!);
           }
-          if (state.phase == MedicalDocumentFlowPhase.rejected) {
+          if (state.phase == MedicalDocumentFlowPhase.rejected &&
+              !_isDiscarding) {
             _popWithResult(MedicalDocumentReviewOutcome.rejected);
           }
           if (state.phase == MedicalDocumentFlowPhase.completed) {
@@ -105,7 +107,8 @@ class _MedicalDocumentReviewScreenState
                       onSubmit: () =>
                           context.read<MedicalDocumentFlowCubit>().accept(),
                       onDoNotUpload: _showRejectionDialog,
-                      onViewOriginal: () => _showOriginal(_reviewCloseIconKey),
+                      onViewOriginalText: (text) =>
+                          _showOriginal(_reviewCloseIconKey, searchText: text),
                       onClose: _discardAndClose,
                       closeIconKey: _reviewCloseIconKey,
                     ),
@@ -141,10 +144,22 @@ class _MedicalDocumentReviewScreenState
         _analysisFuture == null) {
       _analysisExtraction = extraction;
       _analysisFinalCategory = finalCategory;
+      final flowAnimalIds = context
+          .read<MedicalDocumentFlowCubit>()
+          .state
+          .animalIds;
+      final animalId = document.animalIds.isNotEmpty
+          ? document.animalIds.first
+          : (flowAnimalIds.isEmpty ? null : flowAnimalIds.first);
+      final appProfile = animalId == null
+          ? null
+          : sharedFileAppProfileByAnimalId(context, animalId);
       _analysisFuture = di.sl<MedicalDocumentAnalysisPresenter>().forReview(
         document: document,
         extraction: extraction,
         finalCategory: finalCategory,
+        appPatient: appProfile?.patient,
+        appTutor: appProfile?.tutor,
       );
     }
     return _analysisFuture!;
@@ -160,28 +175,50 @@ class _MedicalDocumentReviewScreenState
     final confirmed = await showProcessCancellationDialog(context);
     if (!mounted) return;
     if (confirmed) {
-      _popWithResult(MedicalDocumentReviewOutcome.cancelled);
+      await _discardFlowAndClose();
     } else {
       _isDiscarding = false;
     }
   }
 
+  Future<void> _discardFlowAndClose() async {
+    _isDiscarding = true;
+    final flow = context.read<MedicalDocumentFlowCubit>();
+    final discarded = await flow.discardCurrentFlow();
+    if (!mounted) return;
+    if (!discarded) {
+      _isDiscarding = false;
+      ErrorDisplay.showError(
+        context,
+        flow.state.message ??
+            'No fue posible cancelar el análisis. Inténtalo nuevamente.',
+      );
+      return;
+    }
+    _removeWithResult(MedicalDocumentReviewOutcome.cancelled);
+  }
+
   Future<void> _showRejectionDialog() async {
+    final flow = context.read<MedicalDocumentFlowCubit>();
     final reason = await showMedicalDocumentRejectionDialog(
       context: context,
       loadReasons: di.sl<GetMedicalDocumentRejectionReasonsUseCase>(),
       onCancel: () async {
-        if (mounted) {
-          _popWithResult(MedicalDocumentReviewOutcome.cancelled);
-        }
+        if (mounted) await _discardFlowAndClose();
       },
     );
     if (!mounted) return;
     if (reason == null) return;
-    await context.read<MedicalDocumentFlowCubit>().reject(
-      reasonCode: reason.reason.code,
-      comment: reason.comment,
-    );
+    if (flow.state.isReplacement) {
+      // Replacement rejection has no reason fields in the backend contract.
+      // The shared dialog is still used to preserve the same retry UX.
+      await flow.reject();
+    } else {
+      await flow.reject(
+        reasonCode: reason.reason.code,
+        comment: reason.comment,
+      );
+    }
   }
 
   void _popWithResult(MedicalDocumentReviewOutcome result) {
@@ -192,15 +229,35 @@ class _MedicalDocumentReviewScreenState
     });
   }
 
+  void _removeWithResult(MedicalDocumentReviewOutcome result) {
+    if (!mounted) return;
+    final route = ModalRoute.of(context);
+    if (route == null) {
+      _popWithResult(result);
+      return;
+    }
+    Navigator.of(context).removeRoute(route, result);
+  }
+
   void _finishAcceptedDocument() {
     if (_completionHandled) return;
     _completionHandled = true;
-    if (mounted) _popWithResult(MedicalDocumentReviewOutcome.accepted);
+    if (!mounted) return;
+    final isReplacement = context
+        .read<MedicalDocumentFlowCubit>()
+        .state
+        .isReplacement;
+    if (isReplacement) {
+      _removeWithResult(MedicalDocumentReviewOutcome.accepted);
+      return;
+    }
+    _popWithResult(MedicalDocumentReviewOutcome.accepted);
   }
 
   Future<void> _showOriginal(
     GlobalKey closeIconKey, {
     GlobalKey? downloadIconKey,
+    String? searchText,
   }) async {
     final state = context.read<MedicalDocumentFlowCubit>().state;
     final document = state.remoteDocument!;
@@ -215,6 +272,7 @@ class _MedicalDocumentReviewScreenState
         mimeType: document.mimeType,
         closeIconKey: closeIconKey,
         downloadIconKey: downloadIconKey,
+        searchText: searchText,
       );
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());

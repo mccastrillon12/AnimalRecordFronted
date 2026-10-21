@@ -8,6 +8,7 @@ import 'package:animal_record/features/medical_documents/domain/repositories/med
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   static const _fieldCatalogTtl = Duration(hours: 1);
+  static const _fieldCatalogVersion = '1.2.0';
 
   final MedicalDocumentsRemoteDataSource remoteDataSource;
 
@@ -30,7 +31,11 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     String locale = 'es-CO',
   }) {
     final normalizedLocale = locale.trim().isEmpty ? 'es-CO' : locale.trim();
-    final key = _MedicalFieldCatalogCacheKey(category, normalizedLocale);
+    final key = _MedicalFieldCatalogCacheKey(
+      category,
+      normalizedLocale,
+      _fieldCatalogVersion,
+    );
     final cached = _fieldCatalogCache[key];
     if (cached != null && !cached.isExpired(_fieldCatalogTtl)) {
       return Future.value(cached.catalog);
@@ -42,10 +47,12 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     request = remoteDataSource
         .getFieldCatalog(category: category, locale: normalizedLocale)
         .then((catalog) {
-          _fieldCatalogCache[key] = _CachedMedicalFieldCatalog(
-            catalog: catalog,
-            cachedAt: DateTime.now(),
-          );
+          if (catalog.catalogVersion == _fieldCatalogVersion) {
+            _fieldCatalogCache[key] = _CachedMedicalFieldCatalog(
+              catalog: catalog,
+              cachedAt: DateTime.now(),
+            );
+          }
           return catalog;
         })
         .whenComplete(() {
@@ -63,8 +70,18 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   ) => remoteDataSource.analyze(request);
 
   @override
+  Future<MedicalDocumentEntity> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) => remoteDataSource.analyzeReplacement(documentId, request);
+
+  @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
       remoteDataSource.getById(documentId);
+
+  @override
+  Future<List<MedicalDocumentEntity>> getRelatedDocuments(String documentId) =>
+      remoteDataSource.getRelatedDocuments(documentId);
 
   @override
   Future<List<MedicalDocumentRejectionReasonEntity>> getRejectionReasons() {
@@ -102,11 +119,36 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   ) async {
     final document = await remoteDataSource.review(documentId, request);
     if (document.status == MedicalDocumentStatus.accepted) {
-      for (final animalId in document.animalIds) {
+      final affectedAnimalIds = {
+        ...document.animalIds,
+        ...request.assignments.map((assignment) => assignment.animalId),
+      };
+      for (final animalId in affectedAnimalIds) {
         _invalidateAnimal(animalId);
       }
     }
     return document;
+  }
+
+  @override
+  Future<List<MedicalDocumentEntity>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  ) async {
+    final documents = await remoteDataSource.reviewReplacement(
+      documentId,
+      request,
+    );
+    if (request.decision == MedicalDocumentReviewDecision.accept) {
+      final affectedAnimalIds = {
+        ...documents.expand((document) => document.animalIds),
+        ...request.assignments.map((assignment) => assignment.animalId),
+      };
+      for (final animalId in affectedAnimalIds) {
+        _invalidateAnimal(animalId);
+      }
+    }
+    return List<MedicalDocumentEntity>.unmodifiable(documents);
   }
 
   @override
@@ -168,6 +210,20 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   Future<Uri> getDownloadUri(String documentId) =>
       remoteDataSource.getDownloadUri(documentId);
 
+  @override
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  ) async {
+    await remoteDataSource.deleteDocument(
+      animalId,
+      documentId,
+      documentVersion,
+    );
+    _invalidateAnimal(animalId);
+  }
+
   void _invalidateAnimal(String animalId) {
     final keys = {
       ..._cache.keys.where((key) => key.animalId == animalId),
@@ -184,17 +240,19 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
 class _MedicalFieldCatalogCacheKey {
   final MedicalDocumentCategory category;
   final String locale;
+  final String version;
 
-  const _MedicalFieldCatalogCacheKey(this.category, this.locale);
+  const _MedicalFieldCatalogCacheKey(this.category, this.locale, this.version);
 
   @override
   bool operator ==(Object other) =>
       other is _MedicalFieldCatalogCacheKey &&
       category == other.category &&
-      locale == other.locale;
+      locale == other.locale &&
+      version == other.version;
 
   @override
-  int get hashCode => Object.hash(category, locale);
+  int get hashCode => Object.hash(category, locale, version);
 }
 
 class _CachedMedicalFieldCatalog {

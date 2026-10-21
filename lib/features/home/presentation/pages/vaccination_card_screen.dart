@@ -17,8 +17,8 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/vaccination_group_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
-import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
@@ -85,15 +85,25 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
       backgroundColor: AppColors.bgOxford,
       body: Stack(
         children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              key: Key('vaccination-card-gradient-background'),
+              decoration: BoxDecoration(gradient: AppColors.backgroundDegrade),
+            ),
+          ),
           Positioned(
             top: 0,
             left: 0,
             right: 0,
             child: SvgPicture.asset(
-              AppIcons.vaccinationCardBackground,
-              key: const Key('vaccination-card-background'),
+              AppIcons.vaccinationCertificateBackground,
+              key: Key(
+                _isCertificate
+                    ? 'vaccination-certificate-background'
+                    : 'vaccination-card-background',
+              ),
               width: double.infinity,
-              height: 562,
+              height: 296,
               fit: BoxFit.fill,
             ),
           ),
@@ -206,14 +216,32 @@ class _VaccinationCardScreenState extends State<VaccinationCardScreen> {
     if (groups.isEmpty || _exporting) return;
     setState(() => _exporting = true);
     try {
+      final documents = <String, MedicalDocumentEntity>{
+        for (final group in groups)
+          for (final application in group.applications)
+            application.document.id: application.document,
+      };
+      final downloadUri = di.sl<GetMedicalDocumentDownloadUriUseCase>();
+      final originalEntries = await Future.wait(
+        documents.values.map((document) async {
+          final uri = await downloadUri(document.id);
+          return MapEntry(document.id, uri.toString());
+        }),
+      );
       final analysis = vaccinationGroupsToPdfAnalysis(
         groups,
         catalog: _catalog!,
         documentType: _title,
-        patient: _patient(widget.animal),
-        tutor: _tutor(user, widget.animal),
+        patient: sharedFilePatientFromAnimal(widget.animal),
+        tutor: sharedFileTutorFromApp(user, widget.animal),
+        originalUrls: Map.fromEntries(originalEntries),
       );
-      await di.sl<ExportSharedFileAnalysisPdfUseCase>()(analysis);
+      final shared = await di.sl<ExportSharedFileAnalysisPdfUseCase>()(
+        analysis,
+      );
+      if (shared && mounted) {
+        ErrorDisplay.showSuccess(context, 'El archivo se compartió con éxito.');
+      }
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
     } finally {
@@ -490,6 +518,8 @@ class _VaccinationCardDocuments extends StatelessWidget {
               VaccinationRecordList(
                 detail: vaccinationDetailViewData(groups[index], catalog),
                 onViewOriginal: (document) => _showOriginal(context, document),
+                onViewOriginalWithText: (document, searchText) =>
+                    _showOriginal(context, document, searchText: searchText),
                 recordSpacing: 20,
                 groupDoses: true,
               ),
@@ -503,8 +533,9 @@ class _VaccinationCardDocuments extends StatelessWidget {
 
   Future<void> _showOriginal(
     BuildContext context,
-    MedicalDocumentEntity document,
-  ) async {
+    MedicalDocumentEntity document, {
+    String? searchText,
+  }) async {
     final preview = MedicalDocumentOriginalPreview(
       getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
       saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
@@ -515,6 +546,7 @@ class _VaccinationCardDocuments extends StatelessWidget {
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,
+        searchText: searchText,
       );
     } catch (error) {
       if (context.mounted) ErrorDisplay.showError(context, error.toString());
@@ -549,36 +581,6 @@ class _VaccinationCardFooter extends StatelessWidget {
       ],
     );
   }
-}
-
-SharedFilePatientAnalysisEntity _patient(AnimalModel animal) {
-  return SharedFilePatientAnalysisEntity(
-    name: animal.name,
-    recordId: animal.code,
-    species: animal.family,
-    breed: animal.breed?.trim() ?? '',
-    sex: animal.sexDisplay,
-    age: animal.ageDisplay,
-    weight: _weight(animal.weight),
-  );
-}
-
-SharedFileTutorAnalysisEntity _tutor(UserEntity? user, AnimalModel animal) {
-  return SharedFileTutorAnalysisEntity(
-    name: _firstNotEmpty([user?.name, animal.ownerName]),
-    identification: _maskedIdentification(
-      user?.identificationType,
-      user?.identificationNumber,
-    ),
-    phoneNumber: _colombianPhone(user?.cellPhone),
-    additionalDetails: [
-      if (user?.email.trim().isNotEmpty ?? false)
-        SharedFileAnalysisDetailEntity(
-          label: 'Correo electrónico',
-          value: user!.email.trim(),
-        ),
-    ],
-  );
 }
 
 String _familyIcon(String family) {

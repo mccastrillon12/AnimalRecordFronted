@@ -14,15 +14,18 @@ import 'package:animal_record/features/medical_documents/data/datasources/medica
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AnimalDocumentsScreen extends StatefulWidget {
   final String animalId;
+  final AnimalModel? animal;
   final MedicalDocumentCategory initialCategory;
 
   const AnimalDocumentsScreen({
     super.key,
     required this.animalId,
+    this.animal,
     this.initialCategory = MedicalDocumentCategory.prescription,
   });
 
@@ -123,6 +126,12 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   }
 
   Future<void> _markAiFeedbackAnswered(MedicalDocumentCategory category) async {
+    await _clearStoredAiFeedback(category);
+    if (!mounted) return;
+    setState(() => _answeredAiFeedbackCategories.add(category));
+  }
+
+  Future<void> _clearStoredAiFeedback(MedicalDocumentCategory category) async {
     try {
       await _pendingFeedbackWrites.remove(category);
     } catch (_) {
@@ -132,14 +141,17 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
     try {
       await _aiFeedbackStore.clearPending(widget.animalId, category);
     } catch (_) {
-      // The backend already accepted the anonymous vote. Keep the UI answered.
+      // A local cleanup failure must not affect navigation or a submitted vote.
     }
-    if (!mounted) return;
-    setState(() => _answeredAiFeedbackCategories.add(category));
   }
 
   @override
   void dispose() {
+    for (final category in _pendingAiFeedbackCategories) {
+      if (!_answeredAiFeedbackCategories.contains(category)) {
+        unawaited(_clearStoredAiFeedback(category));
+      }
+    }
     _tabController.dispose();
     _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
@@ -398,6 +410,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                               children: [
                                 AnimalMedicalDocumentsView(
                                   animalId: widget.animalId,
+                                  animal: widget.animal,
                                   category:
                                       MedicalDocumentCategory.prescription,
                                   showAiFeedback: _pendingAiFeedbackCategories
@@ -425,6 +438,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                                 ),
                                 AnimalMedicalDocumentsView(
                                   animalId: widget.animalId,
+                                  animal: widget.animal,
                                   category:
                                       MedicalDocumentCategory.medicalOrder,
                                   showAiFeedback: _pendingAiFeedbackCategories
@@ -452,6 +466,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                                 ),
                                 AnimalMedicalDocumentsView(
                                   animalId: widget.animalId,
+                                  animal: widget.animal,
                                   category: MedicalDocumentCategory.referral,
                                   showAiFeedback: _pendingAiFeedbackCategories
                                       .contains(

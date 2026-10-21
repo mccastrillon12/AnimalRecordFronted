@@ -12,12 +12,12 @@ void main() {
           category.wireValue: category.label,
       },
       {
-        'PRESCRIPTION': 'Formula',
-        'MEDICAL_ORDER': 'Orden medica',
+        'PRESCRIPTION': 'Fórmula',
+        'MEDICAL_ORDER': 'Orden médica',
         'REFERRAL': 'Remisión',
         'VACCINATION_CARD': 'Carnet de vacunación',
-        'CLINICAL_HISTORY': 'Historia clinica',
-        'DIAGNOSTIC_IMAGE': 'Imagen Diagnostica',
+        'CLINICAL_HISTORY': 'Historia clínica',
+        'DIAGNOSTIC_IMAGE': 'Imagen diagnóstica',
         'LABORATORY_RESULT': 'Resultados de laboratorio',
         'OTHER': 'Archivo no identificado',
       },
@@ -28,10 +28,94 @@ void main() {
     expect(medicalDocumentDisplayValue('NEEDS_REVIEW'), 'NEEDS_REVIEW');
   });
 
+  test('breaks narrative lines after periods without splitting decimals', () {
+    expect(
+      medicalDocumentNarrativeDisplayValue(
+        'Hallazgo uno. Hallazgo dos (3.58 X 2.00 cm). Conclusión.\nNota final.',
+      ),
+      'Hallazgo uno.\nHallazgo dos (3.58 X 2.00 cm).\nConclusión.\nNota final.',
+    );
+  });
+
   test('always hides warnings as technical metadata', () {
     for (final key in ['warning', 'warnings', 'advertencia', 'advertencias']) {
       expect(isMedicalDocumentTechnicalKey(key, const {}), isTrue);
     }
+  });
+
+  test('always hides summaries and identifier fragments', () {
+    for (final key in [
+      'summary',
+      'Resumen',
+      'patientHints',
+      'identifierFragments',
+      'Fragmentos identificadores',
+    ]) {
+      expect(isMedicalDocumentTechnicalKey(key, const {}), isTrue);
+    }
+
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.clinicalHistory,
+      summary: 'Resumen que no debe mostrarse',
+      patientHints: ['Fragmento que no debe mostrarse'],
+      rawExtraction: {
+        'summary': 'Resumen crudo que no debe mostrarse',
+        'patientHints': ['Fragmento crudo que no debe mostrarse'],
+      },
+    );
+    const catalog = MedicalFieldCatalog(
+      catalogVersion: '1.0.0',
+      locale: 'es-CO',
+      category: 'CLINICAL_HISTORY',
+      categoryLabel: 'Historia clínica',
+      sections: [
+        MedicalFieldSection(
+          key: 'general',
+          label: 'Información general',
+          order: 10,
+        ),
+      ],
+      fields: [
+        MedicalFieldDefinition(
+          path: 'summary',
+          label: 'Resumen',
+          sectionKey: 'general',
+          order: 10,
+          kind: MedicalFieldKind.longText,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'patientHints',
+          label: 'Fragmentos identificadores',
+          sectionKey: 'general',
+          order: 20,
+          kind: MedicalFieldKind.list,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+      ],
+      hiddenTechnicalKeys: {},
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: catalog,
+      displayCategory: MedicalDocumentCategory.prescription,
+      includeUncataloguedFields: true,
+    );
+    final details = analysis.sections.expand((section) => section.details);
+
+    expect(details.map((detail) => detail.label), isNot(contains('Resumen')));
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Fragmentos identificadores')),
+    );
+    expect(
+      details.map((detail) => detail.value).join(' '),
+      isNot(contains('no debe mostrarse')),
+    );
   });
 
   test('uses catalog labels for every canonical path and table column', () {
@@ -70,7 +154,7 @@ void main() {
       catalog: _catalog,
     );
 
-    expect(analysis.documentType, 'Historia clinica');
+    expect(analysis.documentType, 'Historia clínica');
     expect(analysis.sourceDateLabel, 'Fecha del documento');
     expect(analysis.originalFileNameLabel, 'Archivo original');
     expect(analysis.patient.name, 'Chuleta');
@@ -93,7 +177,7 @@ void main() {
         'Resultado reportado',
       ]),
     );
-    expect(details.map((detail) => detail.value), contains('Historia clinica'));
+    expect(details.map((detail) => detail.value), contains('Historia clínica'));
     expect(
       details.map((detail) => detail.label.toLowerCase()),
       isNot(contains(contains('confianza'))),
@@ -200,6 +284,30 @@ void main() {
     expect(overridden.documentType, MedicalDocumentCategory.prescription.label);
   });
 
+  test('uses the saved category when the document type is unidentified', () {
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.other,
+      rawExtraction: {'documentType': 'OTHER'},
+    );
+
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: _catalog,
+      displayCategory: MedicalDocumentCategory.diagnosticImage,
+      includeUncataloguedFields: true,
+    );
+    final documentType = analysis.sections
+        .expand((section) => section.details)
+        .singleWhere((detail) => detail.label == 'Tipo de documento');
+
+    expect(
+      analysis.documentType,
+      MedicalDocumentCategory.diagnosticImage.label,
+    );
+    expect(documentType.value, MedicalDocumentCategory.other.label);
+  });
+
   test('keeps extracted values unchanged', () {
     const extraction = MedicalDocumentExtractionEntity(
       documentType: MedicalDocumentCategory.clinicalHistory,
@@ -219,6 +327,147 @@ void main() {
     );
 
     expect(values, containsAll(['Canine', 'Neutered']));
+  });
+
+  test('shows reported narrative in full and hides legacy summary', () {
+    const narrative = 'Hallazgo del hígado. Hallazgo del bazo';
+    const extraction = MedicalDocumentExtractionEntity(
+      documentType: MedicalDocumentCategory.diagnosticImage,
+      summary: 'Resumen generado',
+      reportedSummary: 'Resumen escrito',
+      reportedRecommendations: 'Control en siete días',
+      reportedObservations: '',
+      diagnosticImages: [
+        MedicalDocumentItemEntity(
+          id: 'image-1',
+          fields: {
+            'name': 'Ecografía',
+            'reportedTechnique': 'Sonda 9 MHz',
+            'reportedFindings': narrative,
+            'reportedConclusion': 'Conclusión escrita',
+            'reportedDiagnosis': 'Diagnóstico escrito',
+          },
+        ),
+      ],
+    );
+    const catalog = MedicalFieldCatalog(
+      catalogVersion: '1.2.0',
+      locale: 'es-CO',
+      category: 'DIAGNOSTIC_IMAGE',
+      categoryLabel: 'Imagen diagnóstica',
+      sections: [
+        MedicalFieldSection(key: 'report', label: 'Informe', order: 1),
+      ],
+      fields: [
+        MedicalFieldDefinition(
+          path: 'summary',
+          label: 'Resumen anterior',
+          sectionKey: 'report',
+          order: 0,
+          kind: MedicalFieldKind.longText,
+          editable: false,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedSummary',
+          label: 'Resumen',
+          sectionKey: 'report',
+          order: 1,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedRecommendations',
+          label: 'Recomendaciones',
+          sectionKey: 'report',
+          order: 2,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: true,
+        ),
+        MedicalFieldDefinition(
+          path: 'reportedObservations',
+          label: 'Observaciones',
+          sectionKey: 'report',
+          order: 3,
+          kind: MedicalFieldKind.longText,
+          editable: true,
+          hideWhenEmpty: false,
+        ),
+        MedicalFieldDefinition(
+          path: 'diagnosticImages',
+          label: 'Imágenes diagnósticas',
+          sectionKey: 'report',
+          order: 4,
+          kind: MedicalFieldKind.table,
+          editable: true,
+          hideWhenEmpty: true,
+          columns: [
+            MedicalTableColumn(
+              key: 'reportedTechnique',
+              label: 'Técnica',
+              order: 1,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedFindings',
+              label: 'Hallazgos',
+              order: 2,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedConclusion',
+              label: 'Conclusión',
+              order: 3,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+            MedicalTableColumn(
+              key: 'reportedDiagnosis',
+              label: 'Diagnóstico',
+              order: 4,
+              kind: MedicalFieldKind.longText,
+              editable: true,
+              hideWhenEmpty: true,
+            ),
+          ],
+        ),
+      ],
+      hiddenTechnicalKeys: {},
+    );
+    final analysis = medicalDocumentToAnalysis(
+      document: _document,
+      extraction: extraction,
+      catalog: catalog,
+      displayCategory: MedicalDocumentCategory.laboratoryResult,
+    );
+    final details = analysis.sections
+        .expand((section) => section.details)
+        .toList();
+    expect(
+      details.map((detail) => detail.value),
+      contains('Hallazgo del hígado.\nHallazgo del bazo'),
+    );
+    expect(extraction.diagnosticImages.single.reportedFindings, narrative);
+    expect(details.map((detail) => detail.value), contains('Resumen escrito'));
+    expect(
+      details.map((detail) => detail.value),
+      contains('Control en siete días'),
+    );
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Resumen anterior')),
+    );
+    expect(
+      details.map((detail) => detail.label),
+      isNot(contains('Observaciones')),
+    );
   });
 }
 

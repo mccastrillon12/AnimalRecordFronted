@@ -3,12 +3,12 @@ import 'package:equatable/equatable.dart';
 const _unchangedMedicalField = Object();
 
 enum MedicalDocumentCategory {
-  prescription('PRESCRIPTION', 'Formula'),
-  medicalOrder('MEDICAL_ORDER', 'Orden medica'),
+  prescription('PRESCRIPTION', 'Fórmula'),
+  medicalOrder('MEDICAL_ORDER', 'Orden médica'),
   referral('REFERRAL', 'Remisión'),
   vaccinationCard('VACCINATION_CARD', 'Carnet de vacunación'),
-  clinicalHistory('CLINICAL_HISTORY', 'Historia clinica'),
-  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imagen Diagnostica'),
+  clinicalHistory('CLINICAL_HISTORY', 'Historia clínica'),
+  diagnosticImage('DIAGNOSTIC_IMAGE', 'Imagen diagnóstica'),
   laboratoryResult('LABORATORY_RESULT', 'Resultados de laboratorio'),
   other('OTHER', 'Archivo no identificado');
 
@@ -120,6 +120,11 @@ class MedicalDocumentItemEntity extends Equatable {
   });
 
   String get name => fields['name']?.toString() ?? '';
+
+  String? get reportedTechnique => fields['reportedTechnique'] as String?;
+  String? get reportedFindings => fields['reportedFindings'] as String?;
+  String? get reportedConclusion => fields['reportedConclusion'] as String?;
+  String? get reportedDiagnosis => fields['reportedDiagnosis'] as String?;
 
   MedicalDocumentItemEntity copyWith({Map<String, dynamic>? fields}) {
     return MedicalDocumentItemEntity(
@@ -306,6 +311,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
   final MedicalDocumentCategory documentType;
   final double? documentTypeConfidence;
   final String? summary;
+  final String? reportedSummary;
+  final String? reportedRecommendations;
+  final String? reportedObservations;
   final String? documentDate;
   final Map<String, dynamic>? issuer;
   final MedicalDocumentPatientEntity? patient;
@@ -337,6 +345,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
     required this.documentType,
     this.documentTypeConfidence,
     this.summary,
+    this.reportedSummary,
+    this.reportedRecommendations,
+    this.reportedObservations,
     this.documentDate,
     this.issuer,
     this.patient,
@@ -375,7 +386,10 @@ class MedicalDocumentExtractionEntity extends Equatable {
   MedicalDocumentExtractionEntity copyWith({
     MedicalDocumentCategory? documentType,
     double? documentTypeConfidence,
-    String? summary,
+    Object? summary = _unchangedMedicalField,
+    Object? reportedSummary = _unchangedMedicalField,
+    Object? reportedRecommendations = _unchangedMedicalField,
+    Object? reportedObservations = _unchangedMedicalField,
     String? documentDate,
     Map<String, dynamic>? issuer,
     MedicalDocumentPatientEntity? patient,
@@ -400,7 +414,20 @@ class MedicalDocumentExtractionEntity extends Equatable {
       documentType: documentType ?? this.documentType,
       documentTypeConfidence:
           documentTypeConfidence ?? this.documentTypeConfidence,
-      summary: summary ?? this.summary,
+      summary: identical(summary, _unchangedMedicalField)
+          ? this.summary
+          : summary as String?,
+      reportedSummary: identical(reportedSummary, _unchangedMedicalField)
+          ? this.reportedSummary
+          : reportedSummary as String?,
+      reportedRecommendations:
+          identical(reportedRecommendations, _unchangedMedicalField)
+          ? this.reportedRecommendations
+          : reportedRecommendations as String?,
+      reportedObservations:
+          identical(reportedObservations, _unchangedMedicalField)
+          ? this.reportedObservations
+          : reportedObservations as String?,
       documentDate: documentDate ?? this.documentDate,
       issuer: issuer ?? this.issuer,
       patient: patient ?? this.patient,
@@ -431,6 +458,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
       documentType: category,
       documentTypeConfidence: documentTypeConfidence,
       summary: summary,
+      reportedSummary: reportedSummary,
+      reportedRecommendations: reportedRecommendations,
+      reportedObservations: reportedObservations,
       documentDate: documentDate,
       issuer: issuer == null ? null : _deepCopyMap(issuer!),
       patient: patient,
@@ -490,6 +520,9 @@ class MedicalDocumentExtractionEntity extends Equatable {
     documentType,
     documentTypeConfidence,
     summary,
+    reportedSummary,
+    reportedRecommendations,
+    reportedObservations,
     documentDate,
     issuer,
     patient,
@@ -628,6 +661,7 @@ class MedicalDocumentTutorEntity extends Equatable {
 
 class MedicalDocumentEntity extends Equatable {
   final String id;
+  final String? documentGroupId;
   final String documentCode;
   final String description;
   final List<String> animalIds;
@@ -650,9 +684,14 @@ class MedicalDocumentEntity extends Equatable {
   final DateTime? createdAt;
   final DateTime? updatedAt;
   final DateTime? reviewedAt;
+  final DateTime? acceptedAt;
+  final DateTime? replacementDeadline;
+  final bool canReplace;
+  final String? replacementOfDocumentId;
 
   const MedicalDocumentEntity({
     required this.id,
+    this.documentGroupId,
     this.documentCode = '',
     this.description = '',
     required this.animalIds,
@@ -674,11 +713,16 @@ class MedicalDocumentEntity extends Equatable {
     this.createdAt,
     this.updatedAt,
     this.reviewedAt,
+    this.acceptedAt,
+    this.replacementDeadline,
+    this.canReplace = false,
+    this.replacementOfDocumentId,
   });
 
   @override
   List<Object?> get props => [
     id,
+    documentGroupId,
     documentCode,
     description,
     animalIds,
@@ -700,5 +744,9 @@ class MedicalDocumentEntity extends Equatable {
     createdAt,
     updatedAt,
     reviewedAt,
+    acceptedAt,
+    replacementDeadline,
+    canReplace,
+    replacementOfDocumentId,
   ];
 }

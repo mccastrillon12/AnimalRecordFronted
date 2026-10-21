@@ -118,9 +118,11 @@ void main() {
         phoneNumber: '(+57) 312 456 78 90',
       ),
     );
-    when(() => repository.exportAnalysisPdf(analysis)).thenAnswer((_) async {});
+    when(
+      () => repository.exportAnalysisPdf(analysis),
+    ).thenAnswer((_) async => true);
 
-    await cubit.exportAnalysisPdf(analysis);
+    expect(await cubit.exportAnalysisPdf(analysis), isTrue);
 
     verify(() => repository.exportAnalysisPdf(analysis)).called(1);
   });

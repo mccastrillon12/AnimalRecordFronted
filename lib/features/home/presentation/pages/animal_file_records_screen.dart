@@ -23,13 +23,11 @@ enum AnimalFileRecordSection { diagnosticImages, laboratoryResults }
 class AnimalFileRecordsScreen extends StatefulWidget {
   final AnimalModel animal;
   final AnimalFileRecordSection section;
-  final MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader;
 
   const AnimalFileRecordsScreen({
     super.key,
     required this.animal,
     required this.section,
-    this.diagnosticThumbnailUriLoader,
   });
 
   @override
@@ -45,6 +43,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
   bool _showAiFeedback = false;
   bool _hasAnsweredAiFeedback = false;
   int _aiFeedbackRequestId = 0;
+  Future<void>? _pendingFeedbackWrite;
 
   @override
   void initState() {
@@ -69,7 +68,11 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
       _aiFeedbackRequestId++;
     });
     final store = _aiFeedbackStore;
-    if (store != null) unawaited(store.markPending(widget.animal.id, category));
+    if (store != null) {
+      final write = store.markPending(widget.animal.id, category);
+      _pendingFeedbackWrite = write;
+      unawaited(write.catchError((_) {}));
+    }
     context.read<AnimalMedicalDocumentsCubit>().refreshAfterUpload(
       widget.animal.id,
       category: category,
@@ -77,15 +80,28 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
   }
 
   Future<void> _markAiFeedbackAnswered() async {
+    await _clearStoredAiFeedback();
+    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
+  }
+
+  Future<void> _clearStoredAiFeedback() async {
+    try {
+      await _pendingFeedbackWrite;
+    } catch (_) {
+      // Continue cleanup even if persisting the pending prompt failed.
+    }
+    _pendingFeedbackWrite = null;
     await _aiFeedbackStore?.clearPending(
       widget.animal.id,
       widget.section.category,
     );
-    if (mounted) setState(() => _hasAnsweredAiFeedback = true);
   }
 
   @override
   void dispose() {
+    if (_showAiFeedback && !_hasAnsweredAiFeedback) {
+      unawaited(_clearStoredAiFeedback().catchError((_) {}));
+    }
     _searchController.removeListener(_refreshSearch);
     _searchController.dispose();
     super.dispose();
@@ -180,6 +196,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                           Expanded(
                             child: AnimalMedicalDocumentsView(
                               animalId: widget.animal.id,
+                              animal: widget.animal,
                               category: widget.section.category,
                               searchQuery: _searchController.text,
                               documentFilter: (document) =>
@@ -190,14 +207,11 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                               emptyDescription: widget.section.emptyDescription,
                               showAiFeedback: _showAiFeedback,
                               aiFeedbackRequestId: _aiFeedbackRequestId,
-                              initialAiFeedbackResponded: _hasAnsweredAiFeedback,
+                              initialAiFeedbackResponded:
+                                  _hasAnsweredAiFeedback,
                               onAiFeedbackSubmitted: _markAiFeedbackAnswered,
-                              onAiFeedbackDismissed: () => setState(
-                                () => _showAiFeedback = false,
-                              ),
-                              diagnosticThumbnailUriLoader:
-                                  widget.diagnosticThumbnailUriLoader,
-                              diagnosticPreviewCloseIconKey: _closeIconKey,
+                              onAiFeedbackDismissed: () =>
+                                  setState(() => _showAiFeedback = false),
                             ),
                           ),
                         ],

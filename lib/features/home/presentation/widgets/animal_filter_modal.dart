@@ -3,18 +3,26 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
-import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/widgets/buttons/custom_radio_button.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 
-void showAnimalFilterModal(BuildContext context) {
-  showModalBottomSheet(
+Future<Map<String, dynamic>?> showAnimalFilterModal(
+  BuildContext context, {
+  String initialSex = 'Ambos',
+  List<String> initialFamilies = const [],
+  List<String> initialAges = const [],
+}) {
+  return showModalBottomSheet<Map<String, dynamic>>(
     context: context,
     isScrollControlled: true,
     backgroundColor: Colors.transparent,
     barrierColor: AppColors.overlayBlack,
     constraints: const BoxConstraints(maxHeight: 621),
-    builder: (context) => const AnimalFilterModal(),
+    builder: (context) => AnimalFilterModal(
+      initialSex: initialSex,
+      initialFamilies: initialFamilies,
+      initialAges: initialAges,
+    ),
   );
 }
 
@@ -230,6 +238,7 @@ class _AnimalFilterModalState extends State<AnimalFilterModal> {
                           itemAsString: (item) => item,
                           isInline: true,
                           searchable: false,
+                          closeOnSelection: true,
                           onChanged: (v) => setState(() => _selectedAges = v),
                         ),
                         const SizedBox(height: 24),

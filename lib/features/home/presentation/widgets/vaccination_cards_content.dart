@@ -7,6 +7,7 @@ import 'package:animal_record/features/home/presentation/cubit/animal_state.dart
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_filter_matcher.dart';
 import 'package:animal_record/features/home/presentation/utils/animal_family_label.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_filter_modal.dart';
@@ -190,16 +191,11 @@ class _VaccinationCardsContentState extends State<VaccinationCardsContent> {
   }
 
   Future<void> _openFilters() async {
-    final result = await showModalBottomSheet<Map<String, dynamic>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: AppColors.overlayBlack,
-      builder: (_) => AnimalFilterModal(
-        initialSex: _filterSex,
-        initialFamilies: _filterFamilies,
-        initialAges: _filterAges,
-      ),
+    final result = await showAnimalFilterModal(
+      context,
+      initialSex: _filterSex,
+      initialFamilies: _filterFamilies,
+      initialAges: _filterAges,
     );
     if (!mounted || result == null) return;
     setState(() {
@@ -218,43 +214,13 @@ class _VaccinationCardsContentState extends State<VaccinationCardsContent> {
   }
 
   bool _matchesFilters(AnimalModel animal) {
-    if (_filterSex != 'Ambos' && animal.sexDisplay != _filterSex) return false;
-    if (_filterFamilies.isNotEmpty &&
-        !_filterFamilies.contains(animalFamilyLabel(animal.family))) {
-      return false;
-    }
-    if (_filterAges.isEmpty) return true;
-    final ageMonths = _ageInMonths(animal);
-    return ageMonths != null &&
-        _filterAges.any((range) => _ageRange(range).contains(ageMonths));
+    return matchesAnimalFilters(
+      animal,
+      sex: _filterSex,
+      families: _filterFamilies,
+      ages: _filterAges,
+    );
   }
-
-  int? _ageInMonths(AnimalModel animal) {
-    if (animal.approximateAgeMinMonths != null &&
-        animal.approximateAgeMaxMonths != null) {
-      return ((animal.approximateAgeMinMonths! +
-                  animal.approximateAgeMaxMonths!) /
-              2)
-          .round();
-    }
-    final birthdate = DateTime.tryParse(animal.birthdate ?? '');
-    if (birthdate == null) return null;
-    final now = DateTime.now();
-    return (now.year - birthdate.year) * 12 + now.month - birthdate.month;
-  }
-
-  ({int min, int max}) _ageRange(String label) => switch (label) {
-    '0-6 meses' => (min: 0, max: 6),
-    '7-11 meses' => (min: 7, max: 11),
-    '1-3 años' => (min: 12, max: 36),
-    '4-6 años' => (min: 48, max: 72),
-    '7-10 años' => (min: 84, max: 120),
-    '11-15 años' => (min: 132, max: 180),
-    '16-20 años' => (min: 192, max: 240),
-    '21-25 años' => (min: 252, max: 300),
-    '+25 años' => (min: 301, max: 1200),
-    _ => (min: 0, max: 1200),
-  };
 
   Map<String, List<AnimalModel>> _groupAnimals(List<AnimalModel> animals) {
     final grouped = <String, List<AnimalModel>>{};
@@ -293,10 +259,6 @@ class _VaccinationCardsContentState extends State<VaccinationCardsContent> {
       if (mounted) setState(() => _searchQuery = _searchController.text);
     });
   }
-}
-
-extension on ({int min, int max}) {
-  bool contains(int value) => value >= min && value <= max;
 }
 
 class _AnimalVaccinationSummary extends StatelessWidget {

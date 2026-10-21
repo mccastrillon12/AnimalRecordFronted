@@ -161,7 +161,7 @@ void main() {
     expect(listGap.height, 24);
   });
 
-  testWidgets('shows diagnostic images as 140 by 100 thumbnails', (
+  testWidgets('shows diagnostic images with backend data as document cards', (
     tester,
   ) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
@@ -192,31 +192,22 @@ void main() {
       tester,
       section: AnimalFileRecordSection.diagnosticImages,
       documents: const [document],
-      diagnosticThumbnailUriLoader: (_) async =>
-          Uri.parse('https://example.test/radiografia-lateral.png'),
     );
 
-    final thumbnail = tester.widget<Container>(
-      find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
-    );
-    expect(thumbnail.constraints?.maxWidth, 140);
-    expect(thumbnail.constraints?.maxHeight, 100);
-    expect(find.text('radiografia-lateral.png'), findsOneWidget);
-    expect(find.textContaining('Adjunto:'), findsNothing);
+    expect(find.byType(MedicalDocumentSummaryCard), findsOneWidget);
     expect(
-      find.descendant(
-        of: find.byKey(
-          const Key('diagnostic-image-thumbnail-diagnostic-image-1'),
-        ),
-        matching: find.byType(Image),
-      ),
+      find.byKey(const Key('medical-document-card-diagnostic-image-1')),
       findsOneWidget,
     );
+    expect(find.text('radiografia-lateral.png'), findsOneWidget);
+    expect(
+      find.byKey(const Key('diagnostic-image-thumbnail-diagnostic-image-1')),
+      findsNothing,
+    );
+    expect(find.text('Ver detalle'), findsOneWidget);
   });
 
-  testWidgets('keeps diagnostic thumbnails when sorting and reopening', (
-    tester,
-  ) async {
+  testWidgets('sorts diagnostic document cards alphabetically', (tester) async {
     await tester.binding.setSurfaceSize(const Size(390, 844));
     addTearDown(() => tester.binding.setSurfaceSize(null));
 
@@ -248,36 +239,24 @@ void main() {
         version: 1,
       ),
     ];
-    final loads = <String, int>{};
-    Future<Uri> loadThumbnail(String documentId) async {
-      loads.update(documentId, (count) => count + 1, ifAbsent: () => 1);
-      return Uri.parse('https://example.test/$documentId.png');
-    }
-
     await _pumpRecordsScreen(
       tester,
       section: AnimalFileRecordSection.diagnosticImages,
       documents: documents,
-      diagnosticThumbnailUriLoader: loadThumbnail,
     );
-    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
+    expect(find.byType(MedicalDocumentSummaryCard), findsNWidgets(2));
+    expect(
+      tester.getTopLeft(find.text('alfa.png')).dy,
+      lessThan(tester.getTopLeft(find.text('zeta.png')).dy),
+    );
 
     await tester.tap(find.byKey(const Key('animal-file-records-sort-button')));
     await tester.pump();
 
-    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
-    expect(find.byType(CircularProgressIndicator), findsNothing);
-
-    await _pumpRecordsScreen(
-      tester,
-      section: AnimalFileRecordSection.diagnosticImages,
-      documents: documents,
-      diagnosticThumbnailUriLoader: loadThumbnail,
-      settle: false,
+    expect(
+      tester.getTopLeft(find.text('zeta.png')).dy,
+      lessThan(tester.getTopLeft(find.text('alfa.png')).dy),
     );
-
-    expect(loads, {'diagnostic-cache-a': 1, 'diagnostic-cache-b': 1});
-    expect(find.byType(CircularProgressIndicator), findsNothing);
   });
 
   testWidgets('reuses the existing animal document upload flow', (
@@ -350,7 +329,6 @@ Future<void> _pumpRecordsScreen(
   WidgetTester tester, {
   required AnimalFileRecordSection section,
   List<MedicalDocumentEntity> documents = const [],
-  MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader,
   bool settle = true,
 }) async {
   final documentsCubit = _MockAnimalMedicalDocumentsCubit();
@@ -369,11 +347,7 @@ Future<void> _pumpRecordsScreen(
     BlocProvider<AnimalMedicalDocumentsCubit>.value(
       value: documentsCubit,
       child: MaterialApp(
-        home: AnimalFileRecordsScreen(
-          animal: _animal,
-          section: section,
-          diagnosticThumbnailUriLoader: diagnosticThumbnailUriLoader,
-        ),
+        home: AnimalFileRecordsScreen(animal: _animal, section: section),
       ),
     ),
   );

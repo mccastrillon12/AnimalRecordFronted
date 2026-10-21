@@ -61,7 +61,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
       _passwordsMatch = match;
 
       if (confirmPass.isNotEmpty && newPass != confirmPass) {
-        _confirmPasswordError = 'Las contraseñas no coinciden';
+        _confirmPasswordError = 'Las contraseñas no coinciden.';
       } else {
         _confirmPasswordError = null;
       }
@@ -83,12 +83,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         } else if (state is AuthError) {
           ErrorDisplay.showError(
             context,
-            'Error: ${state.message}. Por favor valide las contraseñas.',
+            'Error: ${state.message}. Por favor, valide las contraseñas.',
           );
         } else if (state is AuthSuccess && state.updateError != null) {
           ErrorDisplay.showError(
             context,
-            'Error: ${state.updateError}. Por favor valide las contraseñas.',
+            'Error: ${state.updateError}. Por favor, valide las contraseñas.',
           );
         }
       },

@@ -9,7 +9,7 @@ Future<bool> showProcessCancellationDialog(BuildContext context) async {
     builder: (_) => ConfirmDialog(
       title: '¿Desea cancelar el proceso?',
       description: 'Perderá los datos diligenciados al momento.',
-      confirmLabel: 'Si',
+      confirmLabel: 'Sí',
       cancelLabel: 'No',
       width: 325,
       confirmColor: const Color(0xFFFA2844),

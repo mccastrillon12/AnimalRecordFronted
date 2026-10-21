@@ -66,7 +66,7 @@ class RoleSelectionScreen extends StatelessWidget {
   void _showComingSoon(BuildContext context, String role) {
     ErrorDisplay.showSuccess(
       context,
-      'El registro para $role estará disponible próximamente',
+      'El registro para $role estará disponible próximamente.',
       duration: const Duration(seconds: 2),
     );
   }

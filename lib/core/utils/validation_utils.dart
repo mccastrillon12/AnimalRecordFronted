@@ -12,7 +12,7 @@ class ValidationUtils {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
     if (!isValidEmail(text)) {
-      return 'Introduzca una dirección de correo electrónico válida';
+      return 'Introduzca una dirección de correo electrónico válida.';
     }
     return null;
   }
@@ -21,7 +21,7 @@ class ValidationUtils {
     final text = value?.trim() ?? '';
     if (text.isEmpty) return null;
     if (!isValidPhone(text)) {
-      return 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+      return 'Introduzca su número de celular en el formato XXX-XXX-XX-XX.';
     }
     return null;
   }
@@ -33,11 +33,11 @@ class ValidationUtils {
     final firstChar = text[0];
     if (RegExp(r'[0-9]').hasMatch(firstChar)) {
       if (!isValidPhone(text)) {
-        return 'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+        return 'Introduzca su número de celular en el formato XXX-XXX-XX-XX.';
       }
     } else if (RegExp(r'[a-zA-Z]').hasMatch(firstChar)) {
       if (!isValidEmail(text)) {
-        return 'Introduzca una dirección de correo electrónico válida';
+        return 'Introduzca una dirección de correo electrónico válida.';
       }
     }
     return null;

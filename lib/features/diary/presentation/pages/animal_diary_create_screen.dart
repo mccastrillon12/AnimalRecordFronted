@@ -599,7 +599,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const Key('diary-title-field'),
               controller: _titleController,
+              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               maxLength: 50,
               maxLengthEnforcement: MaxLengthEnforcement.none,
               buildCounter:
@@ -679,7 +681,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
             // ── Content field ───────────────────────────────────
             TextField(
+              key: const Key('diary-content-field'),
               controller: _contentController,
+              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               maxLines: 8,
               maxLength: 500,
               maxLengthEnforcement: MaxLengthEnforcement.none,

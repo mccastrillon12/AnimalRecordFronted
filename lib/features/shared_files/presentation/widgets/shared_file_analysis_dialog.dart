@@ -51,7 +51,7 @@ Future<SharedFileContentType?> showSharedFileAnalysisDialog({
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Si no es correcto por favor cambie el tipo de contenido para '
+              'Si no es correcto, por favor, cambie el tipo de contenido para '
               'continuar con la carga del archivo.',
               style: AppTypography.body6.copyWith(
                 color: AppColors.greyTextos,

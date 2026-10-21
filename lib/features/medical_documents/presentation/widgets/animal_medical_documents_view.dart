@@ -1,39 +1,42 @@
+import 'dart:async';
+
 import 'package:animal_record/core/constants/app_icons.dart';
+import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/theme/app_borders.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/utils/error_display.dart';
+import 'package:animal_record/core/widgets/buttons/custom_button.dart';
+import 'package:animal_record/core/widgets/feedback/app_loading_overlay.dart';
+import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
+import 'package:animal_record/core/widgets/menus/app_popup_action_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_display_formatter.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/presentation/navigation/shared_file_upload_arguments.dart';
+import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 
-typedef MedicalDocumentThumbnailUriLoader =
-    Future<Uri> Function(String documentId);
-typedef MedicalDocumentPreviewHandler =
-    Future<void> Function(BuildContext context, MedicalDocumentEntity document);
-
-const _diagnosticThumbnailCacheLifetime = Duration(minutes: 5);
-final _diagnosticThumbnailUriCache = _DiagnosticThumbnailUriCache();
-
-Future<Uri> _loadMedicalDocumentThumbnailUri(String documentId) =>
-    di.sl<GetMedicalDocumentDownloadUriUseCase>()(documentId);
-
 class AnimalMedicalDocumentsView extends StatelessWidget {
   final String animalId;
+  final AnimalModel? animal;
   final MedicalDocumentCategory category;
   final String emptyTitle;
   final String emptyDescription;
@@ -47,13 +50,11 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
   final Future<void> Function(MedicalDocumentAiFeedback feedback)? onAiFeedback;
   final bool initialAiFeedbackResponded;
   final Future<void> Function()? onAiFeedbackSubmitted;
-  final MedicalDocumentThumbnailUriLoader? diagnosticThumbnailUriLoader;
-  final MedicalDocumentPreviewHandler? diagnosticDocumentPreviewHandler;
-  final GlobalKey? diagnosticPreviewCloseIconKey;
 
   const AnimalMedicalDocumentsView({
     super.key,
     required this.animalId,
+    this.animal,
     required this.category,
     required this.emptyTitle,
     required this.emptyDescription,
@@ -67,9 +68,6 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
     this.onAiFeedback,
     this.initialAiFeedbackResponded = false,
     this.onAiFeedbackSubmitted,
-    this.diagnosticThumbnailUriLoader,
-    this.diagnosticDocumentPreviewHandler,
-    this.diagnosticPreviewCloseIconKey,
   });
 
   @override
@@ -131,6 +129,9 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
           });
         }
         final shouldShowAiFeedback = showAiFeedback && documents.isNotEmpty;
+        final appProfile = animal == null
+            ? sharedFileAppProfileByAnimalId(context, animalId)
+            : sharedFileAppProfile(context, animal!);
         final aiFeedbackBanner = shouldShowAiFeedback
             ? MedicalDocumentAiFeedbackBanner(
                 key: ValueKey(aiFeedbackRequestId),
@@ -147,35 +148,40 @@ class AnimalMedicalDocumentsView extends StatelessWidget {
             bottomOffset: emptyBottomOffset,
           );
         }
-        if (category == MedicalDocumentCategory.diagnosticImage) {
-          return _DiagnosticImagesGrid(
-            documents: documents,
-            loadThumbnailUri:
-                diagnosticThumbnailUriLoader ??
-                _loadMedicalDocumentThumbnailUri,
-            onDocumentTap:
-                diagnosticDocumentPreviewHandler ??
-                (context, document) => _showDiagnosticDocumentOriginal(
-                  context,
-                  document,
-                  closeIconKey: diagnosticPreviewCloseIconKey,
-                ),
-            header: aiFeedbackBanner,
-          );
-        }
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
           itemCount: documents.length + (shouldShowAiFeedback ? 1 : 0),
           separatorBuilder: (_, _) => const SizedBox(height: AppSpacing.m),
-          itemBuilder: (context, index) => shouldShowAiFeedback && index == 0
-              ? aiFeedbackBanner!
-              : MedicalDocumentSummaryCard(
-                  document: documents[index - (shouldShowAiFeedback ? 1 : 0)],
-                  category:
-                      documents[index - (shouldShowAiFeedback ? 1 : 0)]
-                          .finalCategory ??
-                      category,
+          itemBuilder: (context, index) {
+            if (shouldShowAiFeedback && index == 0) return aiFeedbackBanner!;
+
+            final document = documents[index - (shouldShowAiFeedback ? 1 : 0)];
+            final documentCategory = document.finalCategory ?? category;
+            return MedicalDocumentSummaryCard(
+              key: ValueKey('medical-document-summary-${document.id}'),
+              document: document,
+              category: documentCategory,
+              trailing: Transform.translate(
+                offset: const Offset(AppSpacing.xs, 0),
+                child: MedicalDocumentActionsMenu(
+                  key: ValueKey('medical-document-actions-${document.id}'),
+                  animalId: animalId,
+                  document: document,
+                  category: documentCategory,
                 ),
+              ),
+              trailingSpacing: 0,
+              onDetail: document.validatedExtraction == null
+                  ? null
+                  : () => showMedicalDocumentDetail(
+                      context,
+                      animalId: animalId,
+                      document: document,
+                      category: documentCategory,
+                      appProfile: appProfile,
+                    ),
+            );
+          },
         );
       },
     );
@@ -251,6 +257,7 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
   final String? titleText;
   final int? titleMaxLines;
   final Widget? trailing;
+  final double trailingSpacing;
   final List<MedicalDocumentSummaryValue>? values;
   final VoidCallback? onTap;
   final VoidCallback? onDetail;
@@ -265,6 +272,7 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
     this.titleText,
     this.titleMaxLines,
     this.trailing,
+    this.trailingSpacing = AppSpacing.s,
     this.values,
     this.onTap,
     this.onDetail,
@@ -275,7 +283,7 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final extraction = document.validatedExtraction;
-    final date = displayMedicalDocumentDate(extraction?.documentDate);
+    final date = displayMedicalDocumentShortDate(extraction?.documentDate);
     final description = showDescription ? document.description.trim() : '';
     final number = _documentNumber(document);
     final defaultTitle = [
@@ -302,14 +310,14 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
         onDetail ??
         (extraction == null
             ? null
-            : () => _showMedicalDocumentDetail(
+            : () => showMedicalDocumentDetail(
                 context,
                 document: document,
                 category: category,
               ));
     return MedicalDocumentCard(
       key: cardKey ?? Key('medical-document-card-${document.id}'),
-      onTap: onTap,
+      onTap: onTap ?? detailAction,
       leading: SvgPicture.asset(
         AppIcons.documentUpload,
         key: Key('medical-document-card-icon-${document.id}'),
@@ -328,6 +336,8 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
         style: AppTypography.body3.copyWith(color: AppColors.greyTextos),
       ),
       trailing: trailing,
+      trailingSpacing: trailingSpacing,
+      headerCrossAxisAlignment: CrossAxisAlignment.center,
       body: summaryValues.isNotEmpty
           ? Padding(
               padding: const EdgeInsets.only(
@@ -377,303 +387,871 @@ class MedicalDocumentSummaryCard extends StatelessWidget {
   }
 }
 
-class _DiagnosticImagesGrid extends StatelessWidget {
-  final List<MedicalDocumentEntity> documents;
-  final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
-  final MedicalDocumentPreviewHandler onDocumentTap;
-  final Widget? header;
+const _medicalDocumentEditingWindow = Duration(hours: 48);
+const _medicalDocumentUploadFailureMessage =
+    'No fue posible subir el documento. Inténtalo nuevamente.';
+const _medicalDocumentEditingExpiredMessage =
+    'El tiempo disponible para editar este archivo ya finalizó.';
+const _medicalDocumentDeletedMessage = 'Archivo eliminado exitosamente';
 
-  const _DiagnosticImagesGrid({
-    required this.documents,
-    required this.loadThumbnailUri,
-    required this.onDocumentTap,
-    this.header,
-  });
+DateTime? _medicalDocumentEditingDeadline(MedicalDocumentEntity document) {
+  final updatedAt = document.updatedAt;
+  if (updatedAt != null) return updatedAt.add(_medicalDocumentEditingWindow);
+  return document.replacementDeadline;
+}
 
-  @override
-  Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.l, 0, AppSpacing.l, 88),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          if (header != null) ...[
-            header!,
-            const SizedBox(height: AppSpacing.m),
-          ],
-          Align(
-            alignment: Alignment.topLeft,
-            child: Wrap(
-              spacing: AppSpacing.l,
-              runSpacing: AppSpacing.l,
-              children: [
-                for (final document in documents)
-                  _DiagnosticImageTile(
-                    key: ValueKey(document.id),
-                    document: document,
-                    loadThumbnailUri: loadThumbnailUri,
-                    onDocumentTap: onDocumentTap,
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+bool _hasActiveMedicalDocumentEditingWindow(
+  MedicalDocumentEntity document, {
+  DateTime? now,
+}) {
+  final deadline = _medicalDocumentEditingDeadline(document);
+  return document.canReplace &&
+      deadline != null &&
+      deadline.isAfter(now ?? DateTime.now());
+}
+
+Future<Object?> _startMedicalDocumentReplacement(
+  BuildContext context, {
+  required MedicalDocumentDetailCubit cubit,
+  required MedicalDocumentEntity document,
+  String? replacementAnimalId,
+  VoidCallback? onReadyToNavigate,
+}) async {
+  final related = await cubit.loadRelatedDocuments(document.id);
+  if (!context.mounted || related == null) return null;
+
+  var anchor = document;
+  for (final relatedDocument in related) {
+    if (relatedDocument.id == document.id) {
+      anchor = relatedDocument;
+      break;
+    }
   }
+  if (!_hasActiveMedicalDocumentEditingWindow(anchor)) {
+    ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
+    return null;
+  }
+
+  final originalFile = await cubit.loadOriginalFile(anchor);
+  if (!context.mounted || originalFile == null) return null;
+
+  onReadyToNavigate?.call();
+  return Navigator.pushNamed<Object?>(
+    context,
+    AppRoutes.sharedFileUpload,
+    arguments: {
+      'manualUpload': true,
+      medicalDocumentReplacementAnchorArgument: anchor,
+      medicalDocumentRelatedDocumentsArgument: related,
+      medicalDocumentReplacementFileArgument: originalFile,
+      medicalDocumentReplacementFileDateArgument:
+          anchor.updatedAt ??
+          anchor.acceptedAt ??
+          anchor.createdAt ??
+          DateTime.now(),
+      if (replacementAnimalId?.isNotEmpty == true)
+        medicalDocumentReplacementAnimalIdArgument: replacementAnimalId,
+    },
+  );
 }
 
-class _DiagnosticImageTile extends StatefulWidget {
-  final MedicalDocumentEntity document;
-  final MedicalDocumentThumbnailUriLoader loadThumbnailUri;
-  final MedicalDocumentPreviewHandler onDocumentTap;
+bool _openReplacementDestination(
+  BuildContext context, {
+  required SharedFileUploadResult result,
+  required MedicalDocumentCategory currentCategory,
+}) {
+  if (result.category == null || result.category == currentCategory) {
+    return false;
+  }
+  final destination = resolveSharedFileUploadDestination(result);
+  final sectionRouteName = destination?.sectionRouteName;
+  if (sectionRouteName == null) return false;
 
-  const _DiagnosticImageTile({
+  Navigator.of(context).pushReplacementNamed(
+    sectionRouteName,
+    arguments: destination!.sectionArguments,
+  );
+  return true;
+}
+
+enum _MedicalDocumentCardAction { download, continueEditing, delete }
+
+class MedicalDocumentActionsMenu extends StatefulWidget {
+  final String animalId;
+  final MedicalDocumentEntity document;
+  final MedicalDocumentCategory category;
+  final Future<void> Function()? onDownload;
+  final VoidCallback? onChanged;
+  final Key? menuKey;
+
+  const MedicalDocumentActionsMenu({
     super.key,
+    required this.animalId,
     required this.document,
-    required this.loadThumbnailUri,
-    required this.onDocumentTap,
+    required this.category,
+    this.onDownload,
+    this.onChanged,
+    this.menuKey,
   });
 
   @override
-  State<_DiagnosticImageTile> createState() => _DiagnosticImageTileState();
+  State<MedicalDocumentActionsMenu> createState() =>
+      _MedicalDocumentActionsMenuState();
 }
 
-class _DiagnosticImageTileState extends State<_DiagnosticImageTile> {
-  Future<Uri>? _thumbnailUri;
+class _MedicalDocumentActionsMenuState
+    extends State<MedicalDocumentActionsMenu> {
+  static const _menuCloseDuration = Duration(milliseconds: 320);
+  static const _editingMenuWidth = 215.0;
+  static const _downloadMenuWidth = 203.0;
 
-  bool get _isPdf =>
-      widget.document.mimeType.toLowerCase() == 'application/pdf';
+  MedicalDocumentDetailCubit? _detailCubit;
+  final _loadingOverlay = AppLoadingOverlay();
+  Timer? _expiryTimer;
+  bool _isBusy = false;
+
+  MedicalDocumentDetailCubit get _resolvedDetailCubit =>
+      _detailCubit ??= di.sl<MedicalDocumentDetailCubit>();
+
+  bool get _hasActiveEditingWindow =>
+      _hasActiveMedicalDocumentEditingWindow(widget.document);
 
   @override
   void initState() {
     super.initState();
-    if (!_isPdf) _loadThumbnail();
+    _scheduleExpiry();
   }
 
   @override
-  void didUpdateWidget(covariant _DiagnosticImageTile oldWidget) {
+  void didUpdateWidget(covariant MedicalDocumentActionsMenu oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.document.id != widget.document.id ||
-        oldWidget.document.mimeType != widget.document.mimeType ||
-        !identical(oldWidget.loadThumbnailUri, widget.loadThumbnailUri)) {
-      if (!_isPdf) _loadThumbnail();
-    }
+    _scheduleExpiry();
   }
 
-  Uri? _initialThumbnailUri;
-
-  void _loadThumbnail() {
-    _initialThumbnailUri = _diagnosticThumbnailUriCache.peek(
-      widget.document.id,
-      widget.loadThumbnailUri,
-    );
-    _thumbnailUri = _diagnosticThumbnailUriCache.load(
-      widget.document.id,
-      widget.loadThumbnailUri,
-    );
+  @override
+  void dispose() {
+    _expiryTimer?.cancel();
+    _loadingOverlay.hide();
+    _detailCubit?.close();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 140,
-      child: InkWell(
-        key: Key('diagnostic-image-${widget.document.id}'),
-        onTap: () => widget.onDocumentTap(context, widget.document),
-        borderRadius: AppBorders.small(),
-        child: Column(
+    final hasEditingActions = _hasActiveEditingWindow;
+    if (!hasEditingActions && widget.onDownload == null) {
+      return const SizedBox.shrink();
+    }
+
+    final menuWidth = hasEditingActions
+        ? _editingMenuWidth
+        : _downloadMenuWidth;
+
+    return AppPopupActionMenu<_MedicalDocumentCardAction>(
+      menuKey:
+          widget.menuKey ?? Key('medical-document-menu-${widget.document.id}'),
+      actions: [
+        if (widget.onDownload != null)
+          AppPopupMenuAction(
+            key: Key('medical-document-download-${widget.document.id}'),
+            value: _MedicalDocumentCardAction.download,
+            label: 'Descargar historia',
+            iconAsset: AppIcons.receiveSquare,
+            iconColor: AppColors.greyMedio,
+          ),
+        if (hasEditingActions) ...[
+          AppPopupMenuAction(
+            key: Key('medical-document-continue-${widget.document.id}'),
+            value: _MedicalDocumentCardAction.continueEditing,
+            label: 'Continuar editando',
+            iconAsset: 'assets/icons/icon_edit 1.svg',
+            iconColor: AppColors.greyMedio,
+          ),
+          AppPopupMenuAction(
+            key: Key('medical-document-delete-${widget.document.id}'),
+            value: _MedicalDocumentCardAction.delete,
+            label: 'Eliminar archivo',
+            iconAsset: 'assets/icons/icon_trash.svg',
+            iconColor: AppColors.errorRojo,
+            textColor: AppColors.errorRojo,
+          ),
+        ],
+      ],
+      enabled: !_isBusy,
+      offset: Offset(-(menuWidth - 28), 42),
+      menuWidth: menuWidth,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
+      ),
+      icon: const Icon(Icons.more_vert, color: AppColors.primaryFrances),
+      onSelected: _onSelected,
+    );
+  }
+
+  void _scheduleExpiry() {
+    _expiryTimer?.cancel();
+    final deadline = _medicalDocumentEditingDeadline(widget.document);
+    if (!widget.document.canReplace || deadline == null) return;
+
+    final remaining = deadline.difference(DateTime.now());
+    if (remaining <= Duration.zero) return;
+    _expiryTimer = Timer(remaining, () {
+      if (mounted) setState(() {});
+    });
+  }
+
+  Future<void> _onSelected(_MedicalDocumentCardAction action) async {
+    if (_isBusy) return;
+    await Future<void>.delayed(_menuCloseDuration);
+    if (!mounted) return;
+
+    switch (action) {
+      case _MedicalDocumentCardAction.download:
+        await _download();
+        break;
+      case _MedicalDocumentCardAction.continueEditing:
+        if (_hasActiveEditingWindow) await _continueEditing();
+        break;
+      case _MedicalDocumentCardAction.delete:
+        if (_hasActiveEditingWindow) _confirmDelete();
+        break;
+    }
+  }
+
+  Future<void> _download() async {
+    final onDownload = widget.onDownload;
+    if (onDownload == null) return;
+
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    try {
+      await onDownload();
+    } catch (error) {
+      if (mounted) ErrorDisplay.showError(context, error.toString());
+    } finally {
+      _loadingOverlay.hide();
+      if (mounted) setState(() => _isBusy = false);
+    }
+  }
+
+  Future<void> _continueEditing() async {
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    Object? result;
+    try {
+      result = await _startMedicalDocumentReplacement(
+        context,
+        cubit: _resolvedDetailCubit,
+        document: widget.document,
+        replacementAnimalId: widget.animalId,
+        onReadyToNavigate: _loadingOverlay.hide,
+      );
+    } finally {
+      _loadingOverlay.hide();
+    }
+    if (!mounted) return;
+
+    if (result is SharedFileUploadResult &&
+        _openReplacementDestination(
+          context,
+          result: result,
+          currentCategory: widget.category,
+        )) {
+      return;
+    }
+    if (result == true || result is SharedFileUploadResult) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) widget.onChanged?.call();
+    } else if (result == SharedFileUploadCancellation.replacementDismissed) {
+      // Closing the upload screen from its X is intentionally silent.
+    } else if (result == false) {
+      final overlay = Navigator.of(context).overlay;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (overlay != null) {
+          ErrorDisplay.showErrorOnOverlay(
+            overlay,
+            _medicalDocumentUploadFailureMessage,
+          );
+        }
+      });
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
+  }
+
+  void _confirmDelete() {
+    if (!_hasActiveEditingWindow) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => ConfirmDialog(
+        title: '¿Desea eliminar el archivo?',
+        description:
+            'Al eliminar este archivo, no podrás recuperarlo ni volver a verlo.',
+        confirmLabel: 'Sí',
+        cancelLabel: 'No',
+        onConfirm: _delete,
+      ),
+    );
+  }
+
+  Future<void> _delete() async {
+    if (!_hasActiveEditingWindow) {
+      ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
+      return;
+    }
+
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    late final bool deleted;
+    try {
+      deleted = await _resolvedDetailCubit.deleteDocument(
+        animalId: widget.animalId,
+        documentId: widget.document.id,
+        documentVersion: widget.document.version,
+      );
+    } finally {
+      _loadingOverlay.hide();
+    }
+    if (!mounted) return;
+
+    if (deleted) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, _medicalDocumentDeletedMessage);
+        widget.onChanged?.call();
+      }
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
+  }
+
+  void _showCubitError() {
+    final message = _resolvedDetailCubit.state.message;
+    if (message?.isNotEmpty == true) ErrorDisplay.showError(context, message!);
+  }
+}
+
+class MedicalDocumentEditingControls extends StatefulWidget {
+  final String animalId;
+  final MedicalDocumentEntity document;
+  final MedicalDocumentCategory category;
+  final String instanceKey;
+  final VoidCallback? onChanged;
+  final DateTime Function()? now;
+  final bool showExpiration;
+  final bool showActions;
+  final Widget Function(
+    BuildContext context,
+    Widget? expiration,
+    Widget? actions,
+  )?
+  builder;
+
+  const MedicalDocumentEditingControls({
+    super.key,
+    required this.animalId,
+    required this.document,
+    required this.category,
+    required this.instanceKey,
+    this.onChanged,
+    this.now,
+    this.showExpiration = true,
+    this.showActions = true,
+    this.builder,
+  });
+
+  @override
+  State<MedicalDocumentEditingControls> createState() =>
+      _MedicalDocumentEditingControlsState();
+}
+
+class _MedicalDocumentEditingControlsState
+    extends State<MedicalDocumentEditingControls> {
+  MedicalDocumentDetailCubit? _detailCubit;
+  final _loadingOverlay = AppLoadingOverlay();
+  Timer? _expirationTimer;
+  late DateTime _currentTime;
+  bool _isBusy = false;
+
+  MedicalDocumentDetailCubit get _resolvedDetailCubit =>
+      _detailCubit ??= di.sl<MedicalDocumentDetailCubit>();
+
+  DateTime? get _deadline => _medicalDocumentEditingDeadline(widget.document);
+
+  bool get _hasActiveEditingWindow {
+    final deadline = _deadline;
+    return widget.document.canReplace &&
+        deadline != null &&
+        deadline.isAfter(_currentTime);
+  }
+
+  int get _remainingSeconds {
+    final deadline = _deadline;
+    if (deadline == null) return 0;
+    final remainingMilliseconds = deadline
+        .difference(_currentTime)
+        .inMilliseconds;
+    if (remainingMilliseconds <= 0) return 0;
+    return (remainingMilliseconds + 999) ~/ 1000;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _currentTime = _readCurrentTime();
+    _startExpirationTimer();
+  }
+
+  @override
+  void didUpdateWidget(covariant MedicalDocumentEditingControls oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.document != widget.document || oldWidget.now != widget.now) {
+      _currentTime = _readCurrentTime();
+      _startExpirationTimer();
+    }
+  }
+
+  @override
+  void dispose() {
+    _expirationTimer?.cancel();
+    _loadingOverlay.hide();
+    _detailCubit?.close();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final keySuffix = widget.instanceKey;
+    final hasActiveEditingWindow = _hasActiveEditingWindow;
+    final expiration = hasActiveEditingWindow && widget.showExpiration
+        ? _buildExpiration(keySuffix)
+        : null;
+    final actions = hasActiveEditingWindow && widget.showActions
+        ? _buildActions(keySuffix)
+        : null;
+    if (widget.builder case final builder?) {
+      final child = builder(context, expiration, actions);
+      return hasActiveEditingWindow
+          ? KeyedSubtree(
+              key: Key('medical-document-editing-controls-$keySuffix'),
+              child: child,
+            )
+          : child;
+    }
+    if (!hasActiveEditingWindow) return const SizedBox.shrink();
+
+    return Column(
+      key: Key('medical-document-editing-controls-$keySuffix'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (expiration != null) ...[
+          const SizedBox(height: AppSpacing.l),
+          expiration,
+        ],
+        if (actions != null) ...[
+          if (expiration != null) const SizedBox(height: AppSpacing.m),
+          actions,
+        ],
+      ],
+    );
+  }
+
+  Widget _buildExpiration(String keySuffix) {
+    return Align(
+      child: Container(
+        key: Key('medical-document-edit-expiration-$keySuffix'),
+        height: 24,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppBorders.xLarge(),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x1F0F1925),
+              blurRadius: 6,
+              offset: Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              key: Key('diagnostic-image-thumbnail-${widget.document.id}'),
-              width: 140,
-              height: 100,
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                color: AppColors.bgBlancoAntiFlash,
-                border: Border.all(color: AppColors.greyDelineante),
-              ),
-              child: _isPdf
-                  ? Padding(
-                      padding: const EdgeInsets.all(AppSpacing.l),
-                      child: SvgPicture.asset(
-                        'assets/icons/PDF.svg',
-                        key: Key(
-                          'diagnostic-image-pdf-thumbnail-${widget.document.id}',
-                        ),
-                        semanticsLabel: 'Archivo PDF',
-                      ),
-                    )
-                  : FutureBuilder<Uri>(
-                      future: _thumbnailUri,
-                      initialData: _initialThumbnailUri,
-                      builder: (context, snapshot) {
-                        if (snapshot.hasData) {
-                          return Image.network(
-                            snapshot.data.toString(),
-                            width: 140,
-                            height: 100,
-                            fit: BoxFit.cover,
-                            errorBuilder: (_, _, _) => const _ThumbnailFallback(),
-                          );
-                        }
-                        if (snapshot.hasError) {
-                          return const _ThumbnailFallback();
-                        }
-                        return const Center(
-                          child: SizedBox.square(
-                            dimension: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        );
-                      },
-                    ),
+            const Icon(
+              Icons.settings,
+              size: 12,
+              color: AppColors.primaryFrances,
             ),
-            const SizedBox(height: AppSpacing.xs),
+            const SizedBox(width: AppSpacing.xxs),
             Text(
-              widget.document.originalFileName,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
+              _expirationLabel(_remainingSeconds),
+              key: Key('medical-document-edit-expiration-text-$keySuffix'),
+              style: AppTypography.body5.copyWith(
+                color: AppColors.primaryFrances,
+              ),
             ),
           ],
         ),
       ),
     );
   }
-}
 
-Future<void> _showDiagnosticDocumentOriginal(
-  BuildContext context,
-  MedicalDocumentEntity document, {
-  GlobalKey? closeIconKey,
-}) =>
-    _showMedicalDocumentOriginal(
-      context,
-      document: document,
-      closeIconKey: closeIconKey,
+  Widget _buildActions(String keySuffix) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        CustomButton(
+          key: Key('medical-document-continue-editing-$keySuffix'),
+          text: 'Continuar editando',
+          onPressed: _continueEditing,
+          isLoading: _isBusy,
+        ),
+        const SizedBox(height: AppSpacing.m),
+        TextButton(
+          key: Key('medical-document-delete-file-$keySuffix'),
+          onPressed: _isBusy ? null : _confirmDelete,
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.primaryFrances,
+            minimumSize: const Size(double.infinity, 36),
+            padding: EdgeInsets.zero,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(borderRadius: AppBorders.medium()),
+          ),
+          child: Text(
+            'Eliminar archivo',
+            style: AppTypography.body3.copyWith(
+              color: AppColors.primaryFrances,
+            ),
+          ),
+        ),
+      ],
     );
-
-class _DiagnosticThumbnailUriCache {
-  final Map<_DiagnosticThumbnailUriCacheKey, _DiagnosticThumbnailUriCacheEntry>
-  _entries = {};
-
-  Uri? peek(String documentId, MedicalDocumentThumbnailUriLoader loader) {
-    final key = _DiagnosticThumbnailUriCacheKey(documentId, loader);
-    final entry = _validEntry(key);
-    return entry?.uri;
   }
 
-  Future<Uri> load(
-    String documentId,
-    MedicalDocumentThumbnailUriLoader loader,
-  ) async {
-    final key = _DiagnosticThumbnailUriCacheKey(documentId, loader);
-    final cached = _validEntry(key);
-    if (cached != null) return cached.future;
+  DateTime _readCurrentTime() => widget.now?.call() ?? DateTime.now();
 
-    final entry = _DiagnosticThumbnailUriCacheEntry(DateTime.now());
-    final request = loader(documentId);
-    entry.future = request;
-    _entries[key] = entry;
+  void _startExpirationTimer() {
+    _expirationTimer?.cancel();
+    if (!_hasActiveEditingWindow) return;
+    _expirationTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final currentTime = _readCurrentTime();
+      setState(() => _currentTime = currentTime);
+      final deadline = _deadline;
+      if (deadline == null || !deadline.isAfter(currentTime)) {
+        _expirationTimer?.cancel();
+        _expirationTimer = null;
+      }
+    });
+  }
 
+  String _expirationLabel(int totalSeconds) {
+    final hours = totalSeconds ~/ Duration.secondsPerHour;
+    final minutes =
+        (totalSeconds % Duration.secondsPerHour) ~/ Duration.secondsPerMinute;
+    final seconds = totalSeconds % Duration.secondsPerMinute;
+    String twoDigits(int value) => value.toString().padLeft(2, '0');
+    return 'Modo edición expira en: '
+        '${twoDigits(hours)}:${twoDigits(minutes)}:${twoDigits(seconds)}';
+  }
+
+  Future<void> _continueEditing() async {
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    Object? result;
     try {
-      final uri = await request;
-      if (identical(_entries[key], entry)) entry.uri = uri;
-      return uri;
-    } catch (_) {
-      if (identical(_entries[key], entry)) _entries.remove(key);
-      rethrow;
+      result = await _startMedicalDocumentReplacement(
+        context,
+        cubit: _resolvedDetailCubit,
+        document: widget.document,
+        replacementAnimalId: widget.animalId,
+        onReadyToNavigate: _loadingOverlay.hide,
+      );
+    } finally {
+      _loadingOverlay.hide();
     }
+    if (!mounted) return;
+
+    if (result is SharedFileUploadResult &&
+        _openReplacementDestination(
+          context,
+          result: result,
+          currentCategory: widget.category,
+        )) {
+      return;
+    }
+    if (result == true || result is SharedFileUploadResult) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) widget.onChanged?.call();
+    } else if (result == SharedFileUploadCancellation.replacementDismissed) {
+      // Closing the upload screen from its X is intentionally silent.
+    } else if (result == false) {
+      final overlay = Navigator.of(context).overlay;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (overlay != null) {
+          ErrorDisplay.showErrorOnOverlay(
+            overlay,
+            _medicalDocumentUploadFailureMessage,
+          );
+        }
+      });
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
   }
 
-  _DiagnosticThumbnailUriCacheEntry? _validEntry(
-    _DiagnosticThumbnailUriCacheKey key,
-  ) {
-    final entry = _entries[key];
-    if (entry == null) return null;
-    if (DateTime.now().difference(entry.cachedAt) <
-        _diagnosticThumbnailCacheLifetime) {
-      return entry;
-    }
-    _entries.remove(key);
-    return null;
-  }
-}
-
-class _DiagnosticThumbnailUriCacheEntry {
-  final DateTime cachedAt;
-  late final Future<Uri> future;
-  Uri? uri;
-
-  _DiagnosticThumbnailUriCacheEntry(this.cachedAt);
-}
-
-class _DiagnosticThumbnailUriCacheKey {
-  final String documentId;
-  final MedicalDocumentThumbnailUriLoader loader;
-
-  const _DiagnosticThumbnailUriCacheKey(this.documentId, this.loader);
-
-  @override
-  bool operator ==(Object other) =>
-      other is _DiagnosticThumbnailUriCacheKey &&
-      documentId == other.documentId &&
-      identical(loader, other.loader);
-
-  @override
-  int get hashCode => Object.hash(documentId, identityHashCode(loader));
-}
-
-class _ThumbnailFallback extends StatelessWidget {
-  const _ThumbnailFallback();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Center(
-      child: Icon(Icons.image_outlined, color: AppColors.greyIconos, size: 28),
+  void _confirmDelete() {
+    if (!_hasActiveEditingWindow) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => ConfirmDialog(
+        title: '¿Desea eliminar el archivo?',
+        description:
+            'Al eliminar este archivo, no podrás recuperarlo ni volver a verlo.',
+        confirmLabel: 'Sí',
+        cancelLabel: 'No',
+        onConfirm: _delete,
+      ),
     );
   }
+
+  Future<void> _delete() async {
+    if (!_hasActiveEditingWindow) {
+      ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
+      return;
+    }
+
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
+    setState(() => _isBusy = true);
+    _loadingOverlay.show(context);
+    late final bool deleted;
+    try {
+      deleted = await _resolvedDetailCubit.deleteDocument(
+        animalId: widget.animalId,
+        documentId: widget.document.id,
+        documentVersion: widget.document.version,
+      );
+    } finally {
+      _loadingOverlay.hide();
+    }
+    if (!mounted) return;
+
+    if (deleted) {
+      await documentsCubit.load(widget.animalId, category: widget.category);
+      if (mounted) {
+        ErrorDisplay.showSuccess(context, _medicalDocumentDeletedMessage);
+        widget.onChanged?.call();
+      }
+    } else {
+      _showCubitError();
+    }
+    if (mounted) setState(() => _isBusy = false);
+  }
+
+  void _showCubitError() {
+    final message = _resolvedDetailCubit.state.message;
+    if (message?.isNotEmpty == true) ErrorDisplay.showError(context, message!);
+  }
 }
 
-Future<void> _showMedicalDocumentDetail(
+Future<bool?> showMedicalDocumentDetail(
   BuildContext context, {
+  String? animalId,
   required MedicalDocumentEntity document,
   required MedicalDocumentCategory category,
+  SharedFileAppProfile? appProfile,
 }) async {
-  final closeIconKey = GlobalKey();
-  final actionIconKey = GlobalKey();
   late final SharedFileAnalysisEntity analysis;
   try {
     analysis = await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
       document,
+      appPatient: appProfile?.patient,
+      appTutor: appProfile?.tutor,
     );
   } catch (error) {
     if (context.mounted) ErrorDisplay.showError(context, error.toString());
-    return;
+    return null;
   }
-  if (!context.mounted) return;
-  await Navigator.push<void>(
+  if (!context.mounted) return null;
+  final result = await Navigator.push<Object?>(
     context,
     MaterialPageRoute(
-      builder: (detailContext) => SharedFileSendScreen(
-        analysis: analysis,
-        closeIconKey: closeIconKey,
-        actionIconKey: actionIconKey,
-        onViewOriginal: () => _showMedicalDocumentOriginal(
-          detailContext,
+      builder: (_) => BlocProvider(
+        create: (_) => di.sl<MedicalDocumentDetailCubit>(),
+        child: _AcceptedMedicalDocumentDetailScreen(
+          analysis: analysis,
+          animalId:
+              animalId ??
+              (document.animalIds.isEmpty ? null : document.animalIds.first),
           document: document,
-          closeIconKey: closeIconKey,
-          downloadIconKey: actionIconKey,
+          category: category,
         ),
-        resolveOriginalUri: () =>
-            di.sl<GetMedicalDocumentDownloadUriUseCase>()(document.id),
-        actionLabel: medicalDocumentSendActionLabel(category),
       ),
     ),
   );
+  final changed = result == true || result is SharedFileUploadResult;
+  final affectedAnimalId =
+      animalId ??
+      (document.animalIds.isEmpty ? null : document.animalIds.first);
+  if (result is SharedFileUploadResult &&
+      context.mounted &&
+      _openReplacementDestination(
+        context,
+        result: result,
+        currentCategory: category,
+      )) {
+    return true;
+  }
+  if (changed == true && context.mounted && affectedAnimalId != null) {
+    await context.read<AnimalMedicalDocumentsCubit>().load(
+      affectedAnimalId,
+      category: category,
+    );
+  }
+  return changed;
+}
+
+class _AcceptedMedicalDocumentDetailScreen extends StatefulWidget {
+  final SharedFileAnalysisEntity analysis;
+  final String? animalId;
+  final MedicalDocumentEntity document;
+  final MedicalDocumentCategory category;
+
+  const _AcceptedMedicalDocumentDetailScreen({
+    required this.analysis,
+    required this.animalId,
+    required this.document,
+    required this.category,
+  });
+
+  @override
+  State<_AcceptedMedicalDocumentDetailScreen> createState() =>
+      _AcceptedMedicalDocumentDetailScreenState();
+}
+
+class _AcceptedMedicalDocumentDetailScreenState
+    extends State<_AcceptedMedicalDocumentDetailScreen> {
+  final _closeIconKey = GlobalKey();
+  final _actionIconKey = GlobalKey();
+
+  @override
+  Widget build(BuildContext context) {
+    return BlocConsumer<MedicalDocumentDetailCubit, MedicalDocumentDetailState>(
+      listenWhen: (previous, current) => previous.message != current.message,
+      listener: (context, state) {
+        if (state.message?.isNotEmpty == true) {
+          ErrorDisplay.showError(context, state.message!);
+        }
+      },
+      builder: (context, state) => SharedFileSendScreen(
+        analysis: widget.analysis,
+        closeIconKey: _closeIconKey,
+        actionIconKey: _actionIconKey,
+        replacementDeadline: _medicalDocumentEditingDeadline(widget.document),
+        canReplace: widget.document.canReplace,
+        isActionLoading: state.isBusy,
+        onContinueEditing: _continueEditing,
+        onDelete: _confirmDelete,
+        onViewOriginalText: (text) => _showMedicalDocumentOriginal(
+          context,
+          document: widget.document,
+          closeIconKey: _closeIconKey,
+          downloadIconKey: _actionIconKey,
+          searchText: text,
+        ),
+        resolveOriginalUri: () =>
+            di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
+        actionLabel: medicalDocumentSendActionLabel(widget.category),
+      ),
+    );
+  }
+
+  Future<void> _continueEditing() async {
+    final replaced = await _startMedicalDocumentReplacement(
+      context,
+      cubit: context.read<MedicalDocumentDetailCubit>(),
+      document: widget.document,
+      replacementAnimalId: widget.animalId,
+    );
+    if (mounted && (replaced == true || replaced is SharedFileUploadResult)) {
+      Navigator.pop(context, replaced);
+    } else if (mounted &&
+        (replaced == false ||
+            replaced == SharedFileUploadCancellation.replacementDismissed)) {
+      final isSilentDismissal =
+          replaced == SharedFileUploadCancellation.replacementDismissed;
+      final navigator = Navigator.of(context);
+      final overlay = navigator.overlay;
+      navigator.pop(false);
+      if (!isSilentDismissal) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (overlay != null) {
+            ErrorDisplay.showErrorOnOverlay(
+              overlay,
+              _medicalDocumentUploadFailureMessage,
+            );
+          }
+        });
+      }
+    }
+  }
+
+  void _confirmDelete() {
+    if (!_hasActiveMedicalDocumentEditingWindow(widget.document)) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) => ConfirmDialog(
+        title: '¿Desea eliminar el archivo?',
+        description:
+            'Al eliminar este archivo, no podrás recuperarlo ni volver a verlo.',
+        confirmLabel: 'Sí',
+        cancelLabel: 'No',
+        onConfirm: _delete,
+      ),
+    );
+  }
+
+  Future<void> _delete() async {
+    if (!_hasActiveMedicalDocumentEditingWindow(widget.document)) {
+      ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
+      return;
+    }
+    final animalId = widget.animalId;
+    if (animalId == null || animalId.isEmpty) {
+      ErrorDisplay.showError(
+        context,
+        'No fue posible identificar el animal asociado al archivo.',
+      );
+      return;
+    }
+    final deleted = await context
+        .read<MedicalDocumentDetailCubit>()
+        .deleteDocument(
+          animalId: animalId,
+          documentId: widget.document.id,
+          documentVersion: widget.document.version,
+        );
+    if (mounted && deleted) {
+      final navigator = Navigator.of(context);
+      final overlay = navigator.overlay;
+      navigator.pop(true);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (overlay != null) {
+          ErrorDisplay.showSuccessOnOverlay(
+            overlay,
+            _medicalDocumentDeletedMessage,
+          );
+        }
+      });
+    }
+  }
 }
 
 Future<void> _showMedicalDocumentOriginal(
@@ -681,6 +1259,7 @@ Future<void> _showMedicalDocumentOriginal(
   required MedicalDocumentEntity document,
   GlobalKey? closeIconKey,
   GlobalKey? downloadIconKey,
+  String? searchText,
 }) async {
   final preview = MedicalDocumentOriginalPreview(
     getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
@@ -694,6 +1273,7 @@ Future<void> _showMedicalDocumentOriginal(
       mimeType: document.mimeType,
       closeIconKey: closeIconKey,
       downloadIconKey: downloadIconKey,
+      searchText: searchText,
     );
   } catch (error) {
     if (context.mounted) ErrorDisplay.showError(context, error.toString());
@@ -746,182 +1326,6 @@ class _DocumentCardValue extends StatelessWidget {
   }
 }
 
-class _AiFeedbackBanner extends StatefulWidget {
-  final VoidCallback? onDismissed;
-  final Future<void> Function(MedicalDocumentAiFeedback feedback) onSubmit;
-  final bool initialHasResponded;
-  final Future<void> Function()? onSubmitted;
-
-  const _AiFeedbackBanner({
-    super.key,
-    this.onDismissed,
-    required this.onSubmit,
-    this.initialHasResponded = false,
-    this.onSubmitted,
-  });
-
-  @override
-  State<_AiFeedbackBanner> createState() => _AiFeedbackBannerState();
-}
-
-class _AiFeedbackBannerState extends State<_AiFeedbackBanner> {
-  late bool _hasResponded;
-  bool _isDismissed = false;
-  bool _isSubmitting = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _hasResponded = widget.initialHasResponded;
-  }
-
-  @override
-  void didUpdateWidget(covariant _AiFeedbackBanner oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (!_hasResponded && widget.initialHasResponded) {
-      _hasResponded = true;
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isDismissed) return const SizedBox.shrink();
-
-    if (_hasResponded) {
-      return Container(
-        key: const Key('medical-document-ai-feedback-thanks'),
-        padding: const EdgeInsets.all(AppSpacing.m),
-        decoration: BoxDecoration(
-          gradient: AppColors.aiAnalysisGradient,
-          borderRadius: AppBorders.large(),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                'Gracias por tu respuesta, la tendremos en cuenta para seguir '
-                'entrenando la IA.',
-                style: AppTypography.body6.copyWith(
-                  color: AppColors.greyNegro,
-                  height: 1.5,
-                ),
-              ),
-            ),
-            const SizedBox(width: AppSpacing.m),
-            IconButton(
-              key: const Key('medical-document-ai-feedback-close'),
-              onPressed: _dismiss,
-              icon: const Icon(
-                Icons.close,
-                color: AppColors.greyIconos,
-                size: 24,
-              ),
-              tooltip: 'Cerrar',
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(
-                minWidth: AppSpacing.xl,
-                minHeight: AppSpacing.xl,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.m),
-      decoration: BoxDecoration(
-        gradient: AppColors.aiAnalysisGradient,
-        borderRadius: AppBorders.small(),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Text(
-              '¿La ayuda de la IA te fue útil para leer tu archivo?',
-              style: AppTypography.body6.copyWith(
-                color: const Color.fromARGB(255, 0, 0, 0),
-                height: 1.5,
-              ),
-            ),
-          ),
-          const SizedBox(width: AppSpacing.s),
-          _AiFeedbackButton(
-            key: const Key('medical-document-ai-not-useful'),
-            icon: Icons.thumb_down_alt,
-            onTap: _isSubmitting
-                ? null
-                : () => _submitFeedback(MedicalDocumentAiFeedback.dislike),
-          ),
-          const SizedBox(width: AppSpacing.m),
-          _AiFeedbackButton(
-            key: const Key('medical-document-ai-useful'),
-            icon: Icons.thumb_up_alt,
-            onTap: _isSubmitting
-                ? null
-                : () => _submitFeedback(MedicalDocumentAiFeedback.like),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _submitFeedback(MedicalDocumentAiFeedback feedback) async {
-    if (_isSubmitting || _hasResponded) return;
-    setState(() => _isSubmitting = true);
-    try {
-      await widget.onSubmit(feedback);
-      await widget.onSubmitted?.call();
-      if (!mounted) return;
-      setState(() {
-        _isSubmitting = false;
-        _hasResponded = true;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _isSubmitting = false);
-      ErrorDisplay.showError(context, error.toString());
-    }
-  }
-
-  void _dismiss() {
-    setState(() => _isDismissed = true);
-    widget.onDismissed?.call();
-  }
-}
-
-class _AiFeedbackButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _AiFeedbackButton({super.key, required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.white,
-      borderRadius: BorderRadius.circular(AppSpacing.xs),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppSpacing.xs),
-        child: Ink(
-          width: 62,
-          height: 44,
-          decoration: BoxDecoration(
-            color: AppColors.white,
-            border: Border.all(color: AppColors.primaryFrances),
-            borderRadius: BorderRadius.circular(AppSpacing.xs),
-          ),
-          child: Center(
-            child: Icon(icon, size: 23, color: AppColors.primaryFrances),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 String _documentNumber(MedicalDocumentEntity document) {
   if (document.finalCategory == MedicalDocumentCategory.vaccinationCard) {
     return '';
@@ -937,7 +1341,6 @@ String _searchableDocumentText(MedicalDocumentEntity document) {
     document.originalFileName,
     document.finalCategory?.label,
     extraction?.documentDate,
-    ...?extraction?.patientHints,
     ...?extraction?.diagnoses.expand(_itemSearchValues),
     ...?extraction?.medications.expand(_itemSearchValues),
     ...?extraction?.vaccinations.expand(_itemSearchValues),
@@ -964,7 +1367,10 @@ String _valueText(Object? value) {
   }
   if (value is Map) {
     return value.entries
-        .where((entry) => entry.key != 'source' && entry.key != 'confidence')
+        .where(
+          (entry) =>
+              !isMedicalDocumentTechnicalKey(entry.key.toString(), const {}),
+        )
         .map((entry) => _valueText(entry.value))
         .where((item) => item.isNotEmpty)
         .join(' ');

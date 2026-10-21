@@ -15,14 +15,12 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
-import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
+import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
+import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
-import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_original_preview.dart';
 import 'package:animal_record/features/shared_files/domain/usecases/export_shared_file_analysis_pdf_usecase.dart';
-import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
-import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -116,16 +114,28 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
             final group = groups[index - (shouldShowAiFeedback ? 1 : 0)];
             return _ClinicalHistoryGroupCard(
               group: group,
-              onTap: () {
+              onTap: () async {
                 final singleDocument = group.documents.length == 1
                     ? group.documents.single
                     : null;
-                final destination = singleDocument?.validatedExtraction != null
-                    ? ClinicalHistoryDocumentScreen(document: singleDocument!)
-                    : ClinicalHistoryGroupScreen(animal: animal, group: group);
-                Navigator.push<void>(
+                if (singleDocument?.validatedExtraction != null) {
+                  await showMedicalDocumentDetail(
+                    context,
+                    animalId: animal.id,
+                    document: singleDocument!,
+                    category: MedicalDocumentCategory.clinicalHistory,
+                    appProfile: sharedFileAppProfile(context, animal),
+                  );
+                  return;
+                }
+                await Navigator.push<void>(
                   context,
-                  MaterialPageRoute(builder: (_) => destination),
+                  MaterialPageRoute(
+                    builder: (_) => ClinicalHistoryGroupScreen(
+                      animal: animal,
+                      group: group,
+                    ),
+                  ),
                 );
               },
             );
@@ -149,81 +159,6 @@ class ClinicalHistoryGroupScreen extends StatefulWidget {
   @override
   State<ClinicalHistoryGroupScreen> createState() =>
       _ClinicalHistoryGroupScreenState();
-}
-
-class ClinicalHistoryDocumentScreen extends StatefulWidget {
-  final MedicalDocumentEntity document;
-
-  const ClinicalHistoryDocumentScreen({super.key, required this.document});
-
-  @override
-  State<ClinicalHistoryDocumentScreen> createState() =>
-      _ClinicalHistoryDocumentScreenState();
-}
-
-class _ClinicalHistoryDocumentScreenState
-    extends State<ClinicalHistoryDocumentScreen> {
-  final _closeIconKey = GlobalKey();
-  final _actionIconKey = GlobalKey();
-  late Future<SharedFileAnalysisEntity> _analysis;
-
-  @override
-  void initState() {
-    super.initState();
-    _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
-      widget.document,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FutureBuilder<SharedFileAnalysisEntity>(
-      future: _analysis,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Scaffold(
-            body: Center(child: CircularProgressIndicator()),
-          );
-        }
-        final analysis = snapshot.data;
-        if (analysis == null) {
-          return _MedicalCatalogError(
-            onRetry: () => setState(() {
-              _analysis = di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
-                widget.document,
-              );
-            }),
-          );
-        }
-        return SharedFileSendScreen(
-          analysis: analysis,
-          closeIconKey: _closeIconKey,
-          actionIconKey: _actionIconKey,
-          onViewOriginal: () => _showOriginal(context),
-          resolveOriginalUri: () =>
-              di.sl<GetMedicalDocumentDownloadUriUseCase>()(widget.document.id),
-          actionLabel: medicalDocumentSendActionLabel(
-            MedicalDocumentCategory.clinicalHistory,
-          ),
-        );
-      },
-    );
-  }
-
-  Future<void> _showOriginal(BuildContext context) async {
-    final preview = MedicalDocumentOriginalPreview(
-      getDownloadUriUseCase: di.sl<GetMedicalDocumentDownloadUriUseCase>(),
-      saveOriginalUseCase: di.sl<SaveMedicalDocumentOriginalUseCase>(),
-    );
-    await preview.show(
-      context,
-      acceptedDocumentId: widget.document.id,
-      fileName: widget.document.originalFileName,
-      mimeType: widget.document.mimeType,
-      closeIconKey: _closeIconKey,
-      downloadIconKey: _actionIconKey,
-    );
-  }
 }
 
 class _ClinicalHistoryGroupScreenState
@@ -340,6 +275,7 @@ class _ClinicalHistoryGroupScreenState
                             itemBuilder: (context, index) =>
                                 _ClinicalHistoryCard(
                                   index: index,
+                                  animalId: widget.animal.id,
                                   document: widget.group.documents[index],
                                   onTap: () => _showDocument(
                                     widget.group.documents[index],
@@ -347,6 +283,9 @@ class _ClinicalHistoryGroupScreenState
                                   onDownload: () => _downloadDocument(
                                     widget.group.documents[index],
                                   ),
+                                  onChanged: () {
+                                    if (mounted) Navigator.pop(context);
+                                  },
                                 ),
                           ),
                         ),
@@ -384,6 +323,7 @@ class _ClinicalHistoryGroupScreenState
     setState(() => _downloading = true);
     try {
       final downloadUri = di.sl<GetMedicalDocumentDownloadUriUseCase>();
+      final profile = sharedFileAppProfile(context, widget.animal);
       final analyses = await Future.wait(
         widget.group.documents
             .where((document) => document.validatedExtraction != null)
@@ -391,7 +331,11 @@ class _ClinicalHistoryGroupScreenState
               final uri = await downloadUri(document.id);
               final analysis = await di
                   .sl<MedicalDocumentAnalysisPresenter>()
-                  .forAccepted(document);
+                  .forAccepted(
+                    document,
+                    appPatient: profile.patient,
+                    appTutor: profile.tutor,
+                  );
               return analysis.withOriginalUrl(uri.toString());
             }),
       );
@@ -418,16 +362,28 @@ class _ClinicalHistoryGroupScreenState
   Future<void> _downloadDocument(MedicalDocumentEntity document) async {
     if (document.validatedExtraction == null) return;
     try {
+      final profile = sharedFileAppProfile(context, widget.animal);
       final uri = await di.sl<GetMedicalDocumentDownloadUriUseCase>()(
         document.id,
       );
       final analysis =
           (await di.sl<MedicalDocumentAnalysisPresenter>().forAccepted(
             document,
+            appPatient: profile.patient,
+            appTutor: profile.tutor,
           )).withOriginalUrl(uri.toString());
-      await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
+      final saved = await di.sl<SaveSharedFileAnalysesPdfUseCase>()([
         analysis,
       ], fileName: 'historia_clinica_${widget.animal.name}');
+      if (mounted && saved) {
+        final overlay = Navigator.of(context).overlay;
+        if (overlay != null) {
+          ErrorDisplay.showSuccessOnOverlay(
+            overlay,
+            'Historia clínica descargada.',
+          );
+        }
+      }
     } catch (error) {
       if (mounted) ErrorDisplay.showError(context, error.toString());
     }
@@ -435,34 +391,14 @@ class _ClinicalHistoryGroupScreenState
 
   Future<void> _showDocument(MedicalDocumentEntity document) async {
     if (document.validatedExtraction == null) return;
-    await Navigator.push<void>(
+    final changed = await showMedicalDocumentDetail(
       context,
-      MaterialPageRoute(
-        builder: (_) => ClinicalHistoryDocumentScreen(document: document),
-      ),
+      animalId: widget.animal.id,
+      document: document,
+      category: MedicalDocumentCategory.clinicalHistory,
+      appProfile: sharedFileAppProfile(context, widget.animal),
     );
-  }
-}
-
-class _MedicalCatalogError extends StatelessWidget {
-  final VoidCallback onRetry;
-
-  const _MedicalCatalogError({required this.onRetry});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('No pudimos cargar los campos del documento.'),
-            const SizedBox(height: AppSpacing.m),
-            FilledButton(onPressed: onRetry, child: const Text('Reintentar')),
-          ],
-        ),
-      ),
-    );
+    if (changed == true && mounted) Navigator.pop(context);
   }
 }
 
@@ -611,15 +547,19 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
 
 class _ClinicalHistoryCard extends StatelessWidget {
   final int index;
+  final String animalId;
   final MedicalDocumentEntity document;
   final VoidCallback onTap;
-  final VoidCallback onDownload;
+  final Future<void> Function() onDownload;
+  final VoidCallback onChanged;
 
   const _ClinicalHistoryCard({
     required this.index,
+    required this.animalId,
     required this.document,
     required this.onTap,
     required this.onDownload,
+    required this.onChanged,
   });
 
   @override
@@ -654,55 +594,13 @@ class _ClinicalHistoryCard extends StatelessWidget {
           ),
         ],
       ),
-      trailing: Theme(
-        data: Theme.of(context).copyWith(
-          splashColor: Colors.transparent,
-          highlightColor: Colors.transparent,
-        ),
-        child: PopupMenuButton<String>(
-          key: Key('clinical-history-menu-${document.id}'),
-          padding: EdgeInsets.zero,
-          offset: const Offset(-175, 42),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppBorders.radiusMedium),
-          ),
-          constraints: const BoxConstraints(minWidth: 203, maxWidth: 203),
-          color: AppColors.white,
-          elevation: 4,
-          icon: const Icon(Icons.more_vert, color: AppColors.primaryFrances),
-          onSelected: (_) => onDownload(),
-          itemBuilder: (_) => [
-            PopupMenuItem<String>(
-              value: 'download',
-              height: 47,
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.m),
-              child: Row(
-                children: [
-                  SvgPicture.asset(
-                    AppIcons.receiveSquare,
-                    width: AppSpacing.iconSizeSmall,
-                    height: AppSpacing.iconSizeSmall,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.greyMedio,
-                      BlendMode.srcIn,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Descargar historia',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTypography.body4.copyWith(
-                        color: AppColors.greyTextos,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+      trailing: MedicalDocumentActionsMenu(
+        menuKey: Key('clinical-history-menu-${document.id}'),
+        animalId: animalId,
+        document: document,
+        category: MedicalDocumentCategory.clinicalHistory,
+        onDownload: onDownload,
+        onChanged: onChanged,
       ),
     );
   }
@@ -853,11 +751,7 @@ List<ClinicalHistoryGroup> _groups(
   }
   return values.entries
       .map((entry) {
-        final sorted = [...entry.value]
-          ..sort(
-            (left, right) =>
-                _documentTimestamp(right).compareTo(_documentTimestamp(left)),
-          );
+        final sorted = [...entry.value]..sort(_compareByDocumentDate);
         final value = metadata[entry.key]!;
         return ClinicalHistoryGroup(
           name: value.name,
@@ -880,34 +774,37 @@ List<ClinicalHistoryGroup> _groups(
   return (name: '', picture: null);
 }
 
+int _compareByDocumentDate(
+  MedicalDocumentEntity left,
+  MedicalDocumentEntity right,
+) {
+  final leftDate = parseMedicalDocumentDate(
+    left.validatedExtraction?.documentDate,
+  );
+  final rightDate = parseMedicalDocumentDate(
+    right.validatedExtraction?.documentDate,
+  );
+  if (leftDate != null && rightDate != null) {
+    return rightDate.compareTo(leftDate);
+  }
+  if (leftDate != null) return -1;
+  if (rightDate != null) return 1;
+  return _documentTimestamp(right).compareTo(_documentTimestamp(left));
+}
+
 DateTime _documentTimestamp(MedicalDocumentEntity document) {
   return document.updatedAt ??
       document.reviewedAt ??
       document.createdAt ??
-      parseMedicalDocumentDate(document.validatedExtraction?.documentDate) ??
       DateTime.fromMillisecondsSinceEpoch(0);
 }
 
 String _documentDate(MedicalDocumentEntity document) {
-  final backendDate = displayMedicalDocumentDate(
+  final backendDate = displayMedicalDocumentShortDate(
     document.validatedExtraction?.documentDate,
   );
   if (backendDate.isNotEmpty) return backendDate;
   final date = _documentTimestamp(document);
   if (date.millisecondsSinceEpoch == 0) return '';
-  const months = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre',
-  ];
-  return '${months[date.month - 1]} ${date.day}, ${date.year}';
+  return formatMedicalDocumentShortDate(date);
 }

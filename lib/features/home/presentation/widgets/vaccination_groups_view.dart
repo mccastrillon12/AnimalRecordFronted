@@ -182,19 +182,24 @@ class VaccinationGroupsView extends StatelessWidget {
     BuildContext context,
     VaccinationGroupViewData group,
   ) async {
+    final documentsCubit = context.read<AnimalMedicalDocumentsCubit>();
     await Navigator.push<void>(
       context,
       MaterialPageRoute(
-        builder: (_) => VaccinationGroupDetailScreen(
-          group: group,
-          onSend: () => Navigator.push<void>(
-            context,
-            MaterialPageRoute(
-              builder: (_) => BlocProvider.value(
-                value: context.read<AnimalMedicalDocumentsCubit>(),
-                child: VaccinationCardScreen(
-                  animal: animal,
-                  selectedGroup: group,
+        builder: (_) => BlocProvider.value(
+          value: documentsCubit,
+          child: VaccinationGroupDetailScreen(
+            animalId: animal.id,
+            group: group,
+            onSend: () => Navigator.push<void>(
+              context,
+              MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: documentsCubit,
+                  child: VaccinationCardScreen(
+                    animal: animal,
+                    selectedGroup: group,
+                  ),
                 ),
               ),
             ),
@@ -224,29 +229,31 @@ class _VaccinationGroupCard extends StatelessWidget {
       showDescription: false,
       titleText: vaccinationDisplayName(group.title),
       titleMaxLines: 1,
-      trailing: Container(
-        constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 6),
-        decoration: const BoxDecoration(
-          color: AppColors.white,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: Color(0x14000000),
-              blurRadius: 5,
-              offset: Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Text(
-          '${group.count}',
-          style: AppTypography.body6.copyWith(
-            color: AppColors.primaryFrances,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ),
+      trailing: group.count >= 2
+          ? Container(
+              constraints: const BoxConstraints(minWidth: 21, minHeight: 22),
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: const BoxDecoration(
+                color: AppColors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 5,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Text(
+                '${group.count}',
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.primaryFrances,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            )
+          : null,
       values: [
         if (latest.applicationDate.isNotEmpty)
           MedicalDocumentSummaryValue(

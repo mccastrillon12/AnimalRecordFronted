@@ -42,17 +42,15 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
   MedicalDocumentCategory? displayCategory,
   bool includeUncataloguedFields = false,
 }) {
-  final values =
-      includeUncataloguedFields && extraction.rawExtraction.isNotEmpty
-      ? _losslessExtractionValues(extraction)
-      : _extractionValues(extraction);
+  final resolvedDisplayCategory = displayCategory ?? extraction.documentType;
+  final values = _extractionValues(extraction);
   final sections = [..._catalogSections(catalog, values)];
   if (includeUncataloguedFields) {
     final uncatalogued = _uncataloguedSection(catalog, values);
     if (uncatalogued != null) sections.add(uncatalogued);
   }
   return SharedFileAnalysisEntity(
-    documentType: (displayCategory ?? extraction.documentType).label,
+    documentType: resolvedDisplayCategory.label,
     documentNumber:
         extraction.documentType == MedicalDocumentCategory.vaccinationCard
         ? ''
@@ -61,6 +59,7 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     sourceDateText: extraction.documentDate,
     sourceDateLabel: catalog.fieldAt('documentDate')?.label,
     originalFileName: document.originalFileName,
+    originalMimeType: document.mimeType,
     originalFileNameLabel: 'Archivo original',
     patient: _patient(document, extraction.patient, catalog),
     tutor: _tutor(document, extraction.owner, catalog),
@@ -68,21 +67,6 @@ SharedFileAnalysisEntity medicalDocumentToAnalysis({
     sections: List.unmodifiable(sections),
   );
 }
-
-const _emptyPatient = SharedFilePatientAnalysisEntity(
-  name: '',
-  recordId: '',
-  species: '',
-  breed: '',
-  age: '',
-  weight: '',
-);
-
-const _emptyTutor = SharedFileTutorAnalysisEntity(
-  name: '',
-  identification: '',
-  phoneNumber: '',
-);
 
 SharedFilePatientAnalysisEntity _patient(
   MedicalDocumentEntity document,
@@ -282,6 +266,9 @@ List<SharedFileAnalysisSectionEntity> _catalogSections(
 
     for (final field in fields) {
       final value = _readPath(extraction, field.path);
+      if (_reportedNarrativePaths.contains(field.path) && _isEmpty(value)) {
+        continue;
+      }
       if (field.hideWhenEmpty && _isEmpty(value)) continue;
       switch (field.kind) {
         case MedicalFieldKind.table:
@@ -298,7 +285,14 @@ List<SharedFileAnalysisSectionEntity> _catalogSections(
           );
           if (!field.hideWhenEmpty || text.isNotEmpty) {
             scalarDetails.add(
-              SharedFileAnalysisDetailEntity(label: field.label, value: text),
+              SharedFileAnalysisDetailEntity(
+                label: field.label,
+                value:
+                    field.kind == MedicalFieldKind.longText ||
+                        _reportedNarrativePaths.contains(field.path)
+                    ? medicalDocumentNarrativeDisplayValue(text)
+                    : text,
+              ),
             );
           }
       }
@@ -342,6 +336,9 @@ List<SharedFileAnalysisSectionEntity> _tableSections(
         )) {
           return false;
         }
+        if (_imageNarrativeKeys.contains(column.key)) {
+          return rows.any((row) => !_isEmpty(row[column.key]));
+        }
         return !column.hideWhenEmpty ||
             rows.any((row) => !_isEmpty(row[column.key]));
       })
@@ -351,12 +348,15 @@ List<SharedFileAnalysisSectionEntity> _tableSections(
   for (var index = 0; index < rows.length; index++) {
     final details = <SharedFileAnalysisDetailEntity>[
       for (final column in visibleColumns)
-        if (!column.hideWhenEmpty || !_isEmpty(rows[index][column.key]))
+        if ((!column.hideWhenEmpty &&
+                !_imageNarrativeKeys.contains(column.key)) ||
+            !_isEmpty(rows[index][column.key]))
           SharedFileAnalysisDetailEntity(
             label: column.label,
-            value: medicalDocumentDisplayValue(
+            value: _tableCellDisplayValue(
               rows[index][column.key],
-              hiddenTechnicalKeys: catalog.hiddenTechnicalKeys,
+              column,
+              catalog,
             ),
           ),
     ];
@@ -370,6 +370,34 @@ List<SharedFileAnalysisSectionEntity> _tableSections(
   }
   return sections;
 }
+
+String _tableCellDisplayValue(
+  Object? value,
+  MedicalTableColumn column,
+  MedicalFieldCatalog catalog,
+) {
+  final text = medicalDocumentDisplayValue(
+    value,
+    hiddenTechnicalKeys: catalog.hiddenTechnicalKeys,
+  );
+  return column.kind == MedicalFieldKind.longText ||
+          _imageNarrativeKeys.contains(column.key)
+      ? medicalDocumentNarrativeDisplayValue(text)
+      : text;
+}
+
+const _reportedNarrativePaths = {
+  'reportedSummary',
+  'reportedRecommendations',
+  'reportedObservations',
+};
+
+const _imageNarrativeKeys = {
+  'reportedTechnique',
+  'reportedFindings',
+  'reportedConclusion',
+  'reportedDiagnosis',
+};
 
 List<SharedFileAnalysisDetailEntity> _dynamicDetails(
   MedicalFieldDefinition field,
@@ -423,19 +451,6 @@ bool _isPartyPath(String path) =>
     path.startsWith('patient.') ||
     path.startsWith('owner.') ||
     path.startsWith('issuer.');
-
-Map<String, dynamic> _losslessExtractionValues(
-  MedicalDocumentExtractionEntity extraction,
-) {
-  final values = _deepCopyMap(extraction.rawExtraction);
-  values.remove('warnings');
-  values.remove('warning');
-  values.remove('advertencias');
-  values.remove('advertencia');
-  values['documentType'] = extraction.documentType.label;
-  values['additionalFields'] = _deepCopyMap(extraction.additionalFields);
-  return values;
-}
 
 SharedFileAnalysisSectionEntity? _uncataloguedSection(
   MedicalFieldCatalog catalog,
@@ -523,23 +538,6 @@ bool _isCataloguedPath(List<String> rawPath, MedicalFieldCatalog catalog) {
   return false;
 }
 
-Map<String, dynamic> _deepCopyMap(Map<String, dynamic> values) => {
-  for (final entry in values.entries) entry.key: _deepCopyValue(entry.value),
-};
-
-Object? _deepCopyValue(Object? value) {
-  if (value is Map) {
-    return {
-      for (final entry in value.entries)
-        entry.key.toString(): _deepCopyValue(entry.value),
-    };
-  }
-  if (value is Iterable) {
-    return value.map(_deepCopyValue).toList(growable: false);
-  }
-  return value;
-}
-
 Map<String, dynamic> _extractionValues(
   MedicalDocumentExtractionEntity extraction,
 ) {
@@ -588,11 +586,18 @@ Map<String, dynamic> _extractionValues(
   }
 
   return {
+    ...extraction.rawExtraction,
     ...extraction.preservedUnknownFields,
     'documentType': extraction.documentType.label,
     if (extraction.documentTypeConfidence != null)
       'documentTypeConfidence': extraction.documentTypeConfidence,
     if (extraction.summary != null) 'summary': extraction.summary,
+    if (extraction.reportedSummary != null)
+      'reportedSummary': extraction.reportedSummary,
+    if (extraction.reportedRecommendations != null)
+      'reportedRecommendations': extraction.reportedRecommendations,
+    if (extraction.reportedObservations != null)
+      'reportedObservations': extraction.reportedObservations,
     if (extraction.documentDate != null)
       'documentDate': extraction.documentDate,
     if (extraction.issuer != null) 'issuer': extraction.issuer,
@@ -618,5 +623,12 @@ Map<String, dynamic> _extractionValues(
         .map(item)
         .toList(growable: false),
     'additionalFields': extraction.additionalFields,
-  };
+  }..removeWhere(
+    (key, _) =>
+        (key == 'reportedSummary' && extraction.reportedSummary == null) ||
+        (key == 'reportedRecommendations' &&
+            extraction.reportedRecommendations == null) ||
+        (key == 'reportedObservations' &&
+            extraction.reportedObservations == null),
+  );
 }

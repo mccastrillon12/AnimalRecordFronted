@@ -40,7 +40,7 @@ class SharedFilesRepositoryImpl implements SharedFilesRepository {
   }
 
   @override
-  Future<void> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
+  Future<bool> exportAnalysisPdf(SharedFileAnalysisEntity analysis) {
     return exportDataSource.exportAnalysisPdf(analysis);
   }
 

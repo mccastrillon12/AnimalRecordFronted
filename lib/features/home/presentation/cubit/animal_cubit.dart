@@ -207,7 +207,7 @@ class AnimalCubit extends Cubit<AnimalState> {
     } catch (e) {
       emit(
         AnimalError(
-          'Error inesperado: ${e.toString()}',
+          'Error inesperado: ${e.toString()}.',
           existingAnimals: _animals,
         ),
       );
@@ -256,7 +256,7 @@ class AnimalCubit extends Cubit<AnimalState> {
     } catch (e) {
       emit(
         AnimalError(
-          'Error inesperado: ${e.toString()}',
+          'Error inesperado: ${e.toString()}.',
           existingAnimals: _animals,
         ),
       );

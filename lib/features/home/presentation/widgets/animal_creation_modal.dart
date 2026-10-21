@@ -2,7 +2,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:uuid/uuid.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -19,10 +18,10 @@ import 'package:animal_record/core/widgets/inputs/custom_date_field.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
-import 'package:animal_record/core/widgets/media/animal_photo_cropper.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
@@ -294,7 +293,7 @@ class _AnimalCreationModalState extends State<AnimalCreationModal> {
         builder: (_) => ConfirmDialog(
           title: '¿Desea cancelar el proceso?',
           description: 'Perderá los datos diligenciados al momento.',
-          confirmLabel: 'Si',
+          confirmLabel: 'Sí',
           cancelLabel: 'No',
           width: 325,
           confirmColor: const Color(0xFFFA2844),
@@ -1183,6 +1182,8 @@ class _AnimalInfoStep extends StatelessWidget {
                                   child: CustomTextField(
                                     label: '',
                                     hint: '- kg',
+                                    suffixText: 'kg',
+                                    suffixTextWhenNotEmpty: true,
                                     controller: weightKgController,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
@@ -1205,7 +1206,7 @@ class _AnimalInfoStep extends StatelessWidget {
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
                                     patternErrorMessage:
-                                        'Solo se permiten números y comas',
+                                        'Solo se permiten números y comas.',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1219,6 +1220,8 @@ class _AnimalInfoStep extends StatelessWidget {
                                   child: CustomTextField(
                                     label: '',
                                     hint: '- lb',
+                                    suffixText: 'lb',
+                                    suffixTextWhenNotEmpty: true,
                                     controller: weightLbController,
                                     keyboardType:
                                         const TextInputType.numberWithOptions(
@@ -1241,7 +1244,7 @@ class _AnimalInfoStep extends StatelessWidget {
                                     strictValidation: true,
                                     allowPattern: RegExp(r'^[0-9,]+$'),
                                     patternErrorMessage:
-                                        'Solo se permiten números y comas',
+                                        'Solo se permiten números y comas.',
                                     hideErrorText: true,
                                     onErrorChanged: (error) {
                                       if (weightErrorText != error) {
@@ -1287,7 +1290,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<String>(
                               value: 'si',
                               groupValue: hasIdentification,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onHasIdentificationChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
@@ -1335,7 +1338,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<String>(
                               value: 'si',
                               groupValue: belongsToAssociation,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onBelongsToAssociationChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
@@ -1373,7 +1376,7 @@ class _AnimalInfoStep extends StatelessWidget {
                             CustomRadioButton<bool>(
                               value: true,
                               groupValue: isAdopted,
-                              label: 'Si',
+                              label: 'Sí',
                               onChanged: onIsAdoptedChanged,
                             ),
                             const SizedBox(width: AppSpacing.xxxl),
@@ -1496,21 +1499,8 @@ class _AnimalInfoStep extends StatelessWidget {
               Positioned(
                 top: AppSpacing.xs,
                 right: AppSpacing.xs,
-                child: GestureDetector(
+                child: AnimalPhotoEditButton(
                   onTap: () => _showImageSourceSheet(context),
-                  child: Container(
-                    width: AppSpacing.xl,
-                    height: AppSpacing.xl,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      borderRadius: AppBorders.small(),
-                    ),
-                    child: const Icon(
-                      Icons.edit,
-                      color: Colors.white,
-                      size: AppSpacing.m,
-                    ),
-                  ),
                 ),
               ),
             ],
@@ -1521,95 +1511,11 @@ class _AnimalInfoStep extends StatelessWidget {
   }
 
   void _showImageSourceSheet(BuildContext context) {
-    final picker = ImagePicker();
-    final hasPhoto = selectedPhotoPath != null;
-
-    showModalBottomSheet(
+    showAnimalPhotoSourceSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (sheetContext) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 16),
-                  decoration: BoxDecoration(
-                    color: AppColors.greyBordes,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const Text(
-                  'Foto del animal',
-                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16),
-                ),
-                const SizedBox(height: 16),
-                ListTile(
-                  leading: const Icon(Icons.camera_alt_outlined),
-                  title: const Text('Tomar foto'),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    final picked = await picker.pickImage(
-                      source: ImageSource.camera,
-                      maxWidth: 1920,
-                      maxHeight: 1920,
-                      imageQuality: 95,
-                    );
-                    if (picked != null && context.mounted) {
-                      final croppedPath = await showAnimalPhotoCropper(
-                        context,
-                        imagePath: picked.path,
-                      );
-                      if (croppedPath != null) onPhotoSelected(croppedPath);
-                    }
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.photo_library_outlined),
-                  title: const Text('Elegir de la galería'),
-                  onTap: () async {
-                    Navigator.pop(sheetContext);
-                    final picked = await picker.pickImage(
-                      source: ImageSource.gallery,
-                      maxWidth: 1920,
-                      maxHeight: 1920,
-                      imageQuality: 95,
-                    );
-                    if (picked != null && context.mounted) {
-                      final croppedPath = await showAnimalPhotoCropper(
-                        context,
-                        imagePath: picked.path,
-                      );
-                      if (croppedPath != null) onPhotoSelected(croppedPath);
-                    }
-                  },
-                ),
-                if (hasPhoto)
-                  ListTile(
-                    leading: const Icon(
-                      Icons.delete_outline,
-                      color: AppColors.error,
-                    ),
-                    title: const Text(
-                      'Eliminar foto',
-                      style: TextStyle(color: AppColors.error),
-                    ),
-                    onTap: () {
-                      Navigator.pop(sheetContext);
-                      onPhotoRemoved();
-                    },
-                  ),
-              ],
-            ),
-          ),
-        );
-      },
+      hasPhoto: selectedPhotoPath != null,
+      onPhotoSelected: onPhotoSelected,
+      onPhotoRemoved: onPhotoRemoved,
     );
   }
 
@@ -1819,6 +1725,7 @@ class _AdditionalInfoStep extends StatelessWidget {
                           selectedItems: selectedTemperaments,
                           isInline: true,
                           searchable: false,
+                          closeOnSelection: true,
                           items: temperamentOptions.map((t) => t.name).toList(),
                           itemAsString: (item) => item,
                           onChanged: onTemperamentsChanged,

@@ -254,7 +254,7 @@ void main() {
       expect(
         result,
         const Left<Failure, void>(
-          ServerFailure('Error inesperado: Exception: falló S3'),
+          ServerFailure('Error inesperado: Exception: falló S3.'),
         ),
       );
     },

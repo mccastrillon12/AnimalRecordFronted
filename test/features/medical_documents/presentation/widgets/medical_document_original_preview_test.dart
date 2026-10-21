@@ -16,6 +16,7 @@ import 'package:animal_record/features/shared_files/domain/entities/shared_file_
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:pdf/widgets.dart' as pw;
 import 'package:pdfrx/pdfrx.dart';
 
 void main() {
@@ -114,7 +115,7 @@ void main() {
     expect(fileSaver.request?.mimeType, 'image/png');
     expect(fileSaver.request?.bytes, image.bytes);
     expect(fileSaver.request?.remoteUri, isNull);
-    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    expect(find.text('Se descargó correctamente.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 
@@ -129,6 +130,15 @@ void main() {
         _DownloadOnlyRepository(),
       ),
       saveOriginalUseCase: SaveMedicalDocumentOriginalUseCase(fileSaver),
+    );
+    final document = pw.Document()
+      ..addPage(pw.Page(build: (_) => pw.SizedBox()));
+    final pdf = SharedFileEntity(
+      path: '',
+      name: 'formula.pdf',
+      mimeType: 'application/pdf',
+      type: SharedFileType.pdf,
+      bytes: await document.save(),
     );
 
     await tester.pumpWidget(
@@ -150,9 +160,8 @@ void main() {
                 builder: (context) => TextButton(
                   onPressed: () => preview.show(
                     context,
-                    acceptedDocumentId: 'document-1',
-                    fileName: 'formula.pdf',
-                    mimeType: 'application/pdf',
+                    localFile: pdf,
+                    mimeType: pdf.mimeType,
                     closeIconKey: closeIconKey,
                     downloadIconKey: downloadIconKey,
                   ),
@@ -209,11 +218,9 @@ void main() {
 
     expect(fileSaver.request?.fileName, 'formula.pdf');
     expect(fileSaver.request?.mimeType, 'application/pdf');
-    expect(
-      fileSaver.request?.remoteUri,
-      Uri.parse('https://example.test/original'),
-    );
-    expect(find.text('Se descargo correctamente'), findsOneWidget);
+    expect(fileSaver.request?.bytes, pdf.bytes);
+    expect(fileSaver.request?.remoteUri, isNull);
+    expect(find.text('Se descargó correctamente.'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
   });
 }
@@ -283,7 +290,17 @@ class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   ) => throw UnimplementedError();
 
   @override
+  Future<MedicalDocumentEntity> analyzeReplacement(
+    String documentId,
+    AnalyzeMedicalDocumentReplacementRequest request,
+  ) => throw UnimplementedError();
+
+  @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
+      throw UnimplementedError();
+
+  @override
+  Future<List<MedicalDocumentEntity>> getRelatedDocuments(String documentId) =>
       throw UnimplementedError();
 
   @override
@@ -301,9 +318,22 @@ class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   ) => throw UnimplementedError();
 
   @override
+  Future<List<MedicalDocumentEntity>> reviewReplacement(
+    String documentId,
+    ReviewMedicalDocumentReplacementRequest request,
+  ) => throw UnimplementedError();
+
+  @override
   Future<List<MedicalDocumentEntity>> getByAnimal(
     String animalId, {
     MedicalDocumentCategory? category,
     bool forceRefresh = false,
   }) => throw UnimplementedError();
+
+  @override
+  Future<void> deleteDocument(
+    String animalId,
+    String documentId,
+    int documentVersion,
+  ) => throw UnimplementedError();
 }

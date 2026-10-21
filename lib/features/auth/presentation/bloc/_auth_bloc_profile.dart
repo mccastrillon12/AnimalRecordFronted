@@ -111,7 +111,7 @@ Future<void> _onUpdateProfilePicture(
     emit(
       currentState.copyWith(
         isUploadingPicture: false,
-        profilePictureError: 'Error inesperado: ${e.toString()}',
+        profilePictureError: 'Error inesperado: ${e.toString()}.',
       ),
     );
   }
@@ -159,7 +159,7 @@ Future<void> _onDeleteProfilePicture(
     emit(
       currentState.copyWith(
         isUploadingPicture: false,
-        profilePictureError: 'Error inesperado: ${e.toString()}',
+        profilePictureError: 'Error inesperado: ${e.toString()}.',
       ),
     );
   }
