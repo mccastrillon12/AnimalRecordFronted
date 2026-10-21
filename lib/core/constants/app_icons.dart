@@ -2,7 +2,18 @@ class AppIcons {
   static const String arrowLeft = 'assets/icons/arrow-left.svg';
   static const String arrowRight = 'assets/icons/arrow-right.svg';
   static const String close = 'assets/icons/close.svg'; // If it exists
-  
+  static const String magicStar = 'assets/icons/magic-star.svg';
+  static const String clipboardImport = 'assets/icons/clipboard-import.svg';
+  static const String documentUpload = 'assets/icons/document-upload.svg';
+  static const String export = 'assets/icons/export.svg';
+  static const String receiveSquare =
+      'assets/icons/vuesax-bold-receive-square.svg';
+  static const String folderFavorite = 'assets/icons/folder-favorite.svg';
+  static const String vaccineShield = 'assets/icons/Vector.svg';
+  static const String vaccinationCardBackground = 'assets/icons/Group 2009.svg';
+  static const String vaccinationCertificateBackground =
+      'assets/illustrations/R.svg';
+
   static const String boldPeople = 'assets/icons/bold-people.svg';
   static const String edit = 'assets/icons/Edit.svg';
   static const String boldFrame = 'assets/icons/bold-frame.svg';

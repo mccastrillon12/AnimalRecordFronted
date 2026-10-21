@@ -1,9 +1,13 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:pdfrx/pdfrx.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
+import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
@@ -29,11 +33,22 @@ import 'package:animal_record/features/auth/presentation/pages/forgot_pin_screen
 import 'package:animal_record/features/auth/presentation/pages/reset_pin_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_detail_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_info_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_clinical_history_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_vaccinations_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_documents_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_file_records_screen.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_screen.dart';
 import 'package:animal_record/features/diary/presentation/pages/animal_diary_create_screen.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:animal_record/features/shared_files/presentation/navigation/shared_file_upload_route.dart';
+import 'package:animal_record/features/shared_files/presentation/pages/shared_file_analysis_review_screen.dart';
+import 'package:animal_record/features/shared_files/domain/entities/shared_file_analysis_entity.dart';
+import 'package:animal_record/features/shared_files/presentation/widgets/shared_files_navigation_coordinator.dart';
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -55,6 +70,9 @@ Future<void> main() async {
   await deepLinkService.initDeepLinks(navigatorKey);
 
   runApp(const MyApp());
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    unawaited(pdfrxFlutterInitialize(dismissPdfiumWasmWarnings: true));
+  });
 }
 
 class MyApp extends StatelessWidget {
@@ -69,17 +87,36 @@ class MyApp extends StatelessWidget {
         BlocProvider(create: (context) => di.sl<AnimalCubit>()),
         BlocProvider(create: (context) => di.sl<CatalogsCubit>()),
         BlocProvider(create: (context) => di.sl<DiaryCubit>()),
+        BlocProvider(
+          create: (context) => di.sl<SharedFilesCubit>()..initialize(),
+        ),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'AnimalRecord',
         theme: AppTheme.lightTheme,
         navigatorKey: navigatorKey,
+        builder: (context, child) => SharedFilesNavigationCoordinator(
+          navigatorKey: navigatorKey,
+          child: child ?? const SizedBox.shrink(),
+        ),
         initialRoute: AppRoutes.splash,
+        onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.sharedFileUpload) {
+            return buildSharedFileUploadRoute(settings);
+          }
+          return null;
+        },
         routes: {
           AppRoutes.splash: (context) => const SplashScreen(),
           AppRoutes.login: (context) => const LoginScreen(),
-          AppRoutes.home: (context) => const HomeScreen(),
+          AppRoutes.home: (context) {
+            final arguments = ModalRoute.of(context)?.settings.arguments;
+            final initialSection = arguments is Map
+                ? arguments[homeInitialSectionArgument] as String?
+                : null;
+            return HomeScreen(initialSection: initialSection);
+          },
           AppRoutes.profile: (context) => const ProfileScreen(),
           AppRoutes.editProfile: (context) => const EditProfileScreen(),
           AppRoutes.myAccount: (context) => const MyAccountScreen(),
@@ -113,6 +150,30 @@ class MyApp extends StatelessWidget {
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
             return AnimalInfoScreen(animal: animal);
           },
+          AppRoutes.animalClinicalHistory: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.clinicalHistory,
+                ),
+              child: AnimalClinicalHistoryScreen(animal: animal),
+            );
+          },
+          AppRoutes.animalVaccinations: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.vaccinationCard,
+                ),
+              child: AnimalVaccinationsScreen(animal: animal),
+            );
+          },
           AppRoutes.animalDiary: (context) {
             final animal =
                 ModalRoute.of(context)!.settings.arguments as AnimalModel;
@@ -122,7 +183,7 @@ class MyApp extends StatelessWidget {
             final args = ModalRoute.of(context)!.settings.arguments;
             AnimalModel animal;
             DiaryEntryEntity? entry;
-            
+
             if (args is AnimalModel) {
               animal = args;
             } else if (args is Map<String, dynamic>) {
@@ -131,8 +192,75 @@ class MyApp extends StatelessWidget {
             } else {
               throw Exception('Invalid arguments for animalDiaryCreate route');
             }
-            
+
             return AnimalDiaryCreateScreen(animal: animal, entry: entry);
+          },
+          AppRoutes.sharedFileAnalysisReview: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileAnalysisReviewScreen(analysis: analysis);
+          },
+          AppRoutes.sharedFileSend: (context) {
+            final analysis =
+                ModalRoute.of(context)!.settings.arguments
+                    as SharedFileAnalysisEntity;
+            return SharedFileSendScreen(analysis: analysis);
+          },
+          AppRoutes.animalDocuments: (context) {
+            final arguments = ModalRoute.of(context)!.settings.arguments;
+            final animalId = arguments is String
+                ? arguments
+                : (arguments as Map)['animalId'] as String;
+            final animal =
+                arguments is Map && arguments['animal'] is AnimalModel
+                ? arguments['animal'] as AnimalModel
+                : null;
+            final initialCategory =
+                arguments is Map &&
+                    arguments['initialCategory'] is MedicalDocumentCategory
+                ? arguments['initialCategory'] as MedicalDocumentCategory
+                : MedicalDocumentCategory.prescription;
+            return BlocProvider(
+              create: (_) =>
+                  di.sl<AnimalMedicalDocumentsCubit>()
+                    ..load(animalId, category: initialCategory),
+              child: AnimalDocumentsScreen(
+                animalId: animalId,
+                animal: animal,
+                initialCategory: initialCategory,
+              ),
+            );
+          },
+          AppRoutes.animalDiagnosticImages: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.diagnosticImage,
+                ),
+              child: AnimalFileRecordsScreen(
+                animal: animal,
+                section: AnimalFileRecordSection.diagnosticImages,
+              ),
+            );
+          },
+          AppRoutes.animalLaboratoryResults: (context) {
+            final animal =
+                ModalRoute.of(context)!.settings.arguments as AnimalModel;
+            return BlocProvider(
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animal.id,
+                  category: MedicalDocumentCategory.laboratoryResult,
+                ),
+              child: AnimalFileRecordsScreen(
+                animal: animal,
+                section: AnimalFileRecordSection.laboratoryResults,
+              ),
+            );
           },
         },
       ),

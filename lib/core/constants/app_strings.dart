@@ -5,10 +5,10 @@ class AppStrings {
 
   // ── Validation errors ─────────────────────────────────────────────────────
   static const String emailError =
-      'Introduzca una dirección de correo electrónico válida';
+      'Introduzca una dirección de correo electrónico válida.';
 
   static const String phoneError =
-      'Introduzca su número de celular en el formato XXX-XXX-XX-XX';
+      'Introduzca su número de celular en el formato XXX-XXX-XX-XX.';
 
-  static const String requiredField = 'Requerido';
+  static const String requiredField = 'Requerido.';
 }

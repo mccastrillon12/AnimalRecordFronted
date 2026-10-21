@@ -77,7 +77,7 @@ class _EditNameDialogState extends State<EditNameDialog> {
         hint: 'Ingresa el nombre',
         enabled: canEdit,
         maxLength: 50,
-        textCapitalization: TextCapitalization.sentences,
+        textCapitalization: TextCapitalization.words,
         strictValidation: true,
         allowPattern: RegExp(r'^[a-zA-ZÀ-ÿ0-9\s.,´]+$'),
       ),

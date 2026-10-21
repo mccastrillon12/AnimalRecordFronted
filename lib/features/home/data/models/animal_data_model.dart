@@ -1,3 +1,4 @@
+import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 
 /// Data model for Animal with JSON serialization.
@@ -46,7 +47,7 @@ class AnimalDataModel extends AnimalEntity {
   factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
     return AnimalDataModel(
       id: json['id'] as String,
-      name: json['name'] as String,
+      name: StringFormatters.formatName(json['name'] as String),
       code: json['code'] as String?,
       species: json['species'] as String,
       breed: json['breed'] as String? ?? '',
@@ -55,17 +56,18 @@ class AnimalDataModel extends AnimalEntity {
       birthdate: (json['birthdate'] ?? json['birthDate']) as String?,
       hasChip: json['hasChip'] as bool? ?? false,
       isAssociationMember: json['isAssociationMember'] as bool? ?? false,
-      temperament: (json['temperament'] as List<dynamic>?)
+      temperament:
+          (json['temperament'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
-      diagnosis: (json['diagnosis'] as List<dynamic>?)
+      diagnosis:
+          (json['diagnosis'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
       ownerId: json['ownerId'] as String? ?? '',
-      profilePictureUrl:
-          json['profilePictureUrl'] as String?,
+      profilePictureUrl: json['profilePictureUrl'] as String?,
       weight: (json['weight'] as num?)?.toDouble(),
       colorAndMarkings: json['colorAndMarkings'] as String?,
       allergies: json['allergies'] as String?,
@@ -76,7 +78,8 @@ class AnimalDataModel extends AnimalEntity {
       birthCondition: json['birthCondition'] as String?,
       identificationType: json['identificationType'] as String?,
       identificationNumber: json['identificationNumber'] as String?,
-      registrationAssociations: (json['registrationAssociations'] as List<dynamic>?)
+      registrationAssociations:
+          (json['registrationAssociations'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList(),
       isAdopted: json['isAdopted'] as bool?,
@@ -84,21 +87,25 @@ class AnimalDataModel extends AnimalEntity {
       adoptionPlaceName: json['adoptionPlaceName'] as String?,
       otherDiagnosisDetail: json['otherDiagnosisDetail'] as String?,
       unknownBirthDate: json['unknownBirthDate'] as bool? ?? false,
-      approximateAgeMinMonths: (json['approximateAgeMinMonths'] as num?)?.toInt(),
-      approximateAgeMaxMonths: (json['approximateAgeMaxMonths'] as num?)?.toInt(),
+      approximateAgeMinMonths: (json['approximateAgeMinMonths'] as num?)
+          ?.toInt(),
+      approximateAgeMaxMonths: (json['approximateAgeMaxMonths'] as num?)
+          ?.toInt(),
       isActive: json['isActive'] as bool? ?? true,
       deactivationReason: json['deactivationReason'] as String?,
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
       ownerName: json['ownerName'] as String?,
-      nameHistory: (json['nameHistory'] as List<dynamic>?)?.map((e) {
-        final item = e as Map<String, dynamic>;
-        return NameHistoryItem(
-          id: item['_id']?.toString() ?? '',
-          name: item['name']?.toString() ?? '',
-          date: item['date']?.toString() ?? '',
-        );
-      }).toList() ?? [],
+      nameHistory:
+          (json['nameHistory'] as List<dynamic>?)?.map((e) {
+            final item = e as Map<String, dynamic>;
+            return NameHistoryItem(
+              id: item['_id']?.toString() ?? '',
+              name: StringFormatters.formatName(item['name']?.toString() ?? ''),
+              date: item['date']?.toString() ?? '',
+            );
+          }).toList() ??
+          [],
     );
   }
 
@@ -127,25 +134,28 @@ class AnimalDataModel extends AnimalEntity {
       if (birthType != null) 'birthType': birthType,
       if (birthCondition != null) 'birthCondition': birthCondition,
       if (identificationType != null) 'identificationType': identificationType,
-      if (identificationNumber != null) 'identificationNumber': identificationNumber,
-      if (registrationAssociations != null) 'registrationAssociations': registrationAssociations,
+      if (identificationNumber != null)
+        'identificationNumber': identificationNumber,
+      if (registrationAssociations != null)
+        'registrationAssociations': registrationAssociations,
       if (isAdopted != null) 'isAdopted': isAdopted,
       if (adoptionSource != null) 'adoptionSource': adoptionSource,
       if (adoptionPlaceName != null) 'adoptionPlaceName': adoptionPlaceName,
-      if (otherDiagnosisDetail != null) 'otherDiagnosisDetail': otherDiagnosisDetail,
+      if (otherDiagnosisDetail != null)
+        'otherDiagnosisDetail': otherDiagnosisDetail,
       'unknownBirthDate': unknownBirthDate,
-      if (approximateAgeMinMonths != null) 'approximateAgeMinMonths': approximateAgeMinMonths,
-      if (approximateAgeMaxMonths != null) 'approximateAgeMaxMonths': approximateAgeMaxMonths,
+      if (approximateAgeMinMonths != null)
+        'approximateAgeMinMonths': approximateAgeMinMonths,
+      if (approximateAgeMaxMonths != null)
+        'approximateAgeMaxMonths': approximateAgeMaxMonths,
       'isActive': isActive,
       if (deactivationReason != null) 'deactivationReason': deactivationReason,
       if (createdAt != null) 'createdAt': createdAt,
       if (updatedAt != null) 'updatedAt': updatedAt,
       if (ownerName != null) 'ownerName': ownerName,
-      'nameHistory': nameHistory.map((e) => {
-        '_id': e.id,
-        'name': e.name,
-        'date': e.date,
-      }).toList(),
+      'nameHistory': nameHistory
+          .map((e) => {'_id': e.id, 'name': e.name, 'date': e.date})
+          .toList(),
     };
   }
 }

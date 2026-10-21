@@ -59,14 +59,15 @@ void main() {
       },
     );
 
-    test('toJson debe devolver un mapa JSON con los datos correctos', () {
+    test('toJson debe devolver el payload esperado por la API', () {
       final result = tUserModel.toJson();
 
       final expectedMap = {
         'id': '1',
         'name': 'Test User',
-        'identificationType': 'CC',
+        'identificationType': 'cc',
         'identificationNumber': '12345',
+        'countryId': 'CO',
         'country': 'Colombia',
         'departmentId': '11',
         'city': 'Bogota',
@@ -79,7 +80,6 @@ void main() {
         'isHomeDelivery': true,
         'roles': ['Veterinario'],
         'authMethod': 'EMAIL',
-        'isVerified': true,
       };
 
       expect(result, expectedMap);

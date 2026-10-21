@@ -48,6 +48,26 @@ class UserEntity extends Equatable {
     this.securityLastUpdated,
   });
 
+  factory UserEntity.empty() => const UserEntity(
+    id: '',
+    name: '',
+    identificationType: '',
+    identificationNumber: '',
+    country: '',
+    countryId: '',
+    departmentId: '',
+    city: '',
+    cityId: '',
+    email: '',
+    cellPhone: '',
+    animalTypes: [],
+    services: [],
+    isHomeDelivery: false,
+    roles: [],
+    authMethod: '',
+    isVerified: false,
+  );
+
   @override
   List<Object?> get props => [
     id,

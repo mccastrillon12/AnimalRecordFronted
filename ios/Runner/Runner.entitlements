@@ -14,5 +14,9 @@
 	<array>
 		<string>applinks:animalrecord.app</string>
 	</array>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.com.animalRecord.animalRecord.shared</string>
+	</array>
 </dict>
 </plist>

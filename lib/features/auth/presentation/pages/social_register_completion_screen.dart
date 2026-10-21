@@ -390,7 +390,7 @@ class _SocialRegisterCompletionViewState
                                 onIdTypeChanged:
                                     cubit.identificationTypeChanged,
                                 errorText: registerState.idError
-                                    ? 'ID ya registrado'
+                                    ? 'ID ya registrado.'
                                     : (registerState.isIdAttempted &&
                                               registerState
                                                   .identificationNumber
@@ -424,7 +424,7 @@ class _SocialRegisterCompletionViewState
                                   FilteringTextInputFormatter.digitsOnly,
                                 ],
                                 errorText: registerState.phoneError
-                                    ? 'Celular ya registrado'
+                                    ? 'Celular ya registrado.'
                                     : (registerState.isPhoneAttempted &&
                                               registerState.phone.isNotValid &&
                                               registerState
@@ -496,13 +496,9 @@ class _SocialRegisterCompletionViewState
                               ],
                             ),
                             const SizedBox(height: AppSpacing.l),
-                            SizedBox(
-                              height:
-                                  MediaQuery.of(context).viewInsets.bottom > 0
-                                  ? (MediaQuery.of(context).viewInsets.bottom -
-                                            84)
-                                        .clamp(40.0, double.infinity)
-                                  : 40,
+                            const KeyboardSpacer(
+                              keyboardVisibleHeight: 20,
+                              keyboardHiddenHeight: 40,
                             ),
                           ],
                         ),

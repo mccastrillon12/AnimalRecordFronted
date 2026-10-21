@@ -16,6 +16,8 @@ import 'package:animal_record/features/auth/presentation/pages/pin_entry_screen.
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:animal_record/core/services/microsoft_auth_service.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class BiometricLockScreen extends StatefulWidget {
   const BiometricLockScreen({super.key});
@@ -82,7 +84,7 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
   Future<void> _authenticate() async {
     try {
       final bool didAuthenticate = await auth.authenticate(
-        localizedReason: 'Por favor autentícate para acceder',
+        localizedReason: 'Por favor, autentícate para acceder.',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,
@@ -90,13 +92,15 @@ class _BiometricLockScreenState extends State<BiometricLockScreen>
       );
 
       if (didAuthenticate && mounted) {
+        final sharedFiles = context.read<SharedFilesCubit>();
+        sharedFiles.grantAccess();
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } on PlatformException catch (e) {
       if (e.code == auth_error.notAvailable ||
           e.code == auth_error.notEnrolled) {
         if (mounted) {
-          ErrorDisplay.showError(context, 'Biometría no disponible');
+          ErrorDisplay.showError(context, 'Biometría no disponible.');
         }
       }
     }

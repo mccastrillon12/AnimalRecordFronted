@@ -82,7 +82,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
   void _handleChange() {
     if (_newPin != _confirmPin) {
       setState(() {
-        _errorMessage = 'Los PINs nuevos no coinciden';
+        _errorMessage = 'Los PINs nuevos no coinciden.';
       });
       return;
     }
@@ -103,7 +103,7 @@ class _ChangePinScreenState extends State<ChangePinScreen> {
           setState(() => _errorMessage = state.updateError);
         }
         if (state is AuthSuccess && state.pinChangeSuccess) {
-          ErrorDisplay.showSuccess(context, 'PIN cambiado exitosamente');
+          ErrorDisplay.showSuccess(context, 'PIN cambiado exitosamente.');
           Navigator.pop(context);
         }
       },

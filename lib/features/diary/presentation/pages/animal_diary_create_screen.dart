@@ -18,6 +18,7 @@ import 'package:animal_record/features/home/presentation/models/animal_model.dar
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
+import 'package:animal_record/features/diary/domain/entities/local_attachment.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:animal_record/core/widgets/media/image_preview_dialog.dart';
@@ -598,7 +599,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
             ),
             const SizedBox(height: 8),
             TextField(
+              key: const Key('diary-title-field'),
               controller: _titleController,
+              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               maxLength: 50,
               maxLengthEnforcement: MaxLengthEnforcement.none,
               buildCounter:
@@ -678,7 +681,9 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
             // ── Content field ───────────────────────────────────
             TextField(
+              key: const Key('diary-content-field'),
               controller: _contentController,
+              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
               maxLines: 8,
               maxLength: 500,
               maxLengthEnforcement: MaxLengthEnforcement.none,

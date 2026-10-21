@@ -11,6 +11,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_event.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/main.dart';
+import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -57,7 +58,9 @@ class _SplashScreenState extends State<SplashScreen> {
             if (mounted && !_hasNavigated) {
               // If a deep link is pending (e.g. reset-password cold start),
               // let DeepLinkService handle navigation and skip the normal flow.
-              final handled = await DeepLinkService().consumePendingLink(navigatorKey);
+              final handled = await DeepLinkService().consumePendingLink(
+                navigatorKey,
+              );
               if (!handled) {
                 if (mounted) {
                   setState(() => _hasNavigated = true);
@@ -69,6 +72,8 @@ class _SplashScreenState extends State<SplashScreen> {
                       ),
                     );
                   } else {
+                    final sharedFiles = context.read<SharedFilesCubit>();
+                    sharedFiles.grantAccess();
                     Navigator.pushReplacementNamed(context, AppRoutes.home);
                   }
                 }
@@ -81,6 +86,9 @@ class _SplashScreenState extends State<SplashScreen> {
           });
         } else if (state is AuthError || state is AuthUnauthenticated) {
           if (!_hasNavigated) {
+            context.read<SharedFilesCubit>()
+              ..revokeAccess()
+              ..clear();
             // If a deep link is pending, handle it instead of showing login.
             DeepLinkService().consumePendingLink(navigatorKey).then((handled) {
               if (!handled) {

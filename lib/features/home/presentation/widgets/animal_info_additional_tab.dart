@@ -76,6 +76,7 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
             selectedItems: selectedTemperaments,
             isInline: true,
             searchable: false,
+            closeOnSelection: true,
             items: temperamentOptions.map((t) => t.name).toList(),
             itemAsString: (item) => item,
             onChanged: readOnly ? (_) {} : onTemperamentsChanged,
@@ -106,7 +107,9 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
               child: CustomCheckbox(
                 value: entry.value,
                 label: entry.key,
-                onChanged: readOnly ? null : (v) => onDiagnosisChanged(entry.key, v),
+                onChanged: readOnly
+                    ? null
+                    : (v) => onDiagnosisChanged(entry.key, v),
               ),
             ),
           ),
@@ -186,8 +189,10 @@ class AnimalInfoAdditionalTab extends StatelessWidget {
           const SizedBox(height: 8),
           if (MediaQuery.of(context).viewInsets.bottom > 0)
             SizedBox(
-              height: (MediaQuery.of(context).viewInsets.bottom - 70)
-                  .clamp(0, double.infinity),
+              height: (MediaQuery.of(context).viewInsets.bottom - 70).clamp(
+                0,
+                double.infinity,
+              ),
             ),
         ],
       ),

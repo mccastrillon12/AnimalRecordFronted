@@ -4,6 +4,41 @@
 <dict>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDocumentTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Archivos PDF</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>com.adobe.pdf</string>
+			</array>
+		</dict>
+		<dict>
+			<key>CFBundleTypeName</key>
+			<string>Imágenes</string>
+			<key>CFBundleTypeRole</key>
+			<string>Viewer</string>
+			<key>LSHandlerRank</key>
+			<string>Alternate</string>
+			<key>LSItemContentTypes</key>
+			<array>
+				<string>public.image</string>
+				<string>public.jpeg</string>
+				<string>public.png</string>
+				<string>public.heic</string>
+				<string>public.heif</string>
+			</array>
+		</dict>
+	</array>
+	<key>LSSupportsOpeningDocumentsInPlace</key>
+	<true/>
+	<key>UIFileSharingEnabled</key>
+	<true/>
 	<key>NSFaceIDUsageDescription</key>
 	<string>Necesitamos tu rostro para iniciar sesión de forma segura</string>
 	<key>CFBundleDisplayName</key>
@@ -58,6 +93,7 @@
 			<array>
 				<string>com.googleusercontent.apps.506720941479-6md47nvgueco84t1dek9burt9gd6s8hi</string>
 				<string>msauth.com.animalRecord.animalRecord</string>
+				<string>animalrecord-share</string>
 			</array>
 		</dict>
 	</array>
@@ -70,6 +106,8 @@
 	<string>Esta aplicación requiere acceso a la cámara para tomar fotos de perfil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Esta aplicación requiere acceso a la galería para seleccionar fotos de perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Animal Record necesita guardar las imágenes descargadas en tu galería.</string>
 	<key>NSMicrophoneUsageDescription</key>
 	<string>Esta aplicación requiere acceso al micrófono para grabar videos si es necesario.</string>
 </dict>

@@ -37,14 +37,14 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
 
       if (!canAuthenticate) {
         if (mounted) {
-          _showSnackBar('Tu dispositivo no soporta biometría', isError: true);
+          _showSnackBar('Tu dispositivo no soporta biometría.', isError: true);
         }
         return;
       }
 
       final bool didAuthenticate = await auth.authenticate(
         localizedReason:
-            'Por favor autentícate para activar el ingreso biométrico',
+            'Por favor, autentícate para activar el ingreso biométrico.',
         options: const AuthenticationOptions(
           stickyAuth: true,
           biometricOnly: true,
@@ -65,14 +65,14 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
       if (mounted) {
         if (e.code == auth_error.notAvailable) {
           _showSnackBar(
-            'Biometría no disponible en este dispositivo',
+            'Biometría no disponible en este dispositivo.',
             isError: true,
           );
         } else if (e.code == auth_error.notEnrolled) {
-          _showSnackBar('No hay datos biométricos configurados', isError: true);
+          _showSnackBar('No hay datos biométricos configurados.', isError: true);
         } else {
           _showSnackBar(
-            'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+            'Ha habido un error y no se ha podido registrar correctamente la Biometría. Intente nuevamente.',
             isError: true,
           );
         }
@@ -80,7 +80,7 @@ class _BiometricActivationScreenState extends State<BiometricActivationScreen> {
     } catch (e) {
       if (mounted) {
         _showSnackBar(
-          'Ha habido un error y no se ha podido registrar correctamente la Biometría, intente nuevamente.',
+          'Ha habido un error y no se ha podido registrar correctamente la Biometría. Intente nuevamente.',
           isError: true,
         );
       }

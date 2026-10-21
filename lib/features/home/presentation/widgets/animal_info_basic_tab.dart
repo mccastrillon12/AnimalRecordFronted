@@ -11,6 +11,7 @@ import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/edit_name_dialog.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
 import 'package:animal_record/features/catalogs/domain/entities/catalog_item_entity.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
@@ -123,7 +124,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
-        alignment: Alignment.topCenter,
+        alignment: Alignment.center,
       );
     }
 
@@ -145,7 +146,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
         width: 96,
         height: 96,
         fit: BoxFit.cover,
-        alignment: Alignment.topCenter,
+        alignment: Alignment.center,
         errorBuilder: (_, _, _) => Center(
           child: SvgPicture.asset(
             _iconForFamily(animal.family),
@@ -191,26 +192,11 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       child: _buildPhotoContent(),
                     ),
                     if (!readOnly)
-                    Positioned(
-                      top: AppSpacing.xs,
-                      right: AppSpacing.xs,
-                      child: GestureDetector(
-                        onTap: onEditPhoto,
-                        child: Container(
-                          width: AppSpacing.xl,
-                          height: AppSpacing.xl,
-                          decoration: BoxDecoration(
-                            color: Colors.black.withValues(alpha: 0.6),
-                            borderRadius: AppBorders.small(),
-                          ),
-                          child: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: AppSpacing.m,
-                          ),
-                        ),
+                      Positioned(
+                        top: AppSpacing.xs,
+                        right: AppSpacing.xs,
+                        child: AnimalPhotoEditButton(onTap: onEditPhoto),
                       ),
-                    ),
                   ],
                 ),
                 const SizedBox(height: AppSpacing.m),
@@ -229,32 +215,32 @@ class AnimalInfoBasicTab extends StatelessWidget {
                       },
                     ),
                     if (!readOnly) ...[
-                    const SizedBox(width: AppSpacing.xxs),
-                    GestureDetector(
-                      onTap: () {
-                        final daysRemaining = _calculateDaysRemaining();
-                        
-                        showDialog(
-                          context: context,
-                          builder: (context) => EditNameDialog(
-                            currentName: nameController.text.isNotEmpty
-                                ? nameController.text
-                                : animal.name,
-                            daysRemaining: daysRemaining,
-                            onSave: (newName) {
-                              nameController.text = newName;
-                              // Trigger the API update for the name change
-                              onNameSaved?.call(newName);
-                            },
-                          ),
-                        );
-                      },
-                      child: const Icon(
-                        Icons.edit,
-                        size: AppSpacing.m,
-                        color: AppColors.greyBordes,
+                      const SizedBox(width: AppSpacing.xxs),
+                      GestureDetector(
+                        onTap: () {
+                          final daysRemaining = _calculateDaysRemaining();
+
+                          showDialog(
+                            context: context,
+                            builder: (context) => EditNameDialog(
+                              currentName: nameController.text.isNotEmpty
+                                  ? nameController.text
+                                  : animal.name,
+                              daysRemaining: daysRemaining,
+                              onSave: (newName) {
+                                nameController.text = newName;
+                                // Trigger the API update for the name change
+                                onNameSaved?.call(newName);
+                              },
+                            ),
+                          );
+                        },
+                        child: const Icon(
+                          Icons.edit,
+                          size: AppSpacing.m,
+                          color: AppColors.greyBordes,
+                        ),
                       ),
-                    ),
                     ],
                   ],
                 ),
@@ -306,10 +292,12 @@ class AnimalInfoBasicTab extends StatelessWidget {
 
           // Toggle fecha exacta
           GestureDetector(
-            onTap: readOnly ? null : () {
-              FocusManager.instance.primaryFocus?.unfocus();
-              onUnknownExactDateChanged(!unknownExactDate);
-            },
+            onTap: readOnly
+                ? null
+                : () {
+                    FocusManager.instance.primaryFocus?.unfocus();
+                    onUnknownExactDateChanged(!unknownExactDate);
+                  },
             child: Row(
               children: [
                 AnimatedContainer(
@@ -320,8 +308,8 @@ class AnimalInfoBasicTab extends StatelessWidget {
                     borderRadius: BorderRadius.circular(12),
                     color: unknownExactDate
                         ? (readOnly
-                            ? AppColors.primaryFrances.withValues(alpha: 0.6)
-                            : AppColors.primaryFrances)
+                              ? AppColors.primaryFrances.withValues(alpha: 0.6)
+                              : AppColors.primaryFrances)
                         : AppColors.greyDelineante,
                   ),
                   child: AnimatedAlign(
@@ -400,7 +388,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<String>(
                 value: 'si',
                 groupValue: hasIdentification,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onHasIdentificationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
@@ -446,7 +434,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<String>(
                 value: 'si',
                 groupValue: belongsToAssociation,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onBelongsToAssociationChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
@@ -483,7 +471,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
               CustomRadioButton<bool>(
                 value: true,
                 groupValue: isAdopted,
-                label: 'Si',
+                label: 'Sí',
                 onChanged: readOnly ? null : onIsAdoptedChanged,
               ),
               const SizedBox(width: AppSpacing.xxxl),
@@ -522,8 +510,10 @@ class AnimalInfoBasicTab extends StatelessWidget {
           const SizedBox(height: 8),
           if (MediaQuery.of(context).viewInsets.bottom > 0)
             SizedBox(
-              height: (MediaQuery.of(context).viewInsets.bottom - 70)
-                  .clamp(0, double.infinity),
+              height: (MediaQuery.of(context).viewInsets.bottom - 70).clamp(
+                0,
+                double.infinity,
+              ),
             ),
         ],
       ),
@@ -532,7 +522,7 @@ class AnimalInfoBasicTab extends StatelessWidget {
 
   int _calculateDaysRemaining() {
     if (animal.nameHistory.length <= 1) return 0;
-    
+
     DateTime? mostRecentDate;
     // Skip position 1 (index 0) since it's the creation name and doesn't trigger lockout
     for (var i = 1; i < animal.nameHistory.length; i++) {
@@ -549,11 +539,15 @@ class AnimalInfoBasicTab extends StatelessWidget {
     final now = DateTime.now();
     // Start of day calculation to avoid time-of-day precision issues
     final startOfToday = DateTime(now.year, now.month, now.day);
-    final startOfRecentDate = DateTime(mostRecentDate.year, mostRecentDate.month, mostRecentDate.day);
-    
+    final startOfRecentDate = DateTime(
+      mostRecentDate.year,
+      mostRecentDate.month,
+      mostRecentDate.day,
+    );
+
     final difference = startOfToday.difference(startOfRecentDate).inDays;
     final remaining = 30 - difference;
-    
+
     return remaining > 0 ? remaining : 0;
   }
 

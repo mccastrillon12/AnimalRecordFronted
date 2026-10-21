@@ -7,6 +7,13 @@ class AppColors {
   static const Color primaryWhite = Color(0xfffcfcfc);
 
   static const Color secondaryCoral = Color(0xFFF26F49);
+  static const Color aiViolet = Color(0xFF926AFF);
+
+  static const LinearGradient aiAnalysisGradient = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [Color(0xFFE7E0FD), Color(0xFFD9EAFF)],
+  );
 
   static const Color successEsmeralda = Color(0xFF02CC84);
   static const Color errorRojo = Color(0xFFFA2844);
