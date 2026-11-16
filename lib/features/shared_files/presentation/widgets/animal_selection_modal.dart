@@ -14,6 +14,8 @@ Future<List<AnimalEntity>?> showAnimalSelectionModal({
   required BuildContext context,
   required List<AnimalEntity> animals,
   required List<AnimalEntity> selectedAnimals,
+  String title = 'Seleccionar animales',
+  String continueLabel = 'Continuar',
 }) {
   return showDialog<List<AnimalEntity>>(
     context: context,
@@ -22,6 +24,8 @@ Future<List<AnimalEntity>?> showAnimalSelectionModal({
     builder: (_) => AnimalSelectionModal(
       animals: animals,
       selectedAnimals: selectedAnimals,
+      title: title,
+      continueLabel: continueLabel,
     ),
   );
 }
@@ -29,11 +33,15 @@ Future<List<AnimalEntity>?> showAnimalSelectionModal({
 class AnimalSelectionModal extends StatefulWidget {
   final List<AnimalEntity> animals;
   final List<AnimalEntity> selectedAnimals;
+  final String title;
+  final String continueLabel;
 
   const AnimalSelectionModal({
     super.key,
     required this.animals,
     required this.selectedAnimals,
+    this.title = 'Seleccionar animales',
+    this.continueLabel = 'Continuar',
   });
 
   @override
@@ -113,7 +121,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
   @override
   Widget build(BuildContext context) {
     return BaseModalCard(
-      title: 'Seleccionar animales',
+      title: widget.title,
       subtitle: Text(
         '${_selectedIds.length} seleccionados',
         style: AppTypography.body4.copyWith(color: AppColors.greyTextos),
@@ -126,7 +134,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
             key: const Key('animal-selection-continue-width'),
             constraints: const BoxConstraints(minWidth: 118),
             child: CustomButton(
-              text: 'Continuar',
+              text: widget.continueLabel,
               expandWidth: false,
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.s),
               onPressed: _selectedIds.isEmpty ? null : _continue,

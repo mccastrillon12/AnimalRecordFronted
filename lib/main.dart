@@ -8,6 +8,7 @@ import 'package:animal_record/features/auth/presentation/pages/login_screen.dart
 import 'package:animal_record/features/auth/presentation/pages/splash_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
+import 'package:animal_record/features/home/presentation/navigation/animal_transfer_navigation.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
@@ -102,6 +103,9 @@ class MyApp extends StatelessWidget {
         ),
         initialRoute: AppRoutes.splash,
         onGenerateRoute: (settings) {
+          if (settings.name == AppRoutes.animalTransfer) {
+            return buildAnimalTransferRoute(settings);
+          }
           if (settings.name == AppRoutes.sharedFileUpload) {
             return buildSharedFileUploadRoute(settings);
           }

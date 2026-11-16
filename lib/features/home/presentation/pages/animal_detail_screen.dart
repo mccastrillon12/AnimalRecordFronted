@@ -12,6 +12,7 @@ import 'package:animal_record/core/widgets/display/menu_item_row.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
+import 'package:animal_record/features/home/presentation/navigation/animal_transfer_navigation.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_creation_modal.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_photo_edit.dart';
@@ -417,7 +418,15 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
           iconPath: 'assets/icons/vuesax-bold-send-sqaure-2.svg',
           label: 'Transferir',
           enabled: currentAnimal.isActive,
-          onTap: () {},
+          onTap: () async {
+            if (_isOptionNavigationInProgress) return;
+            _isOptionNavigationInProgress = true;
+            try {
+              await openAnimalTransfer(context, animal: currentAnimal);
+            } finally {
+              _isOptionNavigationInProgress = false;
+            }
+          },
         ),
         const SizedBox(width: 74),
         _buildActionButton(

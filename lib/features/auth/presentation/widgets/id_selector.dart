@@ -24,6 +24,7 @@ class IdSelector extends StatelessWidget {
 
   /// Custom hint text for the number input. Defaults to '1234567890'.
   final String? hintText;
+  final TextStyle? labelStyle;
 
   const IdSelector({
     super.key,
@@ -37,6 +38,7 @@ class IdSelector extends StatelessWidget {
     this.idTypeEnabled = true,
     this.customLabel,
     this.hintText,
+    this.labelStyle,
   });
 
   static const List<String> _idTypes = ['C.C.', 'C.E.', 'Pasaporte'];
@@ -52,7 +54,10 @@ class IdSelector extends StatelessWidget {
           height: AppSpacing.labelHeight,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: Text(customLabel ?? 'Identificación', style: AppTypography.body6),
+            child: Text(
+              customLabel ?? 'Identificación',
+              style: labelStyle ?? AppTypography.body6,
+            ),
           ),
         ),
         const SizedBox(height: AppSpacing.inputTopPadding),
@@ -88,8 +93,7 @@ class IdSelector extends StatelessWidget {
                     height: AppSpacing.inputHeight,
                     child: TextFormField(
                       controller: controller,
-                      initialValue:
-                          controller == null ? initialValue : null,
+                      initialValue: controller == null ? initialValue : null,
                       onChanged: onChanged,
                       keyboardType: TextInputType.text,
                       inputFormatters: [
@@ -98,13 +102,13 @@ class IdSelector extends StatelessWidget {
                         ),
                       ],
                       maxLength: 50,
-                      buildCounter: (
-                        context, {
-                        required currentLength,
-                        required isFocused,
-                        maxLength,
-                      }) =>
-                          null,
+                      buildCounter:
+                          (
+                            context, {
+                            required currentLength,
+                            required isFocused,
+                            maxLength,
+                          }) => null,
                       style: AppTypography.body4,
                       decoration: InputDecoration(
                         hintText: hintText ?? '1234567890',
