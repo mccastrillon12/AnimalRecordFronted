@@ -120,6 +120,7 @@ flutter:
     - assets/Logo/
     - assets/icons/
     - assets/illustrations/
+    - assets/illustrations/add-friend-on-social-media.svg
     - assets/msal_config.json
 
   # An image asset can refer to one or more resolution-specific "variants", see

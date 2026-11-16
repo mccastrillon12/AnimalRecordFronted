@@ -15,6 +15,8 @@ class VerificationStep extends StatefulWidget {
   final int? initialTimeRemaining;
   final bool hasError;
   final String? errorMessage;
+  final bool enableSmsAutofill;
+  final bool autofocus;
 
   const VerificationStep({
     super.key,
@@ -26,6 +28,8 @@ class VerificationStep extends StatefulWidget {
     this.initialTimeRemaining,
     this.hasError = false,
     this.errorMessage,
+    this.enableSmsAutofill = true,
+    this.autofocus = true,
   });
 
   @override
@@ -49,7 +53,7 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
     _focusNode.addListener(_onFocusChange);
 
     // Start listening for SMS if the identifier is a phone number
-    if (!widget.identifier.contains('@')) {
+    if (widget.enableSmsAutofill && !widget.identifier.contains('@')) {
       listenForCode();
     }
   }
@@ -97,7 +101,7 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
   @override
   void dispose() {
     _timer?.cancel();
-    if (!widget.identifier.contains('@')) {
+    if (widget.enableSmsAutofill && !widget.identifier.contains('@')) {
       cancel(); // Cancel SmsAutoFill listener
     }
     _focusNode.removeListener(_onFocusChange);
@@ -112,6 +116,11 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
 
   bool isCodeComplete() {
     return getCode().length == 5;
+  }
+
+  void clearCode() {
+    setState(_controller.clear);
+    widget.onCodeChanged?.call();
   }
 
   void restartTimer(int milliseconds) {
@@ -150,14 +159,16 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
             GestureDetector(
               onTap: () {
                 _focusNode.requestFocus();
-                _controller.selection =
-                    TextSelection.collapsed(offset: _controller.text.length);
+                _controller.selection = TextSelection.collapsed(
+                  offset: _controller.text.length,
+                );
               },
               behavior: HitTestBehavior.opaque,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(5, (index) {
-                  final isFocused = (_focusNode.hasFocus &&
+                  final isFocused =
+                      (_focusNode.hasFocus &&
                           _controller.text.length == index) ||
                       (_controller.text.length == 5 &&
                           index == 4 &&
@@ -179,17 +190,19 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
                         color: widget.hasError
                             ? AppColors.error
                             : isFocused
-                                ? AppColors.primaryAzulClaro
-                                : AppColors.greyBordes,
+                            ? AppColors.primaryAzulClaro
+                            : AppColors.greyBordes,
                         width: isFocused || widget.hasError ? 2 : 1,
                       ),
                       borderRadius: index == 0
                           ? const BorderRadius.horizontal(
-                              left: Radius.circular(8))
+                              left: Radius.circular(8),
+                            )
                           : index == 4
-                              ? const BorderRadius.horizontal(
-                                  right: Radius.circular(8))
-                              : BorderRadius.zero,
+                          ? const BorderRadius.horizontal(
+                              right: Radius.circular(8),
+                            )
+                          : BorderRadius.zero,
                     ),
                     child: Text(
                       char.toUpperCase(),
@@ -210,7 +223,7 @@ class VerificationStepState extends State<VerificationStep> with CodeAutoFill {
                   textCapitalization: TextCapitalization.characters,
                   textInputAction: TextInputAction.done,
                   maxLength: 5,
-                  autofocus: true,
+                  autofocus: widget.autofocus,
                   showCursor: false,
                   enableInteractiveSelection: false,
                   autofillHints: const [AutofillHints.oneTimeCode],

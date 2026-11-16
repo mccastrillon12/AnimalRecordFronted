@@ -13,6 +13,7 @@ class AnimalRecordSearchField extends StatelessWidget {
   final Color borderColor;
   final bool enabled;
   final int? maxLength;
+  final VoidCallback? onClear;
 
   const AnimalRecordSearchField({
     super.key,
@@ -22,6 +23,7 @@ class AnimalRecordSearchField extends StatelessWidget {
     this.borderColor = AppColors.greyBordes,
     this.enabled = true,
     this.maxLength,
+    this.onClear,
   });
 
   @override
@@ -65,6 +67,14 @@ class AnimalRecordSearchField extends StatelessWidget {
             ),
           ),
           prefixIconConstraints: const BoxConstraints(),
+          suffixIcon: onClear == null
+              ? null
+              : IconButton(
+                  tooltip: 'Limpiar búsqueda',
+                  onPressed: onClear,
+                  icon: const Icon(Icons.close, size: 20),
+                  color: AppColors.greyMedio,
+                ),
           border: border,
           enabledBorder: border,
           disabledBorder: border,

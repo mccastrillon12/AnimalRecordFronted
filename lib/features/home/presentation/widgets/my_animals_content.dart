@@ -6,6 +6,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/navigation/animal_transfer_navigation.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
@@ -525,7 +526,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
             }
           }
         } else if (value == 'transferir') {
-          // TODO: Implement transfer
+          await openAnimalTransfer(context);
         }
       },
       offset: const Offset(0, -162),
@@ -546,10 +547,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
-              Text(
-                'Agregar animal',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
+              Flexible(
+                child: Text(
+                  'Agregar animal',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
                 ),
               ),
             ],
@@ -567,10 +570,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
-              Text(
-                'Subir archivo',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
+              Flexible(
+                child: Text(
+                  'Subir archivo',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
                 ),
               ),
             ],
@@ -588,10 +593,12 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
                 height: AppSpacing.iconSizeSmall,
               ),
               const SizedBox(width: 10),
-              Text(
-                'Transferir animales',
-                style: AppTypography.body4.copyWith(
-                  color: AppColors.greyTextos,
+              Flexible(
+                child: Text(
+                  'Transferir animales',
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyTextos,
+                  ),
                 ),
               ),
             ],
