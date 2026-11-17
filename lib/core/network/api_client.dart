@@ -118,13 +118,17 @@ class ApiClient {
       }
       if (e.response?.statusCode == 409) {
         final isMedicalDocument = path.contains('/medical-documents');
+        final isTransfer =
+            path.startsWith('/animal-transfers') ||
+            path.startsWith('/animal-ownership-history');
         throw ApiException(
           statusCode: statusCode,
-          message: isMedicalDocument
+          message: isMedicalDocument || isTransfer
               ? ErrorMapper.mapToUserMessage(e.response?.data)
               : 'El correo/celular ya se encuentra registrado. Por favor, inicie sesión.',
           data: e.response?.data,
           path: path,
+          retryAfter: e.response?.headers.value('retry-after'),
         );
       }
       throw ApiException(
@@ -132,6 +136,7 @@ class ApiClient {
         message: ErrorMapper.mapToUserMessage(e.response?.data),
         data: e.response?.data,
         path: path,
+        retryAfter: e.response?.headers.value('retry-after'),
       );
     } catch (e) {
       if (e is Exception) rethrow;

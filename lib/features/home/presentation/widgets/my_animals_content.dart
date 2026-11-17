@@ -527,6 +527,8 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           }
         } else if (value == 'transferir') {
           await openAnimalTransfer(context);
+        } else if (value == 'solicitudes_transferencia') {
+          await openAnimalTransferRequests(context);
         }
       },
       offset: const Offset(0, -162),
@@ -603,6 +605,10 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               ),
             ],
           ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'solicitudes_transferencia',
+          child: Text('Solicitudes de transferencia'),
         ),
       ],
       child: Container(

@@ -1,5 +1,6 @@
+import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
-import 'package:animal_record/features/home/presentation/models/animal_transfer_recipient.dart';
+import 'package:animal_record/features/home/domain/entities/animal_transfer_recipient.dart';
 import 'package:equatable/equatable.dart';
 
 enum AnimalTransferStep { searchUser, confirmUser, verifyContact, completed }
@@ -8,56 +9,79 @@ class AnimalTransferState extends Equatable {
   final List<AnimalModel> animals;
   final String query;
   final List<AnimalTransferRecipient> results;
+  final String? nextRecipientCursor;
   final AnimalTransferRecipient? selectedRecipient;
   final AnimalTransferStep step;
-  final List<String> transferReasons;
+  final List<TransferReason> transferReasons;
   final String identificationNumber;
-  final String transferReason;
-  final String otherReasonDetail;
-  final String verificationIdentifier;
+  final String transferReasonCode;
+  final TransferChallenge? challenge;
+  final TransferRequest? request;
+  final bool isLoading;
+  final String? error;
+  final bool canRetryCreation;
+  final DateTime? authorizationExpiresAt;
 
   const AnimalTransferState({
     required this.animals,
     this.query = '',
     this.results = const [],
+    this.nextRecipientCursor,
     this.selectedRecipient,
     this.step = AnimalTransferStep.searchUser,
     this.transferReasons = const [],
     this.identificationNumber = '',
-    this.transferReason = '',
-    this.otherReasonDetail = '',
-    this.verificationIdentifier = '',
+    this.transferReasonCode = '',
+    this.challenge,
+    this.request,
+    this.isLoading = false,
+    this.error,
+    this.canRetryCreation = false,
+    this.authorizationExpiresAt,
   });
 
   bool get canContinue => animals.isNotEmpty && selectedRecipient != null;
-  bool get requiresOtherReason => transferReason == 'Otro';
-
-  /// Checks UI completeness only. Recipient identity must be verified by the
-  /// future backend; a masked identification is not enough to verify it here.
   bool get canTransfer =>
       step == AnimalTransferStep.confirmUser &&
       canContinue &&
-      RegExp(r'^[a-zA-Z0-9]{1,50}$').hasMatch(identificationNumber) &&
-      transferReasons.contains(transferReason) &&
-      (!requiresOtherReason || otherReasonDetail.trim().isNotEmpty) &&
-      verificationIdentifier.trim().isNotEmpty;
+      !isLoading &&
+      identificationNumber == selectedRecipient!.identificationNumber &&
+      transferReasons.any((reason) => reason.code == transferReasonCode);
 
   AnimalTransferState copyWith({
     AnimalTransferStep? step,
+    List<AnimalTransferRecipient>? results,
+    String? nextRecipientCursor,
+    bool clearRecipientCursor = false,
+    List<TransferReason>? transferReasons,
     String? identificationNumber,
-    String? transferReason,
-    String? otherReasonDetail,
+    String? transferReasonCode,
+    TransferChallenge? challenge,
+    TransferRequest? request,
+    bool? isLoading,
+    String? error,
+    bool clearError = false,
+    bool? canRetryCreation,
+    DateTime? authorizationExpiresAt,
   }) => AnimalTransferState(
     animals: animals,
     query: query,
-    results: results,
+    results: results ?? this.results,
+    nextRecipientCursor: clearRecipientCursor
+        ? null
+        : nextRecipientCursor ?? this.nextRecipientCursor,
     selectedRecipient: selectedRecipient,
     step: step ?? this.step,
-    transferReasons: transferReasons,
+    transferReasons: transferReasons ?? this.transferReasons,
     identificationNumber: identificationNumber ?? this.identificationNumber,
-    transferReason: transferReason ?? this.transferReason,
-    otherReasonDetail: otherReasonDetail ?? this.otherReasonDetail,
-    verificationIdentifier: verificationIdentifier,
+    transferReasonCode: transferReasonCode ?? this.transferReasonCode,
+    challenge: challenge ?? this.challenge,
+    request: request ?? this.request,
+    isLoading: isLoading ?? this.isLoading,
+    error: clearError ? null : error ?? this.error,
+    canRetryCreation: canRetryCreation ?? this.canRetryCreation,
+    authorizationExpiresAt:
+        authorizationExpiresAt ?? this.authorizationExpiresAt,
   );
 
   @override
@@ -65,12 +89,17 @@ class AnimalTransferState extends Equatable {
     animals,
     query,
     results,
+    nextRecipientCursor,
     selectedRecipient,
     step,
     transferReasons,
     identificationNumber,
-    transferReason,
-    otherReasonDetail,
-    verificationIdentifier,
+    transferReasonCode,
+    challenge,
+    request,
+    isLoading,
+    error,
+    canRetryCreation,
+    authorizationExpiresAt,
   ];
 }

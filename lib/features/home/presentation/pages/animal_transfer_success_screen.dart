@@ -14,11 +14,13 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
     colors: [AppColors.bgOxford, Color(0xFF124C7C)],
   );
   final String recipientName;
+  final String status;
   final VoidCallback onFinish;
 
   const AnimalTransferSuccessScreen({
     super.key,
     required this.recipientName,
+    this.status = 'PENDING',
     required this.onFinish,
   });
 
@@ -72,7 +74,7 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSpacing.l),
                     Text(
-                      'Transferencia exitosa',
+                      'Solicitud enviada',
                       style: AppTypography.heading1.copyWith(
                         color: AppColors.white,
                       ),
@@ -84,8 +86,7 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
                         constraints: const BoxConstraints(maxWidth: 330),
                         child: Text.rich(
                           TextSpan(
-                            text:
-                                'El o los animales han sido transferidos al usuario ',
+                            text: 'Solicitaste la transferencia al usuario ',
                             style: AppTypography.body2.copyWith(
                               color: AppColors.white,
                               height: 1.6,
@@ -116,30 +117,35 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
                               Text(
-                                'El usuario debe ingresar a su aplicación y aceptar los animales.',
+                                'El destinatario debe revisar la solicitud y decidir qué animales acepta.',
                                 style: bodyStyle,
                               ),
                               const SizedBox(height: AppSpacing.m),
                               Text(
-                                'Si esto no sucede en X días o los rechaza, volverás a visualizarlos en tu cuenta.',
+                                'Mientras la solicitud esté pendiente, sigues siendo el propietario y puedes editar sus datos.',
                                 style: bodyStyle,
                               ),
                               const SizedBox(height: AppSpacing.m),
                               Text.rich(
                                 TextSpan(
-                                  text: 'Por lo pronto, estarán en estado ',
+                                  text:
+                                      'Consulta el detalle para conocer el resultado de cada animal. Estado inicial: ',
                                   style: bodyStyle,
                                   children: [
                                     TextSpan(
-                                      text: 'pendiente',
+                                      text: switch (status) {
+                                        'PROCESSING' => 'traspaso en curso',
+                                        'ACCEPTED' => 'aceptada',
+                                        'PARTIALLY_ACCEPTED' =>
+                                          'aceptada parcialmente',
+                                        'REJECTED' => 'rechazada',
+                                        _ => 'pendiente',
+                                      },
                                       style: AppTypography.body5.copyWith(
                                         color: AppColors.white,
                                       ),
                                     ),
-                                    const TextSpan(
-                                      text:
-                                          ' y no podrás acceder a sus historias',
-                                    ),
+                                    const TextSpan(text: '.'),
                                   ],
                                 ),
                               ),

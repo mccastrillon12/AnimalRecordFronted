@@ -54,6 +54,13 @@ import 'package:animal_record/features/locations/domain/usecases/get_cities_usec
 import 'package:animal_record/features/locations/presentation/cubit/locations_cubit.dart';
 
 import 'package:animal_record/features/home/data/datasources/animal_remote_datasource.dart';
+import 'package:animal_record/features/home/data/datasources/animal_transfer_remote_datasource.dart';
+import 'package:animal_record/features/home/data/repositories/animal_transfer_repository_impl.dart';
+import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/home/domain/services/transfer_pending_medical_work.dart';
+import 'package:animal_record/features/home/data/services/transfer_pending_medical_work_impl.dart';
+import 'package:animal_record/features/home/domain/services/historical_file_save_service.dart';
+import 'package:animal_record/features/home/data/services/historical_file_saver.dart';
 import 'package:animal_record/features/home/data/repositories/animal_repository_impl.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_repository.dart';
 import 'package:animal_record/features/home/domain/usecases/create_animal_usecase.dart';
@@ -511,4 +518,18 @@ Future<void> init() async {
 
   sl.registerLazySingleton(() => dio);
   sl.registerLazySingleton(() => ApiClient(dio: dio, logger: sl<Logger>()));
+  sl.registerLazySingleton(
+    () => AnimalTransferRemoteDataSource(sl<ApiClient>()),
+  );
+  sl.registerLazySingleton<AnimalTransferRepository>(
+    () => AnimalTransferRepositoryImpl(sl<AnimalTransferRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<TransferPendingMedicalWork>(
+    () => TransferPendingMedicalWorkImpl(
+      sl<PendingMedicalDocumentLocalDataSource>(),
+    ),
+  );
+  sl.registerLazySingleton<HistoricalFileSaveService>(
+    () => HistoricalFileSaver(),
+  );
 }
