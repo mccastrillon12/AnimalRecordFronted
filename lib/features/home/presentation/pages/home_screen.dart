@@ -11,7 +11,9 @@ import 'package:animal_record/core/injection_container.dart';
 import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
+import 'package:animal_record/features/home/presentation/widgets/transfer_incoming_notice.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
@@ -175,7 +177,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   const SizedBox(height: AppSpacing.l),
 
-                  Expanded(child: _buildContent()),
+                  Expanded(child: _buildContent(state.user.id)),
                 ],
               ),
             );
@@ -185,7 +187,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(String userId) {
     switch (_activeSection) {
       case homeMyAnimalsSection:
         return MyAnimalsContent(
@@ -195,8 +197,18 @@ class _HomeScreenState extends State<HomeScreen> {
         return const VaccinationCardsContent();
       default:
         // Home / Inicio
-        return AnimalsSection(
-          onViewAll: () => _navigateToSection(homeMyAnimalsSection),
+        return Column(
+          children: [
+            TransferIncomingNotice(
+              key: ValueKey(userId),
+              repository: sl<AnimalTransferRepository>(),
+            ),
+            Expanded(
+              child: AnimalsSection(
+                onViewAll: () => _navigateToSection(homeMyAnimalsSection),
+              ),
+            ),
+          ],
         );
     }
   }

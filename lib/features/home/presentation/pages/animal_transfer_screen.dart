@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -8,12 +10,13 @@ import 'package:animal_record/core/widgets/feedback/process_cancellation_dialog.
 import 'package:animal_record/core/widgets/layout/modal_page_layout.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_state.dart';
-import 'package:animal_record/features/home/presentation/models/animal_transfer_recipient.dart';
+import 'package:animal_record/features/home/domain/entities/animal_transfer_recipient.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_record_search_field.dart';
 import 'package:animal_record/features/home/presentation/widgets/transfer_animals_summary.dart';
 import 'package:animal_record/features/home/presentation/widgets/transfer_recipient_confirmation_form.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_transfer_verification_screen.dart';
 import 'package:animal_record/features/home/presentation/pages/animal_transfer_success_screen.dart';
+import 'package:animal_record/features/home/presentation/pages/animal_transfer_requests_screen.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -32,6 +35,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   bool _allowPop = false;
   bool _isCancelling = false;
   bool _isFinishing = false;
+  Timer? _searchDebounce;
 
   @override
   void initState() {
@@ -41,11 +45,16 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
   }
 
   void _search() {
-    context.read<AnimalTransferCubit>().search(_searchController.text);
+    _searchDebounce?.cancel();
+    final query = _searchController.text;
+    _searchDebounce = Timer(const Duration(milliseconds: 350), () {
+      if (mounted) context.read<AnimalTransferCubit>().search(query);
+    });
   }
 
   @override
   void dispose() {
+    _searchDebounce?.cancel();
     _searchController
       ..removeListener(_search)
       ..dispose();
@@ -114,13 +123,31 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
           child: completed
               ? AnimalTransferSuccessScreen(
                   recipientName: state.selectedRecipient!.name,
+                  status: state.request!.status,
                   onFinish: _finish,
                 )
               : verifying
               ? AnimalTransferVerificationScreen(
-                  identifier: state.verificationIdentifier,
+                  challenge: state.challenge!,
                   onBack: _backToConfirmation,
-                  onVerify: cubit.completePreview,
+                  onVerify: cubit.verifyAndCreate,
+                  onResend: cubit.resendCode,
+                  isLoading: state.isLoading,
+                  error: state.error,
+                  canRetryCreation: state.canRetryCreation,
+                  onRetryCreation: cubit.retryCreation,
+                  onRenewAuthorization: cubit.renewAuthorization,
+                  authorizationExpiresAt: state.authorizationExpiresAt,
+                  canRenewAuthorization: cubit.canRenewAuthorization,
+                  canBack: !cubit.hasPendingIntent,
+                  onInspectRequests: () => Navigator.of(context).push(
+                    MaterialPageRoute<void>(
+                      builder: (_) => AnimalTransferRequestsScreen(
+                        repository: cubit.repository,
+                        initialDirection: 'OUTGOING',
+                      ),
+                    ),
+                  ),
                 )
               : ModalPageLayout(
                   title: 'Transferencia de animal(es)',
@@ -172,6 +199,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                       ? CustomButton(
                           key: const Key('transfer-confirm'),
                           text: 'Transferir',
+                          isLoading: state.isLoading,
                           onPressed: state.canTransfer
                               ? () {
                                   FocusScope.of(context).unfocus();
@@ -202,9 +230,9 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                       children: [
                         if (!confirming) ...[
                           Text(
-                            'Al transferir el o los siguientes animales dejará de '
-                            'ser el propietario y no podrá visualizar más el '
-                            'animal y su información.',
+                            'Enviarás una solicitud de transferencia. Mientras '
+                            'esté pendiente, sigues siendo el propietario y '
+                            'puedes consultar sus datos.',
                             style: AppTypography.body4.copyWith(height: 1.6),
                           ),
                           const SizedBox(height: AppSpacing.l),
@@ -217,15 +245,31 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                           ),
                         ),
                         const SizedBox(height: AppSpacing.l),
-                        if (confirming)
+                        if (confirming) ...[
                           TransferRecipientConfirmationForm(
                             state: state,
                             onIdentificationChanged:
                                 cubit.updateIdentificationNumber,
                             onReasonChanged: cubit.selectTransferReason,
-                            onOtherReasonChanged: cubit.updateOtherReasonDetail,
-                          )
-                        else ...[
+                          ),
+                          if (state.error != null)
+                            Text(
+                              state.error!,
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                          if (state.identificationNumber.isNotEmpty &&
+                              state.selectedRecipient != null &&
+                              state.identificationNumber !=
+                                  state.selectedRecipient!.identificationNumber)
+                            Text(
+                              'La identificación no coincide.',
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                        ] else ...[
                           Text(
                             'Utiliza la barra de búsqueda para encontrar el '
                             'usuario al que se le realizará la transferencia.',
@@ -235,7 +279,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                           AnimalRecordSearchField(
                             controller: _searchController,
                             fieldKey: const Key('transfer-recipient-search'),
-                            maxLength: 50,
+                            maxLength: 100,
                             onClear: state.query.isEmpty
                                 ? null
                                 : _searchController.clear,
@@ -248,7 +292,18 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                           const SizedBox(height: AppSpacing.l),
                           Text('Resultados', style: AppTypography.body3),
                           const SizedBox(height: AppSpacing.l),
-                          if (state.query.trim().isNotEmpty &&
+                          if (state.isLoading)
+                            const Center(child: CircularProgressIndicator()),
+                          if (state.error != null)
+                            Text(
+                              state.error!,
+                              style: AppTypography.body4.copyWith(
+                                color: AppColors.error,
+                              ),
+                            ),
+                          if (!state.isLoading &&
+                              state.error == null &&
+                              state.query.trim().length >= 2 &&
                               state.results.isEmpty)
                             Text(
                               'No se encontraron usuarios',
@@ -265,18 +320,14 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                                 cubit.selectRecipient(recipient);
                               },
                             ),
+                          if (state.nextRecipientCursor != null)
+                            TextButton(
+                              onPressed: state.isLoading
+                                  ? null
+                                  : cubit.loadMoreRecipients,
+                              child: const Text('Cargar más usuarios'),
+                            ),
                           if (state.results.isNotEmpty) ...[
-                            if (state.results.any(
-                              (recipient) => recipient.isDemo,
-                            )) ...[
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(
-                                'Datos de demostración',
-                                style: AppTypography.body6.copyWith(
-                                  color: AppColors.greyMedio,
-                                ),
-                              ),
-                            ],
                             const SizedBox(height: AppSpacing.l),
                             const Divider(
                               height: 1,
@@ -333,12 +384,6 @@ class _RecipientTile extends StatelessWidget {
                     children: [
                       Text(recipient.name, style: AppTypography.body3),
                       const SizedBox(height: AppSpacing.xxs),
-                      Text(
-                        recipient.maskedIdentification,
-                        style: AppTypography.body6.copyWith(
-                          color: AppColors.greyBordes,
-                        ),
-                      ),
                     ],
                   ),
                 ),

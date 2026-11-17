@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:logger/logger.dart';
 import 'package:pdfrx/pdfrx.dart';
 
 import 'package:animal_record/features/auth/presentation/pages/login_screen.dart';
@@ -9,6 +10,7 @@ import 'package:animal_record/features/auth/presentation/pages/splash_screen.dar
 import 'package:animal_record/features/home/presentation/pages/home_screen.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/navigation/animal_transfer_navigation.dart';
+import 'package:animal_record/features/home/domain/services/animal_transfer_availability.dart';
 import 'package:animal_record/core/injection_container.dart' as di;
 import 'package:animal_record/core/constants/app_routes.dart';
 import 'package:animal_record/features/auth/domain/usecases/validate_password_token_usecase.dart';
@@ -56,10 +58,17 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // - .env.development (for emulator)
-  // - .env.physical (for physical device)
-  // - .env.production (for production)
-  await dotenv.load(fileName: ".env.physical");
+  // The shared authentication interceptor logs token fragments. Integration
+  // builds disable logger output so transfer proofs and credentials stay private.
+  if (AnimalTransferAvailability.integration) Logger.level = Level.off;
+
+  // .env.physical is the frontend production configuration.
+  // .env.development is used only by explicit transfer integration builds.
+  await dotenv.load(
+    fileName: AnimalTransferAvailability.integration
+        ? '.env.development'
+        : '.env.physical',
+  );
 
   await di.init();
 
