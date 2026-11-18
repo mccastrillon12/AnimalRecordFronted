@@ -15,6 +15,7 @@ class AnimalTransferState extends Equatable {
   final List<TransferReason> transferReasons;
   final String identificationNumber;
   final String transferReasonCode;
+  final String otherReasonDetail;
   final TransferChallenge? challenge;
   final TransferRequest? request;
   final bool isLoading;
@@ -32,6 +33,7 @@ class AnimalTransferState extends Equatable {
     this.transferReasons = const [],
     this.identificationNumber = '',
     this.transferReasonCode = '',
+    this.otherReasonDetail = '',
     this.challenge,
     this.request,
     this.isLoading = false,
@@ -41,12 +43,15 @@ class AnimalTransferState extends Equatable {
   });
 
   bool get canContinue => animals.isNotEmpty && selectedRecipient != null;
+  bool get requiresOtherReason => transferReasonCode == 'OTHER';
+
   bool get canTransfer =>
       step == AnimalTransferStep.confirmUser &&
       canContinue &&
       !isLoading &&
       identificationNumber == selectedRecipient!.identificationNumber &&
-      transferReasons.any((reason) => reason.code == transferReasonCode);
+      transferReasons.any((reason) => reason.code == transferReasonCode) &&
+      (!requiresOtherReason || otherReasonDetail.trim().isNotEmpty);
 
   AnimalTransferState copyWith({
     AnimalTransferStep? step,
@@ -56,6 +61,7 @@ class AnimalTransferState extends Equatable {
     List<TransferReason>? transferReasons,
     String? identificationNumber,
     String? transferReasonCode,
+    String? otherReasonDetail,
     TransferChallenge? challenge,
     TransferRequest? request,
     bool? isLoading,
@@ -75,6 +81,7 @@ class AnimalTransferState extends Equatable {
     transferReasons: transferReasons ?? this.transferReasons,
     identificationNumber: identificationNumber ?? this.identificationNumber,
     transferReasonCode: transferReasonCode ?? this.transferReasonCode,
+    otherReasonDetail: otherReasonDetail ?? this.otherReasonDetail,
     challenge: challenge ?? this.challenge,
     request: request ?? this.request,
     isLoading: isLoading ?? this.isLoading,
@@ -95,6 +102,7 @@ class AnimalTransferState extends Equatable {
     transferReasons,
     identificationNumber,
     transferReasonCode,
+    otherReasonDetail,
     challenge,
     request,
     isLoading,

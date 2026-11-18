@@ -1,3 +1,19 @@
+final _animalCodePattern = RegExp(
+  r'^AR-([CFBE])[0-9]{3,}$',
+  caseSensitive: false,
+);
+
+String animalFamilyFromCode(String code) => switch (_animalCodePattern
+    .firstMatch(code.trim())
+    ?.group(1)
+    ?.toUpperCase()) {
+  'C' => 'Canino',
+  'F' => 'Felino',
+  'B' => 'Bovino',
+  'E' => 'Equino',
+  _ => '',
+};
+
 String pluralizeAnimalFamily(String family) {
   final singular = animalFamilyLabel(family);
   if (singular.toLowerCase().endsWith('o')) {

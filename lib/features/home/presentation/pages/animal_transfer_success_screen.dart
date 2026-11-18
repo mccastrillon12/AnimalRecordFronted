@@ -14,13 +14,11 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
     colors: [AppColors.bgOxford, Color(0xFF124C7C)],
   );
   final String recipientName;
-  final String status;
   final VoidCallback onFinish;
 
   const AnimalTransferSuccessScreen({
     super.key,
     required this.recipientName,
-    this.status = 'PENDING',
     required this.onFinish,
   });
 
@@ -50,12 +48,7 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
                 onPressed: onFinish,
               ),
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(
-                  AppSpacing.l,
-                  0,
-                  AppSpacing.l,
-                  AppSpacing.xl,
-                ),
+                padding: const EdgeInsets.only(bottom: AppSpacing.xl),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -73,85 +66,67 @@ class AnimalTransferSuccessScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: AppSpacing.l),
-                    Text(
-                      'Solicitud enviada',
-                      style: AppTypography.heading1.copyWith(
-                        color: AppColors.white,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 330),
-                        child: Text.rich(
-                          TextSpan(
-                            text: 'Solicitaste la transferencia al usuario ',
-                            style: AppTypography.body2.copyWith(
-                              color: AppColors.white,
-                              height: 1.6,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: recipientName,
-                                style: AppTypography.body1.copyWith(
-                                  color: AppColors.white,
-                                ),
-                              ),
-                              const TextSpan(text: '.'),
-                            ],
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
                     Padding(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: AppSpacing.m,
+                        horizontal: AppSpacing.xxl,
                       ),
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: const BoxConstraints(maxWidth: 300),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Text(
-                                'El destinatario debe revisar la solicitud y decidir qué animales acepta.',
-                                style: bodyStyle,
-                              ),
-                              const SizedBox(height: AppSpacing.m),
-                              Text(
-                                'Mientras la solicitud esté pendiente, sigues siendo el propietario y puedes editar sus datos.',
-                                style: bodyStyle,
-                              ),
-                              const SizedBox(height: AppSpacing.m),
-                              Text.rich(
-                                TextSpan(
-                                  text:
-                                      'Consulta el detalle para conocer el resultado de cada animal. Estado inicial: ',
-                                  style: bodyStyle,
-                                  children: [
-                                    TextSpan(
-                                      text: switch (status) {
-                                        'PROCESSING' => 'traspaso en curso',
-                                        'ACCEPTED' => 'aceptada',
-                                        'PARTIALLY_ACCEPTED' =>
-                                          'aceptada parcialmente',
-                                        'REJECTED' => 'rechazada',
-                                        _ => 'pendiente',
-                                      },
-                                      style: AppTypography.body5.copyWith(
-                                        color: AppColors.white,
-                                      ),
-                                    ),
-                                    const TextSpan(text: '.'),
-                                  ],
-                                ),
-                              ),
-                            ],
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'Solicitud enviada',
+                            style: AppTypography.heading1.copyWith(
+                              color: AppColors.white,
+                            ),
+                            textAlign: TextAlign.center,
                           ),
-                        ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          Text.rich(
+                            TextSpan(
+                              text: 'Solicitaste la transferencia al usuario ',
+                              style: AppTypography.body2.copyWith(
+                                color: AppColors.white,
+                                height: 1.6,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: recipientName,
+                                  style: AppTypography.body1.copyWith(
+                                    color: AppColors.white,
+                                  ),
+                                ),
+                                const TextSpan(text: '.'),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: AppSpacing.xxl),
+                          Text(
+                            'El usuario debe ingresar a su aplicación y aceptar los animales.',
+                            style: bodyStyle,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          Text(
+                            'Si esto no sucede en los siguientes días o los rechaza, volverás a visualizarlos en tu cuenta.',
+                            style: bodyStyle,
+                          ),
+                          const SizedBox(height: AppSpacing.m),
+                          Text.rich(
+                            TextSpan(
+                              text: 'Por lo pronto, estarán en estado ',
+                              style: bodyStyle,
+                              children: const [
+                                TextSpan(
+                                  text: 'pendiente',
+                                  style: TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                TextSpan(
+                                  text: '  y no podrás acceder a sus historias',
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],

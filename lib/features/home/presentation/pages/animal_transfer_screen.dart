@@ -123,7 +123,6 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
           child: completed
               ? AnimalTransferSuccessScreen(
                   recipientName: state.selectedRecipient!.name,
-                  status: state.request!.status,
                   onFinish: _finish,
                 )
               : verifying
@@ -251,20 +250,11 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                             onIdentificationChanged:
                                 cubit.updateIdentificationNumber,
                             onReasonChanged: cubit.selectTransferReason,
+                            onOtherReasonChanged: cubit.updateOtherReasonDetail,
                           ),
                           if (state.error != null)
                             Text(
                               state.error!,
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.error,
-                              ),
-                            ),
-                          if (state.identificationNumber.isNotEmpty &&
-                              state.selectedRecipient != null &&
-                              state.identificationNumber !=
-                                  state.selectedRecipient!.identificationNumber)
-                            Text(
-                              'La identificación no coincide.',
                               style: AppTypography.body4.copyWith(
                                 color: AppColors.error,
                               ),
@@ -279,7 +269,7 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                           AnimalRecordSearchField(
                             controller: _searchController,
                             fieldKey: const Key('transfer-recipient-search'),
-                            maxLength: 100,
+                            maxLength: 20,
                             onClear: state.query.isEmpty
                                 ? null
                                 : _searchController.clear,
@@ -294,19 +284,11 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                           const SizedBox(height: AppSpacing.l),
                           if (state.isLoading)
                             const Center(child: CircularProgressIndicator()),
-                          if (state.error != null)
-                            Text(
-                              state.error!,
-                              style: AppTypography.body4.copyWith(
-                                color: AppColors.error,
-                              ),
-                            ),
                           if (!state.isLoading &&
-                              state.error == null &&
                               state.query.trim().length >= 2 &&
                               state.results.isEmpty)
                             Text(
-                              'No se encontraron usuarios',
+                              'No se han encontrado resultados',
                               style: AppTypography.body4.copyWith(
                                 color: AppColors.greyMedio,
                               ),
@@ -367,8 +349,9 @@ class _RecipientTile extends StatelessWidget {
         child: InkWell(
           key: ValueKey('transfer-recipient-${recipient.id}'),
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(AppSpacing.xs),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 63),
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xs),
             child: Row(
               children: [
                 AppUserAvatar(
@@ -380,10 +363,24 @@ class _RecipientTile extends StatelessWidget {
                 const SizedBox(width: AppSpacing.m),
                 Expanded(
                   child: Column(
+                    mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(recipient.name, style: AppTypography.body3),
+                      Text(
+                        recipient.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.body3,
+                      ),
                       const SizedBox(height: AppSpacing.xxs),
+                      Text(
+                        recipient.maskedIdentification,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTypography.body6.copyWith(
+                          color: AppColors.greyBordes,
+                        ),
+                      ),
                     ],
                   ),
                 ),

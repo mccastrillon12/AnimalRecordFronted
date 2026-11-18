@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
 
@@ -115,19 +116,29 @@ class TransferDetailState {
   final TransferRequest? request;
   final List<TransferItem> items;
   final String? cursor;
-  final Set<String> acceptedAnimalIds;
+  final Set<String> selectedAnimalIds;
   final bool loading;
   final String? error;
   final bool canRetryDecision;
+  final bool submittingDecision;
   const TransferDetailState({
     this.request,
     this.items = const [],
     this.cursor,
-    this.acceptedAnimalIds = const {},
+    this.selectedAnimalIds = const {},
     this.loading = false,
     this.error,
     this.canRetryDecision = false,
+    this.submittingDecision = false,
   });
+
+  bool get hasSingleAnimal =>
+      items.length == 1 && cursor == null && (request?.animalCount ?? 0) <= 1;
+
+  String? get singlePendingAnimalId =>
+      hasSingleAnimal && items.single.status == 'PENDING'
+      ? items.single.animalId
+      : null;
 }
 
 class _DecisionIntent {
@@ -146,12 +157,75 @@ class _DecisionIntent {
 class TransferDetailCubit extends Cubit<TransferDetailState> {
   final AnimalTransferRepository repository;
   final String transferId;
+  final GetAnimalByIdUseCase? getAnimalByIdUseCase;
+  final Map<String, String> _animalImageUrls = {};
+  final Set<String> _requestedAnimalImages = {};
   _DecisionIntent? _pendingDecision;
   Timer? _processingPoll;
   int _readGeneration = 0;
 
-  TransferDetailCubit(this.repository, this.transferId)
-    : super(const TransferDetailState());
+  TransferDetailCubit(
+    this.repository,
+    this.transferId, {
+    this.getAnimalByIdUseCase,
+  }) : super(const TransferDetailState());
+
+  List<TransferItem> _withAnimalImages(List<TransferItem> items) => items
+      .map((item) {
+        final imageUrl = item.animalImageUrl?.trim();
+        if (imageUrl != null && imageUrl.isNotEmpty) {
+          _animalImageUrls[item.animalId] = imageUrl;
+          return item;
+        }
+        final cachedUrl = _animalImageUrls[item.animalId];
+        return cachedUrl == null ? item : item.withAnimalImageUrl(cachedUrl);
+      })
+      .toList(growable: false);
+
+  void _loadMissingAnimalImages() {
+    final useCase = getAnimalByIdUseCase;
+    if (useCase == null) return;
+    for (final item in state.items) {
+      if ((item.animalImageUrl?.trim().isNotEmpty ?? false) ||
+          !_requestedAnimalImages.add(item.animalId)) {
+        continue;
+      }
+      unawaited(_loadAnimalImage(item.animalId, useCase));
+    }
+  }
+
+  Future<void> _loadAnimalImage(
+    String animalId,
+    GetAnimalByIdUseCase useCase,
+  ) async {
+    try {
+      final result = await useCase(animalId);
+      var lookupFailed = false;
+      final imageUrl = result.fold<String?>((_) {
+        lookupFailed = true;
+        return null;
+      }, (animal) => animal.profilePictureUrl?.trim());
+      if (lookupFailed) _requestedAnimalImages.remove(animalId);
+      if (imageUrl == null || imageUrl.isEmpty || isClosed) return;
+      _animalImageUrls[animalId] = imageUrl;
+      final current = state;
+      final updated = _withAnimalImages(current.items);
+      emit(
+        TransferDetailState(
+          request: current.request,
+          items: updated,
+          cursor: current.cursor,
+          selectedAnimalIds: current.selectedAnimalIds,
+          loading: current.loading,
+          error: current.error,
+          canRetryDecision: current.canRetryDecision,
+          submittingDecision: current.submittingDecision,
+        ),
+      );
+    } catch (_) {
+      _requestedAnimalImages.remove(animalId);
+    }
+  }
 
   Future<void> refresh() async {
     final generation = ++_readGeneration;
@@ -160,7 +234,8 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
       TransferDetailState(
         request: state.request,
         items: state.items,
-        acceptedAnimalIds: state.acceptedAnimalIds,
+        cursor: state.cursor,
+        selectedAnimalIds: state.selectedAnimalIds,
         loading: true,
         canRetryDecision: _pendingDecision != null,
       ),
@@ -185,14 +260,15 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         emit(
           TransferDetailState(
             request: detail.request,
-            items: detail.page.items,
+            items: _withAnimalImages(detail.page.items),
             cursor: detail.page.nextCursor,
-            acceptedAnimalIds: detail.request.version == previousVersion
-                ? state.acceptedAnimalIds
+            selectedAnimalIds: detail.request.version == previousVersion
+                ? state.selectedAnimalIds
                 : const {},
             canRetryDecision: _pendingDecision != null,
           ),
         );
+        _loadMissingAnimalImages();
       }
     } catch (error) {
       if (!isClosed && generation == _readGeneration) {
@@ -201,7 +277,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
             request: state.request,
             items: state.items,
             cursor: state.cursor,
-            acceptedAnimalIds: state.acceptedAnimalIds,
+            selectedAnimalIds: state.selectedAnimalIds,
             error: _message(error),
             canRetryDecision: _pendingDecision != null,
           ),
@@ -220,7 +296,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         request: before.request,
         items: before.items,
         cursor: cursor,
-        acceptedAnimalIds: before.acceptedAnimalIds,
+        selectedAnimalIds: before.selectedAnimalIds,
         loading: true,
       ),
     );
@@ -234,11 +310,12 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
       emit(
         TransferDetailState(
           request: detail.request,
-          items: [...before.items, ...detail.page.items],
+          items: _withAnimalImages([...before.items, ...detail.page.items]),
           cursor: detail.page.nextCursor,
-          acceptedAnimalIds: before.acceptedAnimalIds,
+          selectedAnimalIds: before.selectedAnimalIds,
         ),
       );
+      _loadMissingAnimalImages();
     } catch (error) {
       if (isClosed || generation != _readGeneration) return;
       if (error is ApiException && error.statusCode == 409) {
@@ -251,12 +328,52 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
             request: before.request,
             items: before.items,
             cursor: cursor,
-            acceptedAnimalIds: before.acceptedAnimalIds,
+            selectedAnimalIds: before.selectedAnimalIds,
             error: _message(error),
           ),
         );
       }
     }
+  }
+
+  Future<bool> loadAllAnimals() async {
+    final version = state.request?.version;
+    if (version == null || state.loading) return false;
+    while (state.cursor != null) {
+      final cursor = state.cursor;
+      await loadMore();
+      if (isClosed ||
+          state.request?.version != version ||
+          state.request?.status != 'PENDING' ||
+          state.error != null ||
+          state.cursor == cursor) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  void toggleAllAnimals() {
+    if (state.request?.status != 'PENDING' || state.loading) return;
+    final pendingIds = state.items
+        .where((item) => item.status == 'PENDING')
+        .map((item) => item.animalId)
+        .toSet();
+    if (pendingIds.isEmpty) return;
+    final selected = {...state.selectedAnimalIds};
+    if (selected.containsAll(pendingIds)) {
+      selected.removeAll(pendingIds);
+    } else {
+      selected.addAll(pendingIds);
+    }
+    emit(
+      TransferDetailState(
+        request: state.request,
+        items: state.items,
+        cursor: state.cursor,
+        selectedAnimalIds: selected,
+      ),
+    );
   }
 
   void toggleAnimal(String animalId) {
@@ -266,21 +383,26 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
     )) {
       return;
     }
-    final selected = {...state.acceptedAnimalIds};
+    final selected = {...state.selectedAnimalIds};
     if (!selected.add(animalId)) selected.remove(animalId);
     emit(
       TransferDetailState(
         request: state.request,
         items: state.items,
         cursor: state.cursor,
-        acceptedAnimalIds: selected,
+        selectedAnimalIds: selected,
       ),
     );
   }
 
   Future<void> decide(List<String> acceptedAnimalIds) async {
     final request = state.request;
-    if (request == null || request.status != 'PENDING' || state.loading) return;
+    if (request == null ||
+        request.status != 'PENDING' ||
+        state.loading ||
+        _pendingDecision != null) {
+      return;
+    }
     _pendingDecision = _DecisionIntent(
       request.id,
       request.version,
@@ -298,8 +420,9 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         request: state.request,
         items: state.items,
         cursor: state.cursor,
-        acceptedAnimalIds: state.acceptedAnimalIds,
+        selectedAnimalIds: state.selectedAnimalIds,
         loading: true,
+        submittingDecision: true,
       ),
     );
     try {
@@ -315,23 +438,36 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
       await refresh();
     } catch (error) {
       if (isClosed) return;
+      final statusCode = error is ApiException ? error.statusCode : null;
+      final data = error is ApiException ? error.data : null;
+      final acceptanceDisabled =
+          data is Map &&
+          data['message'] ==
+              'Transfer acceptance is not enabled; no decisions were applied';
       final uncertain =
-          error is ApiException &&
-          (error.statusCode == null || error.statusCode == 503);
+          error is ApiException && (statusCode == null || statusCode == 503);
       if (!uncertain) _pendingDecision = null;
+      final message = switch (statusCode) {
+        409 when acceptanceDisabled =>
+          'La aceptación está deshabilitada. La solicitud sigue intacta.',
+        409 =>
+          'El servidor rechazó la decisión por un conflicto (409). '
+              'Se actualizará la solicitud.',
+        _ when uncertain =>
+          'Resultado incierto. Consulta el detalle o repite la misma decisión.',
+        _ => _message(error, fallback: 'No se pudo enviar la decisión.'),
+      };
       emit(
         TransferDetailState(
           request: state.request,
           items: state.items,
           cursor: state.cursor,
-          acceptedAnimalIds: state.acceptedAnimalIds,
-          error: uncertain
-              ? 'Resultado incierto. Consulta el detalle o repite la misma decisión.'
-              : _message(error),
+          selectedAnimalIds: state.selectedAnimalIds,
+          error: message,
           canRetryDecision: uncertain,
         ),
       );
-      if (error is ApiException && error.statusCode == 409) await refresh();
+      if (statusCode == 409) await refresh();
     }
   }
 
@@ -343,6 +479,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
   }
 }
 
-String _message(Object error) => error is ApiException
-    ? error.message
-    : 'No se pudo consultar la transferencia.';
+String _message(
+  Object error, {
+  String fallback = 'No se pudo consultar la transferencia.',
+}) => error is ApiException ? error.message : fallback;

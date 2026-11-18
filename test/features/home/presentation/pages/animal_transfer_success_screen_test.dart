@@ -19,7 +19,7 @@ void main() {
   testWidgets(
     'reserves the illustration area until the bundled SVG is loaded',
     (tester) async {
-    tester.view.physicalSize = const Size(375, 812);
+      tester.view.physicalSize = const Size(375, 812);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -39,8 +39,17 @@ void main() {
       final illustration = find.byKey(
         const Key('transfer-success-illustration'),
       );
-      final title = find.text('Transferencia exitosa');
+      final title = find.text('Solicitud enviada');
       expect(tester.getSize(illustration), const Size(283, 283));
+      for (final text in [
+        title,
+        find.textContaining('Solicitaste la transferencia', findRichText: true),
+        find.textContaining('El usuario debe ingresar a su aplicación'),
+      ]) {
+        final rect = tester.getRect(text);
+        expect(rect.left, 40);
+        expect(rect.right, 375 - 40);
+      }
       final before = tester.getTopLeft(title);
       expect(
         before.dy,

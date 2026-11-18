@@ -639,220 +639,85 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     }
 
     String? selectedReason;
-    final ccController = TextEditingController();
+    var enteredIdNumber = '';
     String? ccError;
     String? reasonError;
 
-    final deactivationReasons = [
+    const deactivationReasons = [
       'Fallecimiento del paciente',
       'Error en la creación',
       'Historia duplicada',
       'Cambio a otros sistema de gestión',
     ];
 
-    showDialog(
+    showDialog<void>(
       context: context,
-      barrierDismissible: true,
-      builder: (dialogContext) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return Dialog(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.transparent,
-              insetPadding: const EdgeInsets.symmetric(horizontal: 16),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+      builder: (_) => StatefulBuilder(
+        builder: (_, setDialogState) => ConfirmDialog(
+          title: '¿Inactivar historia clínica?',
+          richDescription: const TextSpan(
+            children: [
+              TextSpan(
+                text:
+                    'Al inactivar la historia, no podrás agregar más datos ni realizar más consultas. Esta acción no se puede deshacer, por ende, ',
               ),
-              child: Stack(
-                children: [
-                  SizedBox(
-                    width: 347,
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 28),
-                          // Title
-                          SizedBox(
-                            width: double.infinity,
-                            child: Text(
-                              '¿Inactivar historia clínica?',
-                              style: AppTypography.body3.copyWith(
-                                color: AppColors.greyTextos,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Description with bold section
-                          RichText(
-                            textAlign: TextAlign.left,
-                            text: TextSpan(
-                              style: AppTypography.body6.copyWith(
-                                color: AppColors.greyTextos,
-                                height: 1.6,
-                              ),
-                              children: [
-                                const TextSpan(
-                                  text:
-                                      'Al inactivar la historia, no podrás agregar más datos ni realizar más consultas. Esta acción no se puede deshacer, por ende, ',
-                                ),
-                                TextSpan(
-                                  text:
-                                      'necesitas solicitarle al propietario su número de identificación para validar la acción.',
-                                  style: AppTypography.body6.copyWith(
-                                    color: AppColors.greyTextos,
-                                    height: 1.6,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Reason Dropdown (using AppDropdown)
-                          AppDropdown<String>(
-                            label: 'Seleccionar el motivo para continuar:',
-                            hint: 'Seleccionar',
-                            value: selectedReason,
-                            items: deactivationReasons,
-                            itemAsString: (r) => r,
-                            onChanged: (value) {
-                              setDialogState(() {
-                                selectedReason = value;
-                                reasonError = null;
-                              });
-                            },
-                            errorText: reasonError,
-                            isInline: true,
-                            pushContent: true,
-                          ),
-                          const SizedBox(height: 16),
-
-                          // CC row using IdSelector component
-                          IdSelector(
-                            customLabel: 'Identificación del propietario',
-                            initialIdType: ownerIdType,
-                            idTypeEnabled: false,
-                            controller: ccController,
-                            hintText: 'Número de documento',
-                            errorText: ccError,
-                            hideErrorText: false,
-                            onChanged: (_) {
-                              if (ccError != null) {
-                                setDialogState(() {
-                                  ccError = null;
-                                });
-                              }
-                            },
-                          ),
-                          const SizedBox(height: 24),
-
-                          // Buttons
-                          Row(
-                            children: [
-                              Expanded(
-                                child: TextButton(
-                                  onPressed: () => Navigator.pop(dialogContext),
-                                  style: TextButton.styleFrom(
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    minimumSize: const Size(
-                                      double.infinity,
-                                      40,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Cancelar',
-                                    style: AppTypography.body3.copyWith(
-                                      color: const Color(0xFF0072BB),
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: ElevatedButton(
-                                  onPressed: () {
-                                    bool hasError = false;
-                                    setDialogState(() {
-                                      if (selectedReason == null) {
-                                        reasonError = 'Seleccione un motivo.';
-                                        hasError = true;
-                                      }
-                                      if (ccController.text.trim() !=
-                                          ownerIdNumber) {
-                                        ccError =
-                                            'El número no coincide con el propietario.';
-                                        hasError = true;
-                                      }
-                                    });
-
-                                    if (!hasError) {
-                                      Navigator.pop(dialogContext);
-                                      _inactivateAnimal(selectedReason!);
-                                    }
-                                  },
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFFFA2844),
-                                    foregroundColor: Colors.white,
-                                    tapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    minimumSize: const Size(
-                                      double.infinity,
-                                      40,
-                                    ),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Inactivar',
-                                    style: AppTypography.body3.copyWith(
-                                      color: Colors.white,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                    textAlign: TextAlign.center,
-                                    softWrap: true,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // X close button
-                  Positioned(
-                    top: 16,
-                    right: 16,
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.close,
-                        color: AppColors.greyIconos,
-                      ),
-                      onPressed: () => Navigator.of(context).pop(),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ),
-                ],
+              TextSpan(
+                text:
+                    'necesitas solicitarle al propietario su número de identificación para validar la acción.',
+                style: TextStyle(fontWeight: FontWeight.bold),
               ),
-            );
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AppDropdown<String>(
+                label: 'Seleccionar el motivo para continuar:',
+                hint: 'Seleccionar',
+                value: selectedReason,
+                items: deactivationReasons,
+                itemAsString: (reason) => reason,
+                onChanged: (value) {
+                  setDialogState(() {
+                    selectedReason = value;
+                    reasonError = null;
+                  });
+                },
+                errorText: reasonError,
+                isInline: true,
+              ),
+              const SizedBox(height: 16),
+              IdSelector(
+                customLabel: 'Identificación del propietario',
+                initialIdType: ownerIdType,
+                idTypeEnabled: false,
+                hintText: 'Número de documento',
+                errorText: ccError,
+                onChanged: (value) {
+                  enteredIdNumber = value;
+                  if (ccError != null) {
+                    setDialogState(() => ccError = null);
+                  }
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+          confirmLabel: 'Inactivar',
+          validateBeforeConfirm: () {
+            setDialogState(() {
+              reasonError = selectedReason == null
+                  ? 'Seleccione un motivo.'
+                  : null;
+              ccError = enteredIdNumber.trim() != ownerIdNumber
+                  ? 'El número no coincide con el propietario.'
+                  : null;
+            });
+            return reasonError == null && ccError == null;
           },
-        );
-      },
+          onConfirm: () => _inactivateAnimal(selectedReason!),
+        ),
+      ),
     );
   }
 

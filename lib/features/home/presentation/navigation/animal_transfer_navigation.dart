@@ -42,6 +42,7 @@ Future<void> openAnimalTransfer(
       selectedAnimals: const [],
       title: 'Transferir animales',
       continueLabel: 'Transferir',
+      searchMaxLength: 20,
     );
     if (!context.mounted || selection == null || selection.isEmpty) return;
     selected = selection.map(AnimalModel.fromEntity).toList(growable: false);
@@ -64,11 +65,15 @@ Future<void> openAnimalTransfer(
   ).pushNamed(AppRoutes.animalTransfer, arguments: selected);
 }
 
-Future<void> openAnimalTransferRequests(BuildContext context) async {
+Future<void> openAnimalTransferRequests(
+  BuildContext context, {
+  bool focusPending = false,
+}) async {
   await Navigator.of(context).push(
     MaterialPageRoute<void>(
       builder: (_) => AnimalTransferRequestsScreen(
         repository: di.sl<AnimalTransferRepository>(),
+        focusPending: focusPending,
       ),
     ),
   );

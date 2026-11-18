@@ -16,6 +16,7 @@ Future<List<AnimalEntity>?> showAnimalSelectionModal({
   required List<AnimalEntity> selectedAnimals,
   String title = 'Seleccionar animales',
   String continueLabel = 'Continuar',
+  int searchMaxLength = 50,
 }) {
   return showDialog<List<AnimalEntity>>(
     context: context,
@@ -26,6 +27,7 @@ Future<List<AnimalEntity>?> showAnimalSelectionModal({
       selectedAnimals: selectedAnimals,
       title: title,
       continueLabel: continueLabel,
+      searchMaxLength: searchMaxLength,
     ),
   );
 }
@@ -35,6 +37,7 @@ class AnimalSelectionModal extends StatefulWidget {
   final List<AnimalEntity> selectedAnimals;
   final String title;
   final String continueLabel;
+  final int searchMaxLength;
 
   const AnimalSelectionModal({
     super.key,
@@ -42,6 +45,7 @@ class AnimalSelectionModal extends StatefulWidget {
     required this.selectedAnimals,
     this.title = 'Seleccionar animales',
     this.continueLabel = 'Continuar',
+    this.searchMaxLength = 50,
   });
 
   @override
@@ -169,7 +173,7 @@ class _AnimalSelectionModalState extends State<AnimalSelectionModal> {
                         ),
                       ),
                     ),
-                    maxLength: 50,
+                    maxLength: widget.searchMaxLength,
                   ),
                   const SizedBox(height: AppSpacing.l),
                   CustomCheckbox(

@@ -17,12 +17,14 @@ class AnimalAvatar extends StatelessWidget {
   final AnimalModel animal;
   final double size;
   final double borderRadius;
+  final String? unknownFamilyIconPath;
 
   const AnimalAvatar({
     super.key,
     required this.animal,
     required this.size,
     required this.borderRadius,
+    this.unknownFamilyIconPath,
   });
 
   @override
@@ -56,7 +58,9 @@ class AnimalAvatar extends StatelessWidget {
   Widget _placeholder() {
     return Center(
       child: SvgPicture.asset(
-        _animalFamilyIconPath(animal.family),
+        animal.family.trim().isEmpty && unknownFamilyIconPath != null
+            ? unknownFamilyIconPath!
+            : _animalFamilyIconPath(animal.family),
         width: size * 0.5,
         height: size * 0.5,
         colorFilter: const ColorFilter.mode(

@@ -85,6 +85,23 @@ void main() {
 
   tearDown(() => cubit.close());
 
+  test('recarga la lista del mismo dueño tras recibir un animal', () async {
+    when(
+      () => getAnimalsByOwnerUseCase(ownerId),
+    ).thenAnswer((_) async => const Right([]));
+    await cubit.loadAnimals(ownerId);
+
+    when(
+      () => getAnimalsByOwnerUseCase(ownerId),
+    ).thenAnswer((_) async => const Right([originalAnimal]));
+    await cubit.loadAnimals(ownerId, forceRefresh: true);
+    await cubit.loadAnimals(ownerId);
+
+    expect(cubit.state, const AnimalsLoaded([originalAnimal]));
+    expect(cubit.animals, [originalAnimal]);
+    verify(() => getAnimalsByOwnerUseCase(ownerId)).called(2);
+  });
+
   test('mantiene los estados de carga y éxito al subir una imagen', () async {
     var loadCount = 0;
     when(() => getAnimalsByOwnerUseCase(ownerId)).thenAnswer((_) async {

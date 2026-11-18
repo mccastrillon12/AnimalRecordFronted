@@ -36,24 +36,39 @@ class AnimalCubit extends Cubit<AnimalState> {
 
   /// The owner ID whose animals are currently loaded.
   String? _currentOwnerId;
+  int _ownerLoadGeneration = 0;
+  bool _ownerLoadInProgress = false;
 
   String? get currentOwnerId => _currentOwnerId;
 
   List<AnimalEntity> get animals => _animals;
 
-  Future<void> loadAnimals(String ownerId) async {
-    // If animals are already loaded for this same owner, skip the reload.
-    if (_currentOwnerId == ownerId && state is AnimalsLoaded) return;
+  Future<void> loadAnimals(String ownerId, {bool forceRefresh = false}) async {
+    final sameOwner = _currentOwnerId == ownerId;
+    if (!forceRefresh &&
+        sameOwner &&
+        (_ownerLoadInProgress || state is AnimalsLoaded)) {
+      return;
+    }
 
+    final generation = ++_ownerLoadGeneration;
+    _ownerLoadInProgress = true;
+    if (!sameOwner) _animals = [];
     _currentOwnerId = ownerId;
     emit(AnimalsLoading());
 
     final result = await getAnimalsByOwnerUseCase(ownerId);
+    if (isClosed || generation != _ownerLoadGeneration) return;
+    _ownerLoadInProgress = false;
 
-    result.fold((failure) => emit(AnimalError(failure.message)), (animals) {
-      _animals = animals;
-      emit(AnimalsLoaded(animals));
-    });
+    result.fold(
+      (failure) =>
+          emit(AnimalError(failure.message, existingAnimals: _animals)),
+      (animals) {
+        _animals = animals;
+        emit(AnimalsLoaded(animals));
+      },
+    );
   }
 
   Future<void> searchAnimals(Map<String, dynamic> queryParams) async {
