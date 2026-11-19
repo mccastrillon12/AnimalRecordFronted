@@ -1,19 +1,13 @@
 import 'dart:async';
 
 import 'package:animal_record/core/network/api_exception.dart';
-import 'package:animal_record/core/errors/failure.dart';
-import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
-import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_requests_cubit.dart';
-import 'package:dartz/dartz.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _TransferRepository extends Mock implements AnimalTransferRepository {}
-
-class _GetAnimalById extends Mock implements GetAnimalByIdUseCase {}
 
 void main() {
   const request = TransferRequest(
@@ -40,57 +34,94 @@ void main() {
   });
   tearDown(() => cubit.close());
 
-  test(
-    'consulta la foto del animal cuando no viene en la transferencia',
-    () async {
-      final getAnimalById = _GetAnimalById();
-      final animalResult = Completer<Either<Failure, AnimalEntity>>();
-      final photoCubit = TransferDetailCubit(
-        repository,
-        request.id,
-        getAnimalByIdUseCase: getAnimalById,
-      );
-      addTearDown(photoCubit.close);
-      when(() => repository.getDetail(request.id)).thenAnswer(
-        (_) async => const TransferDetail(request, TransferPage([item], null)),
-      );
-      when(
-        () => getAnimalById(item.animalId),
-      ).thenAnswer((_) => animalResult.future);
+  test('mantiene la foto ausente sin pedir la ficha vigente', () async {
+    when(() => repository.getDetail(request.id)).thenAnswer(
+      (_) async => const TransferDetail(request, TransferPage([item], null)),
+    );
+    await cubit.refresh();
+    expect(cubit.state.items.single.animalImageUrl, isNull);
+    verify(() => repository.getDetail(request.id)).called(1);
+    verifyNoMoreInteractions(repository);
+  });
 
-      await photoCubit.refresh();
-      expect(photoCubit.state.items.single.animalImageUrl, isNull);
-      animalResult.complete(
-        const Right(
-          AnimalEntity(
-            id: 'animal-1',
-            name: 'Spot',
-            species: 'CANINE',
-            breed: 'Labrador',
-            sex: 'MALE',
-            reproductiveStatus: 'INTACT',
-            hasChip: false,
-            isAssociationMember: false,
-            temperament: [],
-            diagnosis: [],
-            ownerId: 'owner-1',
-            profilePictureUrl: 'https://example.com/spot.jpg',
-          ),
-        ),
+  test(
+    'renueva la foto en la segunda página sin perder selección ni páginas',
+    () async {
+      const photo = TransferItem(
+        id: 'item-2',
+        animalId: 'animal-2',
+        animalName: 'Luna',
+        animalCode: 'AR-C002',
+        status: 'PENDING',
+        animalImageUrl: 'https://example.com/photo?signature=old&key=a%2Bb',
       );
-      await Future<void>.delayed(Duration.zero);
-      expect(
-        photoCubit.state.items.single.animalImageUrl,
-        'https://example.com/spot.jpg',
+      const renewed = TransferItem(
+        id: 'item-2',
+        animalId: 'animal-2',
+        animalName: 'Luna',
+        animalCode: 'AR-C002',
+        status: 'PENDING',
+        animalImageUrl: 'https://example.com/photo?signature=new&key=a%2Bb',
       );
-      await photoCubit.refresh();
-      expect(
-        photoCubit.state.items.single.animalImageUrl,
-        'https://example.com/spot.jpg',
+      when(() => repository.getDetail(request.id)).thenAnswer(
+        (_) async =>
+            const TransferDetail(request, TransferPage([item], 'next')),
       );
-      verify(() => getAnimalById(item.animalId)).called(1);
+      var page = const TransferDetail(request, TransferPage([photo], null));
+      when(
+        () => repository.getDetail(request.id, cursor: 'next'),
+      ).thenAnswer((_) async => page);
+      await cubit.refresh();
+      await cubit.loadMore();
+      cubit.toggleAnimal(photo.animalId);
+      page = const TransferDetail(request, TransferPage([renewed], null));
+      await cubit.refreshAnimalImage(photo.id, photo.animalImageUrl!);
+      expect(cubit.state.items, [item, renewed]);
+      expect(cubit.state.selectedAnimalIds, {photo.animalId});
+      expect(cubit.state.cursor, isNull);
+      await cubit.refreshAnimalImage(photo.id, renewed.animalImageUrl!);
+      verify(() => repository.getDetail(request.id)).called(1);
+      verify(() => repository.getDetail(request.id, cursor: 'next')).called(2);
+      verifyNoMoreInteractions(repository);
     },
   );
+
+  test('el reintento conserva clave, versión y selección originales', () async {
+    final keys = <String>[];
+    when(() => repository.getDetail(request.id)).thenAnswer(
+      (_) async => const TransferDetail(request, TransferPage([item], null)),
+    );
+    when(
+      () => repository.decide(
+        id: request.id,
+        expectedVersion: request.version,
+        acceptedAnimalIds: [item.animalId],
+        idempotencyKey: any(named: 'idempotencyKey'),
+      ),
+    ).thenAnswer((invocation) async {
+      keys.add(invocation.namedArguments[#idempotencyKey] as String);
+      if (keys.length == 1) {
+        throw const ApiException(message: 'Incierto', statusCode: 503);
+      }
+      return request;
+    });
+    await cubit.refresh();
+    cubit.toggleAnimal(item.animalId);
+    await cubit.decide([item.animalId]);
+    cubit.toggleAnimal(item.animalId);
+    cubit.toggleAllAnimals();
+    expect(cubit.state.selectedAnimalIds, {item.animalId});
+    await cubit.retryDecision();
+    expect(keys, [keys.first, keys.first]);
+    verify(
+      () => repository.decide(
+        id: request.id,
+        expectedVersion: request.version,
+        acceptedAnimalIds: [item.animalId],
+        idempotencyKey: keys.first,
+      ),
+    ).called(2);
+  });
 
   test('envía la decisión para el único animal pendiente', () async {
     var detail = const TransferDetail(request, TransferPage([item], null));

@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 
@@ -42,11 +43,27 @@ class AnimalDataModel extends AnimalEntity {
     super.updatedAt,
     super.ownerName,
     super.nameHistory,
+    super.transferStatus,
+    super.readOnly,
+    super.ownershipHistory,
   });
 
-  factory AnimalDataModel.fromJson(Map<String, dynamic> json) {
+  factory AnimalDataModel.fromJson(
+    Map<String, dynamic> json, {
+    AnimalOwnershipHistory? historicalContext,
+  }) {
     return AnimalDataModel(
-      id: json['id'] as String,
+      id: (json['id'] ?? json['_id']) as String,
+      transferStatus: json['transferStatus'] as String?,
+      readOnly: json['readOnly'] as bool? ?? false,
+      ownershipHistory:
+          historicalContext ??
+          (json['ownershipHistory'] is Map<String, dynamic>
+              ? AnimalOwnershipHistory.fromJson({
+                  ...json['ownershipHistory'] as Map<String, dynamic>,
+                  if (json['photo'] != null) 'photo': json['photo'],
+                })
+              : null),
       name: StringFormatters.formatName(json['name'] as String),
       code: json['code'] as String?,
       species: json['species'] as String,
@@ -149,6 +166,17 @@ class AnimalDataModel extends AnimalEntity {
       if (approximateAgeMaxMonths != null)
         'approximateAgeMaxMonths': approximateAgeMaxMonths,
       'isActive': isActive,
+      if (transferStatus != null) 'transferStatus': transferStatus,
+      'readOnly': readOnly,
+      if (ownershipHistory case final history?)
+        'ownershipHistory': {
+          'periodId': history.periodId,
+          'publicationHash': history.publicationHash,
+          if (history.transferredAt != null)
+            'transferredAt': history.transferredAt!.toIso8601String(),
+          if (history.photo case final photo?)
+            'photo': {'entryId': photo.entryId, 'fileId': photo.fileId},
+        },
       if (deactivationReason != null) 'deactivationReason': deactivationReason,
       if (createdAt != null) 'createdAt': createdAt,
       if (updatedAt != null) 'updatedAt': updatedAt,

@@ -93,6 +93,7 @@ class TransferAnimalSummaryRow extends StatelessWidget {
   final String? unknownFamilyIconPath;
   final VoidCallback? onTap;
   final String? detailsText;
+  final ValueChanged<String>? onImageError;
 
   const TransferAnimalSummaryRow({
     super.key,
@@ -103,6 +104,7 @@ class TransferAnimalSummaryRow extends StatelessWidget {
     this.unknownFamilyIconPath,
     this.onTap,
     this.detailsText,
+    this.onImageError,
   });
 
   @override
@@ -133,6 +135,7 @@ class TransferAnimalSummaryRow extends StatelessWidget {
                   size: 32,
                   borderRadius: 4,
                   unknownFamilyIconPath: unknownFamilyIconPath,
+                  onImageError: onImageError,
                 ),
                 const SizedBox(width: AppSpacing.m),
                 Expanded(

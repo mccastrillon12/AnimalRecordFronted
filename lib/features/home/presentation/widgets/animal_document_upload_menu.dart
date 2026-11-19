@@ -14,6 +14,7 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   static const _menuCloseDuration = Duration(milliseconds: 320);
 
   final String animalId;
+  final bool readOnly;
   final MedicalDocumentCategory? requestedCategory;
   final VoidCallback? onUploaded;
   final ValueChanged<MedicalDocumentCategory>? onUploadedToCategory;
@@ -21,6 +22,7 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   const AnimalDocumentUploadMenu({
     super.key,
     required this.animalId,
+    this.readOnly = false,
     this.requestedCategory,
     this.onUploaded,
     this.onUploadedToCategory,
@@ -28,6 +30,15 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (readOnly) return const SizedBox.shrink();
+    final animals = context.watch<AnimalCubit?>()?.animals.where(
+      (animal) => animal.id == animalId,
+    );
+    if (animals != null &&
+        animals.isNotEmpty &&
+        !animals.any((animal) => animal.canWrite)) {
+      return const SizedBox.shrink();
+    }
     return AppSingleActionPopupMenu(
       menuKey: const Key('animal-document-upload-menu'),
       itemKey: const Key('upload-animal-document-menu-item'),
@@ -72,6 +83,8 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
       );
       return;
     }
+
+    if (!matches.first.canWrite) return;
 
     // PopupMenu completes its Future before the 300 ms reverse animation ends.
     // The extra frame prevents the upload route from overlapping its last paint.

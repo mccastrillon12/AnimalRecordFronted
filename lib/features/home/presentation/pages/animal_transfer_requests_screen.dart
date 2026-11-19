@@ -10,7 +10,6 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
-import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:animal_record/features/home/domain/services/animal_transfer_availability.dart';
 import 'package:animal_record/features/home/domain/services/historical_file_save_service.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_requests_cubit.dart';
@@ -22,22 +21,25 @@ import 'package:animal_record/features/home/presentation/widgets/transfer_accept
 import 'package:animal_record/features/home/presentation/utils/transfer_status_label.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 
 class AnimalTransferRequestsScreen extends StatelessWidget {
   final AnimalTransferRepository repository;
   final String initialDirection;
   final bool focusPending;
+  final IncomingTransferPreviewRepository? previewCache;
 
   const AnimalTransferRequestsScreen({
     super.key,
     required this.repository,
     this.initialDirection = 'INCOMING',
     this.focusPending = false,
+    this.previewCache,
   }) : assert(initialDirection == 'INCOMING' || initialDirection == 'OUTGOING');
 
   @override
   Widget build(BuildContext context) => BlocProvider(
-    create: (_) => TransferRequestsCubit(repository)
+    create: (_) => TransferRequestsCubit(repository, previewCache: previewCache)
       ..load(
         direction: initialDirection,
         filter: focusPending ? 'PENDING' : null,
@@ -61,6 +63,7 @@ class _RequestsBody extends StatelessWidget {
             return AnimalTransferDetailScreen(
               key: ValueKey(request.id),
               repository: context.read<TransferRequestsCubit>().repository,
+              previewCache: context.read<TransferRequestsCubit>().previewCache,
               transferId: request.id,
               incoming: true,
               acceptanceLayout: true,
@@ -175,6 +178,7 @@ class _RequestsListBody extends StatelessWidget {
                 onRefresh: () => cubit.load(
                   direction: state.direction,
                   filter: state.filter,
+                  forceRefresh: true,
                 ),
                 child: ListView(
                   children: [
@@ -197,6 +201,9 @@ class _RequestsListBody extends StatelessWidget {
                             MaterialPageRoute<void>(
                               builder: (_) => AnimalTransferDetailScreen(
                                 repository: cubit.repository,
+                                previewCache: state.direction == 'INCOMING'
+                                    ? cubit.previewCache
+                                    : null,
                                 transferId: request.id,
                                 incoming: state.direction == 'INCOMING',
                                 acceptanceLayout: state.direction == 'INCOMING',
@@ -233,18 +240,18 @@ class _RequestsListBody extends StatelessWidget {
 
 class AnimalTransferDetailScreen extends StatelessWidget {
   final AnimalTransferRepository repository;
-  final GetAnimalByIdUseCase? getAnimalByIdUseCase;
   final String transferId;
   final bool incoming;
   final bool acceptanceLayout;
+  final IncomingTransferPreviewRepository? previewCache;
 
   const AnimalTransferDetailScreen({
     super.key,
     required this.repository,
-    this.getAnimalByIdUseCase,
     required this.transferId,
     required this.incoming,
     this.acceptanceLayout = false,
+    this.previewCache,
   });
 
   @override
@@ -252,12 +259,8 @@ class AnimalTransferDetailScreen extends StatelessWidget {
     create: (_) => TransferDetailCubit(
       repository,
       transferId,
-      getAnimalByIdUseCase:
-          getAnimalByIdUseCase ??
-          (sl.isRegistered<GetAnimalByIdUseCase>()
-              ? sl<GetAnimalByIdUseCase>()
-              : null),
-    )..refresh(),
+      previewCache: incoming ? previewCache : null,
+    )..initialize(),
     child: _DetailBody(incoming: incoming, acceptanceLayout: acceptanceLayout),
   );
 }
@@ -545,6 +548,8 @@ class _DetailBodyState extends State<_DetailBody> {
                   }
                 },
                 onRefresh: cubit.refresh,
+                onImageError: (item, failedUrl) =>
+                    cubit.refreshAnimalImage(item.id, failedUrl),
                 onLoadMore: state.loading || state.canRetryDecision
                     ? null
                     : cubit.loadMore,

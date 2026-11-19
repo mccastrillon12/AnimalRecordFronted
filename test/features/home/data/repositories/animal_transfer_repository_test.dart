@@ -29,7 +29,7 @@ void main() {
               'animalBreed': 'Labrador',
               'animalSex': 'MALE',
               'animalSpecies': 'CANINE',
-              'profilePictureUrl': 'https://example.com/spot.jpg',
+              'animalProfilePictureUrl': 'https://example.com/spot.jpg',
               'animalAge': {'type': 'EXACT', 'months': 0},
             },
             {

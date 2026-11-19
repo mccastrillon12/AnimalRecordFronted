@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:equatable/equatable.dart';
 
 class DiaryAttachmentEntity extends Equatable {
@@ -6,6 +7,7 @@ class DiaryAttachmentEntity extends Equatable {
   final String fileType;
   final String mimeType;
   final String url;
+  final HistoricalFileReference? historicalFile;
   final int size;
   final String createdAt;
 
@@ -15,12 +17,22 @@ class DiaryAttachmentEntity extends Equatable {
     required this.fileType,
     required this.mimeType,
     required this.url,
+    this.historicalFile,
     required this.size,
     required this.createdAt,
   });
 
   @override
-  List<Object?> get props => [id, fileName, fileType, mimeType, url, size, createdAt];
+  List<Object?> get props => [
+    id,
+    fileName,
+    fileType,
+    mimeType,
+    url,
+    size,
+    createdAt,
+    historicalFile,
+  ];
 }
 
 class DiaryEntryEntity extends Equatable {
@@ -45,5 +57,14 @@ class DiaryEntryEntity extends Equatable {
   });
 
   @override
-  List<Object?> get props => [id, animalId, title, content, date, attachments, createdAt, updatedAt];
+  List<Object?> get props => [
+    id,
+    animalId,
+    title,
+    content,
+    date,
+    attachments,
+    createdAt,
+    updatedAt,
+  ];
 }

@@ -1,3 +1,8 @@
+import 'package:animal_record/features/home/domain/repositories/animal_history_repository.dart';
+import 'package:animal_record/features/home/domain/repositories/historical_animal_photo_store.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
+import 'package:animal_record/features/home/domain/usecases/load_animal_photo_usecase.dart';
 import 'package:animal_record/features/auth/data/datasources/auth_remote_datasource.dart';
 import 'package:animal_record/features/auth/domain/repositories/auth_repository.dart';
 import 'package:animal_record/features/auth/data/repositories/auth_repository_impl.dart';
@@ -5,6 +10,10 @@ import 'package:animal_record/features/auth/data/repositories/user_cache_impl.da
 import 'package:animal_record/features/auth/data/services/callback_session_state_cleaner.dart';
 import 'package:animal_record/features/auth/data/services/social_session_service_impl.dart';
 import 'package:animal_record/features/auth/domain/repositories/user_cache.dart';
+import 'package:animal_record/features/home/data/services/historical_animal_photo_cache.dart';
+import 'package:animal_record/features/home/data/services/animal_history_cache.dart';
+import 'package:animal_record/features/home/data/services/incoming_transfer_cache.dart';
+import 'package:animal_record/features/home/presentation/utils/preload_transfer_picture.dart';
 import 'package:animal_record/features/auth/domain/services/session_state_cleaner.dart';
 import 'package:animal_record/features/auth/domain/services/social_session_service.dart';
 import 'package:animal_record/features/auth/domain/usecases/register_usecase.dart';
@@ -226,6 +235,8 @@ Future<void> init() async {
     () => CallbackSessionStateCleaner(() {
       sl<AnimalCubit>().reset();
       sl<MedicalDocumentsRepository>().clearCache();
+      sl<HistoricalAnimalPhotoStore>().clearMemory();
+      sl<IncomingTransferPreviewRepository>().clear();
     }),
   );
 
@@ -282,6 +293,7 @@ Future<void> init() async {
       confirmAnimalPictureUseCase: sl(),
       searchAnimalsUseCase: sl(),
       uploadAnimalPictureUseCase: sl(),
+      historicalAnimalLoader: sl(),
     ),
   );
 
@@ -345,6 +357,7 @@ Future<void> init() async {
   // — Diary feature —
   sl.registerFactory(
     () => DiaryCubit(
+      historicalDiaryUseCase: sl(),
       getDiaryEntriesUseCase: sl(),
       createDiaryEntryUseCase: sl(),
       updateDiaryEntryUseCase: sl(),
@@ -416,7 +429,10 @@ Future<void> init() async {
     ),
   );
   sl.registerFactory(
-    () => AnimalMedicalDocumentsCubit(getDocumentsUseCase: sl()),
+    () => AnimalMedicalDocumentsCubit(
+      getDocumentsUseCase: sl(),
+      historicalDocumentsUseCase: sl(),
+    ),
   );
   sl.registerFactory(
     () => MedicalDocumentDetailCubit(
@@ -444,8 +460,11 @@ Future<void> init() async {
   sl.registerLazySingleton(() => GetAnimalMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(() => GetMedicalDocumentDownloadUriUseCase(sl()));
   sl.registerLazySingleton(
-    () =>
-        LoadMedicalDocumentOriginalUseCase(repository: sl(), fileLoader: sl()),
+    () => LoadMedicalDocumentOriginalUseCase(
+      repository: sl(),
+      fileLoader: sl(),
+      historicalRepository: sl(),
+    ),
   );
   sl.registerLazySingleton(() => DeleteMedicalDocumentUseCase(sl()));
   sl.registerLazySingleton(() => SaveMedicalDocumentOriginalUseCase(sl()));
@@ -523,6 +542,33 @@ Future<void> init() async {
   );
   sl.registerLazySingleton<AnimalTransferRepository>(
     () => AnimalTransferRepositoryImpl(sl<AnimalTransferRemoteDataSource>()),
+  );
+  sl.registerLazySingleton<AnimalHistoryRepository>(
+    () => AnimalHistoryCache(sl<AnimalTransferRepository>()),
+  );
+  sl.registerLazySingleton<IncomingTransferPreviewRepository>(
+    () => IncomingTransferCache(
+      sl<AnimalTransferRepository>(),
+      preloadImage: preloadTransferPicture,
+    ),
+  );
+  sl.registerLazySingleton<HistoricalAnimalPhotoStore>(
+    () => HistoricalAnimalPhotoCache(
+      readAccountId: () async => (await sl<UserCache>().read())?.id,
+    ),
+  );
+  sl.registerLazySingleton(() => DownloadHistoricalFileUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadHistoricalAnimalUseCase(sl(), photos: sl(), downloadFile: sl()),
+  );
+  sl.registerLazySingleton(() => GetHistoricalDiaryUseCase(sl()));
+  sl.registerLazySingleton(() => GetHistoricalDocumentsUseCase(sl()));
+  sl.registerLazySingleton(
+    () => LoadAnimalPhotoUseCase(
+      photos: sl(),
+      downloadFile: sl(),
+      getAnimal: sl(),
+    ),
   );
   sl.registerLazySingleton<TransferPendingMedicalWork>(
     () => TransferPendingMedicalWorkImpl(

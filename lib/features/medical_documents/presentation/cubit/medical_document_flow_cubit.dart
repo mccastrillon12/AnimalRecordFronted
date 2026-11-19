@@ -1,7 +1,7 @@
 import 'dart:async';
 
 import 'package:animal_record/core/network/api_exception.dart';
-import 'package:animal_record/features/medical_documents/data/datasources/pending_medical_document_local_datasource.dart';
+import 'package:animal_record/features/medical_documents/domain/repositories/pending_medical_document_store.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
@@ -26,7 +26,7 @@ class MedicalDocumentFlowCubit extends Cubit<MedicalDocumentFlowState> {
   final GetRelatedMedicalDocumentsUseCase? getRelatedDocumentsUseCase;
   final ReviewMedicalDocumentUseCase reviewUseCase;
   final ReviewMedicalDocumentReplacementUseCase? reviewReplacementUseCase;
-  final PendingMedicalDocumentLocalDataSource pendingLocalDataSource;
+  final PendingMedicalDocumentStore pendingLocalDataSource;
   final MedicalDocumentPollDelay pollDelay;
   final MedicalDocumentItemIdGenerator itemIdGenerator;
 

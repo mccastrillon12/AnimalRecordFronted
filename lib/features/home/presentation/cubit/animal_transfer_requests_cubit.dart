@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:animal_record/core/network/api_exception.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
-import 'package:animal_record/features/home/domain/usecases/get_animal_by_id_usecase.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:uuid/uuid.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 
 class TransferRequestsState {
   final String direction;
@@ -26,11 +26,31 @@ class TransferRequestsState {
 
 class TransferRequestsCubit extends Cubit<TransferRequestsState> {
   final AnimalTransferRepository repository;
+  final IncomingTransferPreviewRepository? previewCache;
   int _generation = 0;
-  TransferRequestsCubit(this.repository) : super(const TransferRequestsState());
+  TransferRequestsCubit(this.repository, {this.previewCache})
+    : super(const TransferRequestsState());
 
-  Future<void> load({String direction = 'INCOMING', String? filter}) async {
+  Future<void> load({
+    String direction = 'INCOMING',
+    String? filter,
+    bool forceRefresh = false,
+  }) async {
     final generation = ++_generation;
+    final usePendingCache =
+        direction == 'INCOMING' && filter == 'PENDING' && previewCache != null;
+    final cached = usePendingCache ? previewCache!.pendingRequests : null;
+    if (!forceRefresh && cached != null) {
+      emit(
+        TransferRequestsState(
+          direction: direction,
+          filter: filter,
+          requests: cached.items,
+          cursor: cached.nextCursor,
+        ),
+      );
+      return;
+    }
     emit(
       TransferRequestsState(
         direction: direction,
@@ -39,10 +59,9 @@ class TransferRequestsCubit extends Cubit<TransferRequestsState> {
       ),
     );
     try {
-      final page = await repository.listRequests(
-        direction: direction,
-        status: filter,
-      );
+      final page = usePendingCache
+          ? await previewCache!.refreshPending()
+          : await repository.listRequests(direction: direction, status: filter);
       if (!isClosed && generation == _generation) {
         emit(
           TransferRequestsState(
@@ -157,78 +176,135 @@ class _DecisionIntent {
 class TransferDetailCubit extends Cubit<TransferDetailState> {
   final AnimalTransferRepository repository;
   final String transferId;
-  final GetAnimalByIdUseCase? getAnimalByIdUseCase;
-  final Map<String, String> _animalImageUrls = {};
-  final Set<String> _requestedAnimalImages = {};
+  final IncomingTransferPreviewRepository? previewCache;
+  final Map<String, String?> _itemCursors = {};
+  final Map<String?, Future<void>> _imageRefreshes = {};
+  final Map<String, DateTime> _imageRetries = {};
   _DecisionIntent? _pendingDecision;
   Timer? _processingPoll;
   int _readGeneration = 0;
 
-  TransferDetailCubit(
-    this.repository,
-    this.transferId, {
-    this.getAnimalByIdUseCase,
-  }) : super(const TransferDetailState());
+  TransferDetailCubit(this.repository, this.transferId, {this.previewCache})
+    : super(_cachedState(previewCache?.peek(transferId))) {
+    final cached = previewCache?.peek(transferId);
+    if (cached != null) _itemCursors.addAll(cached.itemCursors);
+  }
 
-  List<TransferItem> _withAnimalImages(List<TransferItem> items) => items
-      .map((item) {
-        final imageUrl = item.animalImageUrl?.trim();
-        if (imageUrl != null && imageUrl.isNotEmpty) {
-          _animalImageUrls[item.animalId] = imageUrl;
-          return item;
-        }
-        final cachedUrl = _animalImageUrls[item.animalId];
-        return cachedUrl == null ? item : item.withAnimalImageUrl(cachedUrl);
-      })
-      .toList(growable: false);
+  static TransferDetailState _cachedState(IncomingTransferSnapshot? cached) =>
+      cached == null
+      ? const TransferDetailState()
+      : TransferDetailState(request: cached.request, items: cached.items);
 
-  void _loadMissingAnimalImages() {
-    final useCase = getAnimalByIdUseCase;
-    if (useCase == null) return;
-    for (final item in state.items) {
-      if ((item.animalImageUrl?.trim().isNotEmpty ?? false) ||
-          !_requestedAnimalImages.add(item.animalId)) {
-        continue;
+  Future<void> initialize() async {
+    if (state.request != null) return;
+    final cache = previewCache;
+    if (cache == null) return refresh();
+    final generation = ++_readGeneration;
+    emit(const TransferDetailState(loading: true));
+    try {
+      final cached = await cache.loadDetail(transferId);
+      if (isClosed || generation != _readGeneration) return;
+      _itemCursors
+        ..clear()
+        ..addAll(cached.itemCursors);
+      emit(TransferDetailState(request: cached.request, items: cached.items));
+      if (cached.request.status == 'PROCESSING') await refresh();
+    } catch (error) {
+      if (isClosed || generation != _readGeneration) return;
+      if (error is ApiException && error.statusCode == 409) {
+        await refresh();
+      } else {
+        emit(TransferDetailState(error: _message(error)));
       }
-      unawaited(_loadAnimalImage(item.animalId, useCase));
     }
   }
 
-  Future<void> _loadAnimalImage(
-    String animalId,
-    GetAnimalByIdUseCase useCase,
-  ) async {
+  Future<void> refreshAnimalImage(String itemId, String failedUrl) async {
+    if (isClosed) return;
+    if (state.loading) {
+      try {
+        await stream.firstWhere((state) => !state.loading);
+      } on StateError {
+        return;
+      }
+    }
+    if (isClosed || state.canRetryDecision || state.submittingDecision) return;
+    if (!state.items.any(
+          (item) => item.id == itemId && item.animalImageUrl == failedUrl,
+        ) ||
+        !_itemCursors.containsKey(itemId)) {
+      return;
+    }
+    final last = _imageRetries[itemId];
+    if (last != null &&
+        DateTime.now().difference(last) < const Duration(seconds: 30)) {
+      return;
+    }
+    _imageRetries[itemId] = DateTime.now();
+    final cursor = _itemCursors[itemId];
+    final existing = _imageRefreshes[cursor];
+    if (existing != null) return existing;
+    final refresh = _refreshImagePage(cursor);
+    _imageRefreshes[cursor] = refresh;
     try {
-      final result = await useCase(animalId);
-      var lookupFailed = false;
-      final imageUrl = result.fold<String?>((_) {
-        lookupFailed = true;
-        return null;
-      }, (animal) => animal.profilePictureUrl?.trim());
-      if (lookupFailed) _requestedAnimalImages.remove(animalId);
-      if (imageUrl == null || imageUrl.isEmpty || isClosed) return;
-      _animalImageUrls[animalId] = imageUrl;
-      final current = state;
-      final updated = _withAnimalImages(current.items);
+      await refresh;
+    } finally {
+      if (identical(_imageRefreshes[cursor], refresh)) {
+        _imageRefreshes.remove(cursor);
+      }
+    }
+  }
+
+  Future<void> _refreshImagePage(String? cursor) async {
+    final generation = _readGeneration;
+    final version = state.request?.version;
+    try {
+      final detail = await repository.getDetail(transferId, cursor: cursor);
+      if (state.loading) {
+        try {
+          await stream.firstWhere((state) => !state.loading);
+        } on StateError {
+          return;
+        }
+      }
+      if (isClosed ||
+          generation != _readGeneration ||
+          state.canRetryDecision ||
+          state.request?.version != version) {
+        return;
+      }
+      if (detail.request.version != version) {
+        await refresh();
+        return;
+      }
+      final items = {for (final item in detail.page.items) item.id: item};
+      previewCache?.updatePage(transferId, detail);
       emit(
         TransferDetailState(
-          request: current.request,
-          items: updated,
-          cursor: current.cursor,
-          selectedAnimalIds: current.selectedAnimalIds,
-          loading: current.loading,
-          error: current.error,
-          canRetryDecision: current.canRetryDecision,
-          submittingDecision: current.submittingDecision,
+          request: state.request,
+          items: state.items.map((item) => items[item.id] ?? item).toList(),
+          cursor: state.cursor,
+          selectedAnimalIds: state.selectedAnimalIds,
+          error: state.error,
+          canRetryDecision: state.canRetryDecision,
         ),
       );
-    } catch (_) {
-      _requestedAnimalImages.remove(animalId);
+    } catch (error) {
+      if (!isClosed &&
+          generation == _readGeneration &&
+          !state.loading &&
+          error is ApiException &&
+          error.statusCode == 409) {
+        await refresh();
+      }
     }
   }
 
   Future<void> refresh() async {
+    previewCache?.invalidateDetail(transferId);
     final generation = ++_readGeneration;
+    _imageRetries.clear();
+    _imageRefreshes.clear();
     final previousVersion = state.request?.version;
     emit(
       TransferDetailState(
@@ -243,6 +319,9 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
     try {
       final detail = await repository.getDetail(transferId);
       if (isClosed || generation != _readGeneration) return;
+      _itemCursors
+        ..clear()
+        ..addEntries(detail.page.items.map((item) => MapEntry(item.id, null)));
       if (detail.request.status == 'PROCESSING') {
         _processingPoll ??= Timer.periodic(const Duration(seconds: 5), (_) {
           if (!isClosed && !state.loading) refresh();
@@ -260,7 +339,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         emit(
           TransferDetailState(
             request: detail.request,
-            items: _withAnimalImages(detail.page.items),
+            items: detail.page.items,
             cursor: detail.page.nextCursor,
             selectedAnimalIds: detail.request.version == previousVersion
                 ? state.selectedAnimalIds
@@ -268,7 +347,6 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
             canRetryDecision: _pendingDecision != null,
           ),
         );
-        _loadMissingAnimalImages();
       }
     } catch (error) {
       if (!isClosed && generation == _readGeneration) {
@@ -307,15 +385,17 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         await refresh();
         return;
       }
+      _itemCursors.addEntries(
+        detail.page.items.map((item) => MapEntry(item.id, cursor)),
+      );
       emit(
         TransferDetailState(
           request: detail.request,
-          items: _withAnimalImages([...before.items, ...detail.page.items]),
+          items: [...before.items, ...detail.page.items],
           cursor: detail.page.nextCursor,
           selectedAnimalIds: before.selectedAnimalIds,
         ),
       );
-      _loadMissingAnimalImages();
     } catch (error) {
       if (isClosed || generation != _readGeneration) return;
       if (error is ApiException && error.statusCode == 409) {
@@ -354,7 +434,11 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
   }
 
   void toggleAllAnimals() {
-    if (state.request?.status != 'PENDING' || state.loading) return;
+    if (state.request?.status != 'PENDING' ||
+        state.loading ||
+        state.canRetryDecision) {
+      return;
+    }
     final pendingIds = state.items
         .where((item) => item.status == 'PENDING')
         .map((item) => item.animalId)
@@ -377,7 +461,11 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
   }
 
   void toggleAnimal(String animalId) {
-    if (state.request?.status != 'PENDING' || state.loading) return;
+    if (state.request?.status != 'PENDING' ||
+        state.loading ||
+        state.canRetryDecision) {
+      return;
+    }
     if (!state.items.any(
       (item) => item.animalId == animalId && item.status == 'PENDING',
     )) {
@@ -409,6 +497,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
       List.unmodifiable(acceptedAnimalIds),
       const Uuid().v4(),
     );
+    previewCache?.invalidateDetail(transferId);
     await retryDecision();
   }
 
@@ -432,6 +521,7 @@ class TransferDetailCubit extends Cubit<TransferDetailState> {
         acceptedAnimalIds: intent.acceptedAnimalIds,
         idempotencyKey: intent.key,
       );
+      previewCache?.removeRequest(transferId);
       _pendingDecision = null;
       if (isClosed) return;
       emit(TransferDetailState(request: request, items: state.items));

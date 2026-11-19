@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'dart:async';
 
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -89,9 +90,15 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
     });
   }
 
-  void _finish() {
+  Future<void> _finish() async {
     if (_isFinishing) return;
     _isFinishing = true;
+    final animals = context.read<AnimalCubit?>();
+    final ownerId = animals?.currentOwnerId;
+    if (animals != null && ownerId != null) {
+      await animals.loadAnimals(ownerId, forceRefresh: true);
+    }
+    if (!mounted) return;
     Navigator.of(context).pushNamedAndRemoveUntil<void>(
       AppRoutes.home,
       (_) => false,

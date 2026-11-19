@@ -1,27 +1,12 @@
+import 'package:animal_record/features/medical_documents/domain/repositories/pending_medical_document_store.dart';
+export 'package:animal_record/features/medical_documents/domain/repositories/pending_medical_document_store.dart'
+    show PendingMedicalDocumentFlow;
 import 'dart:convert';
 
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class PendingMedicalDocumentFlow {
-  final String documentId;
-  final List<String> animalIds;
-  final DateTime startedAt;
-  final MedicalDocumentCategory? requestedCategory;
-
-  const PendingMedicalDocumentFlow({
-    required this.documentId,
-    required this.animalIds,
-    required this.startedAt,
-    this.requestedCategory,
-  });
-}
-
-abstract interface class PendingMedicalDocumentLocalDataSource {
-  Future<void> save(PendingMedicalDocumentFlow flow);
-  PendingMedicalDocumentFlow? read();
-  Future<void> clear();
-}
+typedef PendingMedicalDocumentLocalDataSource = PendingMedicalDocumentStore;
 
 class PendingMedicalDocumentLocalDataSourceImpl
     implements PendingMedicalDocumentLocalDataSource {

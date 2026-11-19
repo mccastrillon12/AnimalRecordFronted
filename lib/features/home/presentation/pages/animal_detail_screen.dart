@@ -1,3 +1,6 @@
+import 'package:animal_record/features/home/presentation/widgets/historical_animal_loader.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_status_tag.dart';
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:flutter/services.dart';
@@ -57,6 +60,7 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
   bool _photoDeleted = false;
 
   void _showPhotoEditor(AnimalModel animal) {
+    if (!animal.canWrite) return;
     showAnimalPhotoSourceSheet(
       context: context,
       hasPhoto:
@@ -128,6 +132,17 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.animal.isHistorical &&
+        widget.animal.ownershipHistory != null &&
+        !widget.animal.ownershipHistory!.isLoaded) {
+      return HistoricalAnimalLoader(
+        animal: widget.animal,
+        builder: (animal) => AnimalDetailScreen(
+          animal: animal,
+          hasMedicalDocuments: widget.hasMedicalDocuments,
+        ),
+      );
+    }
     return BlocConsumer<AnimalCubit, AnimalState>(
       listener: (context, state) {
         if (!_isPhotoUpdating) return;
@@ -150,25 +165,27 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
       builder: (context, state) {
         AnimalModel currentAnimal = widget.animal;
 
-        if (state is AnimalsLoaded) {
+        if (state is AnimalsLoaded && !widget.animal.isHistorical) {
           try {
             final updatedEntity = state.animals.firstWhere(
               (a) => a.id == widget.animal.id,
             );
             currentAnimal = AnimalModel.fromEntity(updatedEntity);
           } catch (_) {}
-        } else if (state is AnimalUpdated) {
+        } else if (state is AnimalUpdated && !widget.animal.isHistorical) {
           try {
             final updatedEntity = state.allAnimals.firstWhere(
               (a) => a.id == widget.animal.id,
             );
             currentAnimal = AnimalModel.fromEntity(updatedEntity);
           } catch (_) {}
-        } else if (state is AnimalPictureUploaded) {
+        } else if (state is AnimalPictureUploaded &&
+            !widget.animal.isHistorical) {
           if (state.animal.id == widget.animal.id) {
             currentAnimal = AnimalModel.fromEntity(state.animal);
           }
-        } else if (state is AnimalPictureUploading) {
+        } else if (state is AnimalPictureUploading &&
+            !widget.animal.isHistorical) {
           try {
             final existingEntity = state.existingAnimals.firstWhere(
               (a) => a.id == widget.animal.id,
@@ -248,27 +265,29 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                               children: [
                                 const SizedBox(height: AppSpacing.xs),
 
-                                // Inactive badge
-                                if (!currentAnimal.isActive)
+                                // Activity and transfer status stay independent.
+                                if (!currentAnimal.isActive ||
+                                    currentAnimal.transferStatus ==
+                                        'TRANSFERRED')
                                   Padding(
                                     padding: const EdgeInsets.only(
                                       bottom: AppSpacing.l,
                                     ),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 1,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: AppColors.bgRosa,
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        'Inactivo',
-                                        style: AppTypography.body5.copyWith(
-                                          color: AppColors.errorRojo,
-                                        ),
-                                      ),
+                                    child: Wrap(
+                                      alignment: WrapAlignment.center,
+                                      spacing: 4,
+                                      runSpacing: 4,
+                                      children: [
+                                        if (!currentAnimal.isActive)
+                                          AnimalStatusTag.inactive(
+                                            showShadow: false,
+                                          ),
+                                        if (currentAnimal.transferStatus ==
+                                            'TRANSFERRED')
+                                          AnimalStatusTag.transferred(
+                                            showShadow: false,
+                                          ),
+                                      ],
                                     ),
                                   ),
                                 // Combined Hero Card and Info Section (Dynamic height)
@@ -292,7 +311,9 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
                                         mode: AnimalCardMode.detailHeader,
                                         localPhotoPath: _localPhotoPath,
                                         photoDeleted: _photoDeleted,
-                                        onEditPhoto: currentAnimal.isActive
+                                        onEditPhoto:
+                                            currentAnimal.isActive &&
+                                                currentAnimal.canWrite
                                             ? () => _showPhotoEditor(
                                                 currentAnimal,
                                               )
@@ -410,14 +431,14 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-book-1.svg',
           label: 'Diario',
-          enabled: currentAnimal.isActive,
+          enabled: currentAnimal.isActive || currentAnimal.isHistorical,
           onTap: () => _openModalPage(AnimalDiaryScreen(animal: currentAnimal)),
         ),
         const SizedBox(width: 74),
         _buildActionButton(
           iconPath: 'assets/icons/vuesax-bold-send-sqaure-2.svg',
           label: 'Transferir',
-          enabled: currentAnimal.isActive,
+          enabled: currentAnimal.canTransfer,
           onTap: () async {
             if (_isOptionNavigationInProgress) return;
             _isOptionNavigationInProgress = true;
@@ -706,6 +727,14 @@ class _AnimalDetailScreenState extends State<AnimalDetailScreen> {
     String animalId,
     List<MedicalDocumentCategory> categories,
   ) async {
+    final history = widget.animal.ownershipHistory;
+    if (widget.animal.isHistorical) {
+      if (history == null) return false;
+      final documents = await di.sl<GetHistoricalDocumentsUseCase>()(history);
+      return documents.any(
+        (document) => categories.contains(document.finalCategory),
+      );
+    }
     final availability = await Future.wait(
       categories.map(
         (category) =>

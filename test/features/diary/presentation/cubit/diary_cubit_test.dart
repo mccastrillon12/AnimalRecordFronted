@@ -1,4 +1,9 @@
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
+import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/home/data/services/animal_history_cache.dart';
 import 'package:animal_record/core/errors/failure.dart';
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
+import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/domain/entities/local_attachment.dart';
 import 'package:animal_record/features/diary/domain/usecases/create_diary_entry_usecase.dart';
@@ -31,6 +36,8 @@ class MockDeleteAttachmentUseCase extends Mock
 class MockUploadDiaryAttachmentUseCase extends Mock
     implements UploadDiaryAttachmentUseCase {}
 
+class _HistoryRepository extends Mock implements AnimalTransferRepository {}
+
 void main() {
   late MockGetDiaryEntriesUseCase getDiaryEntriesUseCase;
   late MockCreateDiaryEntryUseCase createDiaryEntryUseCase;
@@ -61,6 +68,9 @@ void main() {
     createDiaryEntryUseCase = MockCreateDiaryEntryUseCase();
     uploadDiaryAttachmentUseCase = MockUploadDiaryAttachmentUseCase();
     cubit = DiaryCubit(
+      historicalDiaryUseCase: GetHistoricalDiaryUseCase(
+        AnimalHistoryCache(_HistoryRepository()),
+      ),
       getDiaryEntriesUseCase: getDiaryEntriesUseCase,
       createDiaryEntryUseCase: createDiaryEntryUseCase,
       updateDiaryEntryUseCase: MockUpdateDiaryEntryUseCase(),
@@ -71,6 +81,58 @@ void main() {
   });
 
   tearDown(() => cubit.close());
+
+  test(
+    'el diario histórico permite leer y bloquea crear, editar, borrar y cargar',
+    () async {
+      const history = AnimalOwnershipHistory(
+        periodId: 'period-1',
+        publicationHash: 'hash-1',
+        entries: [
+          HistoricalEntry(
+            entryId: 'entry-1',
+            kind: 'DIARY_ENTRY',
+            data: {
+              'id': 'entry-1',
+              'animalId': animalId,
+              'title': 'Control anterior',
+              'content': 'Información histórica',
+            },
+            media: [],
+          ),
+        ],
+      );
+      await cubit.getDiaryEntries(
+        animalId,
+        history: history,
+        historical: true,
+        readOnly: true,
+      );
+      expect(cubit.entries.single.content, 'Información histórica');
+      await cubit.createDiaryEntry(
+        animalId: animalId,
+        title: 'Nueva',
+        content: 'Cambio',
+        date: '2026-11-18',
+        attachments: [attachment],
+      );
+      await cubit.updateDiaryEntry(
+        animalId: animalId,
+        entryId: 'entry-1',
+        title: 'Cambio',
+        content: 'Cambio',
+      );
+      await cubit.deleteDiaryEntry(animalId: animalId, entryId: 'entry-1');
+      expect(cubit.entries.single.content, 'Información histórica');
+      await cubit.refreshDiaryEntries(animalId);
+      expect(cubit.state, isA<DiaryLoaded>());
+      verifyNoMoreInteractions(getDiaryEntriesUseCase);
+      verifyNoMoreInteractions(createDiaryEntryUseCase);
+      verifyNoMoreInteractions(uploadDiaryAttachmentUseCase);
+      verifyNoMoreInteractions(cubit.updateDiaryEntryUseCase);
+      verifyNoMoreInteractions(cubit.deleteDiaryEntryUseCase);
+    },
+  );
 
   void stubEntryCreation() {
     when(

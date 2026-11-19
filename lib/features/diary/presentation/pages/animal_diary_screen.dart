@@ -1,3 +1,7 @@
+import 'dart:typed_data';
+import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
+import 'package:animal_record/features/home/domain/services/historical_file_save_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -20,8 +24,13 @@ import 'package:animal_record/features/home/presentation/widgets/animal_family_i
 
 class AnimalDiaryScreen extends StatefulWidget {
   final AnimalModel animal;
+  final DiaryEntryEntity? readOnlyEntry;
 
-  const AnimalDiaryScreen({super.key, required this.animal});
+  const AnimalDiaryScreen({
+    super.key,
+    required this.animal,
+    this.readOnlyEntry,
+  });
 
   @override
   State<AnimalDiaryScreen> createState() => _AnimalDiaryScreenState();
@@ -34,6 +43,8 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   final Set<String> _expandedEntryIds = {};
   String? _openMenuEntryId;
   String? _playingAttachmentId;
+  final Map<String, Uint8List> _historicalAttachmentBytes = {};
+  bool get _readOnly => widget.readOnlyEntry != null || !widget.animal.canWrite;
 
   void _toggleExpand(String entryId) {
     setState(() {
@@ -48,10 +59,26 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   @override
   void initState() {
     super.initState();
-    context.read<DiaryCubit>().getDiaryEntries(widget.animal.id);
+    if (widget.readOnlyEntry case final entry?) {
+      _expandedEntryIds.add(entry.id);
+      return;
+    }
+    if (widget.animal.isHistorical || !widget.animal.canWrite) {
+      context.read<DiaryCubit>().getDiaryEntries(
+        widget.animal.id,
+        history: widget.animal.isHistorical
+            ? widget.animal.ownershipHistory
+            : null,
+        historical: widget.animal.isHistorical,
+        readOnly: true,
+      );
+    } else {
+      context.read<DiaryCubit>().getDiaryEntries(widget.animal.id);
+    }
   }
 
   void _navigateToCreate() async {
+    if (_readOnly) return;
     final result = await Navigator.push(
       context,
       PageRouteBuilder(
@@ -81,6 +108,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   void _navigateToEdit(DiaryEntryEntity entry) async {
+    if (_readOnly) return;
     final result = await Navigator.push(
       context,
       PageRouteBuilder(
@@ -109,6 +137,18 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     }
   }
 
+  void _openReadOnlyEntry(DiaryEntryEntity entry) {
+    final cubit = context.read<DiaryCubit>();
+    Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => BlocProvider<DiaryCubit>.value(
+          value: cubit,
+          child: AnimalDiaryScreen(animal: widget.animal, readOnlyEntry: entry),
+        ),
+      ),
+    );
+  }
+
   void _showSnackbar(String message) {
     setState(() {
       _snackbarMessage = message;
@@ -120,6 +160,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   void _confirmDelete(DiaryEntryEntity entry) {
+    if (_readOnly) return;
     showDialog(
       context: context,
       builder: (_) => ConfirmDialog(
@@ -141,7 +182,49 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   void _handleAttachmentTap(
     DiaryAttachmentEntity attachment,
     DiaryEntryEntity entry,
-  ) {
+  ) async {
+    final reference = attachment.historicalFile;
+    if (reference != null) {
+      try {
+        final bytes = await di.sl<DownloadHistoricalFileUseCase>()(reference);
+        if (!mounted) return;
+        if (attachment.fileType == 'image') {
+          final data = Uint8List.fromList(bytes);
+          await showDialog<void>(
+            context: context,
+            useSafeArea: false,
+            barrierColor: AppColors.overlayBlack,
+            builder: (_) => ImagePreviewDialog(
+              imageUrl: '',
+              imageBytes: data,
+              onDownload: () async {
+                await di.sl<HistoricalFileSaveService>().save(
+                  bytes,
+                  attachment.fileName,
+                );
+              },
+            ),
+          );
+        } else if (attachment.fileType == 'audio') {
+          setState(() {
+            _historicalAttachmentBytes[attachment.id] = Uint8List.fromList(
+              bytes,
+            );
+            _playingAttachmentId = attachment.id;
+          });
+        } else {
+          final saved = await di.sl<HistoricalFileSaveService>().save(
+            bytes,
+            attachment.fileName,
+          );
+          if (mounted && saved) _showSnackbar('Archivo guardado.');
+        }
+      } catch (_) {
+        if (mounted) _showSnackbar('No se pudo descargar el archivo.');
+      }
+      return;
+    }
+    if (widget.animal.isHistorical) return;
     if (attachment.fileType == 'image') {
       final closeIconRect = _globalRect(_closeIconKey);
       showDialog(
@@ -189,7 +272,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           return true;
         },
         builder: (context, state) {
-          final isLoading = state is DiaryInitial || state is DiaryLoading;
+          final isLoading =
+              widget.readOnlyEntry == null &&
+              (state is DiaryInitial || state is DiaryLoading);
 
           if (isLoading) {
             return Scaffold(
@@ -249,7 +334,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                 ),
-                bottomChild: hasEntries
+                bottomChild: hasEntries || _readOnly
                     ? const SizedBox.shrink()
                     : CustomButton(
                         text: '+ Nueva nota',
@@ -262,7 +347,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
               ),
 
               // FAB for list view
-              if (hasEntries)
+              if (hasEntries && !_readOnly)
                 Positioned(
                   bottom: AppSpacing.l + MediaQuery.of(context).padding.bottom,
                   right: AppSpacing.l,
@@ -324,6 +409,9 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   }
 
   Widget _buildBody(DiaryState state) {
+    if (widget.readOnlyEntry case final entry?) {
+      return _buildEntriesList([entry]);
+    }
     if (state is DiaryLoaded) {
       if (state.entries.isEmpty) return _buildEmptyState();
       return _buildEntriesList(state.entries);
@@ -480,113 +568,120 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
           '${months[date.month - 1]} ${date.day.toString().padLeft(2, '0')}, ${date.year}';
     } catch (_) {}
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppColors.white,
-        borderRadius: AppBorders.medium(),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF0F1925).withValues(alpha: 0.08),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      padding: const EdgeInsets.only(top: 16, right: 24, bottom: 8, left: 24),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final style = AppTypography.body4.copyWith(
-            color: AppColors.greyNegro,
-            height: 1.5,
-          );
-          final textPainter = TextPainter(
-            text: TextSpan(text: entry.content, style: style),
-            maxLines: 4,
-            textDirection: TextDirection.ltr,
-          );
-          textPainter.layout(maxWidth: constraints.maxWidth);
-          final isTextExceeding = textPainter.didExceedMaxLines;
+    return GestureDetector(
+      key: ValueKey('diary-entry-${entry.id}'),
+      behavior: HitTestBehavior.opaque,
+      onTap: _readOnly && widget.readOnlyEntry == null
+          ? () => _openReadOnlyEntry(entry)
+          : null,
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppColors.white,
+          borderRadius: AppBorders.medium(),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF0F1925).withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        padding: const EdgeInsets.only(top: 16, right: 24, bottom: 8, left: 24),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final style = AppTypography.body4.copyWith(
+              color: AppColors.greyNegro,
+              height: 1.5,
+            );
+            final textPainter = TextPainter(
+              text: TextSpan(text: entry.content, style: style),
+              maxLines: 4,
+              textDirection: TextDirection.ltr,
+            );
+            textPainter.layout(maxWidth: constraints.maxWidth);
+            final isTextExceeding = textPainter.didExceedMaxLines;
 
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Title row
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      entry.title,
-                      style: AppTypography.body3.copyWith(
-                        color: AppColors.greyNegro,
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title row
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        entry.title,
+                        style: AppTypography.body3.copyWith(
+                          color: AppColors.greyNegro,
+                        ),
+                        maxLines: widget.readOnlyEntry == null ? 1 : null,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  if (isTextExceeding)
-                    GestureDetector(
-                      onTap: () => _toggleExpand(entry.id),
-                      behavior: HitTestBehavior.opaque,
-                      child: Padding(
-                        padding: const EdgeInsets.only(left: 8),
-                        child: Icon(
-                          _expandedEntryIds.contains(entry.id)
-                              ? Icons.keyboard_arrow_up
-                              : Icons.keyboard_arrow_down,
-                          size: 20,
-                          color: AppColors.greyMedio,
+                    if (isTextExceeding && widget.readOnlyEntry == null)
+                      GestureDetector(
+                        onTap: () => _toggleExpand(entry.id),
+                        behavior: HitTestBehavior.opaque,
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8),
+                          child: Icon(
+                            _expandedEntryIds.contains(entry.id)
+                                ? Icons.keyboard_arrow_up
+                                : Icons.keyboard_arrow_down,
+                            size: 20,
+                            color: AppColors.greyMedio,
+                          ),
                         ),
                       ),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-
-              // Content preview
-              Text(
-                entry.content,
-                style: style,
-                maxLines: _expandedEntryIds.contains(entry.id) ? null : 4,
-                overflow: _expandedEntryIds.contains(entry.id)
-                    ? TextOverflow.visible
-                    : TextOverflow.ellipsis,
-              ),
-
-              // ALL attachments list
-              if (entry.attachments.isNotEmpty) ...[
+                  ],
+                ),
                 const SizedBox(height: 8),
-                ...entry.attachments.map(
-                  (att) => _buildAttachmentLink(att, entry),
+
+                // Content preview
+                Text(
+                  entry.content,
+                  style: style,
+                  maxLines: _expandedEntryIds.contains(entry.id) ? null : 4,
+                  overflow: _expandedEntryIds.contains(entry.id)
+                      ? TextOverflow.visible
+                      : TextOverflow.ellipsis,
+                ),
+
+                // ALL attachments list
+                if (entry.attachments.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  ...entry.attachments.map(
+                    (att) => _buildAttachmentLink(att, entry),
+                  ),
+                ],
+
+                const SizedBox(height: 8),
+
+                // Divider
+                Container(
+                  height: 1,
+                  width: double.infinity,
+                  color: AppColors.greyDelineante,
+                ),
+
+                const SizedBox(height: 8),
+
+                // Date + popup menu row
+                Row(
+                  children: [
+                    Text(
+                      dateDisplay,
+                      style: AppTypography.body5.copyWith(
+                        color: AppColors.greyBordes,
+                      ),
+                    ),
+                    const Spacer(),
+                    _buildPopupMenu(entry),
+                  ],
                 ),
               ],
-
-              const SizedBox(height: 8),
-
-              // Divider
-              Container(
-                height: 1,
-                width: double.infinity,
-                color: AppColors.greyDelineante,
-              ),
-
-              const SizedBox(height: 8),
-
-              // Date + popup menu row
-              Row(
-                children: [
-                  Text(
-                    dateDisplay,
-                    style: AppTypography.body5.copyWith(
-                      color: AppColors.greyBordes,
-                    ),
-                  ),
-                  const Spacer(),
-                  _buildPopupMenu(entry),
-                ],
-              ),
-            ],
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -608,6 +703,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
         child: AudioInlinePlayer(
           key: ValueKey('player_${attachment.id}'),
           audioUrl: attachment.url,
+          audioBytes: _historicalAttachmentBytes[attachment.id],
           onCompleted: () {
             if (mounted) {
               setState(() => _playingAttachmentId = null);
@@ -660,6 +756,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   // ── Popup menu (Edit / Delete) ───────────────────────────────
 
   Widget _buildPopupMenu(DiaryEntryEntity entry) {
+    if (_readOnly) return const SizedBox.shrink();
     final isOpen = _openMenuEntryId == entry.id;
 
     return PopupMenuButton<String>(

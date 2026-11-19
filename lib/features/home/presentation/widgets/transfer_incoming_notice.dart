@@ -11,11 +11,19 @@ import 'package:animal_record/features/home/presentation/navigation/animal_trans
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 
 class TransferIncomingNotice extends StatefulWidget {
   final AnimalTransferRepository repository;
+  final IncomingTransferPreviewRepository? previewCache;
+  final String? accountId;
 
-  const TransferIncomingNotice({super.key, required this.repository});
+  const TransferIncomingNotice({
+    super.key,
+    required this.repository,
+    this.previewCache,
+    this.accountId,
+  });
 
   @override
   State<TransferIncomingNotice> createState() => _TransferIncomingNoticeState();
@@ -30,7 +38,11 @@ class _TransferIncomingNoticeState extends State<TransferIncomingNotice>
   @override
   void initState() {
     super.initState();
-    _cubit = TransferHomeNoticeCubit(widget.repository)..refresh();
+    if (widget.accountId case final id?) widget.previewCache?.useAccount(id);
+    _cubit = TransferHomeNoticeCubit(
+      widget.repository,
+      previewCache: widget.previewCache,
+    )..refresh();
     WidgetsBinding.instance.addObserver(this);
     _refreshTimer = Timer.periodic(const Duration(minutes: 1), (_) {
       if (_foreground) _cubit.refresh();

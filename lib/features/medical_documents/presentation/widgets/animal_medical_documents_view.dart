@@ -1268,6 +1268,7 @@ Future<void> _showMedicalDocumentOriginal(
   try {
     await preview.show(
       context,
+      document: document,
       acceptedDocumentId: document.id,
       fileName: document.originalFileName,
       mimeType: document.mimeType,

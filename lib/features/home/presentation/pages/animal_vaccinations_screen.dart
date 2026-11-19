@@ -14,7 +14,7 @@ import 'package:animal_record/features/home/presentation/widgets/vaccination_gro
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
-import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
+import 'package:animal_record/features/medical_documents/domain/repositories/medical_document_ai_feedback_store.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter/services.dart';
@@ -32,7 +32,7 @@ class AnimalVaccinationsScreen extends StatefulWidget {
 class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   final TextEditingController _searchController = TextEditingController();
   bool? _alphabeticalSortAscending;
-  MedicalDocumentAiFeedbackLocalDataSource? _aiFeedbackStore;
+  MedicalDocumentAiFeedbackStore? _aiFeedbackStore;
   bool _showAiFeedback = false;
   bool _hasAnsweredAiFeedback = false;
   int _aiFeedbackRequestId = 0;
@@ -41,8 +41,8 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
   @override
   void initState() {
     super.initState();
-    if (di.sl.isRegistered<MedicalDocumentAiFeedbackLocalDataSource>()) {
-      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+    if (di.sl.isRegistered<MedicalDocumentAiFeedbackStore>()) {
+      _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackStore>();
       _showAiFeedback = _aiFeedbackStore!.isPending(
         widget.animal.id,
         MedicalDocumentCategory.vaccinationCard,
@@ -264,6 +264,7 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
+                          readOnly: !widget.animal.canWrite,
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.vaccinationCard,

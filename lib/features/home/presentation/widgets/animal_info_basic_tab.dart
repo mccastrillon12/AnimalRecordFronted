@@ -1,3 +1,5 @@
+import 'package:animal_record/features/home/presentation/widgets/animal_picture.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_picture.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -96,20 +98,11 @@ class AnimalInfoBasicTab extends StatelessWidget {
     this.readOnly = false,
   });
 
-  String _iconForFamily(String family) {
-    switch (family.toLowerCase()) {
-      case 'felino':
-        return 'assets/illustrations/cat_icon.svg';
-      case 'canino':
-        return 'assets/illustrations/dog_icon.svg';
-      case 'bovino':
-        return 'assets/illustrations/bovino_icon.svg';
-      case 'equino':
-        return 'assets/illustrations/equino_icon.svg';
-      default:
-        return 'assets/illustrations/bovino_icon.svg';
-    }
-  }
+  String _iconForFamily(String family) => animalPictureIcon(
+    species: animal.species,
+    family: family,
+    code: animal.code,
+  );
 
   /// Builds the photo content with priority:
   /// 1. Local file (just picked, not yet uploaded)
@@ -139,31 +132,13 @@ class AnimalInfoBasicTab extends StatelessWidget {
       );
     }
 
-    // Priority 3: Network image from backend
-    if (animal.imageUrl != null) {
-      return Image.network(
-        animal.imageUrl!,
-        width: 96,
-        height: 96,
-        fit: BoxFit.cover,
-        alignment: Alignment.center,
-        errorBuilder: (_, _, _) => Center(
-          child: SvgPicture.asset(
-            _iconForFamily(animal.family),
-            width: AppSpacing.iconSizeMedium,
-            height: 35,
-          ),
-        ),
-      );
-    }
-
-    // Priority 4: Fallback placeholder
-    return Center(
-      child: SvgPicture.asset(
-        _iconForFamily(animal.family),
-        width: AppSpacing.iconSizeMedium,
-        height: 35,
-      ),
+    return AnimalPicture(
+      animal: animal,
+      width: 96,
+      height: 96,
+      iconSize: AppSpacing.iconSizeMedium,
+      iconHeight: 35,
+      iconColor: null,
     );
   }
 

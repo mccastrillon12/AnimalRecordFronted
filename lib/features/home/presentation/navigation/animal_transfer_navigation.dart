@@ -1,4 +1,5 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_cubit.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
@@ -17,7 +18,7 @@ Future<void> openAnimalTransfer(
   BuildContext context, {
   AnimalModel? animal,
 }) async {
-  if (animal != null && !animal.isActive) return;
+  if (animal != null && !animal.canTransfer) return;
   final List<AnimalModel> selected;
   if (animal != null) {
     selected = [animal];
@@ -74,6 +75,9 @@ Future<void> openAnimalTransferRequests(
       builder: (_) => AnimalTransferRequestsScreen(
         repository: di.sl<AnimalTransferRepository>(),
         focusPending: focusPending,
+        previewCache: di.sl.isRegistered<IncomingTransferPreviewRepository>()
+            ? di.sl<IncomingTransferPreviewRepository>()
+            : null,
       ),
     ),
   );

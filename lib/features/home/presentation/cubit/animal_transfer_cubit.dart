@@ -27,7 +27,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
            animals: List.unmodifiable(
              {
                for (final animal in animals)
-                 if (animal.isActive) animal.id: animal,
+                 if (animal.canTransfer) animal.id: animal,
              }.values,
            ),
          ),

@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 
@@ -59,6 +60,12 @@ class AnimalModel {
   final List<NameHistoryItem> nameHistory;
   final bool isActive;
   final String? deactivationReason;
+  final String? transferStatus;
+  final bool readOnly;
+  final AnimalOwnershipHistory? ownershipHistory;
+  bool get isHistorical => historicalAnimal(transferStatus, readOnly);
+  bool get canWrite => writableAnimal(transferStatus, readOnly);
+  bool get canTransfer => isActive && canWrite && transferStatus == null;
 
   const AnimalModel({
     required this.id,
@@ -101,6 +108,9 @@ class AnimalModel {
     this.nameHistory = const [],
     this.isActive = true,
     this.deactivationReason,
+    this.transferStatus,
+    this.readOnly = false,
+    this.ownershipHistory,
   });
 
   /// Maps an [AnimalEntity] (from the API) to the UI model.
@@ -224,8 +234,55 @@ class AnimalModel {
       nameHistory: entity.nameHistory,
       isActive: entity.isActive,
       deactivationReason: entity.deactivationReason,
+      transferStatus: entity.transferStatus,
+      readOnly: entity.readOnly,
+      ownershipHistory: entity.ownershipHistory,
     );
   }
+
+  AnimalEntity toEntity() => AnimalEntity(
+    id: id,
+    name: name,
+    code: code,
+    species: species.isEmpty ? family : species,
+    breed: breed ?? '',
+    sex: sex ?? '',
+    reproductiveStatus: reproductiveStatus,
+    birthdate: birthdate,
+    hasChip: hasChip,
+    isAssociationMember: isAssociationMember,
+    temperament: temperament,
+    diagnosis: diagnosis,
+    ownerId: ownerId,
+    profilePictureUrl: imageUrl,
+    weight: weight,
+    colorAndMarkings: colorAndMarkings,
+    allergies: allergies,
+    housingType: housingType,
+    purpose: purpose,
+    feedingType: feedingType,
+    birthType: birthType,
+    birthCondition: birthCondition,
+    identificationType: identificationType,
+    identificationNumber: identificationNumber,
+    registrationAssociations: registrationAssociations,
+    isAdopted: isAdopted,
+    adoptionSource: adoptionSource,
+    adoptionPlaceName: adoptionPlaceName,
+    otherDiagnosisDetail: otherDiagnosisDetail,
+    unknownBirthDate: unknownBirthDate,
+    approximateAgeMinMonths: approximateAgeMinMonths,
+    approximateAgeMaxMonths: approximateAgeMaxMonths,
+    isActive: isActive,
+    deactivationReason: deactivationReason,
+    createdAt: createdAt,
+    updatedAt: updatedAt,
+    ownerName: ownerName,
+    nameHistory: nameHistory,
+    transferStatus: transferStatus,
+    readOnly: readOnly,
+    ownershipHistory: ownershipHistory,
+  );
 
   static List<String> _profileDiagnoses(List<String> diagnoses) {
     return diagnoses

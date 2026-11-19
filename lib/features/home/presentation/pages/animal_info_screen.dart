@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/presentation/widgets/historical_animal_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -120,7 +121,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     // Fetch detailed info (createdAt, updatedAt, ownerName) which are not returned by the owner list endpoint
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (mounted) {
-        context.read<AnimalCubit>().loadAnimalDetails(widget.animal.id);
+        if (!widget.animal.isHistorical) {
+          context.read<AnimalCubit>().loadAnimalDetails(widget.animal.id);
+        }
 
         // Ensure species are loaded to resolve speciesId
         final catalogsCubit = context.read<CatalogsCubit>();
@@ -312,22 +315,28 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
     if (_birthDate != _originalBirthDate) return true;
     if (_colorDescController.text.trim() != _originalColorDesc) return true;
     if (_hasIdentification != _originalHasIdentification) return true;
-    if (_selectedIdentificationType != _originalSelectedIdentificationType)
+    if (_selectedIdentificationType != _originalSelectedIdentificationType) {
       return true;
+    }
     if (_identificationNumberController.text.trim() !=
-        _originalIdentificationNumber)
+        _originalIdentificationNumber) {
       return true;
+    }
     if (_belongsToAssociation != _originalBelongsToAssociation) return true;
-    if (_selectedAssociations.length != _originalSelectedAssociations.length)
+    if (_selectedAssociations.length != _originalSelectedAssociations.length) {
       return true;
+    }
     for (int i = 0; i < _selectedAssociations.length; i++) {
-      if (_selectedAssociations[i] != _originalSelectedAssociations[i])
+      if (_selectedAssociations[i] != _originalSelectedAssociations[i]) {
         return true;
+      }
     }
     if (_isAdopted != _originalIsAdopted) return true;
     if (_selectedAdoptionSource != _originalSelectedAdoptionSource) return true;
-    if (_adoptionPlaceNameController.text.trim() != _originalAdoptionPlaceName)
+    if (_adoptionPlaceNameController.text.trim() !=
+        _originalAdoptionPlaceName) {
       return true;
+    }
     if (_selectedTemperaments.length != _originalTemperaments.length) {
       return true;
     }
@@ -351,6 +360,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _saveNameOnly(String newName) {
+    if (!_currentAnimal.canWrite) return;
     setState(() {
       _isSavingNameOnly = true;
     });
@@ -426,6 +436,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _saveChanges() {
+    if (!_currentAnimal.canWrite) return;
     final selectedDiagnoses = _diagnoses.entries
         .where((e) => e.value)
         .map((e) => e.key)
@@ -585,6 +596,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   Future<void> _showImageSourceSheet() {
+    if (!_currentAnimal.canWrite) return Future.value();
     return showAnimalPhotoSourceSheet(
       context: context,
       hasPhoto:
@@ -616,6 +628,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _showInactivateConfirmation() {
+    if (!_currentAnimal.canWrite) return;
     // Get owner's identification from AuthBloc
     String ownerIdType = 'C.C.';
     String ownerIdNumber = '';
@@ -722,6 +735,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
   }
 
   void _inactivateAnimal(String deactivationReason) {
+    if (!_currentAnimal.canWrite) return;
     setState(() {
       _isInactivating = true;
     });
@@ -800,6 +814,14 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
 
   @override
   Widget build(BuildContext context) {
+    if (_currentAnimal.isHistorical &&
+        _currentAnimal.ownershipHistory != null &&
+        !_currentAnimal.ownershipHistory!.isLoaded) {
+      return HistoricalAnimalLoader(
+        animal: _currentAnimal,
+        builder: (animal) => AnimalInfoScreen(animal: animal),
+      );
+    }
     return BlocConsumer<AnimalCubit, AnimalState>(
       listenWhen: (previous, current) {
         return current is AnimalUpdated ||
@@ -808,8 +830,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
             current is AnimalError;
       },
       listener: (context, state) {
+        if (widget.animal.isHistorical) return;
         // Sync approximate age when detail data arrives (AnimalsLoaded from loadAnimalDetails)
-        if (state is AnimalsLoaded) {
+        if (state is AnimalsLoaded && !widget.animal.isHistorical) {
           try {
             final freshEntity = state.animals.firstWhere(
               (a) => a.id == _currentAnimal.id,
@@ -904,7 +927,7 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
       },
       builder: (context, state) {
         // Update _currentAnimal from the latest loaded state
-        if (state is AnimalsLoaded) {
+        if (state is AnimalsLoaded && !widget.animal.isHistorical) {
           try {
             final freshEntity = state.animals.firstWhere(
               (a) => a.id == _currentAnimal.id,
@@ -1047,7 +1070,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                 ),
                                 bottomChild:
                                     _tabController.index == 2 &&
-                                        _currentAnimal.isActive
+                                        (_currentAnimal.isActive &&
+                                            _currentAnimal.canWrite)
                                     ? OutlinedButton(
                                         onPressed: () {
                                           _showInactivateConfirmation();
@@ -1075,7 +1099,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                           ),
                                         ),
                                       )
-                                    : (_hasChanges && _currentAnimal.isActive
+                                    : (_hasChanges &&
+                                              (_currentAnimal.isActive &&
+                                                  _currentAnimal.canWrite)
                                           ? BlocBuilder<
                                               AnimalCubit,
                                               AnimalState
@@ -1200,7 +1226,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                       adoptionSourceOptions: context
                                           .watch<CatalogsCubit>()
                                           .adoptionSources,
-                                      readOnly: !_currentAnimal.isActive,
+                                      readOnly:
+                                          !(_currentAnimal.isActive &&
+                                              _currentAnimal.canWrite),
                                     ),
                                     AnimalInfoAdditionalTab(
                                       selectedTemperaments:
@@ -1261,7 +1289,9 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
                                       purposeOptions: context
                                           .watch<CatalogsCubit>()
                                           .animalPurposes,
-                                      readOnly: !_currentAnimal.isActive,
+                                      readOnly:
+                                          !(_currentAnimal.isActive &&
+                                              _currentAnimal.canWrite),
                                     ),
                                     AnimalInfoGeneralTab(
                                       animal: _currentAnimal,

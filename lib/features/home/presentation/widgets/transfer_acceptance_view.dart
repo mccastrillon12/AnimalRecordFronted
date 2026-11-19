@@ -28,6 +28,7 @@ class TransferAcceptanceView extends StatelessWidget {
   final VoidCallback? onToggleAll;
   final VoidCallback? onAccept;
   final VoidCallback? onReject;
+  final void Function(TransferItem, String)? onImageError;
 
   const TransferAcceptanceView({
     super.key,
@@ -45,6 +46,7 @@ class TransferAcceptanceView extends StatelessWidget {
     required this.onToggleAll,
     required this.onAccept,
     required this.onReject,
+    this.onImageError,
   });
 
   @override
@@ -135,6 +137,7 @@ class TransferAcceptanceView extends StatelessWidget {
                 hasMoreAnimals: hasMoreAnimals,
                 onToggleAnimal: onToggleAnimal,
                 onToggleAll: onToggleAll,
+                onImageError: onImageError,
               ),
               if (hasMoreAnimals)
                 TextButton(
@@ -228,6 +231,7 @@ class _AcceptanceAnimals extends StatefulWidget {
   final bool hasMoreAnimals;
   final ValueChanged<String>? onToggleAnimal;
   final VoidCallback? onToggleAll;
+  final void Function(TransferItem, String)? onImageError;
 
   const _AcceptanceAnimals({
     required this.items,
@@ -236,6 +240,7 @@ class _AcceptanceAnimals extends StatefulWidget {
     required this.hasMoreAnimals,
     required this.onToggleAnimal,
     required this.onToggleAll,
+    this.onImageError,
   });
 
   @override
@@ -298,6 +303,9 @@ class _AcceptanceAnimalsState extends State<_AcceptanceAnimals> {
       key: ValueKey(item.id),
       animal: animal,
       unknownFamilyIconPath: AppIcons.animals,
+      onImageError: widget.onImageError == null
+          ? null
+          : (failedUrl) => widget.onImageError!(item, failedUrl),
       detailsText: '${_available(item.animalBreed)} - $sex',
       supplementaryText: item.status == 'PENDING'
           ? null

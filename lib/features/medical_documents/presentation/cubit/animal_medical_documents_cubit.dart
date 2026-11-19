@@ -1,3 +1,5 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:equatable/equatable.dart';
@@ -30,14 +32,29 @@ class AnimalMedicalDocumentsError extends AnimalMedicalDocumentsState {
 
 class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
   final GetAnimalMedicalDocumentsUseCase getDocumentsUseCase;
+  final GetHistoricalDocumentsUseCase? historicalDocumentsUseCase;
+  AnimalOwnershipHistory? _history;
+  bool _historical = false;
   String? _loadedAnimalId;
   MedicalDocumentCategory? _loadedCategory;
 
-  AnimalMedicalDocumentsCubit({required this.getDocumentsUseCase})
-    : super(AnimalMedicalDocumentsInitial());
+  AnimalMedicalDocumentsCubit({
+    required this.getDocumentsUseCase,
+    this.historicalDocumentsUseCase,
+  }) : super(AnimalMedicalDocumentsInitial());
 
-  Future<void> load(String animalId, {MedicalDocumentCategory? category}) =>
-      _load(animalId, category: category, preserveExisting: false);
+  Future<void> load(
+    String animalId, {
+    MedicalDocumentCategory? category,
+    AnimalOwnershipHistory? history,
+    bool historical = false,
+  }) {
+    if (_loadedAnimalId != animalId || history != null || historical) {
+      _history = history;
+      _historical = historical || history != null;
+    }
+    return _load(animalId, category: category, preserveExisting: false);
+  }
 
   /// Refreshes the list after an accepted upload without replacing documents
   /// that are already visible for the same animal and category.
@@ -62,6 +79,22 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
         : const <MedicalDocumentEntity>[];
     emit(AnimalMedicalDocumentsLoading());
     try {
+      if (_historical && _history == null) {
+        throw const FormatException(
+          'No se encontró la publicación del expediente.',
+        );
+      }
+      final history = _history;
+      if (history != null) {
+        final reader = historicalDocumentsUseCase;
+        if (reader == null) throw StateError('Falta el lector de histórico.');
+        final documents = await reader(history, category: category);
+        if (isClosed) return;
+        _loadedAnimalId = animalId;
+        _loadedCategory = category;
+        emit(AnimalMedicalDocumentsLoaded(documents, category: category));
+        return;
+      }
       final fetchedDocuments = await getDocumentsUseCase(
         animalId,
         category: category,

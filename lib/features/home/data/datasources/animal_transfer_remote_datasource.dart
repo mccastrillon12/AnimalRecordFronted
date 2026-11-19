@@ -146,7 +146,7 @@ class AnimalTransferRemoteDataSource {
     String publicationHash, {
     String? cursor,
   }) async {
-    _requireHistory();
+    // A transferred card always needs its publication, in every environment.
     final response = await apiClient.get<Map<String, dynamic>>(
       '/animal-ownership-history/${Uri.encodeComponent(periodId)}',
       queryParameters: {
@@ -164,7 +164,6 @@ class AnimalTransferRemoteDataSource {
     required String entryId,
     required String fileId,
   }) async {
-    _requireHistory();
     final response = await apiClient.get<List<int>>(
       '/animal-ownership-history/${Uri.encodeComponent(periodId)}'
       '/entries/${Uri.encodeComponent(entryId)}/files/${Uri.encodeComponent(fileId)}',

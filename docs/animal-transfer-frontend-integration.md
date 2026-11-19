@@ -1,5 +1,11 @@
 # Integración Flutter de transferencias
 
+Actualización del 18 de noviembre de 2026: el usuario confirmó que el backend
+`84652be` está activo. La prueba real con dos cuentas queda a cargo del usuario.
+La implementación y la validación local de esta entrega se describen en
+`animal-transfer-return-validation.md`. Los registros de producción que aparecen
+más abajo corresponden a pruebas anteriores y no verifican esta versión.
+
 La referencia contractual es `frontend-animal-transfer-foundations.md`, sección
 «Contenido de la entrega final para Flutter». Los datos ficticios de transferencia
 ya no se inyectan en la app. Por instrucción posterior del usuario, el OTP de
@@ -26,9 +32,13 @@ se ha realizado desde esta app.
 ## Contratos y recuperación
 
 La vista previa del destinatario toma nombre, código visible, raza, sexo y edad
-de `GET /animal-transfers/{id}`. Si falta la foto en ese resumen, consulta cada
-animal mediante `GetAnimalByIdUseCase` y usa su `profilePictureUrl` cuando está
-disponible. La edad exacta usa meses
+de `GET /animal-transfers/{id}`. La foto procede exclusivamente del campo
+`items[].animalProfilePictureUrl`. Si falta o es inválida se usa el icono de su
+especie; el destinatario no consulta `GET /animals/{animalId}` mientras la
+transferencia está pendiente. Ante un fallo de imagen se vuelve a consultar la
+página del detalle que contenía el ítem y se conserva la URL firmada completa,
+sin registrarla. La renovación conserva las otras páginas y la selección.
+La edad exacta usa meses
 cumplidos y la aproximada muestra un rango. Los valores ausentes aparecen como
 «No disponible». Para validar el resumen actualizado después del despliegue,
 crea una solicitud nueva, pues las anteriores conservan su resumen original.
@@ -104,8 +114,11 @@ a `.env.physical`. No se registraron OTP, proof, tokens ni cuerpo completo.
 El logger compartido se desactiva en compilaciones de integración porque el
 interceptor de autenticación existente registra fragmentos de tokens; no se
 modificó el código de registro ni de usuario.
-Los ajustes de foto, diario y documentos médicos quedan fuera de esta pasada
-por la instrucción posterior de modificar solo transferencias.
+La entrega del 18 de noviembre incluye foto, diario y documentos médicos para
+animales transferidos, conforme a la instrucción posterior del usuario: las
+pantallas habituales muestran los datos publicados del período del dueño,
+con acceso de lectura y descarga; las acciones de escritura quedan bloqueadas.
+Los únicos cambios visuales solicitados son las etiquetas de estado en lista.
 
 Antes de probar en integración, confirmar que las rutas de decisión e histórico
 estén montadas en la misma versión, preparar las colecciones e índices con

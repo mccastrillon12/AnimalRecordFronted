@@ -1,3 +1,4 @@
+import 'animal_ownership.dart';
 import 'package:equatable/equatable.dart';
 
 class NameHistoryItem extends Equatable {
@@ -55,6 +56,15 @@ class AnimalEntity extends Equatable {
   final String? updatedAt;
   final String? ownerName;
   final List<NameHistoryItem> nameHistory;
+  final String? transferStatus;
+  final bool readOnly;
+  final AnimalOwnershipHistory? ownershipHistory;
+  bool get isHistorical => historicalAnimal(transferStatus, readOnly);
+  bool get canWrite => writableAnimal(transferStatus, readOnly);
+  bool get canTransfer => isActive && canWrite && transferStatus == null;
+  String get cardKey => isHistorical
+      ? '$id/history/${ownershipHistory?.periodId ?? 'unknown'}'
+      : '$id/current';
 
   const AnimalEntity({
     required this.id,
@@ -95,47 +105,65 @@ class AnimalEntity extends Equatable {
     this.updatedAt,
     this.ownerName,
     this.nameHistory = const [],
+    this.transferStatus,
+    this.readOnly = false,
+    this.ownershipHistory,
   });
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        code,
-        species,
-        breed,
-        sex,
-        reproductiveStatus,
-        birthdate,
-        hasChip,
-        isAssociationMember,
-        temperament,
-        diagnosis,
-        ownerId,
-        profilePictureUrl,
-        weight,
-        colorAndMarkings,
-        allergies,
-        housingType,
-        purpose,
-        feedingType,
-        birthType,
-        birthCondition,
-        identificationType,
-        identificationNumber,
-        registrationAssociations,
-        isAdopted,
-        adoptionSource,
-        adoptionPlaceName,
-        otherDiagnosisDetail,
-        unknownBirthDate,
-        approximateAgeMinMonths,
-        approximateAgeMaxMonths,
-        isActive,
-        deactivationReason,
-        createdAt,
-        updatedAt,
-        ownerName,
-        nameHistory,
-      ];
+    id,
+    name,
+    code,
+    species,
+    breed,
+    sex,
+    reproductiveStatus,
+    birthdate,
+    hasChip,
+    isAssociationMember,
+    temperament,
+    diagnosis,
+    ownerId,
+    profilePictureUrl,
+    weight,
+    colorAndMarkings,
+    allergies,
+    housingType,
+    purpose,
+    feedingType,
+    birthType,
+    birthCondition,
+    identificationType,
+    identificationNumber,
+    registrationAssociations,
+    isAdopted,
+    adoptionSource,
+    adoptionPlaceName,
+    otherDiagnosisDetail,
+    unknownBirthDate,
+    approximateAgeMinMonths,
+    approximateAgeMaxMonths,
+    isActive,
+    deactivationReason,
+    createdAt,
+    updatedAt,
+    ownerName,
+    nameHistory,
+    transferStatus,
+    readOnly,
+    ownershipHistory,
+  ];
+}
+
+List<AnimalEntity> uniqueAnimalCards(Iterable<AnimalEntity> animals) {
+  final currentIds = animals
+      .where((animal) => !animal.isHistorical)
+      .map((animal) => animal.id)
+      .toSet();
+  return {
+    for (final animal in animals)
+      if (!animal.isHistorical || !currentIds.contains(animal.id))
+        animal.cardKey: animal,
+  }.values.toList();
 }

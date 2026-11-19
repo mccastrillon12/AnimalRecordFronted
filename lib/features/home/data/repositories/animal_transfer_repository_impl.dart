@@ -15,7 +15,7 @@ class AnimalTransferRepositoryImpl implements AnimalTransferRepository {
     final items = await remote.getActiveAnimals();
     return items
         .map((item) => AnimalDataModel.fromJson(item as Map<String, dynamic>))
-        .where((animal) => animal.isActive)
+        .where((animal) => animal.canTransfer)
         .toList(growable: false);
   }
 
@@ -158,11 +158,7 @@ class AnimalTransferRepositoryImpl implements AnimalTransferRepository {
           animalSpecies: (item['animalSpecies'] ?? item['species']) as String?,
           animalBreed: item['animalBreed'] as String?,
           animalSex: item['animalSex'] as String?,
-          animalImageUrl:
-              (item['animalProfilePictureUrl'] ??
-                      item['profilePictureUrl'] ??
-                      item['animalImageUrl'])
-                  as String?,
+          animalImageUrl: item['animalProfilePictureUrl'] as String?,
           animalAge: _animalAge(item['animalAge']),
           status: item['status'] as String,
         ),

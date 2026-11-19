@@ -170,6 +170,8 @@ class MyApp extends StatelessWidget {
               create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
                 ..load(
                   animal.id,
+                  history: animal.isHistorical ? animal.ownershipHistory : null,
+                  historical: animal.isHistorical,
                   category: MedicalDocumentCategory.clinicalHistory,
                 ),
               child: AnimalClinicalHistoryScreen(animal: animal),
@@ -182,6 +184,8 @@ class MyApp extends StatelessWidget {
               create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
                 ..load(
                   animal.id,
+                  history: animal.isHistorical ? animal.ownershipHistory : null,
+                  historical: animal.isHistorical,
                   category: MedicalDocumentCategory.vaccinationCard,
                 ),
               child: AnimalVaccinationsScreen(animal: animal),
@@ -235,9 +239,15 @@ class MyApp extends StatelessWidget {
                 ? arguments['initialCategory'] as MedicalDocumentCategory
                 : MedicalDocumentCategory.prescription;
             return BlocProvider(
-              create: (_) =>
-                  di.sl<AnimalMedicalDocumentsCubit>()
-                    ..load(animalId, category: initialCategory),
+              create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
+                ..load(
+                  animalId,
+                  history: animal?.isHistorical == true
+                      ? animal?.ownershipHistory
+                      : null,
+                  historical: animal?.isHistorical ?? false,
+                  category: initialCategory,
+                ),
               child: AnimalDocumentsScreen(
                 animalId: animalId,
                 animal: animal,
@@ -252,6 +262,8 @@ class MyApp extends StatelessWidget {
               create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
                 ..load(
                   animal.id,
+                  history: animal.isHistorical ? animal.ownershipHistory : null,
+                  historical: animal.isHistorical,
                   category: MedicalDocumentCategory.diagnosticImage,
                 ),
               child: AnimalFileRecordsScreen(
@@ -267,6 +279,8 @@ class MyApp extends StatelessWidget {
               create: (_) => di.sl<AnimalMedicalDocumentsCubit>()
                 ..load(
                   animal.id,
+                  history: animal.isHistorical ? animal.ownershipHistory : null,
+                  historical: animal.isHistorical,
                   category: MedicalDocumentCategory.laboratoryResult,
                 ),
               child: AnimalFileRecordsScreen(

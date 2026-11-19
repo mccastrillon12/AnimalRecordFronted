@@ -1,4 +1,6 @@
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
 import 'package:flutter/foundation.dart';
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/domain/entities/create_animal_params.dart';
@@ -20,6 +22,7 @@ class AnimalCubit extends Cubit<AnimalState> {
   final ConfirmAnimalPictureUseCase confirmAnimalPictureUseCase;
   final SearchAnimalsUseCase searchAnimalsUseCase;
   final UploadAnimalPictureUseCase uploadAnimalPictureUseCase;
+  final LoadHistoricalAnimalUseCase? historicalAnimalLoader;
 
   AnimalCubit({
     required this.createAnimalUseCase,
@@ -29,6 +32,7 @@ class AnimalCubit extends Cubit<AnimalState> {
     required this.confirmAnimalPictureUseCase,
     required this.searchAnimalsUseCase,
     required this.uploadAnimalPictureUseCase,
+    this.historicalAnimalLoader,
   }) : super(AnimalInitial());
 
   /// Cached list so we can preserve it during create operations.
@@ -55,6 +59,7 @@ class AnimalCubit extends Cubit<AnimalState> {
     _ownerLoadInProgress = true;
     if (!sameOwner) _animals = [];
     _currentOwnerId = ownerId;
+    historicalAnimalLoader?.useAccount(ownerId);
     emit(AnimalsLoading());
 
     final result = await getAnimalsByOwnerUseCase(ownerId);
@@ -65,8 +70,9 @@ class AnimalCubit extends Cubit<AnimalState> {
       (failure) =>
           emit(AnimalError(failure.message, existingAnimals: _animals)),
       (animals) {
-        _animals = animals;
-        emit(AnimalsLoaded(animals));
+        _animals = _withCachedHistory(animals);
+        emit(AnimalsLoaded(_animals));
+        unawaited(_prefetchHistory(generation));
       },
     );
   }
@@ -88,21 +94,32 @@ class AnimalCubit extends Cubit<AnimalState> {
         emit(AnimalError(failure.message, existingAnimals: _animals));
       },
       (animals) {
-        _animals = animals;
-        emit(AnimalsLoaded(animals));
+        _animals = _withCachedHistory(animals);
+        emit(AnimalsLoaded(_animals));
+        unawaited(_prefetchHistory(_ownerLoadGeneration));
       },
     );
   }
 
   Future<void> loadAnimalDetails(String animalId) async {
+    if (_animals.any(
+      (animal) => animal.id == animalId && animal.isHistorical,
+    )) {
+      return;
+    }
+    final generation = _ownerLoadGeneration;
     final result = await getAnimalByIdUseCase(animalId);
+    if (isClosed || generation != _ownerLoadGeneration) return;
 
     result.fold(
       (failure) =>
           emit(AnimalError(failure.message, existingAnimals: _animals)),
       (animal) {
         // Update the animal in the local cache
-        final index = _animals.indexWhere((a) => a.id == animal.id);
+        _animals = List.of(_animals);
+        final index = _animals.indexWhere(
+          (a) => a.id == animal.id && !a.isHistorical,
+        );
         if (index != -1) {
           _animals[index] = animal;
         } else {
@@ -131,6 +148,7 @@ class AnimalCubit extends Cubit<AnimalState> {
   }
 
   Future<void> updateAnimal(UpdateAnimalParams params) async {
+    if (!_allowWrite(params.id)) return;
     emit(AnimalUpdating(existingAnimals: _animals));
 
     final result = await updateAnimalUseCase(params);
@@ -152,7 +170,7 @@ class AnimalCubit extends Cubit<AnimalState> {
               emit(AnimalUpdated(updatedAnimal, allAnimals: _animals));
             },
             (fetchedAnimals) {
-              _animals = fetchedAnimals;
+              _animals = _withCachedHistory(fetchedAnimals);
               AnimalEntity realUpdated = updatedAnimal;
               try {
                 realUpdated = _animals.firstWhere(
@@ -177,6 +195,7 @@ class AnimalCubit extends Cubit<AnimalState> {
   ///
   /// The upload workflow is coordinated by [UploadAnimalPictureUseCase].
   Future<void> updateProfilePicture(String animalId, String imagePath) async {
+    if (!_allowWrite(animalId)) return;
     emit(AnimalPictureUploading(existingAnimals: _animals, animalId: animalId));
 
     try {
@@ -201,7 +220,7 @@ class AnimalCubit extends Cubit<AnimalState> {
                 _updateAnimalPictureInList(animalId, finalUrl);
               },
               (fetchedAnimals) {
-                _animals = fetchedAnimals;
+                _animals = _withCachedHistory(fetchedAnimals);
               },
             );
           } else {
@@ -231,6 +250,7 @@ class AnimalCubit extends Cubit<AnimalState> {
 
   /// Deletes the profile picture for the given animal by sending an empty URL.
   Future<void> deleteProfilePicture(String animalId) async {
+    if (!_allowWrite(animalId)) return;
     emit(AnimalPictureUploading(existingAnimals: _animals, animalId: animalId));
 
     try {
@@ -251,7 +271,7 @@ class AnimalCubit extends Cubit<AnimalState> {
             );
             fetchResult.fold(
               (l) => _updateAnimalPictureInList(animalId, null),
-              (fetchedAnimals) => _animals = fetchedAnimals,
+              (fetchedAnimals) => _animals = _withCachedHistory(fetchedAnimals),
             );
           } else {
             _updateAnimalPictureInList(animalId, null);
@@ -307,6 +327,20 @@ class AnimalCubit extends Cubit<AnimalState> {
           birthCondition: a.birthCondition,
           otherDiagnosisDetail: a.otherDiagnosisDetail,
           isActive: a.isActive,
+          deactivationReason: a.deactivationReason,
+          transferStatus: a.transferStatus,
+          readOnly: a.readOnly,
+          ownershipHistory: a.ownershipHistory,
+          identificationType: a.identificationType,
+          identificationNumber: a.identificationNumber,
+          registrationAssociations: a.registrationAssociations,
+          isAdopted: a.isAdopted,
+          adoptionSource: a.adoptionSource,
+          adoptionPlaceName: a.adoptionPlaceName,
+          unknownBirthDate: a.unknownBirthDate,
+          approximateAgeMinMonths: a.approximateAgeMinMonths,
+          approximateAgeMaxMonths: a.approximateAgeMaxMonths,
+          nameHistory: a.nameHistory,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
           ownerName: a.ownerName,
@@ -316,6 +350,65 @@ class AnimalCubit extends Cubit<AnimalState> {
     }).toList();
   }
 
+  bool _allowWrite(String animalId) {
+    final matches = _animals.where((animal) => animal.id == animalId);
+    if (matches.isEmpty || matches.any((animal) => animal.canWrite)) {
+      return true;
+    }
+    emit(
+      AnimalError('El animal es de solo lectura.', existingAnimals: _animals),
+    );
+    return false;
+  }
+
+  List<AnimalEntity> _withCachedHistory(Iterable<AnimalEntity> animals) =>
+      uniqueAnimalCards(animals).map((animal) {
+        return historicalAnimalLoader?.cached(animal, includeEntries: false) ??
+            animal;
+      }).toList();
+
+  Future<void> _prefetchHistory(int generation) async {
+    final loader = historicalAnimalLoader;
+    if (loader == null) return;
+    final cards = _animals
+        .where(
+          (animal) => animal.isHistorical && animal.ownershipHistory != null,
+        )
+        .toList();
+    var index = 0;
+    Future<void> worker() async {
+      while (!isClosed &&
+          generation == _ownerLoadGeneration &&
+          index < cards.length) {
+        final card = cards[index++];
+        try {
+          final loaded = await loader(
+            card,
+            preloadPhoto: true,
+            includeEntries: false,
+          );
+          if (isClosed || generation != _ownerLoadGeneration) return;
+          _animals = _animals
+              .map(
+                (animal) =>
+                    animal.cardKey == card.cardKey &&
+                        animal.ownershipHistory?.publicationHash ==
+                            loaded.ownershipHistory?.publicationHash
+                    ? loaded
+                    : animal,
+              )
+              .toList();
+          // Do not interrupt an edit/upload in progress with a background read.
+          if (state is AnimalsLoaded) emit(AnimalsLoaded(_animals));
+        } catch (_) {
+          // A failed prefetch can be retried when this particular card is opened.
+        }
+      }
+    }
+
+    await Future.wait(List.generate(cards.length.clamp(0, 3), (_) => worker()));
+  }
+
   /// Resets to the loaded state with existing animals.
   void resetToLoaded() {
     emit(AnimalsLoaded(_animals));
@@ -323,8 +416,11 @@ class AnimalCubit extends Cubit<AnimalState> {
 
   /// Clears all cached data (call on logout).
   void reset() {
+    ++_ownerLoadGeneration;
+    _ownerLoadInProgress = false;
     _animals = [];
     _currentOwnerId = null;
+    historicalAnimalLoader?.clear();
     emit(AnimalInitial());
   }
 }

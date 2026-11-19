@@ -10,7 +10,7 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
-import 'package:animal_record/features/medical_documents/data/datasources/medical_document_ai_feedback_local_datasource.dart';
+import 'package:animal_record/features/medical_documents/domain/repositories/medical_document_ai_feedback_store.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/animal_medical_documents_view.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
@@ -42,7 +42,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   final Set<MedicalDocumentCategory> _pendingAiFeedbackCategories = {};
   final Set<MedicalDocumentCategory> _answeredAiFeedbackCategories = {};
   final Map<MedicalDocumentCategory, Future<void>> _pendingFeedbackWrites = {};
-  late final MedicalDocumentAiFeedbackLocalDataSource _aiFeedbackStore;
+  late final MedicalDocumentAiFeedbackStore _aiFeedbackStore;
   int _aiFeedbackRequestId = 0;
 
   static const _feedbackCategories = {
@@ -55,7 +55,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
   void initState() {
     super.initState();
     _loadedTabIndex = _indexForCategory(widget.initialCategory);
-    _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackLocalDataSource>();
+    _aiFeedbackStore = di.sl<MedicalDocumentAiFeedbackStore>();
     _pendingAiFeedbackCategories.addAll(
       _feedbackCategories.where(
         (category) => _aiFeedbackStore.isPending(widget.animalId, category),
@@ -502,6 +502,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
+                          readOnly: widget.animal?.canWrite == false,
                           animalId: widget.animalId,
                           requestedCategory: _categoryForIndex(
                             _tabController.index,

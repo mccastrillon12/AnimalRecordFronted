@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/presentation/utils/animal_picture.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -26,7 +27,7 @@ class AnimalFamilyIconBox extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: Center(
         child: SvgPicture.asset(
-          _familyIconPath(family),
+          animalPictureIcon(family: family),
           width: iconSize,
           height: iconSize,
           colorFilter: const ColorFilter.mode(
@@ -37,21 +38,4 @@ class AnimalFamilyIconBox extends StatelessWidget {
       ),
     );
   }
-}
-
-String _familyIconPath(String family) {
-  final lowerFamily = family.toLowerCase();
-  if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
-    return 'assets/illustrations/cat_icon.svg';
-  }
-  if (lowerFamily.contains('canino') || lowerFamily.contains('perro')) {
-    return 'assets/illustrations/dog_icon.svg';
-  }
-  if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
-    return 'assets/illustrations/bovino_icon.svg';
-  }
-  if (lowerFamily.contains('equino') || lowerFamily.contains('caballo')) {
-    return 'assets/illustrations/equino_icon.svg';
-  }
-  return 'assets/illustrations/dog_icon.svg';
 }

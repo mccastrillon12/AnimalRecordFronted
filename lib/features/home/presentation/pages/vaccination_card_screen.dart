@@ -543,6 +543,7 @@ class _VaccinationCardDocuments extends StatelessWidget {
     try {
       await preview.show(
         context,
+        document: document,
         acceptedDocumentId: document.id,
         fileName: document.originalFileName,
         mimeType: document.mimeType,

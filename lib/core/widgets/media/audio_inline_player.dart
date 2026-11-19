@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
@@ -11,11 +12,13 @@ import 'package:animal_record/core/theme/app_typography.dart';
 /// audio finishes so the parent can restore the original attachment link.
 class AudioInlinePlayer extends StatefulWidget {
   final String audioUrl;
+  final Uint8List? audioBytes;
   final VoidCallback? onCompleted;
 
   const AudioInlinePlayer({
     super.key,
     required this.audioUrl,
+    this.audioBytes,
     this.onCompleted,
   });
 
@@ -80,7 +83,10 @@ class _AudioInlinePlayerState extends State<AudioInlinePlayer>
   Future<void> _startPlayback() async {
     try {
       setState(() => _isLoading = true);
-      final source = widget.audioUrl.startsWith('http') || widget.audioUrl.startsWith('https')
+      final source = widget.audioBytes != null
+          ? BytesSource(widget.audioBytes!)
+          : widget.audioUrl.startsWith('http') ||
+                widget.audioUrl.startsWith('https')
           ? UrlSource(widget.audioUrl)
           : DeviceFileSource(widget.audioUrl);
       await _player.play(source);
