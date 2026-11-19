@@ -76,11 +76,38 @@ class TransferRequest extends Equatable {
   ];
 }
 
+sealed class TransferAnimalAge extends Equatable {
+  const TransferAnimalAge();
+}
+
+class ExactTransferAnimalAge extends TransferAnimalAge {
+  final int months;
+  const ExactTransferAnimalAge(this.months);
+
+  @override
+  List<Object> get props => [months];
+}
+
+class ApproximateTransferAnimalAge extends TransferAnimalAge {
+  final int minMonths;
+  final int maxMonths;
+
+  const ApproximateTransferAnimalAge(this.minMonths, this.maxMonths);
+
+  @override
+  List<Object> get props => [minMonths, maxMonths];
+}
+
 class TransferItem extends Equatable {
   final String id;
   final String animalId;
   final String animalName;
   final String animalCode;
+  final String? animalSpecies;
+  final String? animalBreed;
+  final String? animalSex;
+  final String? animalImageUrl;
+  final TransferAnimalAge? animalAge;
   final String status;
 
   const TransferItem({
@@ -88,11 +115,40 @@ class TransferItem extends Equatable {
     required this.animalId,
     required this.animalName,
     required this.animalCode,
+    this.animalSpecies,
+    this.animalBreed,
+    this.animalSex,
+    this.animalImageUrl,
+    this.animalAge,
     required this.status,
   });
 
+  TransferItem withAnimalImageUrl(String imageUrl) => TransferItem(
+    id: id,
+    animalId: animalId,
+    animalName: animalName,
+    animalCode: animalCode,
+    animalSpecies: animalSpecies,
+    animalBreed: animalBreed,
+    animalSex: animalSex,
+    animalImageUrl: imageUrl,
+    animalAge: animalAge,
+    status: status,
+  );
+
   @override
-  List<Object> get props => [id, animalId, animalName, animalCode, status];
+  List<Object?> get props => [
+    id,
+    animalId,
+    animalName,
+    animalCode,
+    animalSpecies,
+    animalBreed,
+    animalSex,
+    animalImageUrl,
+    animalAge,
+    status,
+  ];
 }
 
 class TransferPage<T> {

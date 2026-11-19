@@ -27,7 +27,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
            animals: List.unmodifiable(
              {
                for (final animal in animals)
-                 if (animal.isActive) animal.id: animal,
+                 if (animal.canTransfer) animal.id: animal,
              }.values,
            ),
          ),
@@ -137,7 +137,20 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
     if (code != null && !state.transferReasons.any((r) => r.code == code)) {
       return;
     }
-    emit(state.copyWith(transferReasonCode: code ?? '', clearError: true));
+    emit(
+      state.copyWith(
+        transferReasonCode: code ?? '',
+        otherReasonDetail: code == state.transferReasonCode ? null : '',
+        clearError: true,
+      ),
+    );
+  }
+
+  void updateOtherReasonDetail(String value) {
+    if (state.step == AnimalTransferStep.confirmUser &&
+        state.requiresOtherReason) {
+      emit(state.copyWith(otherReasonDetail: value, clearError: true));
+    }
   }
 
   Future<void> startVerification() async {

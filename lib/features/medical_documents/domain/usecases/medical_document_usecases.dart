@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_ai_feedback.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
@@ -8,6 +9,7 @@ import 'package:animal_record/features/medical_documents/domain/services/medical
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_file_saver.dart';
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_contract_validator.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
+import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 
 class GetMedicalFieldCatalogUseCase {
   final MedicalDocumentsRepository repository;
@@ -133,22 +135,36 @@ class GetMedicalDocumentDownloadUriUseCase {
 class LoadMedicalDocumentOriginalUseCase {
   final MedicalDocumentsRepository repository;
   final MedicalDocumentFileLoader fileLoader;
+  final AnimalTransferRepository? historicalRepository;
 
   const LoadMedicalDocumentOriginalUseCase({
     required this.repository,
     required this.fileLoader,
+    this.historicalRepository,
   });
 
   Future<SharedFileEntity> call(MedicalDocumentEntity document) async {
-    final remoteUri = await repository.getDownloadUri(document.id);
-    final bytes = await fileLoader.load(remoteUri);
+    final history = document.historicalFile;
+    if (document.readOnly && history == null) {
+      throw const FormatException(
+        'No se encontró el archivo en el expediente.',
+      );
+    }
+    final bytes = history == null
+        ? await fileLoader.load(await repository.getDownloadUri(document.id))
+        : await historicalRepository!.downloadHistoricalFile(
+            periodId: history.periodId,
+            publicationHash: history.publicationHash,
+            entryId: history.entryId,
+            fileId: history.fileId,
+          );
     return SharedFileEntity(
       path: '',
       name: document.originalFileName,
       mimeType: document.mimeType,
       type: _sharedFileType(document.mimeType, document.originalFileName),
       size: bytes.length,
-      bytes: bytes,
+      bytes: Uint8List.fromList(bytes),
     );
   }
 

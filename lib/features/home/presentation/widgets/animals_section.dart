@@ -62,8 +62,16 @@ class _AnimalsSectionState extends State<AnimalsSection> {
 
         final hasAnimals = animals.isNotEmpty;
 
-        // Sort active animals by createdAt descending (newest first)
-        final activeAnimals = animals.where((a) => a.isActive).toList();
+        // Keep transfer records in Mis animales, outside the Home preview.
+        final activeAnimals = animals
+            .where(
+              (animal) =>
+                  animal.isActive &&
+                  !animal.isHistorical &&
+                  animal.transferStatus != 'PENDING' &&
+                  animal.transferStatus != 'PROCESSING',
+            )
+            .toList();
         final sortedAnimals = List<AnimalModel>.from(activeAnimals)
           ..sort((a, b) {
             final dateA =

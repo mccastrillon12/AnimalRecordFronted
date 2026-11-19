@@ -106,7 +106,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final activeAnimals = context
         .read<AnimalCubit>()
         .animals
-        .where((animal) => animal.isActive)
+        .where((animal) => animal.isActive && animal.canWrite)
         .toList(growable: false);
     if (activeAnimals.length != 1) return false;
     _selectedAnimals = [activeAnimals.single];
@@ -383,7 +383,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final selected = context
         .read<AnimalCubit>()
         .animals
-        .where((animal) => selectedIds.contains(animal.id))
+        .where((animal) => selectedIds.contains(animal.id) && animal.canWrite)
         .toList(growable: false);
     if (selected.length == _selectedAnimals.length &&
         selected.every(_selectedAnimals.contains)) {
@@ -424,7 +424,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   AnimalEntity? get _preselectedAnimal {
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is Map && arguments['preselectedAnimal'] is AnimalEntity) {
-      return arguments['preselectedAnimal'] as AnimalEntity;
+      final animal = arguments['preselectedAnimal'] as AnimalEntity;
+      return animal.canWrite ? animal : null;
     }
     return null;
   }
@@ -597,6 +598,20 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         ? null
         : pendingFiles.first;
     if (sourceFile == null || _selectedAnimals.isEmpty) return;
+    final currentAnimals = context.read<AnimalCubit>().animals;
+    if (_selectedAnimals.any(
+      (selected) =>
+          !selected.canWrite ||
+          currentAnimals.any(
+            (animal) => animal.id == selected.id && !animal.canWrite,
+          ),
+    )) {
+      ErrorDisplay.showError(
+        context,
+        'El animal está en modo de solo lectura.',
+      );
+      return;
+    }
     final flow = context.read<MedicalDocumentFlowCubit>();
     if (!_isReplacement &&
         (flow.state.remoteDocument != null || flow.pendingFlow != null) &&
@@ -902,7 +917,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                                     ? _editableReplacementAnimalIds.contains(
                                         animal.id,
                                       )
-                                    : animal.isActive,
+                                    : animal.isActive && animal.canWrite,
                               )
                               .toList(growable: false);
                           if (_isReplacement && _selectedAnimals.length == 1) {

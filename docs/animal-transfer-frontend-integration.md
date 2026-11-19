@@ -1,5 +1,11 @@
 # Integración Flutter de transferencias
 
+Actualización del 18 de noviembre de 2026: el usuario confirmó que el backend
+`84652be` está activo. La prueba real con dos cuentas queda a cargo del usuario.
+La implementación y la validación local de esta entrega se describen en
+`animal-transfer-return-validation.md`. Los registros de producción que aparecen
+más abajo corresponden a pruebas anteriores y no verifican esta versión.
+
 La referencia contractual es `frontend-animal-transfer-foundations.md`, sección
 «Contenido de la entrega final para Flutter». Los datos ficticios de transferencia
 ya no se inyectan en la app. Por instrucción posterior del usuario, el OTP de
@@ -12,20 +18,35 @@ se ha realizado desde esta app.
 ## Disponibilidad
 
 - `.env.physical` es la configuración de producción del frontend y la usa la
-  compilación predeterminada. Por instrucción explícita posterior del usuario,
-  permite crear y consultar solicitudes reales, leer avisos y rechazar todos
-  los animales. Esta habilitación del flujo básico en producción prevalece
-  sobre la recomendación de la guía de dejar apagadas las funciones nuevas
-  frente al despliegue actual; no acredita que el backend esté preparado.
+  compilación predeterminada. Permite crear y consultar solicitudes reales,
+  leer avisos, aceptar todos los animales o rechazar los seleccionados tras
+  confirmación. La pantalla carga las páginas restantes antes de enviar una
+  decisión para que la selección incluya la solicitud completa. Si el backend
+  devuelve un 409 de aceptación deshabilitada, la solicitud queda intacta.
 - `--dart-define=TRANSFER_INTEGRATION=true` usa `.env.development` para probar
   el mismo flujo contra el backend de integración.
-- La aceptación parcial requiere además
-  `--dart-define=TRANSFER_ACCEPTANCE=true`.
 - El histórico requiere además `--dart-define=TRANSFER_HISTORY=true`.
-  Ambos indicadores dependen de `TRANSFER_INTEGRATION`, por lo que la app
-  de producción (`.env.physical`) mantiene aceptación e histórico apagados.
+  Este indicador depende de `TRANSFER_INTEGRATION`, por lo que el histórico
+  permanece apagado en la compilación predeterminada.
 
 ## Contratos y recuperación
+
+La vista previa del destinatario toma nombre, código visible, raza, sexo y edad
+de `GET /animal-transfers/{id}`. La foto procede exclusivamente del campo
+`items[].animalProfilePictureUrl`. Si falta o es inválida se usa el icono de su
+especie; el destinatario no consulta `GET /animals/{animalId}` mientras la
+transferencia está pendiente. Ante un fallo de imagen se vuelve a consultar la
+página del detalle que contenía el ítem y se conserva la URL firmada completa,
+sin registrarla. La renovación conserva las otras páginas y la selección.
+La edad exacta usa meses
+cumplidos y la aproximada muestra un rango. Los valores ausentes aparecen como
+«No disponible». Para validar el resumen actualizado después del despliegue,
+crea una solicitud nueva, pues las anteriores conservan su resumen original.
+
+En el emulador, la consulta `GET /animals/{id}` del destinatario devolvió
+HTTP 403 para los animales de la transferencia. Para mostrar sus fotos antes
+de la aceptación, el detalle autorizado de la transferencia debe incluir
+`animalProfilePictureUrl` en cada ítem con foto. Flutter ya lee ese campo.
 
 El buscador usa `GET /animals/search?isActive=true`,
 `GET /animal-transfers/recipients` y el catálogo de motivos del backend. Compara
@@ -59,10 +80,10 @@ guardan únicamente cuando la descarga termina completa.
 
 ## Validación pendiente
 
-El análisis estático del código modificado pasó. No se ejecutaron pruebas
-unitarias, por solicitud del usuario. No se ha llamado a un backend de
-integración ni verificado su versión o respuestas HTTP. El ensayo con AWS real
-sigue pendiente.
+El análisis estático del código modificado pasó. Seis pruebas focalizadas del
+repositorio, la selección y la pantalla de aceptación pasaron. No se ha llamado
+a un backend de integración ni verificado su versión o respuestas HTTP. El
+ensayo con AWS real sigue pendiente.
 
 En producción del frontend (`.env.physical`) se observó en la pantalla OTP de
 transferencia un `POST /animal-transfers` con HTTP 503 y mensaje
@@ -93,8 +114,11 @@ a `.env.physical`. No se registraron OTP, proof, tokens ni cuerpo completo.
 El logger compartido se desactiva en compilaciones de integración porque el
 interceptor de autenticación existente registra fragmentos de tokens; no se
 modificó el código de registro ni de usuario.
-Los ajustes de foto, diario y documentos médicos quedan fuera de esta pasada
-por la instrucción posterior de modificar solo transferencias.
+La entrega del 18 de noviembre incluye foto, diario y documentos médicos para
+animales transferidos, conforme a la instrucción posterior del usuario: las
+pantallas habituales muestran los datos publicados del período del dueño,
+con acceso de lectura y descarga; las acciones de escritura quedan bloqueadas.
+Los únicos cambios visuales solicitados son las etiquetas de estado en lista.
 
 Antes de probar en integración, confirmar que las rutas de decisión e histórico
 estén montadas en la misma versión, preparar las colecciones e índices con

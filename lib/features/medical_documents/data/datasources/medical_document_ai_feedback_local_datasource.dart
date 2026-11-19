@@ -1,13 +1,9 @@
+import 'package:animal_record/features/medical_documents/domain/repositories/medical_document_ai_feedback_store.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-abstract interface class MedicalDocumentAiFeedbackLocalDataSource {
-  bool isPending(String animalId, MedicalDocumentCategory category);
-
-  Future<void> markPending(String animalId, MedicalDocumentCategory category);
-
-  Future<void> clearPending(String animalId, MedicalDocumentCategory category);
-}
+typedef MedicalDocumentAiFeedbackLocalDataSource =
+    MedicalDocumentAiFeedbackStore;
 
 class MedicalDocumentAiFeedbackLocalDataSourceImpl
     implements MedicalDocumentAiFeedbackLocalDataSource {

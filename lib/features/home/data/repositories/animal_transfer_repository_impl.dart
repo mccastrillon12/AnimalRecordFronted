@@ -15,7 +15,7 @@ class AnimalTransferRepositoryImpl implements AnimalTransferRepository {
     final items = await remote.getActiveAnimals();
     return items
         .map((item) => AnimalDataModel.fromJson(item as Map<String, dynamic>))
-        .where((animal) => animal.isActive)
+        .where((animal) => animal.canTransfer)
         .toList(growable: false);
   }
 
@@ -155,11 +155,26 @@ class AnimalTransferRepositoryImpl implements AnimalTransferRepository {
           animalId: item['animalId'] as String,
           animalName: item['animalName'] as String? ?? '',
           animalCode: item['animalCode'] as String? ?? '',
+          animalSpecies: (item['animalSpecies'] ?? item['species']) as String?,
+          animalBreed: item['animalBreed'] as String?,
+          animalSex: item['animalSex'] as String?,
+          animalImageUrl: item['animalProfilePictureUrl'] as String?,
+          animalAge: _animalAge(item['animalAge']),
           status: item['status'] as String,
         ),
       ),
     );
   }
+
+  TransferAnimalAge? _animalAge(Object? json) => switch (json) {
+    {'minMonths': final int min, 'maxMonths': final int max}
+        when min >= 0 && max >= min =>
+      ApproximateTransferAnimalAge(min, max),
+    {'months': final int months} when months >= 0 => ExactTransferAnimalAge(
+      months,
+    ),
+    _ => null,
+  };
 
   @override
   Future<TransferRequest> decide({

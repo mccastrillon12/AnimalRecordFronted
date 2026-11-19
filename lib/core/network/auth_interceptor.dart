@@ -1,3 +1,4 @@
+import 'http_log_redactor.dart';
 import 'package:dio/dio.dart';
 import 'package:jwt_decoder/jwt_decoder.dart';
 import 'package:logger/logger.dart';
@@ -11,17 +12,13 @@ class AuthInterceptor extends Interceptor {
   static const int _maxRefreshAttempts = 3;
   DateTime? _lastRefreshAttempt;
 
-  AuthInterceptor({required this.tokenStorage, required this.dio});
+  AuthInterceptor({
+    required this.tokenStorage,
+    required this.dio,
+    Logger? logger,
+  }) : _logger = logger ?? Logger();
 
-  final Logger _logger = Logger(
-    printer: PrettyPrinter(
-      methodCount: 0,
-      errorMethodCount: 5,
-      lineLength: 50,
-      colors: true,
-      printEmojis: true,
-    ),
-  );
+  final Logger _logger;
 
   @override
   Future<void> onRequest(
@@ -46,10 +43,9 @@ class AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final path = err.requestOptions.path;
-    _logger.e('AuthInterceptor Error: ${err.type} - ${err.message} at $path');
-    if (err.response != null) {
-      _logger.e('Response data: ${err.response?.data}');
-    }
+    _logger.e(
+      'HTTP authentication error: ${err.requestOptions.method} ${HttpLogRedactor.target(err.requestOptions)} status=${err.response?.statusCode} type=${err.type.name}',
+    );
 
     if (err.response?.statusCode == 401 &&
         !_isAuthEndpoint(path) &&
@@ -72,7 +68,7 @@ class AuthInterceptor extends Interceptor {
           return handler.resolve(response);
         }
       } catch (e) {
-        _logger.e('Token refresh failed', error: e);
+        _logger.e('Token refresh failed');
         await tokenStorage.clearTokens();
       }
     }
@@ -83,7 +79,6 @@ class AuthInterceptor extends Interceptor {
   Future<String?> _getValidAccessToken() async {
     try {
       final token = await tokenStorage.getAccessToken();
-      _logger.d('🔑 Getting access token: ${token?.substring(0, 20)}...');
 
       if (token == null) {
         _logger.w('❌ No access token found in storage');
@@ -98,7 +93,7 @@ class AuthInterceptor extends Interceptor {
       _logger.d('✅ Access token valid');
       return token;
     } catch (e) {
-      _logger.w('⚠️ Invalid JWT token', error: e);
+      _logger.w('Invalid JWT token');
       return null;
     }
   }
@@ -178,10 +173,12 @@ class AuthInterceptor extends Interceptor {
         return null;
       }
 
-      _logger.e('Refresh token error (DioException)', error: e);
+      _logger.e(
+        'Refresh token failed: status=${e.response?.statusCode} type=${e.type.name}',
+      );
       return null;
     } catch (e) {
-      _logger.e('Refresh token error', error: e);
+      _logger.e('Refresh token error');
       return null;
     }
   }

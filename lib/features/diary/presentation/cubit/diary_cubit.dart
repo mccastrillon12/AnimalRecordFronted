@@ -1,3 +1,5 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/domain/entities/local_attachment.dart';
@@ -18,9 +20,14 @@ class DiaryCubit extends Cubit<DiaryState> {
   final UploadDiaryAttachmentUseCase uploadDiaryAttachmentUseCase;
 
   List<DiaryEntryEntity> _entries = [];
+  final GetHistoricalDiaryUseCase? historicalDiaryUseCase;
+  AnimalOwnershipHistory? _history;
+  bool _readOnly = false;
+  bool _historical = false;
 
   DiaryCubit({
     required this.getDiaryEntriesUseCase,
+    this.historicalDiaryUseCase,
     required this.createDiaryEntryUseCase,
     required this.updateDiaryEntryUseCase,
     required this.deleteDiaryEntryUseCase,
@@ -32,25 +39,58 @@ class DiaryCubit extends Cubit<DiaryState> {
 
   // ── Fetch all entries ─────────────────────────────────────────
 
-  Future<void> getDiaryEntries(String animalId) async {
+  Future<void> getDiaryEntries(
+    String animalId, {
+    AnimalOwnershipHistory? history,
+    bool readOnly = false,
+    bool historical = false,
+  }) async {
+    _history = history;
+    _readOnly = readOnly || historical || history != null;
+    _historical = historical || history != null;
+    _entries = [];
     emit(DiaryLoading());
-
-    final result = await getDiaryEntriesUseCase(animalId);
-
-    result.fold(
-      (failure) => emit(DiaryError(failure.message, existingEntries: _entries)),
-      (entries) {
-        _entries = entries;
-        emit(DiaryLoaded(entries));
-      },
-    );
+    await _readEntries(animalId);
   }
 
-  /// Re-fetch entries without showing a loading spinner.
-  /// Used after create/edit/delete operations to avoid the visual flash.
-  Future<void> refreshDiaryEntries(String animalId) async {
-    final result = await getDiaryEntriesUseCase(animalId);
+  /// Refresh the same source without replacing the current screen with a spinner.
+  Future<void> refreshDiaryEntries(String animalId) => _readEntries(animalId);
 
+  Future<void> _readEntries(String animalId) async {
+    if (_historical && _history == null) {
+      if (!isClosed) {
+        emit(
+          DiaryError(
+            'No se encontró la publicación del expediente.',
+            existingEntries: const [],
+          ),
+        );
+      }
+      return;
+    }
+    final history = _history;
+    if (history != null) {
+      try {
+        final reader = historicalDiaryUseCase;
+        if (reader == null) throw StateError('Falta el lector de histórico.');
+        final entries = await reader(history);
+        if (isClosed) return;
+        _entries = entries;
+        emit(DiaryLoaded(_entries));
+      } catch (_) {
+        if (!isClosed) {
+          emit(
+            DiaryError(
+              'No se pudo cargar el diario.',
+              existingEntries: _entries,
+            ),
+          );
+        }
+      }
+      return;
+    }
+    final result = await getDiaryEntriesUseCase(animalId);
+    if (isClosed) return;
     result.fold(
       (failure) => emit(DiaryError(failure.message, existingEntries: _entries)),
       (entries) {
@@ -69,6 +109,12 @@ class DiaryCubit extends Cubit<DiaryState> {
     required String date,
     required List<LocalAttachment> attachments,
   }) async {
+    if (_readOnly) {
+      emit(
+        DiaryError('El diario es de solo lectura.', existingEntries: _entries),
+      );
+      return;
+    }
     emit(DiaryEntrySaving(existingEntries: _entries));
 
     try {
@@ -143,6 +189,12 @@ class DiaryCubit extends Cubit<DiaryState> {
     List<LocalAttachment> newAttachments = const [],
     List<String> deletedAttachmentIds = const [],
   }) async {
+    if (_readOnly) {
+      emit(
+        DiaryError('El diario es de solo lectura.', existingEntries: _entries),
+      );
+      return;
+    }
     emit(DiaryEntrySaving(existingEntries: _entries));
 
     try {
@@ -226,6 +278,12 @@ class DiaryCubit extends Cubit<DiaryState> {
     required String animalId,
     required String entryId,
   }) async {
+    if (_readOnly) {
+      emit(
+        DiaryError('El diario es de solo lectura.', existingEntries: _entries),
+      );
+      return;
+    }
     emit(DiaryEntrySaving(existingEntries: _entries));
 
     final result = await deleteDiaryEntryUseCase(

@@ -9,6 +9,9 @@ import 'package:animal_record/core/widgets/dropdowns/app_multi_search_dropdown.d
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/data/models/animal_data_model.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_card.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_status_tag.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_list_control_button.dart';
@@ -35,6 +38,65 @@ class _MockMedicalDocumentFlowCubit extends Mock
     implements MedicalDocumentFlowCubit {}
 
 void main() {
+  testWidgets(
+    'agrupa transferidos con inactivos y deja las etiquetas solo en lista',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(800, 1200));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      AnimalEntity card(String id, String? status, {bool active = true}) =>
+          AnimalDataModel.fromJson({
+            'id': id,
+            'name': id,
+            'code': 'E01',
+            'species': 'EQUINE',
+            'sex': 'FEMALE',
+            'transferStatus': status,
+            'readOnly': status == 'TRANSFERRED',
+            'isActive': active,
+          });
+      final animals = [
+        card('Pendiente', 'PENDING'),
+        card('Transferido', 'TRANSFERRED'),
+        card('Inactivo', null, active: false),
+      ];
+      final cubit = _MockAnimalCubit();
+      when(() => cubit.state).thenReturn(AnimalsLoaded(animals));
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+      when(() => cubit.animals).thenReturn(animals);
+      await tester.pumpWidget(
+        BlocProvider<AnimalCubit>.value(
+          value: cubit,
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: const TextScaler.linear(.9)),
+              child: child!,
+            ),
+            home: const Scaffold(body: MyAnimalsContent()),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Transferidos e inactivos'), findsOneWidget);
+      expect(find.byType(AnimalStatusTag), findsNothing);
+      expect(find.byType(AnimalCard), findsNWidgets(3));
+      await tester.tap(find.byType(AnimalListControlButton).first);
+      await tester.pumpAndSettle();
+      expect(find.byType(AnimalStatusTag), findsNWidgets(3));
+      await tester.tap(find.text('Transferidos e inactivos'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widgetList<AnimalCard>(find.byType(AnimalCard))
+            .map((card) => card.animal.id),
+        ['Pendiente'],
+      );
+      expect(animals[1].isActive, isTrue);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets(
     'uses the shared animal filter and applies the selection locally',
     (tester) async {

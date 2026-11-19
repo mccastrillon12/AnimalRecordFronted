@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:equatable/equatable.dart';
 
 const _unchangedMedicalField = Object();
@@ -688,6 +689,8 @@ class MedicalDocumentEntity extends Equatable {
   final DateTime? replacementDeadline;
   final bool canReplace;
   final String? replacementOfDocumentId;
+  final bool readOnly;
+  final HistoricalFileReference? historicalFile;
 
   const MedicalDocumentEntity({
     required this.id,
@@ -717,6 +720,8 @@ class MedicalDocumentEntity extends Equatable {
     this.replacementDeadline,
     this.canReplace = false,
     this.replacementOfDocumentId,
+    this.readOnly = false,
+    this.historicalFile,
   });
 
   @override
@@ -748,5 +753,7 @@ class MedicalDocumentEntity extends Equatable {
     replacementDeadline,
     canReplace,
     replacementOfDocumentId,
+    readOnly,
+    historicalFile,
   ];
 }

@@ -226,7 +226,7 @@ class _VaccinationCardsContentState extends State<VaccinationCardsContent> {
     final grouped = <String, List<AnimalModel>>{};
     final inactive = <AnimalModel>[];
     for (final animal in animals) {
-      if (!animal.isActive) {
+      if (!animal.isActive || animal.isHistorical) {
         inactive.add(animal);
         continue;
       }
@@ -275,7 +275,12 @@ class _AnimalVaccinationSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider<AnimalMedicalDocumentsCubit>(
       create: (_) => createDocumentsCubit()
-        ..load(animal.id, category: MedicalDocumentCategory.vaccinationCard),
+        ..load(
+          animal.id,
+          history: animal.isHistorical ? animal.ownershipHistory : null,
+          historical: animal.isHistorical,
+          category: MedicalDocumentCategory.vaccinationCard,
+        ),
       child: _AnimalVaccinationSummaryContent(animal: animal),
     );
   }

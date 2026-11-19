@@ -265,6 +265,7 @@ class _MedicalDocumentReviewScreenState
       await _originalPreview.show(
         context,
         localFile: state.sourceFile,
+        document: document,
         acceptedDocumentId: document.status == MedicalDocumentStatus.accepted
             ? document.id
             : null,

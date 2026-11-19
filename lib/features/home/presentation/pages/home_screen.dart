@@ -12,6 +12,7 @@ import 'package:animal_record/core/services/token_storage.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
 import 'package:animal_record/features/home/presentation/widgets/transfer_incoming_notice.dart';
 import 'package:animal_record/features/shared_files/presentation/cubit/shared_files_cubit.dart';
@@ -202,6 +203,8 @@ class _HomeScreenState extends State<HomeScreen> {
             TransferIncomingNotice(
               key: ValueKey(userId),
               repository: sl<AnimalTransferRepository>(),
+              previewCache: sl<IncomingTransferPreviewRepository>(),
+              accountId: userId,
             ),
             Expanded(
               child: AnimalsSection(

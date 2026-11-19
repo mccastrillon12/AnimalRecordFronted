@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:ui' as ui;
+import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
@@ -26,6 +28,7 @@ class MedicalDocumentOriginalPreview {
   Future<void> show(
     BuildContext context, {
     SharedFileEntity? localFile,
+    MedicalDocumentEntity? document,
     String? acceptedDocumentId,
     String? fileName,
     GlobalKey? closeIconKey,
@@ -33,6 +36,10 @@ class MedicalDocumentOriginalPreview {
     required String mimeType,
     String? searchText,
   }) async {
+    if (document?.readOnly == true && localFile == null) {
+      localFile = await di.sl<LoadMedicalDocumentOriginalUseCase>()(document!);
+      if (!context.mounted) return;
+    }
     final remoteUriLoader = localFile == null && acceptedDocumentId != null
         ? () => getDownloadUriUseCase(acceptedDocumentId)
         : null;
@@ -534,12 +541,13 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
     final orderedThreshold = targetWords.length <= 2
         ? 1
         : (targetWords.length / 3).ceil();
-    final best = bestVaccination ??
+    final best =
+        bestVaccination ??
         (groupedSearch && bestOverlap != null
-        ? bestOverlap
-        : bestOrdered != null && bestOrdered.wordCount >= orderedThreshold
-        ? bestOrdered
-        : bestOverlap ?? bestOrdered);
+            ? bestOverlap
+            : bestOrdered != null && bestOrdered.wordCount >= orderedThreshold
+            ? bestOrdered
+            : bestOverlap ?? bestOrdered);
     if (best == null ||
         best.highlightedWords.isEmpty ||
         !mounted ||
@@ -551,14 +559,15 @@ class _PdfPreviewDialogState extends State<_PdfPreviewDialog> {
     final orderedLast = best.highlightedWords.last;
     final overlapFirst = bestOverlap?.highlightedWords.first;
     final overlapLast = bestOverlap?.highlightedWords.last;
-    final highlightedMatch = bestVaccination ??
+    final highlightedMatch =
+        bestVaccination ??
         (bestOverlap != null &&
-            bestOverlap.wordCount > best.wordCount &&
-            overlapFirst!.pageNumber == orderedFirst.pageNumber &&
-            overlapFirst.start <= orderedLast.end &&
-            overlapLast!.end >= orderedFirst.start
-        ? bestOverlap
-        : best);
+                bestOverlap.wordCount > best.wordCount &&
+                overlapFirst!.pageNumber == orderedFirst.pageNumber &&
+                overlapFirst.start <= orderedLast.end &&
+                overlapLast!.end >= orderedFirst.start
+            ? bestOverlap
+            : best);
     _highlightedWords = highlightedMatch.highlightedWords;
     controller.invalidate();
 
@@ -869,18 +878,22 @@ _PdfSearchMatch? _bestVaccinationDateMatch(
         ? start + 120
         : pageWords.length;
     for (var index = start + nameWordCount; index < blockEnd; index++) {
-      if (const {'vaccination', 'vacunacion', 'vacuna'}.contains(
-        pageWords[index].normalized,
-      )) {
+      if (const {
+        'vaccination',
+        'vacunacion',
+        'vacuna',
+      }.contains(pageWords[index].normalized)) {
         blockEnd = index;
         break;
       }
     }
     int? firstDateIndex;
     final dateSearchEnd = start + 55 < blockEnd ? start + 55 : blockEnd;
-    for (var index = start + nameWordCount;
-        index + 2 < dateSearchEnd;
-        index++) {
+    for (
+      var index = start + nameWordCount;
+      index + 2 < dateSearchEnd;
+      index++
+    ) {
       if (_pdfDateAt(pageText.fullText, pageWords, index) != null) {
         firstDateIndex = index;
         break;
@@ -888,14 +901,15 @@ _PdfSearchMatch? _bestVaccinationDateMatch(
     }
     if (firstDateIndex == null) continue;
     final pdfDate = _pdfDateAt(pageText.fullText, pageWords, firstDateIndex)!;
-    final matchesDate = pdfDate.year == applicationDate.year &&
+    final matchesDate =
+        pdfDate.year == applicationDate.year &&
         (pdfDate.yearFirst
             ? pdfDate.first == applicationDate.month &&
-                pdfDate.second == applicationDate.day
+                  pdfDate.second == applicationDate.day
             : (pdfDate.first == applicationDate.day &&
-                    pdfDate.second == applicationDate.month) ||
-                (pdfDate.second == applicationDate.day &&
-                    pdfDate.first == applicationDate.month));
+                      pdfDate.second == applicationDate.month) ||
+                  (pdfDate.second == applicationDate.day &&
+                      pdfDate.first == applicationDate.month));
     if (!matchesDate) continue;
 
     final overlap = _bestWindowMatch(
@@ -906,7 +920,8 @@ _PdfSearchMatch? _bestVaccinationDateMatch(
       maxWindowWords,
     );
     final ranges = <int, PdfPageTextRange>{};
-    for (final range in overlap?.highlightedWords ?? const <PdfPageTextRange>[]) {
+    for (final range
+        in overlap?.highlightedWords ?? const <PdfPageTextRange>[]) {
       ranges[range.start] = range;
     }
     for (var index = start; index < start + nameWordCount; index++) {

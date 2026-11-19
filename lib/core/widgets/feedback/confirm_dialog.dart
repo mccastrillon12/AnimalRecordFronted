@@ -13,9 +13,11 @@ class ConfirmDialog extends StatelessWidget {
   final Color confirmColor;
   final Color? titleColor;
   final bool isConfirmEnabled;
+  final bool Function()? validateBeforeConfirm;
   final VoidCallback onConfirm;
   final VoidCallback? onCancel;
   final VoidCallback? onClose;
+  final bool showCloseButton;
   final double width;
 
   const ConfirmDialog({
@@ -30,9 +32,11 @@ class ConfirmDialog extends StatelessWidget {
     this.confirmColor = const Color(0xFFFA2844),
     this.titleColor,
     this.isConfirmEnabled = true,
+    this.validateBeforeConfirm,
     required this.onConfirm,
     this.onCancel,
     this.onClose,
+    this.showCloseButton = true,
     this.width = 347,
   });
 
@@ -53,7 +57,8 @@ class ConfirmDialog extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const SizedBox(height: 28),
+                  if (showCloseButton || headerLeading != null)
+                    const SizedBox(height: 28),
                   // Title
                   SizedBox(
                     width: double.infinity,
@@ -124,6 +129,9 @@ class ConfirmDialog extends StatelessWidget {
                         child: ElevatedButton(
                           onPressed: isConfirmEnabled
                               ? () {
+                                  if (validateBeforeConfirm?.call() == false) {
+                                    return;
+                                  }
                                   Navigator.of(context).pop();
                                   onConfirm();
                                 }
@@ -162,16 +170,17 @@ class ConfirmDialog extends StatelessWidget {
           if (headerLeading != null)
             Positioned(top: 16, left: 16, child: headerLeading!),
           // X close button
-          Positioned(
-            top: 16,
-            right: 16,
-            child: IconButton(
-              icon: const Icon(Icons.close, color: AppColors.greyIconos),
-              onPressed: onClose ?? () => Navigator.of(context).pop(),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints(),
+          if (showCloseButton)
+            Positioned(
+              top: 16,
+              right: 16,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: AppColors.greyIconos),
+                onPressed: onClose ?? () => Navigator.of(context).pop(),
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+              ),
             ),
-          ),
         ],
       ),
     );

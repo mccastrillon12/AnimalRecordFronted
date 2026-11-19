@@ -1,7 +1,9 @@
+import 'package:animal_record/features/home/presentation/widgets/animal_status_tag.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:animal_record/features/home/presentation/widgets/animal_picture.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_picture.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
@@ -17,12 +19,16 @@ class AnimalAvatar extends StatelessWidget {
   final AnimalModel animal;
   final double size;
   final double borderRadius;
+  final String? unknownFamilyIconPath;
+  final ValueChanged<String>? onImageError;
 
   const AnimalAvatar({
     super.key,
     required this.animal,
     required this.size,
     required this.borderRadius,
+    this.unknownFamilyIconPath,
+    this.onImageError,
   });
 
   @override
@@ -34,34 +40,14 @@ class AnimalAvatar extends StatelessWidget {
         color: AppColors.bgHielo,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
-      child: animal.imageUrl?.trim().isNotEmpty ?? false
-          ? ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: CachedNetworkImage(
-                imageUrl: animal.imageUrl!.trim(),
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
-                width: size,
-                height: size,
-                fadeInDuration: Duration.zero,
-                fadeOutDuration: Duration.zero,
-                placeholder: (_, _) => _placeholder(),
-                errorWidget: (_, _, _) => _placeholder(),
-              ),
-            )
-          : _placeholder(),
-    );
-  }
-
-  Widget _placeholder() {
-    return Center(
-      child: SvgPicture.asset(
-        _animalFamilyIconPath(animal.family),
-        width: size * 0.5,
-        height: size * 0.5,
-        colorFilter: const ColorFilter.mode(
-          AppColors.primaryFrances,
-          BlendMode.srcIn,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: AnimalPicture(
+          animal: animal,
+          width: size,
+          height: size,
+          iconSize: size * .5,
+          onImageError: onImageError,
         ),
       ),
     );
@@ -292,10 +278,13 @@ class AnimalCard extends StatelessWidget {
                     fontWeight: FontWeight.w700,
                   ),
                   overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   animal.code,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: AppTypography.body5.copyWith(
                     color: AppColors.greyMedio,
                   ),
@@ -304,27 +293,25 @@ class AnimalCard extends StatelessWidget {
             ),
           ),
 
-          // Context menu or tag
-          if (!animal.isActive)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 1),
-              decoration: BoxDecoration(
-                color: AppColors.bgRosa,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.12),
-                    offset: const Offset(0, 3),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-              child: Text(
-                'Inactivo',
-                style: AppTypography.body5.copyWith(color: AppColors.errorRojo),
-              ),
+          // Keep the existing row size and tag placement.
+          if (!animal.isActive ||
+              animal.transferStatus == 'PENDING' ||
+              animal.transferStatus == 'TRANSFERRED')
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (!animal.isActive) AnimalStatusTag.inactive(),
+                if (!animal.isActive &&
+                    (animal.transferStatus == 'PENDING' ||
+                        animal.transferStatus == 'TRANSFERRED'))
+                  const SizedBox(width: 4),
+                if (animal.transferStatus == 'PENDING')
+                  AnimalStatusTag.pending(),
+                if (animal.transferStatus == 'TRANSFERRED')
+                  AnimalStatusTag.transferred(),
+              ],
             )
-          else
+          else if (animal.canWrite)
             GestureDetector(
               onTap: onMenuTap,
               child: SvgPicture.asset(
@@ -372,22 +359,15 @@ class AnimalCard extends StatelessWidget {
               fit: BoxFit.cover,
               alignment: Alignment.center,
             )
-          else if (!photoDeleted &&
-              (animal.imageUrl?.trim().isNotEmpty ?? false))
-            CachedNetworkImage(
-              imageUrl: animal.imageUrl!.trim(),
-              fit: BoxFit.cover,
-              fadeInDuration: Duration.zero,
-              fadeOutDuration: Duration.zero,
-              imageBuilder: (context, imageProvider) => Image(
-                image: imageProvider,
-                fit: BoxFit.cover,
-                alignment: Alignment.center,
+          else if (!photoDeleted)
+            ColoredBox(
+              color: AppColors.bgHielo,
+              child: AnimalPicture(
+                animal: animal,
                 width: double.infinity,
-                height: double.infinity,
+                height: 180,
+                iconSize: 64,
               ),
-              placeholder: (context, url) => _buildDetailPlaceholder(),
-              errorWidget: (context, url, error) => _buildDetailPlaceholder(),
             )
           else
             _buildDetailPlaceholder(),
@@ -465,7 +445,11 @@ class AnimalCard extends StatelessWidget {
       color: AppColors.bgHielo,
       child: Center(
         child: SvgPicture.asset(
-          _animalFamilyIconPath(animal.family),
+          animalPictureIcon(
+            species: animal.species,
+            family: animal.family,
+            code: animal.code,
+          ),
           width: 64,
           height: 64,
           colorFilter: const ColorFilter.mode(
@@ -476,19 +460,4 @@ class AnimalCard extends StatelessWidget {
       ),
     );
   }
-}
-
-String _animalFamilyIconPath(String family) {
-  final lowerFamily = family.toLowerCase();
-  if (lowerFamily.contains('felino') || lowerFamily.contains('gato')) {
-    return 'assets/illustrations/cat_icon.svg';
-  } else if (lowerFamily.contains('canino') || lowerFamily.contains('perro')) {
-    return 'assets/illustrations/dog_icon.svg';
-  } else if (lowerFamily.contains('bovino') || lowerFamily.contains('vaca')) {
-    return 'assets/illustrations/bovino_icon.svg';
-  } else if (lowerFamily.contains('equino') ||
-      lowerFamily.contains('caballo')) {
-    return 'assets/illustrations/equino_icon.svg';
-  }
-  return 'assets/illustrations/dog_icon.svg';
 }

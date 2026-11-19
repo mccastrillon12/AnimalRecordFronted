@@ -1,3 +1,4 @@
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
 import 'package:animal_record/features/medical_documents/data/models/medical_document_text_normalizer.dart';
@@ -31,9 +32,15 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     super.replacementDeadline,
     super.canReplace,
     super.replacementOfDocumentId,
+    super.readOnly,
+    super.historicalFile,
   });
 
-  factory MedicalDocumentModel.fromJson(Map<String, dynamic> json) {
+  factory MedicalDocumentModel.fromJson(
+    Map<String, dynamic> json, {
+    bool readOnly = false,
+    HistoricalFileReference? historicalFile,
+  }) {
     final extractions =
         <MedicalDocumentCategory, MedicalDocumentExtractionEntity>{};
     final rawExtractions = _map(json['extractionsByCategory']);
@@ -118,7 +125,9 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       reviewedAt: _date(json['reviewedAt']),
       acceptedAt: _date(json['acceptedAt']),
       replacementDeadline: _date(json['replacementDeadline']),
-      canReplace: json['canReplace'] == true,
+      canReplace: !readOnly && json['canReplace'] == true,
+      readOnly: readOnly,
+      historicalFile: historicalFile,
       replacementOfDocumentId: _nullableString(json['replacementOfDocumentId']),
     );
   }

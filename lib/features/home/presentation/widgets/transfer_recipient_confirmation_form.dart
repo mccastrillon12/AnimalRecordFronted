@@ -2,6 +2,7 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/theme/app_typography.dart';
 import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
+import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/auth/presentation/widgets/id_selector.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_state.dart';
 import 'package:flutter/material.dart';
@@ -10,12 +11,14 @@ class TransferRecipientConfirmationForm extends StatelessWidget {
   final AnimalTransferState state;
   final ValueChanged<String> onIdentificationChanged;
   final ValueChanged<String?> onReasonChanged;
+  final ValueChanged<String> onOtherReasonChanged;
 
   const TransferRecipientConfirmationForm({
     super.key,
     required this.state,
     required this.onIdentificationChanged,
     required this.onReasonChanged,
+    required this.onOtherReasonChanged,
   });
 
   @override
@@ -44,10 +47,15 @@ class TransferRecipientConfirmationForm extends StatelessWidget {
         IdSelector(
           key: ValueKey('transfer-identification-${recipient.id}'),
           initialValue: state.identificationNumber,
-          initialIdType: recipient.identificationType,
+          initialIdType: recipient.formattedIdentificationType,
           idTypeEnabled: false,
           hintText: '',
           labelStyle: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+          errorText:
+              state.identificationNumber.isNotEmpty &&
+                  state.identificationNumber != recipient.identificationNumber
+              ? 'La identificación no coincide.'
+              : null,
           onChanged: onIdentificationChanged,
         ),
         const SizedBox(height: AppSpacing.m),
@@ -69,6 +77,18 @@ class TransferRecipientConfirmationForm extends StatelessWidget {
             onReasonChanged(reason);
           },
         ),
+        if (state.requiresOtherReason) ...[
+          const SizedBox(height: AppSpacing.m),
+          CustomTextField(
+            key: const Key('transfer-other-reason'),
+            label: '¿Cuál?',
+            initialValue: state.otherReasonDetail,
+            maxLength: 80,
+            textInputAction: TextInputAction.done,
+            onChanged: onOtherReasonChanged,
+            onSubmitted: (_) => FocusScope.of(context).unfocus(),
+          ),
+        ],
       ],
     );
   }

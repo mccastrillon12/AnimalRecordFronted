@@ -18,6 +18,7 @@ class AppIcons {
   static const String edit = 'assets/icons/Edit.svg';
   static const String boldFrame = 'assets/icons/bold-frame.svg';
   static const String notification = 'assets/icons/notification.svg';
+  static const String notificationV2 = 'assets/icons/notificationv2.svg';
   static const String language = 'assets/icons/Language.svg';
   static const String scanEye = 'assets/icons/scan-eye.svg';
   static const String help = 'assets/icons/Help.svg';

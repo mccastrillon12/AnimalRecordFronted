@@ -34,7 +34,7 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     Map<String, dynamic> data,
   ) async {
     final response = await apiClient.put('/animals/$id', data: data);
-    
+
     dynamic responseData = response.data;
     if (responseData is String) {
       try {
@@ -45,7 +45,7 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     if (responseData is Map<String, dynamic>) {
       return AnimalDataModel.fromJson(responseData);
     }
-    
+
     // Fallback in case backend returns a simple success string instead of the object
     // We try to construct a partial model using the sent data.
     final patchedData = Map<String, dynamic>.from(data);
@@ -90,10 +90,7 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
   }
 
   @override
-  Future<void> confirmProfilePicture(
-    String animalId,
-    String finalUrl,
-  ) async {
+  Future<void> confirmProfilePicture(String animalId, String finalUrl) async {
     await apiClient.patch(
       '/animals/$animalId/profile-picture',
       data: {'finalUrl': finalUrl},
@@ -113,31 +110,42 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     );
 
     debugPrint('🔍 [SearchAnimals] RESPONSE Status: ${response.statusCode}');
-    debugPrint('🔍 [SearchAnimals] RESPONSE Data: ${response.data}');
-    
+
     dynamic responseData = response.data;
     List<dynamic> list = [];
-    
+
     if (responseData is List) {
       list = responseData;
       debugPrint('🔍 [SearchAnimals] Parsed as List, count: ${list.length}');
     } else if (responseData is Map<String, dynamic>) {
       if (responseData.containsKey('data') && responseData['data'] is List) {
         list = responseData['data'];
-        debugPrint('🔍 [SearchAnimals] Parsed from "data" key, count: ${list.length}');
-      } else if (responseData.containsKey('items') && responseData['items'] is List) {
+        debugPrint(
+          '🔍 [SearchAnimals] Parsed from "data" key, count: ${list.length}',
+        );
+      } else if (responseData.containsKey('items') &&
+          responseData['items'] is List) {
         list = responseData['items'];
-        debugPrint('🔍 [SearchAnimals] Parsed from "items" key, count: ${list.length}');
-      } else if (responseData.containsKey('animals') && responseData['animals'] is List) {
+        debugPrint(
+          '🔍 [SearchAnimals] Parsed from "items" key, count: ${list.length}',
+        );
+      } else if (responseData.containsKey('animals') &&
+          responseData['animals'] is List) {
         list = responseData['animals'];
-        debugPrint('🔍 [SearchAnimals] Parsed from "animals" key, count: ${list.length}');
+        debugPrint(
+          '🔍 [SearchAnimals] Parsed from "animals" key, count: ${list.length}',
+        );
       } else {
-        debugPrint('🔍 [SearchAnimals] ⚠️ Response is Map but no recognized list key found. Keys: ${responseData.keys.toList()}');
+        debugPrint(
+          '🔍 [SearchAnimals] ⚠️ Response is Map but no recognized list key found. Keys: ${responseData.keys.toList()}',
+        );
       }
     } else {
-      debugPrint('🔍 [SearchAnimals] ⚠️ Unexpected response type: ${responseData.runtimeType}');
+      debugPrint(
+        '🔍 [SearchAnimals] ⚠️ Unexpected response type: ${responseData.runtimeType}',
+      );
     }
-    
+
     return list
         .map((json) => AnimalDataModel.fromJson(json as Map<String, dynamic>))
         .toList();

@@ -99,7 +99,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
         final List<AnimalModel> inactiveAnimals = [];
 
         for (final animal in filtered) {
-          if (!animal.isActive) {
+          if (!animal.isActive || animal.isHistorical) {
             inactiveAnimals.add(animal);
           } else {
             final pluralFamily = pluralizeAnimalFamily(animal.family);
@@ -487,7 +487,7 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           final activeAnimals = context
               .read<AnimalCubit>()
               .animals
-              .where((animal) => animal.isActive)
+              .where((animal) => animal.isActive && animal.canWrite)
               .toList(growable: false);
           final uploaded = await Navigator.pushNamed(
             context,
@@ -527,8 +527,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
           }
         } else if (value == 'transferir') {
           await openAnimalTransfer(context);
-        } else if (value == 'solicitudes_transferencia') {
-          await openAnimalTransferRequests(context);
         }
       },
       offset: const Offset(0, -162),
@@ -605,10 +603,6 @@ class _MyAnimalsContentState extends State<MyAnimalsContent> {
               ),
             ],
           ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'solicitudes_transferencia',
-          child: Text('Solicitudes de transferencia'),
         ),
       ],
       child: Container(

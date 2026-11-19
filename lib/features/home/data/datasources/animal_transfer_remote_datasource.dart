@@ -3,6 +3,9 @@ import 'package:animal_record/features/home/domain/services/animal_transfer_avai
 import 'package:dio/dio.dart';
 
 class AnimalTransferRemoteDataSource {
+  static final _documentCharacters = RegExp(r'^[A-Za-z0-9]+$');
+  static final _digit = RegExp(r'[0-9]');
+
   final ApiClient apiClient;
 
   const AnimalTransferRemoteDataSource(this.apiClient);
@@ -24,14 +27,16 @@ class AnimalTransferRemoteDataSource {
   }
 
   Future<Map<String, dynamic>> searchRecipients(
-    String name, {
+    String query, {
     String? cursor,
   }) async {
+    final isDocument =
+        _documentCharacters.hasMatch(query) && _digit.hasMatch(query);
     final response = await apiClient.get<Map<String, dynamic>>(
       '/animal-transfers/recipients',
       queryParameters: {
-        'searchBy': 'NAME',
-        'q': name,
+        'searchBy': isDocument ? 'IDENTIFICATION' : 'NAME',
+        'q': query,
         'limit': 20,
         if (cursor != null) 'cursor': cursor,
       },
@@ -116,10 +121,6 @@ class AnimalTransferRemoteDataSource {
     required List<String> acceptedAnimalIds,
     required String idempotencyKey,
   }) async {
-    if (acceptedAnimalIds.isNotEmpty &&
-        !AnimalTransferAvailability.acceptance) {
-      throw StateError('La aceptación está desactivada en este entorno.');
-    }
     final response = await apiClient.post<Map<String, dynamic>>(
       '/animal-transfers/${Uri.encodeComponent(id)}/decisions',
       data: {
@@ -145,7 +146,7 @@ class AnimalTransferRemoteDataSource {
     String publicationHash, {
     String? cursor,
   }) async {
-    _requireHistory();
+    // A transferred card always needs its publication, in every environment.
     final response = await apiClient.get<Map<String, dynamic>>(
       '/animal-ownership-history/${Uri.encodeComponent(periodId)}',
       queryParameters: {
@@ -163,7 +164,6 @@ class AnimalTransferRemoteDataSource {
     required String entryId,
     required String fileId,
   }) async {
-    _requireHistory();
     final response = await apiClient.get<List<int>>(
       '/animal-ownership-history/${Uri.encodeComponent(periodId)}'
       '/entries/${Uri.encodeComponent(entryId)}/files/${Uri.encodeComponent(fileId)}',

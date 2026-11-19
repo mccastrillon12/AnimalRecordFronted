@@ -77,7 +77,7 @@ class IdSelector extends StatelessWidget {
                   onIdTypeChanged?.call(value);
                 }
               },
-              width: selectedType == 'Pasaporte' ? 140 : 100,
+              width: selectedType.toUpperCase() == 'PASAPORTE' ? 140 : 100,
               showClearOption: false,
               pushContent: false,
             ),

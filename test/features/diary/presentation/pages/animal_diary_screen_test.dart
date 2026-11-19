@@ -15,6 +15,80 @@ import 'package:mocktail/mocktail.dart';
 class MockDiaryCubit extends Mock implements DiaryCubit {}
 
 void main() {
+  testWidgets(
+    'una tarjeta transferida abre la nota completa sin edición ni otra carga del diario',
+    (tester) async {
+      final cubit = MockDiaryCubit();
+      final content = List.generate(
+        20,
+        (i) => 'Información de la nota, línea $i.',
+      ).join('\n');
+      final entry = DiaryEntryEntity(
+        id: 'entry-1',
+        animalId: 'animal-1',
+        title: 'Nota histórica',
+        content: content,
+        date: '2026-11-18',
+        attachments: const [],
+        createdAt: '2026-11-18T10:00:00Z',
+        updatedAt: '2026-11-18T10:00:00Z',
+      );
+      when(() => cubit.state).thenReturn(DiaryLoaded([entry]));
+      when(() => cubit.stream).thenAnswer((_) => const Stream.empty());
+      when(
+        () =>
+            cubit.getDiaryEntries('animal-1', historical: true, readOnly: true),
+      ).thenAnswer((_) async {});
+      await tester.binding.setSurfaceSize(const Size(390, 844));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+      await tester.pumpWidget(
+        BlocProvider<DiaryCubit>.value(
+          value: cubit,
+          child: const MaterialApp(
+            home: AnimalDiaryScreen(
+              animal: AnimalModel(
+                id: 'animal-1',
+                name: 'Luna',
+                code: 'AR-E018',
+                family: 'Equino',
+                transferStatus: 'TRANSFERRED',
+                readOnly: true,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.widget<Text>(find.text(content)).maxLines, 4);
+      await tester.tap(find.text('Nota histórica'));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<AnimalDiaryScreen>(find.byType(AnimalDiaryScreen))
+            .readOnlyEntry,
+        entry,
+      );
+      expect(tester.widget<Text>(find.text(content)).maxLines, isNull);
+      expect(find.byType(EditableText), findsNothing);
+      expect(find.byType(PopupMenuButton<String>), findsNothing);
+      expect(find.text('Guardar'), findsNothing);
+      expect(find.text('+ Nueva nota'), findsNothing);
+      await tester.tap(find.byIcon(Icons.close));
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<AnimalDiaryScreen>(find.byType(AnimalDiaryScreen))
+            .readOnlyEntry,
+        isNull,
+      );
+      verify(
+        () =>
+            cubit.getDiaryEntries('animal-1', historical: true, readOnly: true),
+      ).called(1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets('always shows the family icon in the empty diary state', (
     tester,
   ) async {
