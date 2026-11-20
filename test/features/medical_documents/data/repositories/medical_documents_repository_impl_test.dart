@@ -6,11 +6,20 @@ import 'package:animal_record/features/medical_documents/data/models/medical_fie
 import 'package:animal_record/features/medical_documents/data/repositories/medical_documents_repository_impl.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_requests.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_write_access.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockMedicalDocumentsRemoteDataSource extends Mock
     implements MedicalDocumentsRemoteDataSource {}
+
+class _WritableAccess implements MedicalDocumentWriteAccess {
+  @override
+  Future<void> ensureWritable({
+    Iterable<String> animalIds = const [],
+    Iterable<String> documentIds = const [],
+  }) async {}
+}
 
 void main() {
   const animalId = 'animal-1';
@@ -23,6 +32,7 @@ void main() {
     remoteDataSource = _MockMedicalDocumentsRemoteDataSource();
     repository = MedicalDocumentsRepositoryImpl(
       remoteDataSource: remoteDataSource,
+      writeAccess: _WritableAccess(),
     );
   });
 

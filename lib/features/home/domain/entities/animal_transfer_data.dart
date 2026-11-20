@@ -3,11 +3,20 @@ import 'package:equatable/equatable.dart';
 class TransferReason extends Equatable {
   final String code;
   final String name;
+  final bool requiresComment;
+  final int sortOrder;
 
-  const TransferReason({required this.code, required this.name});
+  const TransferReason({
+    required this.code,
+    required this.name,
+    this.requiresComment = false,
+    this.sortOrder = 0,
+  });
+
+  bool get needsComment => requiresComment || code == 'OTHER';
 
   @override
-  List<Object> get props => [code, name];
+  List<Object> get props => [code, name, requiresComment, sortOrder];
 }
 
 class TransferChallenge extends Equatable {
@@ -49,6 +58,10 @@ class TransferRequest extends Equatable {
   final String recipientName;
   final String senderName;
   final String reasonName;
+  final String? reasonCode;
+  final String? reasonComment;
+  final String? rejectionReasonCode;
+  final String? rejectionComment;
   final int animalCount;
   final DateTime? decidedAt;
 
@@ -59,6 +72,10 @@ class TransferRequest extends Equatable {
     required this.recipientName,
     this.senderName = '',
     this.reasonName = '',
+    this.reasonCode,
+    this.reasonComment,
+    this.rejectionReasonCode,
+    this.rejectionComment,
     this.animalCount = 0,
     this.decidedAt,
   });
@@ -71,6 +88,10 @@ class TransferRequest extends Equatable {
     recipientName,
     senderName,
     reasonName,
+    reasonCode,
+    reasonComment,
+    rejectionReasonCode,
+    rejectionComment,
     animalCount,
     decidedAt,
   ];

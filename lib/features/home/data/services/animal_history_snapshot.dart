@@ -34,7 +34,9 @@ class AnimalHistorySnapshot {
     HistoricalFileReference? photo = history.photo;
     for (final entry in entries.where((entry) => entry.kind == 'ANIMAL')) {
       for (final file in entry.media) {
-        if (file.path == 'profilePictureUrl' || file.path == 'profilePicture') {
+        if (file.path == '/profilePictureUrl' ||
+            file.path == 'profilePictureUrl' ||
+            file.path == 'profilePicture') {
           photo ??= history.file(entry, file);
         }
       }
@@ -69,6 +71,20 @@ class AnimalHistorySnapshot {
       'code': data['code'] ?? card.code,
       'transferStatus': 'TRANSFERRED',
       'readOnly': true,
+      if (data['ownerHistory'] == null)
+        'ownerHistory': card.ownerHistory
+            .map(
+              (period) => {
+                'ownerId': period.ownerId,
+                'ownerName': period.ownerName,
+                'ownershipVersion': period.ownershipVersion,
+                'startedAt': period.startedAt?.toIso8601String(),
+                'transferredAt': period.transferredAt?.toIso8601String(),
+                'endedAt': period.endedAt?.toIso8601String(),
+                'isCurrent': period.isCurrent,
+              },
+            )
+            .toList(),
       // The old owner's picture is obtained using its published file IDs.
       'profilePictureUrl': null,
     }, historicalContext: includeEntries ? history : history.withoutEntries());
@@ -78,13 +94,16 @@ class AnimalHistorySnapshot {
     AnimalOwnershipHistory history, {
     MedicalDocumentCategory? category,
   }) {
-    return [
-          for (final entry in history.entries ?? const <HistoricalEntry>[])
-            if (entry.kind == 'MEDICAL_DOCUMENT') _document(entry, history),
-        ]
-        .where(
-          (document) => category == null || document.finalCategory == category,
-        )
+    final entries = [
+      for (final entry in history.entries ?? const <HistoricalEntry>[])
+        if (entry.kind == 'MEDICAL_DOCUMENT' &&
+            (category == null ||
+                MedicalDocumentCategory.tryParse(entry.data['finalCategory']) ==
+                    category))
+          entry,
+    ];
+    return entries
+        .map((entry) => _document(entry, history))
         .toList(growable: false);
   }
 

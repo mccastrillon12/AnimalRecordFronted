@@ -3,11 +3,16 @@ import 'package:animal_record/core/errors/failure.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/domain/repositories/diary_repository.dart';
 import 'package:animal_record/features/diary/data/datasources/diary_remote_datasource.dart';
+import 'package:animal_record/features/home/domain/services/animal_write_access.dart';
 
 class DiaryRepositoryImpl implements DiaryRepository {
   final DiaryRemoteDataSource remoteDataSource;
+  final AnimalWriteAccess writeAccess;
 
-  DiaryRepositoryImpl({required this.remoteDataSource});
+  DiaryRepositoryImpl({
+    required this.remoteDataSource,
+    required this.writeAccess,
+  });
 
   @override
   Future<Either<Failure, List<DiaryEntryEntity>>> getDiaryEntries(
@@ -27,6 +32,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     Map<String, dynamic> data,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       final entry = await remoteDataSource.createDiaryEntry(animalId, data);
       return Right(entry);
     } catch (e) {
@@ -41,6 +47,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     Map<String, dynamic> data,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       final entry = await remoteDataSource.updateDiaryEntry(
         animalId,
         entryId,
@@ -58,6 +65,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     String entryId,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       await remoteDataSource.deleteDiaryEntry(animalId, entryId);
       return const Right(null);
     } catch (e) {
@@ -73,8 +81,12 @@ class DiaryRepositoryImpl implements DiaryRepository {
     int fileSize,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       final data = await remoteDataSource.getAttachmentUploadUrl(
-        animalId, entryId, mimeType, fileSize,
+        animalId,
+        entryId,
+        mimeType,
+        fileSize,
       );
       return Right(data);
     } catch (e) {
@@ -89,8 +101,11 @@ class DiaryRepositoryImpl implements DiaryRepository {
     Map<String, dynamic> data,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       final entry = await remoteDataSource.confirmAttachment(
-        animalId, entryId, data,
+        animalId,
+        entryId,
+        data,
       );
       return Right(entry);
     } catch (e) {
@@ -105,6 +120,7 @@ class DiaryRepositoryImpl implements DiaryRepository {
     String attachmentId,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       await remoteDataSource.deleteAttachment(animalId, entryId, attachmentId);
       return const Right(null);
     } catch (e) {

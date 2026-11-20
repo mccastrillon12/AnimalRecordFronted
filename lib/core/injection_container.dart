@@ -1,4 +1,8 @@
 import 'package:animal_record/features/home/domain/repositories/animal_history_repository.dart';
+import 'package:animal_record/features/home/domain/services/animal_write_access.dart';
+import 'package:animal_record/features/home/data/services/remote_animal_write_access.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_write_access.dart';
+import 'package:animal_record/features/medical_documents/data/services/remote_medical_document_write_access.dart';
 import 'package:animal_record/features/home/domain/repositories/historical_animal_photo_store.dart';
 import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
@@ -237,6 +241,7 @@ Future<void> init() async {
       sl<MedicalDocumentsRepository>().clearCache();
       sl<HistoricalAnimalPhotoStore>().clearMemory();
       sl<IncomingTransferPreviewRepository>().clear();
+      sl<AnimalTransferRepository>().clearSessionState();
     }),
   );
 
@@ -312,11 +317,17 @@ Future<void> init() async {
   );
 
   sl.registerLazySingleton<AnimalRepository>(
-    () => AnimalRepositoryImpl(remoteDataSource: sl()),
+    () => AnimalRepositoryImpl(remoteDataSource: sl(), writeAccess: sl()),
   );
 
   sl.registerLazySingleton<AnimalRemoteDataSource>(
     () => AnimalRemoteDataSourceImpl(apiClient: sl()),
+  );
+  sl.registerLazySingleton<AnimalWriteAccess>(
+    () => RemoteAnimalWriteAccess(sl()),
+  );
+  sl.registerLazySingleton<MedicalDocumentWriteAccess>(
+    () => RemoteMedicalDocumentWriteAccess(sl(), sl()),
   );
 
   // — Catalogs feature —
@@ -379,7 +390,7 @@ Future<void> init() async {
     ),
   );
   sl.registerLazySingleton<DiaryRepository>(
-    () => DiaryRepositoryImpl(remoteDataSource: sl()),
+    () => DiaryRepositoryImpl(remoteDataSource: sl(), writeAccess: sl()),
   );
   sl.registerLazySingleton<DiaryRemoteDataSource>(
     () => DiaryRemoteDataSourceImpl(apiClient: sl()),
@@ -439,6 +450,7 @@ Future<void> init() async {
       getRelatedDocumentsUseCase: sl(),
       deleteDocumentUseCase: sl(),
       loadOriginalUseCase: sl(),
+      ensureEditableUseCase: sl(),
     ),
   );
   sl.registerLazySingleton(() => AnalyzeMedicalDocumentUseCase(sl()));
@@ -450,6 +462,7 @@ Future<void> init() async {
     () => MedicalDocumentAnalysisPresenter(getFieldCatalog: sl()),
   );
   sl.registerLazySingleton(() => GetMedicalDocumentUseCase(sl()));
+  sl.registerLazySingleton(() => EnsureMedicalDocumentEditableUseCase(sl()));
   sl.registerLazySingleton(() => GetRelatedMedicalDocumentsUseCase(sl()));
   sl.registerLazySingleton(
     () => GetMedicalDocumentRejectionReasonsUseCase(sl()),
@@ -475,7 +488,10 @@ Future<void> init() async {
     () => MedicalDocumentFileLoaderImpl(dio: Dio()),
   );
   sl.registerLazySingleton<MedicalDocumentsRepository>(
-    () => MedicalDocumentsRepositoryImpl(remoteDataSource: sl()),
+    () => MedicalDocumentsRepositoryImpl(
+      remoteDataSource: sl(),
+      writeAccess: sl(),
+    ),
   );
   sl.registerLazySingleton<MedicalDocumentsRemoteDataSource>(
     () => MedicalDocumentsRemoteDataSourceImpl(
@@ -541,7 +557,12 @@ Future<void> init() async {
     () => AnimalTransferRemoteDataSource(sl<ApiClient>()),
   );
   sl.registerLazySingleton<AnimalTransferRepository>(
-    () => AnimalTransferRepositoryImpl(sl<AnimalTransferRemoteDataSource>()),
+    () => AnimalTransferRepositoryImpl(
+      sl<AnimalTransferRemoteDataSource>(),
+      animalsRemote: sl<AnimalRemoteDataSource>(),
+      onOwnershipChanged: (ids) =>
+          sl<MedicalDocumentsRepository>().invalidateAnimals(ids),
+    ),
   );
   sl.registerLazySingleton<AnimalHistoryRepository>(
     () => AnimalHistoryCache(sl<AnimalTransferRepository>()),

@@ -1,4 +1,4 @@
-import 'package:animal_record/core/network/api_exception.dart';
+import 'package:animal_record/features/home/presentation/utils/transfer_error_feedback.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -168,6 +168,7 @@ class TransferNotificationsCubit extends Cubit<TransferNotificationsState> {
   }
 }
 
-String _message(Object error) => error is ApiException
-    ? error.message
-    : 'No se pudieron consultar los avisos.';
+String _message(Object error) => TransferErrorFeedback.message(
+  error,
+  fallback: 'No se pudieron consultar los avisos. Inténtalo de nuevo.',
+);

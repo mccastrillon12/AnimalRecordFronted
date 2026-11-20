@@ -1,4 +1,5 @@
 import 'package:animal_record/core/constants/app_routes.dart';
+import 'package:animal_record/core/network/transfer_error_diagnostics.dart';
 import 'package:animal_record/features/home/domain/repositories/incoming_transfer_preview_repository.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_cubit.dart';
@@ -26,7 +27,8 @@ Future<void> openAnimalTransfer(
     final List<AnimalEntity> animals;
     try {
       animals = await di.sl<AnimalTransferRepository>().getActiveAnimals();
-    } catch (_) {
+    } catch (error) {
+      TransferErrorDiagnostics.record(error);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

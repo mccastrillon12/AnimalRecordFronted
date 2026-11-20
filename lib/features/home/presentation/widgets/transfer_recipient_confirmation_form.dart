@@ -5,6 +5,7 @@ import 'package:animal_record/core/widgets/dropdowns/app_dropdown.dart';
 import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/auth/presentation/widgets/id_selector.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_state.dart';
+import 'package:animal_record/features/home/domain/services/transfer_comment_policy.dart';
 import 'package:flutter/material.dart';
 
 class TransferRecipientConfirmationForm extends StatelessWidget {
@@ -61,6 +62,7 @@ class TransferRecipientConfirmationForm extends StatelessWidget {
         const SizedBox(height: AppSpacing.m),
         AppDropdown<String>(
           key: const Key('transfer-reason'),
+          enabled: !state.isLoadingReasons && state.transferReasons.isNotEmpty,
           label: 'Motivo de transferencia',
           hint: 'Seleccionar',
           value: state.transferReasonCode.isEmpty
@@ -83,7 +85,7 @@ class TransferRecipientConfirmationForm extends StatelessWidget {
             key: const Key('transfer-other-reason'),
             label: '¿Cuál?',
             initialValue: state.otherReasonDetail,
-            maxLength: 80,
+            maxLength: TransferCommentPolicy.maxLength,
             textInputAction: TextInputAction.done,
             onChanged: onOtherReasonChanged,
             onSubmitted: (_) => FocusScope.of(context).unfocus(),

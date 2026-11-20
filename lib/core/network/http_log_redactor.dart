@@ -9,6 +9,7 @@ class HttpLogRedactor {
           '/auth',
           '/users',
           '/animals',
+          '/medical-documents',
           '/animal-transfers',
           '/animal-ownership-history',
           '/notifications',
@@ -36,7 +37,7 @@ class HttpLogRedactor {
     return lower.startsWith('x-amz-') ||
         lower.startsWith('x-goog-') ||
         RegExp(
-          r'authorization|cookie|token|proof|otp|password|secret|signature|credential|api[-_]?key|idempotency',
+          r'authorization|cookie|token|proof|otp|password|secret|signature|credential|api[-_]?key|idempotency|publicationhash',
         ).hasMatch(lower);
   }
 }

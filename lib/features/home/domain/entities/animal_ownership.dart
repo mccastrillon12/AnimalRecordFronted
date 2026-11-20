@@ -87,4 +87,6 @@ class AnimalOwnershipHistory extends Equatable {
 bool historicalAnimal(String? status, bool readOnly) =>
     readOnly || status == 'TRANSFERRED';
 bool writableAnimal(String? status, bool readOnly) =>
-    !historicalAnimal(status, readOnly) && status != 'PROCESSING';
+    !historicalAnimal(status, readOnly) &&
+    status != 'PENDING' &&
+    status != 'PROCESSING';

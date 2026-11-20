@@ -13,6 +13,8 @@ import 'package:animal_record/core/widgets/buttons/custom_button.dart';
 import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_write_access_view.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
@@ -44,7 +46,22 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
   String? _openMenuEntryId;
   String? _playingAttachmentId;
   final Map<String, Uint8List> _historicalAttachmentBytes = {};
-  bool get _readOnly => widget.readOnlyEntry != null || !widget.animal.canWrite;
+  bool get _usesTransferPreview =>
+      widget.animal.transferStatus == 'TRANSFERRED' ||
+      widget.animal.transferStatus == 'PENDING';
+  bool get _readOnly =>
+      widget.readOnlyEntry != null ||
+      _usesTransferPreview ||
+      !canWriteAnimal(context, widget.animal);
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    context.watch<AnimalCubit?>();
+    if (widget.readOnlyEntry == null) {
+      context.read<DiaryCubit>().setReadOnly(_readOnly);
+    }
+  }
 
   void _toggleExpand(String entryId) {
     setState(() {
@@ -107,14 +124,22 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
     }
   }
 
-  void _navigateToEdit(DiaryEntryEntity entry) async {
-    if (_readOnly) return;
+  void _navigateToEntry(DiaryEntryEntity entry, {bool readOnly = false}) async {
+    if (!readOnly && _readOnly) return;
+    final cubit = context.read<DiaryCubit>();
     final result = await Navigator.push(
       context,
       PageRouteBuilder(
         opaque: false,
         pageBuilder: (context, animation, secondaryAnimation) =>
-            AnimalDiaryCreateScreen(animal: widget.animal, entry: entry),
+            BlocProvider<DiaryCubit>.value(
+              value: cubit,
+              child: AnimalDiaryCreateScreen(
+                animal: widget.animal,
+                entry: entry,
+                readOnly: readOnly,
+              ),
+            ),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
           const begin = Offset(0.0, 1.0);
           const end = Offset.zero;
@@ -131,13 +156,17 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       ),
     );
 
-    if (result == true && mounted) {
+    if (!readOnly && result == true && mounted) {
       context.read<DiaryCubit>().refreshDiaryEntries(widget.animal.id);
       _showSnackbar('Nota guardada exitosamente.');
     }
   }
 
   void _openReadOnlyEntry(DiaryEntryEntity entry) {
+    if (_usesTransferPreview) {
+      _navigateToEntry(entry, readOnly: true);
+      return;
+    }
     final cubit = context.read<DiaryCubit>();
     Navigator.of(context).push<void>(
       MaterialPageRoute(
@@ -245,6 +274,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AnimalCubit?>();
     return BlocListener<DiaryCubit, DiaryState>(
       listener: (context, state) {
         if (state is DiaryEntryDeleted) {
@@ -773,7 +803,7 @@ class _AnimalDiaryScreenState extends State<AnimalDiaryScreen> {
       onSelected: (value) {
         setState(() => _openMenuEntryId = null);
         if (value == 'edit') {
-          _navigateToEdit(entry);
+          _navigateToEntry(entry);
         } else if (value == 'delete') {
           _confirmDelete(entry);
         }

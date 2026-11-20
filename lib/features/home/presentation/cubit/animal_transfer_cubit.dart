@@ -1,4 +1,8 @@
+import 'dart:async';
+
 import 'package:animal_record/core/network/api_exception.dart';
+import 'package:animal_record/core/network/transfer_error_diagnostics.dart';
+import 'package:animal_record/features/home/presentation/utils/transfer_error_feedback.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 import 'package:animal_record/features/home/domain/services/transfer_otp_policy.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_state.dart';
@@ -12,12 +16,12 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
   int _searchGeneration = 0;
   String? _pendingKey;
   Map<String, Object>? _pendingBody;
+  DateTime? _otpRetryAt;
+  Future<void>? _reasonsLoad;
 
   bool get hasPendingIntent => _pendingKey != null;
-  bool get canRenewAuthorization =>
-      hasPendingIntent &&
-      state.canRetryCreation &&
-      (state.authorizationExpiresAt == null || _authorizationExpired);
+  // A pending operation must always retain its original authorization payload.
+  bool get canRenewAuthorization => false;
 
   AnimalTransferCubit({
     required List<AnimalModel> animals,
@@ -34,15 +38,40 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
        );
 
   Future<void> loadReasons() async {
+    if (isClosed) return;
+    final pending = _reasonsLoad;
+    if (pending != null) return pending;
+    final request = _loadReasons();
+    _reasonsLoad = request;
+    try {
+      await request;
+    } finally {
+      if (identical(_reasonsLoad, request)) _reasonsLoad = null;
+    }
+  }
+
+  Future<void> _loadReasons() async {
+    emit(state.copyWith(isLoadingReasons: true));
     try {
       final reasons = await repository.getReasons();
-      if (!isClosed) emit(state.copyWith(transferReasons: reasons));
+      if (reasons.isEmpty) {
+        throw const FormatException(
+          'El servidor no tiene motivos de transferencia disponibles. El administrador debe revisar el catálogo.',
+        );
+      }
+      if (!isClosed) {
+        emit(state.copyWith(transferReasons: reasons, isLoadingReasons: false));
+      }
     } catch (error) {
-      if (!isClosed) emit(state.copyWith(error: _message(error)));
+      TransferErrorDiagnostics.record(error);
+      if (!isClosed) {
+        emit(state.copyWith(isLoadingReasons: false));
+      }
     }
   }
 
   Future<void> search(String query) async {
+    if (hasPendingIntent || state.step != AnimalTransferStep.searchUser) return;
     final generation = ++_searchGeneration;
     final name = query.trim();
     emit(
@@ -50,10 +79,20 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
         animals: state.animals,
         query: query,
         transferReasons: state.transferReasons,
+        isLoadingReasons: state.isLoadingReasons,
         isLoading: name.length >= 2,
       ),
     );
     if (name.length < 2) return;
+    if (name.length > 100) {
+      emit(
+        state.copyWith(
+          isLoading: false,
+          error: 'La búsqueda admite hasta 100 caracteres.',
+        ),
+      );
+      return;
+    }
     try {
       final page = await repository.searchRecipients(name);
       if (isClosed || generation != _searchGeneration) return;
@@ -104,6 +143,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
   }
 
   void selectRecipient(AnimalTransferRecipient recipient) {
+    if (hasPendingIntent || state.isLoading) return;
     if (!state.results.contains(recipient)) return;
     emit(
       AnimalTransferState(
@@ -113,18 +153,23 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
         selectedRecipient: recipient,
         nextRecipientCursor: state.nextRecipientCursor,
         transferReasons: state.transferReasons,
+        isLoadingReasons: state.isLoadingReasons,
       ),
     );
   }
 
   void confirmRecipient() {
-    if (state.canContinue) {
+    if (state.canContinue && !hasPendingIntent && !state.isLoading) {
       emit(state.copyWith(step: AnimalTransferStep.confirmUser));
+      if (state.transferReasons.isEmpty) unawaited(loadReasons());
     }
   }
 
-  void backToSearch() =>
-      emit(state.copyWith(step: AnimalTransferStep.searchUser));
+  void backToSearch() {
+    if (hasPendingIntent || state.isLoading) return;
+    ++_searchGeneration;
+    emit(state.copyWith(step: AnimalTransferStep.searchUser));
+  }
 
   void updateIdentificationNumber(String value) {
     if (state.step == AnimalTransferStep.confirmUser) {
@@ -154,7 +199,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
   }
 
   Future<void> startVerification() async {
-    if (!state.canTransfer) return;
+    if (!state.canTransfer || hasPendingIntent || _otpThrottled) return;
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
       final challenge = await repository.startChallenge();
@@ -168,6 +213,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
         );
       }
     } catch (error) {
+      TransferErrorDiagnostics.recordOtpChallengeFailure(error);
       if (!isClosed) {
         emit(state.copyWith(isLoading: false, error: _message(error)));
       }
@@ -189,6 +235,8 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
     final challenge = state.challenge;
     if (challenge == null ||
         state.isLoading ||
+        hasPendingIntent ||
+        _otpThrottled ||
         DateTime.now().isBefore(challenge.resendAvailableAt)) {
       return;
     }
@@ -211,6 +259,12 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
         !TransferOtpPolicy.isValid(code)) {
       return;
     }
+    // Never replace the authorization/body of an operation with an uncertain result.
+    if (hasPendingIntent) {
+      await retryCreation();
+      return;
+    }
+    if (_otpThrottled || !DateTime.now().isBefore(challenge.expiresAt)) return;
     emit(state.copyWith(isLoading: true, clearError: true));
     try {
       final authorization = await repository.verifyChallenge(
@@ -218,28 +272,28 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
         code,
       );
       if (isClosed) return;
-      _pendingKey ??= const Uuid().v4();
-      _pendingBody = <String, Object>{
-        if (_pendingBody == null) ...{
-          'recipientId': state.selectedRecipient!.id,
-          'reasonCode': state.transferReasonCode,
-          'animalIds': state.animals
-              .map((animal) => animal.id)
-              .toList(growable: false),
-        } else
-          ..._pendingBody!,
-        'authorization': <String, String>{
+      _pendingKey = const Uuid().v4();
+      _pendingBody = Map.unmodifiable(<String, Object>{
+        'recipientId': state.selectedRecipient!.id,
+        'reasonCode': state.transferReasonCode,
+        if (state.requiresOtherReason)
+          'reasonComment': state.otherReasonDetail.trim(),
+        'animalIds': List<String>.unmodifiable(
+          state.animals.map((animal) => animal.id),
+        ),
+        'authorization': Map<String, String>.unmodifiable({
           'challengeId': challenge.id,
           'proof': authorization.proof,
-        },
-      };
+        }),
+      });
       emit(state.copyWith(authorizationExpiresAt: authorization.expiresAt));
       await _submitPending();
     } catch (error) {
+      TransferErrorDiagnostics.record(error);
       if (!isClosed) {
         final proofUncertain =
             error is ApiException &&
-            (error.statusCode == null || error.statusCode == 500);
+            (error.statusCode == null || (error.statusCode ?? 0) >= 500);
         emit(
           state.copyWith(
             isLoading: false,
@@ -258,15 +312,7 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
 
   Future<void> retryCreation() async {
     if (!state.canRetryCreation || state.isLoading) return;
-    if (_authorizationExpired) {
-      emit(
-        state.copyWith(
-          error:
-              'La autorización venció. Solicita un código nuevo para esta misma solicitud.',
-        ),
-      );
-      return;
-    }
+    // An idempotent replay may recover an already-created request after proof expiry.
     emit(state.copyWith(isLoading: true, clearError: true));
     await _submitPending();
   }
@@ -277,26 +323,8 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
   }
 
   Future<void> renewAuthorization() async {
-    if (!canRenewAuthorization || state.isLoading) {
-      return;
-    }
-    emit(state.copyWith(isLoading: true, clearError: true));
-    try {
-      final challenge = await repository.startChallenge();
-      if (!isClosed) {
-        emit(
-          state.copyWith(
-            challenge: challenge,
-            canRetryCreation: false,
-            isLoading: false,
-          ),
-        );
-      }
-    } catch (error) {
-      if (!isClosed) {
-        emit(state.copyWith(isLoading: false, error: _message(error)));
-      }
-    }
+    // Keep the existing presentation callback safe for uncertain operations.
+    await retryCreation();
   }
 
   Future<void> _submitPending() async {
@@ -322,42 +350,52 @@ class AnimalTransferCubit extends Cubit<AnimalTransferState> {
       }
     } catch (error) {
       if (isClosed) return;
+      TransferErrorDiagnostics.record(error);
       final uncertain =
-          error is ApiException &&
-          (error.statusCode == null || error.statusCode == 503);
+          error is! ApiException ||
+          error.statusCode == null ||
+          error.statusCode == 408 ||
+          (error.statusCode ?? 0) >= 500 ||
+          (error.statusCode ?? 0) < 300;
       final authorizationExpired =
           error is ApiException &&
           error.statusCode == 400 &&
           _authorizationExpired;
-      if (!uncertain && !authorizationExpired) {
+      if (!uncertain) {
         _pendingBody = null;
         _pendingKey = null;
       }
       emit(
         state.copyWith(
           isLoading: false,
-          canRetryCreation: uncertain || authorizationExpired,
-          step: uncertain || authorizationExpired
+          canRetryCreation: uncertain,
+          step: uncertain
               ? AnimalTransferStep.verifyContact
               : AnimalTransferStep.confirmUser,
           error: authorizationExpired
-              ? 'La autorización venció. Solicita un código nuevo para la misma solicitud.'
+              ? 'La autorización venció. Solicita un código nuevo.'
               : uncertain
-              ? 'Resultado incierto. Consulta tus solicitudes o reintenta con la misma operación.'
+              ? 'Aún no pudimos confirmar tu solicitud. Revisa tus solicitudes antes de reintentar.'
               : _message(error),
         ),
       );
     }
   }
 
-  static String _message(Object error) {
+  bool get _otpThrottled =>
+      _otpRetryAt != null && DateTime.now().isBefore(_otpRetryAt!);
+
+  String _message(Object error) {
     if (error is ApiException) {
       if (error.statusCode == 429 && error.retryAfter != null) {
-        return '${error.message} Espera ${error.retryAfter} segundos.';
+        _otpRetryAt = error.retryAfterDeadline;
+        final remaining = _otpRetryAt?.difference(DateTime.now()).inSeconds;
+        return remaining != null && remaining >= 0
+            ? '${TransferErrorFeedback.message(error)} Espera ${remaining + 1} segundos.'
+            : TransferErrorFeedback.message(error);
       }
-      return error.message;
     }
-    return 'No se pudo completar la operación.';
+    return TransferErrorFeedback.message(error);
   }
 
   @override

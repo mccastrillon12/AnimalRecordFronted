@@ -66,6 +66,21 @@ class ErrorDisplay {
     );
   }
 
+  static void showSuccessesOnOverlay(
+    OverlayState overlayState,
+    List<String> messages, {
+    Duration duration = const Duration(seconds: 3),
+  }) {
+    if (messages.isEmpty) return;
+    _showTopOverlayEntry(
+      overlayState: overlayState,
+      message: messages.first,
+      additionalMessages: messages.skip(1).toList(growable: false),
+      isError: false,
+      duration: duration,
+    );
+  }
+
   static void _showTopOverlay({
     required BuildContext context,
     required String message,
@@ -109,6 +124,7 @@ class ErrorDisplay {
     required String message,
     required bool isError,
     required Duration duration,
+    List<String> additionalMessages = const [],
   }) {
     _removeCurrentOverlay();
     _currentEntry = OverlayEntry(
@@ -119,10 +135,23 @@ class ErrorDisplay {
         child: Material(
           color: Colors.transparent,
           child: _AnimatedSlideDown(
-            child: CustomSnackBar(
-              message: message,
-              isError: isError,
-              onClose: _removeCurrentOverlay,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                CustomSnackBar(
+                  message: message,
+                  isError: isError,
+                  onClose: _removeCurrentOverlay,
+                ),
+                for (final additionalMessage in additionalMessages) ...[
+                  const SizedBox(height: 8),
+                  CustomSnackBar(
+                    message: additionalMessage,
+                    isError: isError,
+                    onClose: _removeCurrentOverlay,
+                  ),
+                ],
+              ],
             ),
           ),
         ),

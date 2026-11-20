@@ -1,4 +1,5 @@
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
+import 'package:animal_record/core/network/transfer_error_diagnostics.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'dart:async';
@@ -31,7 +32,8 @@ class TransferHomeNoticeCubit extends Cubit<TransferRequest?> {
               .firstOrNull,
         );
       }
-    } catch (_) {
+    } catch (error) {
+      TransferErrorDiagnostics.record(error);
       // Keep the last confirmed value if this refresh cannot reach the server.
     } finally {
       _loading = false;

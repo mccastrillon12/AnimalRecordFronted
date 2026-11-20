@@ -37,6 +37,10 @@ class DiaryCubit extends Cubit<DiaryState> {
 
   List<DiaryEntryEntity> get entries => _entries;
 
+  void setReadOnly(bool readOnly) {
+    _readOnly = readOnly || _historical || _history != null;
+  }
+
   // ── Fetch all entries ─────────────────────────────────────────
 
   Future<void> getDiaryEntries(

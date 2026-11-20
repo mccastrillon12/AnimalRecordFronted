@@ -34,6 +34,7 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
     super.replacementOfDocumentId,
     super.readOnly,
     super.historicalFile,
+    super.uploadedBy,
   });
 
   factory MedicalDocumentModel.fromJson(
@@ -128,7 +129,19 @@ class MedicalDocumentModel extends MedicalDocumentEntity {
       canReplace: !readOnly && json['canReplace'] == true,
       readOnly: readOnly,
       historicalFile: historicalFile,
+      uploadedBy: _uploader(json['uploadedBy']),
       replacementOfDocumentId: _nullableString(json['replacementOfDocumentId']),
+    );
+  }
+
+  static MedicalDocumentUploader? _uploader(Object? value) {
+    final json = _nullableMap(value);
+    final id = _nullableString(json?['id']);
+    if (id == null || id.isEmpty) return null;
+    return MedicalDocumentUploader(
+      id: id,
+      name: _nullableString(json?['name']),
+      uploadedAt: _date(json?['uploadedAt']),
     );
   }
 

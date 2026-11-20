@@ -226,7 +226,7 @@ class _AnimalClinicalHistoryScreenState
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
-                          readOnly: !widget.animal.canWrite,
+                          animal: widget.animal,
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.clinicalHistory,

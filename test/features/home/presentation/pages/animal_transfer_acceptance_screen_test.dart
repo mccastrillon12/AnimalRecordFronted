@@ -176,7 +176,27 @@ void main() {
       final firstAnimalRect = tester.getRect(rows.first);
       void expectUnchangedTransfer() {
         expect(tester.getRect(accept), acceptRect);
-        expect(tester.widget<CustomButton>(accept).onPressed, isNotNull);
+        expect(tester.widget<CustomButton>(accept).onPressed, isNull);
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(
+                  OutlinedButton,
+                  count == 1 ? 'Rechazar' : 'Rechazar seleccionados',
+                ),
+              )
+              .onPressed,
+          isNull,
+        );
+        expect(
+          find.byWidgetPredicate(
+            (widget) =>
+                widget is ModalBarrier &&
+                !widget.dismissible &&
+                widget.color == AppColors.overlayBlack,
+          ),
+          findsOneWidget,
+        );
         expect(rows, findsNWidgets(count));
         expect(tester.getRect(rows.first), firstAnimalRect);
         expect(find.text('Traspaso en curso'), findsNothing);

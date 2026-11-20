@@ -43,6 +43,8 @@ abstract interface class MedicalDocumentsRepository {
 
   void clearCache();
 
+  void invalidateAnimals(Iterable<String> animalIds);
+
   Future<Uri> getDownloadUri(String documentId);
 
   Future<void> deleteDocument(

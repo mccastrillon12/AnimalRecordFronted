@@ -8,6 +8,7 @@ import 'package:animal_record/features/medical_documents/data/repositories/medic
 import 'package:animal_record/features/medical_documents/data/services/medical_document_response_logger.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_write_access.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/medical_document_detail_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
@@ -20,6 +21,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:mocktail/mocktail.dart';
 
 class _MockApiClient extends Mock implements ApiClient {}
+
+class _MockWriteAccess extends Mock implements MedicalDocumentWriteAccess {}
 
 class _MockResponseLogger extends Mock
     implements MedicalDocumentResponseLogger {}
@@ -61,6 +64,7 @@ void main() {
       ),
     );
     repository = MedicalDocumentsRepositoryImpl(
+      writeAccess: _MockWriteAccess(),
       remoteDataSource: MedicalDocumentsRemoteDataSourceImpl(
         apiClient: apiClient,
         responseLogger: _MockResponseLogger(),

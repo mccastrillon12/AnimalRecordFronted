@@ -1,6 +1,7 @@
 import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/domain/entities/owner_history_period.dart';
 
 /// Represents an animal registered in the system.
 class AnimalModel {
@@ -58,6 +59,7 @@ class AnimalModel {
   final String? updatedAt;
   final String? ownerName;
   final List<NameHistoryItem> nameHistory;
+  final List<OwnerHistoryPeriod> ownerHistory;
   final bool isActive;
   final String? deactivationReason;
   final String? transferStatus;
@@ -106,6 +108,7 @@ class AnimalModel {
     this.updatedAt,
     this.ownerName,
     this.nameHistory = const [],
+    this.ownerHistory = const [],
     this.isActive = true,
     this.deactivationReason,
     this.transferStatus,
@@ -232,6 +235,7 @@ class AnimalModel {
       updatedAt: entity.updatedAt,
       ownerName: entity.ownerName,
       nameHistory: entity.nameHistory,
+      ownerHistory: entity.ownerHistory,
       isActive: entity.isActive,
       deactivationReason: entity.deactivationReason,
       transferStatus: entity.transferStatus,
@@ -279,6 +283,7 @@ class AnimalModel {
     updatedAt: updatedAt,
     ownerName: ownerName,
     nameHistory: nameHistory,
+    ownerHistory: ownerHistory,
     transferStatus: transferStatus,
     readOnly: readOnly,
     ownershipHistory: ownershipHistory,

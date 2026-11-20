@@ -57,102 +57,103 @@ class TransferAcceptanceView extends StatelessWidget {
         ? transfer.animalCount
         : items.length;
     final multipleAnimals = animalCount > 1;
-    return ModalPageLayout(
-      title: 'Transferencia de animal(es)',
-      titlePadding: const EdgeInsets.fromLTRB(
-        AppSpacing.l,
-        96,
-        AppSpacing.l,
-        AppSpacing.xl + AppSpacing.xs,
-      ),
-      trailingIcon: const SizedBox.shrink(),
-      bottomPadding: const EdgeInsets.fromLTRB(
-        AppSpacing.l,
-        AppSpacing.l,
-        AppSpacing.l,
-        AppSpacing.m,
-      ),
-      bottomChild: _bottomActions(isPending, multipleAnimals),
-      headerChildren: [
-        PositionedDirectional(
-          top: AppSpacing.xl,
-          start: AppSpacing.l,
-          child: Tooltip(
-            message: 'Volver',
-            child: SizedBox.square(
-              dimension: kMinInteractiveDimension,
-              child: AppBackButton(
-                onPressed: onBack,
-                color: AppColors.greyMedio,
-                alignment: AlignmentDirectional.topStart,
+    return AbsorbPointer(
+      absorbing: loading,
+      child: ModalPageLayout(
+        title: 'Transferencia de animal(es)',
+        titlePadding: const EdgeInsets.fromLTRB(
+          AppSpacing.l,
+          96,
+          AppSpacing.l,
+          AppSpacing.xl + AppSpacing.xs,
+        ),
+        trailingIcon: const SizedBox.shrink(),
+        bottomPadding: const EdgeInsets.fromLTRB(
+          AppSpacing.l,
+          AppSpacing.l,
+          AppSpacing.l,
+          AppSpacing.m,
+        ),
+        bottomChild: _bottomActions(isPending, multipleAnimals),
+        headerChildren: [
+          PositionedDirectional(
+            top: AppSpacing.xl,
+            start: AppSpacing.l,
+            child: Tooltip(
+              message: 'Volver',
+              child: SizedBox.square(
+                dimension: kMinInteractiveDimension,
+                child: AppBackButton(
+                  onPressed: onBack,
+                  color: AppColors.greyMedio,
+                  alignment: AlignmentDirectional.topStart,
+                ),
               ),
             ),
           ),
-        ),
-      ],
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (loading && transfer == null)
-              const Center(child: CircularProgressIndicator()),
-            if (error != null) ...[
-              Text(
-                error!,
-                style: AppTypography.body6.copyWith(color: AppColors.error),
-              ),
-              if (transfer == null)
-                TextButton(
-                  onPressed: loading ? null : onRefresh,
-                  child: const Text('Reintentar'),
-                ),
-            ],
-            if (transfer != null) ...[
-              Text.rich(
-                TextSpan(
-                  text: 'El usuario ',
-                  children: [
-                    TextSpan(
-                      text: transfer.senderName.isEmpty
-                          ? 'remitente'
-                          : transfer.senderName,
-                      style: const TextStyle(fontWeight: FontWeight.w700),
-                    ),
-                    const TextSpan(
-                      text:
-                          ' le ha hecho la transferencia de '
-                          'los siguientes animales. Acéptelos '
-                          'para visualizar y gestionar su información.',
-                    ),
-                  ],
-                ),
-                style: AppTypography.body4,
-              ),
-              const SizedBox(height: AppSpacing.l),
-              _AcceptanceAnimals(
-                items: items,
-                animalCount: animalCount,
-                selectedAnimalIds: selectedAnimalIds,
-                hasMoreAnimals: hasMoreAnimals,
-                onToggleAnimal: onToggleAnimal,
-                onToggleAll: onToggleAll,
-                onImageError: onImageError,
-              ),
-              if (hasMoreAnimals)
-                TextButton(
-                  onPressed: onLoadMore,
-                  child: const Text('Cargar más animales'),
-                ),
-              if (!isPending) ...[
-                const SizedBox(height: AppSpacing.l),
+        ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.l),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (error != null) ...[
                 Text(
-                  transferStatusLabel(transfer.status),
-                  style: AppTypography.body5,
+                  error!,
+                  style: AppTypography.body6.copyWith(color: AppColors.error),
                 ),
+                if (transfer == null)
+                  TextButton(
+                    onPressed: loading ? null : onRefresh,
+                    child: const Text('Reintentar'),
+                  ),
+              ],
+              if (transfer != null) ...[
+                Text.rich(
+                  TextSpan(
+                    text: 'El usuario ',
+                    children: [
+                      TextSpan(
+                        text: transfer.senderName.isEmpty
+                            ? 'remitente'
+                            : transfer.senderName,
+                        style: const TextStyle(fontWeight: FontWeight.w700),
+                      ),
+                      const TextSpan(
+                        text:
+                            ' le ha hecho la transferencia de '
+                            'los siguientes animales. Acéptelos '
+                            'para visualizar y gestionar su información.',
+                      ),
+                    ],
+                  ),
+                  style: AppTypography.body4,
+                ),
+                const SizedBox(height: AppSpacing.l),
+                _AcceptanceAnimals(
+                  items: items,
+                  animalCount: animalCount,
+                  selectedAnimalIds: selectedAnimalIds,
+                  hasMoreAnimals: hasMoreAnimals,
+                  onToggleAnimal: loading ? null : onToggleAnimal,
+                  onToggleAll: loading ? null : onToggleAll,
+                  onImageError: onImageError,
+                ),
+                if (hasMoreAnimals)
+                  TextButton(
+                    onPressed: loading ? null : onLoadMore,
+                    child: const Text('Cargar más animales'),
+                  ),
+                if (!isPending) ...[
+                  const SizedBox(height: AppSpacing.l),
+                  Text(
+                    transferStatusLabel(transfer.status),
+                    style: AppTypography.body5,
+                  ),
+                ],
               ],
             ],
-          ],
+          ),
         ),
       ),
     );
@@ -191,11 +192,11 @@ class TransferAcceptanceView extends StatelessWidget {
         ],
         CustomButton(
           text: multipleAnimals ? 'Aceptar todo' : 'Aceptar',
-          onPressed: onAccept,
+          onPressed: loading ? null : onAccept,
         ),
         const SizedBox(height: AppSpacing.m),
         OutlinedButton(
-          onPressed: onReject,
+          onPressed: loading ? null : onReject,
           style:
               OutlinedButton.styleFrom(
                 backgroundColor: AppColors.bgHielo,

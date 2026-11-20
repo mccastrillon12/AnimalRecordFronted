@@ -660,6 +660,17 @@ class MedicalDocumentTutorEntity extends Equatable {
   ];
 }
 
+class MedicalDocumentUploader extends Equatable {
+  final String id;
+  final String? name;
+  final DateTime? uploadedAt;
+
+  const MedicalDocumentUploader({required this.id, this.name, this.uploadedAt});
+
+  @override
+  List<Object?> get props => [id, name, uploadedAt];
+}
+
 class MedicalDocumentEntity extends Equatable {
   final String id;
   final String? documentGroupId;
@@ -691,6 +702,7 @@ class MedicalDocumentEntity extends Equatable {
   final String? replacementOfDocumentId;
   final bool readOnly;
   final HistoricalFileReference? historicalFile;
+  final MedicalDocumentUploader? uploadedBy;
 
   const MedicalDocumentEntity({
     required this.id,
@@ -722,6 +734,7 @@ class MedicalDocumentEntity extends Equatable {
     this.replacementOfDocumentId,
     this.readOnly = false,
     this.historicalFile,
+    this.uploadedBy,
   });
 
   @override
@@ -755,5 +768,6 @@ class MedicalDocumentEntity extends Equatable {
     replacementOfDocumentId,
     readOnly,
     historicalFile,
+    uploadedBy,
   ];
 }

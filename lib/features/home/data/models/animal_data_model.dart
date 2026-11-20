@@ -1,6 +1,7 @@
 import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
 import 'package:animal_record/core/utils/string_formatters.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/domain/entities/owner_history_period.dart';
 
 /// Data model for Animal with JSON serialization.
 class AnimalDataModel extends AnimalEntity {
@@ -43,6 +44,7 @@ class AnimalDataModel extends AnimalEntity {
     super.updatedAt,
     super.ownerName,
     super.nameHistory,
+    super.ownerHistory,
     super.transferStatus,
     super.readOnly,
     super.ownershipHistory,
@@ -113,6 +115,24 @@ class AnimalDataModel extends AnimalEntity {
       createdAt: json['createdAt'] as String?,
       updatedAt: json['updatedAt'] as String?,
       ownerName: json['ownerName'] as String?,
+      ownerHistory: List.unmodifiable(
+        (json['ownerHistory'] as List<dynamic>? ?? const []).map((value) {
+          final period = value as Map<String, dynamic>;
+          return OwnerHistoryPeriod(
+            ownerId: period['ownerId'] as String,
+            ownerName: period['ownerName'] as String?,
+            ownershipVersion: period['ownershipVersion'] as int,
+            startedAt: DateTime.tryParse(period['startedAt'] as String? ?? ''),
+            transferredAt: DateTime.tryParse(
+              period['transferredAt'] as String? ?? '',
+            ),
+            endedAt: DateTime.tryParse(period['endedAt'] as String? ?? ''),
+            isCurrent: period['isCurrent'] == true,
+          );
+        }).toList()..sort(
+          (a, b) => a.ownershipVersion.compareTo(b.ownershipVersion),
+        ),
+      ),
       nameHistory:
           (json['nameHistory'] as List<dynamic>?)?.map((e) {
             final item = e as Map<String, dynamic>;
@@ -183,6 +203,22 @@ class AnimalDataModel extends AnimalEntity {
       if (ownerName != null) 'ownerName': ownerName,
       'nameHistory': nameHistory
           .map((e) => {'_id': e.id, 'name': e.name, 'date': e.date})
+          .toList(),
+      'ownerHistory': ownerHistory
+          .map(
+            (period) => {
+              'ownerId': period.ownerId,
+              if (period.ownerName != null) 'ownerName': period.ownerName,
+              'ownershipVersion': period.ownershipVersion,
+              if (period.startedAt != null)
+                'startedAt': period.startedAt!.toIso8601String(),
+              if (period.transferredAt != null)
+                'transferredAt': period.transferredAt!.toIso8601String(),
+              if (period.endedAt != null)
+                'endedAt': period.endedAt!.toIso8601String(),
+              'isCurrent': period.isCurrent,
+            },
+          )
           .toList(),
     };
   }

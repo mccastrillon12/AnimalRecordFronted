@@ -935,6 +935,8 @@ class _AnimalInfoScreenState extends State<AnimalInfoScreen>
             // Use a post-frame callback to avoid setState during build
             final freshModel = AnimalModel.fromEntity(freshEntity);
             if (freshModel.createdAt != _currentAnimal.createdAt ||
+                freshModel.transferStatus != _currentAnimal.transferStatus ||
+                freshModel.readOnly != _currentAnimal.readOnly ||
                 freshModel.updatedAt != _currentAnimal.updatedAt ||
                 freshModel.ownerName != _currentAnimal.ownerName ||
                 freshModel.name != _currentAnimal.name ||

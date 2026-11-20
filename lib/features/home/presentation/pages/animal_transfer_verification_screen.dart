@@ -174,15 +174,9 @@ class _AnimalTransferVerificationScreenState
               const SizedBox(height: AppSpacing.m),
               CustomButton(
                 key: const Key('transfer-retry-create'),
-                text: _authorizationExpired
-                    ? 'Solicitar nuevo código'
-                    : 'Reintentar la misma solicitud',
+                text: 'Reintentar la misma solicitud',
                 isLoading: widget.isLoading,
-                onPressed: widget.isLoading
-                    ? null
-                    : _authorizationExpired
-                    ? widget.onRenewAuthorization
-                    : widget.onRetryCreation,
+                onPressed: widget.isLoading ? null : widget.onRetryCreation,
               ),
               if (widget.canRenewAuthorization && !_authorizationExpired)
                 TextButton(

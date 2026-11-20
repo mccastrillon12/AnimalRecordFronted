@@ -1,14 +1,17 @@
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_recipient.dart';
+import 'package:animal_record/features/home/domain/entities/historical_file_download.dart';
 
 abstract class AnimalTransferRepository {
+  void clearSessionState();
   Future<List<AnimalEntity>> getActiveAnimals();
   Future<TransferPage<AnimalTransferRecipient>> searchRecipients(
     String name, {
     String? cursor,
   });
   Future<List<TransferReason>> getReasons();
+  Future<List<TransferReason>> getRejectionReasons();
   Future<TransferChallenge> startChallenge();
   Future<TransferChallenge> resendChallenge(String challengeId);
   Future<TransferAuthorization> verifyChallenge(
@@ -30,6 +33,8 @@ abstract class AnimalTransferRepository {
     required int expectedVersion,
     required List<String> acceptedAnimalIds,
     required String idempotencyKey,
+    String? rejectionReasonCode,
+    String? rejectionComment,
   });
   Future<TransferPage<OwnershipPeriod>> listHistory({String? cursor});
   Future<TransferPage<HistoricalEntry>> getHistory(
@@ -38,6 +43,12 @@ abstract class AnimalTransferRepository {
     String? cursor,
   });
   Future<List<int>> downloadHistoricalFile({
+    required String periodId,
+    required String publicationHash,
+    required String entryId,
+    required String fileId,
+  });
+  Future<HistoricalFileDownload> downloadHistoricalFileData({
     required String periodId,
     required String publicationHash,
     required String entryId,

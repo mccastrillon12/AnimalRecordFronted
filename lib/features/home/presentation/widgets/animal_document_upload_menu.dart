@@ -4,6 +4,8 @@ import 'package:animal_record/core/theme/app_spacing.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/core/widgets/menus/app_single_action_popup_menu.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_write_access_view.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_feedback.dart';
 import 'package:animal_record/features/shared_files/presentation/shared_file_upload_result.dart';
@@ -15,6 +17,7 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
 
   final String animalId;
   final bool readOnly;
+  final AnimalModel? animal;
   final MedicalDocumentCategory? requestedCategory;
   final VoidCallback? onUploaded;
   final ValueChanged<MedicalDocumentCategory>? onUploadedToCategory;
@@ -23,6 +26,7 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
     super.key,
     required this.animalId,
     this.readOnly = false,
+    this.animal,
     this.requestedCategory,
     this.onUploaded,
     this.onUploadedToCategory,
@@ -31,6 +35,11 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (readOnly) return const SizedBox.shrink();
+    if (animal case final snapshot?) {
+      if (!canWriteAnimal(context, snapshot, listen: true)) {
+        return const SizedBox.shrink();
+      }
+    }
     final animals = context.watch<AnimalCubit?>()?.animals.where(
       (animal) => animal.id == animalId,
     );
@@ -71,7 +80,10 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
   }
 
   Future<void> _handleSelection(BuildContext context, String value) async {
-    if (value != 'subir_documento') return;
+    if (readOnly || value != 'subir_documento') return;
+    if (animal case final snapshot?) {
+      if (!canWriteAnimal(context, snapshot)) return;
+    }
 
     final matches = context.read<AnimalCubit>().animals.where(
       (animal) => animal.id == animalId,
@@ -90,13 +102,19 @@ class AnimalDocumentUploadMenu extends StatelessWidget {
     // The extra frame prevents the upload route from overlapping its last paint.
     await Future<void>.delayed(_menuCloseDuration);
     if (!context.mounted) return;
+    final current = context
+        .read<AnimalCubit>()
+        .animals
+        .where((animal) => animal.id == animalId && animal.canWrite)
+        .firstOrNull;
+    if (current == null) return;
 
     final uploaded = await Navigator.pushNamed(
       context,
       AppRoutes.sharedFileUpload,
       arguments: {
         'manualUpload': true,
-        'preselectedAnimal': matches.first,
+        'preselectedAnimal': current,
         sharedFileReturnUploadResultArgument: true,
         if (requestedCategory != null) 'requestedCategory': requestedCategory,
       },

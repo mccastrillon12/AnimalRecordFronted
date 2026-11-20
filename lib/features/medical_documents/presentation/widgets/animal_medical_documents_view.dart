@@ -22,6 +22,8 @@ import 'package:animal_record/features/medical_documents/presentation/mappers/me
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_pdf_adapter.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_app_profile_mapper.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/domain/services/animal_write_policy.dart';
 import 'package:animal_record/features/medical_documents/presentation/services/medical_document_analysis_presenter.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_card.dart';
 import 'package:animal_record/features/medical_documents/presentation/widgets/medical_document_ai_feedback_banner.dart';
@@ -405,9 +407,25 @@ bool _hasActiveMedicalDocumentEditingWindow(
   DateTime? now,
 }) {
   final deadline = _medicalDocumentEditingDeadline(document);
-  return document.canReplace &&
+  return !document.readOnly &&
+      document.canReplace &&
       deadline != null &&
       deadline.isAfter(now ?? DateTime.now());
+}
+
+bool _canWriteMedicalDocument(
+  BuildContext context,
+  MedicalDocumentEntity document, {
+  String? animalId,
+  bool listen = false,
+}) {
+  if (document.readOnly) return false;
+  final animals =
+      (listen ? context.watch<AnimalCubit?>() : context.read<AnimalCubit?>())
+          ?.animals;
+  if (animals == null) return false;
+  final ids = {...document.animalIds, if (animalId != null) animalId};
+  return AnimalWritePolicy.canWriteAll(ids, animals);
 }
 
 Future<Object?> _startMedicalDocumentReplacement(
@@ -417,6 +435,21 @@ Future<Object?> _startMedicalDocumentReplacement(
   String? replacementAnimalId,
   VoidCallback? onReadyToNavigate,
 }) async {
+  if (!_canWriteMedicalDocument(
+    context,
+    document,
+    animalId: replacementAnimalId,
+  )) {
+    return null;
+  }
+  if (!await cubit.ensureCanEdit(document, animalId: replacementAnimalId)) {
+    if (context.mounted) {
+      final message = cubit.state.message;
+      if (message != null) ErrorDisplay.showError(context, message);
+    }
+    return null;
+  }
+  if (!context.mounted) return null;
   final related = await cubit.loadRelatedDocuments(document.id);
   if (!context.mounted || related == null) return null;
 
@@ -427,13 +460,25 @@ Future<Object?> _startMedicalDocumentReplacement(
       break;
     }
   }
-  if (!_hasActiveMedicalDocumentEditingWindow(anchor)) {
+  if (!_canWriteMedicalDocument(
+        context,
+        anchor,
+        animalId: replacementAnimalId,
+      ) ||
+      !_hasActiveMedicalDocumentEditingWindow(anchor)) {
     ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
     return null;
   }
 
   final originalFile = await cubit.loadOriginalFile(anchor);
   if (!context.mounted || originalFile == null) return null;
+  if (!_canWriteMedicalDocument(
+    context,
+    anchor,
+    animalId: replacementAnimalId,
+  )) {
+    return null;
+  }
 
   onReadyToNavigate?.call();
   return Navigator.pushNamed<Object?>(
@@ -514,6 +559,11 @@ class _MedicalDocumentActionsMenuState
       _detailCubit ??= di.sl<MedicalDocumentDetailCubit>();
 
   bool get _hasActiveEditingWindow =>
+      _canWriteMedicalDocument(
+        context,
+        widget.document,
+        animalId: widget.animalId,
+      ) &&
       _hasActiveMedicalDocumentEditingWindow(widget.document);
 
   @override
@@ -538,7 +588,14 @@ class _MedicalDocumentActionsMenuState
 
   @override
   Widget build(BuildContext context) {
-    final hasEditingActions = _hasActiveEditingWindow;
+    final hasEditingActions =
+        _canWriteMedicalDocument(
+          context,
+          widget.document,
+          animalId: widget.animalId,
+          listen: true,
+        ) &&
+        _hasActiveEditingWindow;
     if (!hasEditingActions && widget.onDownload == null) {
       return const SizedBox.shrink();
     }
@@ -784,7 +841,13 @@ class _MedicalDocumentEditingControlsState
 
   bool get _hasActiveEditingWindow {
     final deadline = _deadline;
-    return widget.document.canReplace &&
+    return _canWriteMedicalDocument(
+          context,
+          widget.document,
+          animalId: widget.animalId,
+        ) &&
+        !widget.document.readOnly &&
+        widget.document.canReplace &&
         deadline != null &&
         deadline.isAfter(_currentTime);
   }
@@ -826,7 +889,14 @@ class _MedicalDocumentEditingControlsState
   @override
   Widget build(BuildContext context) {
     final keySuffix = widget.instanceKey;
-    final hasActiveEditingWindow = _hasActiveEditingWindow;
+    final hasActiveEditingWindow =
+        _canWriteMedicalDocument(
+          context,
+          widget.document,
+          animalId: widget.animalId,
+          listen: true,
+        ) &&
+        _hasActiveEditingWindow;
     final expiration = hasActiveEditingWindow && widget.showExpiration
         ? _buildExpiration(keySuffix)
         : null;
@@ -1143,6 +1213,12 @@ class _AcceptedMedicalDocumentDetailScreenState
 
   @override
   Widget build(BuildContext context) {
+    final canWrite = _canWriteMedicalDocument(
+      context,
+      widget.document,
+      animalId: widget.animalId,
+      listen: true,
+    );
     return BlocConsumer<MedicalDocumentDetailCubit, MedicalDocumentDetailState>(
       listenWhen: (previous, current) => previous.message != current.message,
       listener: (context, state) {
@@ -1155,7 +1231,7 @@ class _AcceptedMedicalDocumentDetailScreenState
         closeIconKey: _closeIconKey,
         actionIconKey: _actionIconKey,
         replacementDeadline: _medicalDocumentEditingDeadline(widget.document),
-        canReplace: widget.document.canReplace,
+        canReplace: canWrite && widget.document.canReplace,
         isActionLoading: state.isBusy,
         onContinueEditing: _continueEditing,
         onDelete: _confirmDelete,
@@ -1204,7 +1280,14 @@ class _AcceptedMedicalDocumentDetailScreenState
   }
 
   void _confirmDelete() {
-    if (!_hasActiveMedicalDocumentEditingWindow(widget.document)) return;
+    if (!_canWriteMedicalDocument(
+          context,
+          widget.document,
+          animalId: widget.animalId,
+        ) ||
+        !_hasActiveMedicalDocumentEditingWindow(widget.document)) {
+      return;
+    }
     showDialog<void>(
       context: context,
       builder: (_) => ConfirmDialog(
@@ -1219,7 +1302,12 @@ class _AcceptedMedicalDocumentDetailScreenState
   }
 
   Future<void> _delete() async {
-    if (!_hasActiveMedicalDocumentEditingWindow(widget.document)) {
+    if (!_canWriteMedicalDocument(
+          context,
+          widget.document,
+          animalId: widget.animalId,
+        ) ||
+        !_hasActiveMedicalDocumentEditingWindow(widget.document)) {
       ErrorDisplay.showError(context, _medicalDocumentEditingExpiredMessage);
       return;
     }
