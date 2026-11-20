@@ -8,6 +8,7 @@ abstract class AnimalRemoteDataSource {
   Future<AnimalDataModel> updateAnimal(String id, Map<String, dynamic> data);
   Future<AnimalDataModel> getAnimalById(String id);
   Future<List<AnimalDataModel>> getAnimalsByOwner(String ownerId);
+  Future<List<AnimalDataModel>> getOwnAnimals();
   Future<Map<String, dynamic>> getProfilePictureUploadUrl(
     String animalId,
     String mimeType,
@@ -65,6 +66,20 @@ class AnimalRemoteDataSourceImpl implements AnimalRemoteDataSource {
     }
 
     return AnimalDataModel.fromJson(responseData as Map<String, dynamic>);
+  }
+
+  @override
+  Future<List<AnimalDataModel>> getOwnAnimals() async {
+    final response = await apiClient.get<List<dynamic>>('/animals');
+    final data = response.data;
+    if (data == null) {
+      throw const FormatException(
+        'No se pudieron verificar los permisos del animal.',
+      );
+    }
+    return data
+        .map((json) => AnimalDataModel.fromJson(json as Map<String, dynamic>))
+        .toList(growable: false);
   }
 
   @override

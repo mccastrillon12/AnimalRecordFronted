@@ -1,4 +1,5 @@
 import 'package:animal_record/core/network/api_exception.dart';
+import 'package:animal_record/features/home/presentation/utils/transfer_error_feedback.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -208,6 +209,7 @@ class TransferHistoryCubit extends Cubit<TransferHistoryState> {
   }
 }
 
-String _message(Object error) => error is ApiException
-    ? error.message
-    : 'No se pudo consultar el histórico.';
+String _message(Object error) => TransferErrorFeedback.message(
+  error,
+  fallback: 'No se pudo consultar el histórico. Inténtalo de nuevo.',
+);

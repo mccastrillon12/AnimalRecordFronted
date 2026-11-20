@@ -851,6 +851,9 @@ MedicalDocumentEntity _mismatchedDocument({
 }
 
 class _FakeMedicalDocumentsRepository implements MedicalDocumentsRepository {
+  @override
+  void invalidateAnimals(Iterable<String> animalIds) {}
+
   final MedicalDocumentEntity analyzeResponse;
   final List<MedicalDocumentEntity> getResponses;
   final MedicalDocumentEntity? reviewResponse;

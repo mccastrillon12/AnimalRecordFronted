@@ -1,5 +1,6 @@
 import 'package:animal_record/core/network/api_client.dart';
 import 'package:animal_record/features/home/data/datasources/animal_transfer_remote_datasource.dart';
+import 'package:animal_record/features/home/data/datasources/animal_remote_datasource.dart';
 import 'package:animal_record/features/home/data/repositories/animal_transfer_repository_impl.dart';
 import 'package:animal_record/features/home/data/services/animal_history_snapshot.dart';
 import 'package:animal_record/features/home/data/models/animal_data_model.dart';
@@ -49,6 +50,7 @@ void main() {
       );
       final repository = AnimalTransferRepositoryImpl(
         AnimalTransferRemoteDataSource(api),
+        animalsRemote: AnimalRemoteDataSourceImpl(apiClient: api),
       );
       const history = AnimalOwnershipHistory(
         periodId: 'period-1',

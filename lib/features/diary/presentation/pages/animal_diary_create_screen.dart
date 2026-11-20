@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
+import 'package:animal_record/core/injection_container.dart' as di;
+import 'package:animal_record/features/home/domain/entities/animal_ownership.dart';
+import 'package:animal_record/features/home/domain/services/historical_file_save_service.dart';
+import 'package:animal_record/features/home/domain/usecases/animal_history_usecases.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:record/record.dart';
@@ -15,6 +19,8 @@ import 'package:animal_record/core/widgets/feedback/custom_snackbar.dart';
 import 'package:animal_record/core/widgets/feedback/confirm_dialog.dart';
 import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
+import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
+import 'package:animal_record/features/home/presentation/utils/animal_write_access_view.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_cubit.dart';
 import 'package:animal_record/features/diary/presentation/cubit/diary_state.dart';
 import 'package:animal_record/features/diary/domain/entities/diary_entry_entity.dart';
@@ -38,6 +44,7 @@ class DiaryAttachment {
   final Duration? audioDuration;
   final String? remoteUrl; // for edit mode existing attachments
   final String? id; // for edit mode existing attachments
+  final HistoricalFileReference? historicalFile;
 
   DiaryAttachment({
     required this.name,
@@ -48,6 +55,7 @@ class DiaryAttachment {
     this.audioDuration,
     this.remoteUrl,
     this.id,
+    this.historicalFile,
   });
 
   String get sizeDisplay {
@@ -85,8 +93,14 @@ enum DiaryAttachmentType { image, audio }
 class AnimalDiaryCreateScreen extends StatefulWidget {
   final AnimalModel animal;
   final DiaryEntryEntity? entry;
+  final bool readOnly;
 
-  const AnimalDiaryCreateScreen({super.key, required this.animal, this.entry});
+  const AnimalDiaryCreateScreen({
+    super.key,
+    required this.animal,
+    this.entry,
+    this.readOnly = false,
+  });
 
   @override
   State<AnimalDiaryCreateScreen> createState() =>
@@ -101,8 +115,12 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
   bool get _isEditMode => widget.entry != null;
 
+  bool get _canWrite =>
+      !widget.readOnly && canWriteAnimal(context, widget.animal);
+
   final List<DiaryAttachment> _attachments = [];
   final List<String> _deletedAttachmentIds = [];
+  final Map<HistoricalFileReference, Uint8List> _historicalAudioBytes = {};
   bool _isRecording = false;
   int _recordingSeconds = 0;
   Timer? _recordingTimer;
@@ -144,7 +162,10 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   String get _formattedDate {
-    final now = DateTime.now();
+    final now = widget.readOnly
+        ? DateTime.tryParse(widget.entry?.date ?? '')?.toLocal() ??
+              DateTime.now()
+        : DateTime.now();
     final weekdays = [
       'Lunes',
       'Martes',
@@ -198,6 +219,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
             createdAt: DateTime.now(), // or parse if available
             remoteUrl: att.url,
             id: att.id,
+            historicalFile: att.historicalFile,
           ),
         );
       }
@@ -210,6 +232,8 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
     for (int i = 0; i < _attachments.length; i++) {
       final att = _attachments[i];
       if (att.type == DiaryAttachmentType.audio &&
+          !widget.animal.isHistorical &&
+          att.historicalFile == null &&
           att.audioDuration == null &&
           att.remoteUrl != null) {
         try {
@@ -243,7 +267,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   void _handleClose() {
-    if (_hasContent) {
+    if (!widget.readOnly && _hasContent) {
       showDialog(
         context: context,
         builder: (_) => ConfirmDialog(
@@ -275,6 +299,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
   // ── Image from gallery ────────────────────────────────────────
   Future<void> _pickImageFromGallery() async {
+    if (!_canWrite) return;
     if (_attachmentCount >= _maxAttachments) {
       _showLimitMessage(
         'Solo puedes adjuntar $_maxAttachments archivos en total.',
@@ -309,6 +334,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
   // ── Image from camera ─────────────────────────────────────────
   Future<void> _pickImageFromCamera() async {
+    if (!_canWrite) return;
     if (_attachmentCount >= _maxAttachments) {
       _showLimitMessage(
         'Solo puedes adjuntar $_maxAttachments archivos en total.',
@@ -362,6 +388,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   Future<void> _startRecording() async {
+    if (!_canWrite) return;
     if (_attachmentCount >= _maxAttachments) {
       _showLimitMessage(
         'Solo puedes adjuntar $_maxAttachments archivos en total.',
@@ -452,6 +479,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   void _removeAttachment(int index) {
+    if (!_canWrite) return;
     setState(() {
       final attachment = _attachments[index];
       if (attachment.id != null) {
@@ -467,6 +495,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   void _saveDiaryEntry() {
+    if (!_canWrite) return;
     final title = _titleController.text.trim();
     final content = _contentController.text.trim();
 
@@ -509,8 +538,10 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AnimalCubit?>();
     return BlocListener<DiaryCubit, DiaryState>(
       listener: (context, state) {
+        if (widget.readOnly) return;
         if (state is DiaryEntrySaving) {
           setState(() => _isSaving = true);
         } else if (state is DiaryEntrySaved || state is DiaryEntryUpdated) {
@@ -550,7 +581,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           GestureDetector(
             onTap: _handleClose,
             child: Text(
-              'Cancelar',
+              widget.readOnly ? 'Cerrar' : 'Cancelar',
               style: AppTypography.body4.copyWith(color: AppColors.greyIconos),
             ),
           ),
@@ -562,22 +593,32 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           ),
         ],
       ),
-      bottomPadding: const EdgeInsets.only(left: 24, right: 24, top: 24, bottom: 55),
-      bottomChild: CustomButton(
-        text: _isSaving ? 'Guardando...' : 'Guardar',
-        isLoading: _isSaving,
-        onPressed: (_isSaving || !_hasContent) ? null : _saveDiaryEntry,
+      bottomPadding: const EdgeInsets.only(
+        left: 24,
+        right: 24,
+        top: 24,
+        bottom: 55,
       ),
+      bottomChild: widget.readOnly
+          ? null
+          : CustomButton(
+              text: _isSaving ? 'Guardando...' : 'Guardar',
+              isLoading: _isSaving,
+              onPressed: (_isSaving || !_hasContent || !_canWrite)
+                  ? null
+                  : _saveDiaryEntry,
+            ),
       headerChildren: [
         // ── Bottom toolbar + recording overlay ──────────────────
-        Positioned(
-          bottom: 0,
-          left: 0,
-          right: 0,
-          child: (_isRecording || _recordedPreviewPath != null)
-              ? _buildAudioOverlay()
-              : _buildToolbar(),
-        ),
+        if (!widget.readOnly)
+          Positioned(
+            bottom: 0,
+            left: 0,
+            right: 0,
+            child: (_isRecording || _recordedPreviewPath != null)
+                ? _buildAudioOverlay()
+                : IgnorePointer(ignoring: !_canWrite, child: _buildToolbar()),
+          ),
       ],
       child: Theme(
         data: Theme.of(context).copyWith(
@@ -590,201 +631,210 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            const SizedBox(height: AppSpacing.m),
-
-            // ── Title field ─────────────────────────────────────
-            Text(
-              'Título',
-              style: AppTypography.body6.copyWith(color: AppColors.greyTextos),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              key: const Key('diary-title-field'),
-              controller: _titleController,
-              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-              maxLength: 50,
-              maxLengthEnforcement: MaxLengthEnforcement.none,
-              buildCounter:
-                  (
-                    context, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
-              inputFormatters: [
-                ErrorTriggeringTextInputFormatter(
-                  maxLength: 50,
-                  onError: (err) {
-                    if (_titleError != err) setState(() => _titleError = err);
-                  },
-                  onSuccess: () {
-                    if (_titleError != null) setState(() => _titleError = null);
-                  },
-                ),
-              ],
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                height: 1.5,
-              ),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: AppColors.white,
-                errorText: _titleError,
-                errorStyle: AppTypography.body5.copyWith(
-                  color: AppColors.errorRojo,
-                  height: 1.2,
-                ),
-                errorMaxLines: 2,
-                border: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.errorRojo,
-                    width: 1.0,
-                  ),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.errorRojo,
-                    width: 1.0,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 12,
-                ),
-              ),
-            ),
-
-            const SizedBox(height: AppSpacing.m),
-
-            // ── Content field ───────────────────────────────────
-            TextField(
-              key: const Key('diary-content-field'),
-              controller: _contentController,
-              onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-              maxLines: 8,
-              maxLength: 500,
-              maxLengthEnforcement: MaxLengthEnforcement.none,
-              buildCounter:
-                  (
-                    context, {
-                    required currentLength,
-                    required isFocused,
-                    maxLength,
-                  }) => null,
-              inputFormatters: [
-                ErrorTriggeringTextInputFormatter(
-                  maxLength: 500,
-                  onError: (err) {
-                    if (_contentError != err)
-                      setState(() => _contentError = err);
-                  },
-                  onSuccess: () {
-                    if (_contentError != null)
-                      setState(() => _contentError = null);
-                  },
-                ),
-              ],
-              style: AppTypography.body4.copyWith(
-                color: AppColors.greyTextos,
-                height: 1.5,
-              ),
-              decoration: InputDecoration(
-                filled: true,
-                fillColor: AppColors.white,
-                hintText: 'Empieza a escribir aquí...',
-                hintStyle: AppTypography.body4.copyWith(
-                  color: AppColors.greyBordes,
-                ),
-                errorText: _contentError,
-                errorStyle: AppTypography.body5.copyWith(
-                  color: AppColors.errorRojo,
-                  height: 1.2,
-                ),
-                errorMaxLines: 2,
-                border: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.greyBordes,
-                    width: 1.0,
-                  ),
-                ),
-                errorBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.errorRojo,
-                    width: 1.0,
-                  ),
-                ),
-                focusedErrorBorder: OutlineInputBorder(
-                  borderRadius: AppBorders.small(),
-                  borderSide: const BorderSide(
-                    color: AppColors.errorRojo,
-                    width: 1.0,
-                  ),
-                ),
-                contentPadding: const EdgeInsets.all(12),
-              ),
-            ),
-
-            // ── Attachments section ─────────────────────────────
-            if (_attachments.isNotEmpty) ...[
               const SizedBox(height: AppSpacing.m),
+
+              // ── Title field ─────────────────────────────────────
               Text(
-                'Adjuntos',
-                style: AppTypography.body3.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.greyNegro,
+                'Título',
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.greyTextos,
                 ),
               ),
-              const SizedBox(height: AppSpacing.m),
-              ..._attachments.asMap().entries.map((entry) {
-                final index = entry.key;
-                final attachment = entry.value;
-                return _buildAttachmentRow(attachment, index);
-              }),
-            ],
+              const SizedBox(height: 8),
+              TextField(
+                key: const Key('diary-title-field'),
+                readOnly: !_canWrite,
+                canRequestFocus: !widget.readOnly,
+                controller: _titleController,
+                onTapOutside: (_) =>
+                    FocusManager.instance.primaryFocus?.unfocus(),
+                maxLength: 50,
+                maxLengthEnforcement: MaxLengthEnforcement.none,
+                buildCounter:
+                    (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
+                inputFormatters: [
+                  ErrorTriggeringTextInputFormatter(
+                    maxLength: 50,
+                    onError: (err) {
+                      if (_titleError != err) setState(() => _titleError = err);
+                    },
+                    onSuccess: () {
+                      if (_titleError != null)
+                        setState(() => _titleError = null);
+                    },
+                  ),
+                ],
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyTextos,
+                  height: 1.5,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.white,
+                  errorText: _titleError,
+                  errorStyle: AppTypography.body5.copyWith(
+                    color: AppColors.errorRojo,
+                    height: 1.2,
+                  ),
+                  errorMaxLines: 2,
+                  border: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.errorRojo,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.errorRojo,
+                      width: 1.0,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                ),
+              ),
 
-            const SizedBox(height: 40),
-          ],
+              const SizedBox(height: AppSpacing.m),
+
+              // ── Content field ───────────────────────────────────
+              TextField(
+                key: const Key('diary-content-field'),
+                readOnly: !_canWrite,
+                canRequestFocus: !widget.readOnly,
+                controller: _contentController,
+                onTapOutside: (_) =>
+                    FocusManager.instance.primaryFocus?.unfocus(),
+                maxLines: 8,
+                maxLength: 500,
+                maxLengthEnforcement: MaxLengthEnforcement.none,
+                buildCounter:
+                    (
+                      context, {
+                      required currentLength,
+                      required isFocused,
+                      maxLength,
+                    }) => null,
+                inputFormatters: [
+                  ErrorTriggeringTextInputFormatter(
+                    maxLength: 500,
+                    onError: (err) {
+                      if (_contentError != err)
+                        setState(() => _contentError = err);
+                    },
+                    onSuccess: () {
+                      if (_contentError != null)
+                        setState(() => _contentError = null);
+                    },
+                  ),
+                ],
+                style: AppTypography.body4.copyWith(
+                  color: AppColors.greyTextos,
+                  height: 1.5,
+                ),
+                decoration: InputDecoration(
+                  filled: true,
+                  fillColor: AppColors.white,
+                  hintText: 'Empieza a escribir aquí...',
+                  hintStyle: AppTypography.body4.copyWith(
+                    color: AppColors.greyBordes,
+                  ),
+                  errorText: _contentError,
+                  errorStyle: AppTypography.body5.copyWith(
+                    color: AppColors.errorRojo,
+                    height: 1.2,
+                  ),
+                  errorMaxLines: 2,
+                  border: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.greyBordes,
+                      width: 1.0,
+                    ),
+                  ),
+                  errorBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.errorRojo,
+                      width: 1.0,
+                    ),
+                  ),
+                  focusedErrorBorder: OutlineInputBorder(
+                    borderRadius: AppBorders.small(),
+                    borderSide: const BorderSide(
+                      color: AppColors.errorRojo,
+                      width: 1.0,
+                    ),
+                  ),
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+              ),
+
+              // ── Attachments section ─────────────────────────────
+              if (_attachments.isNotEmpty) ...[
+                const SizedBox(height: AppSpacing.m),
+                Text(
+                  'Adjuntos',
+                  style: AppTypography.body3.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.greyNegro,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.m),
+                ..._attachments.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final attachment = entry.value;
+                  return _buildAttachmentRow(attachment, index);
+                }),
+              ],
+
+              const SizedBox(height: 40),
+            ],
+          ),
         ),
-      ),
       ),
     );
   }
@@ -826,6 +876,7 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   void _confirmRecordedPreview() {
+    if (!_canWrite) return;
     if (_recordedPreviewPath == null) return;
     final path = _recordedPreviewPath!;
     final seconds = _recordedPreviewSeconds;
@@ -887,6 +938,52 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
   }
 
   // ── Attachment row widget (original design) ────────────────────
+  Future<void> _openAttachment(DiaryAttachment attachment, int index) async {
+    final reference = attachment.historicalFile;
+    if (reference != null) {
+      try {
+        final bytes = await di.sl<DownloadHistoricalFileUseCase>()(reference);
+        if (!mounted) return;
+        final data = Uint8List.fromList(bytes);
+        if (attachment.type == DiaryAttachmentType.image) {
+          await showDialog<void>(
+            context: context,
+            barrierColor: AppColors.overlayBlack,
+            builder: (_) => ImagePreviewDialog(
+              imageUrl: '',
+              imageBytes: data,
+              onDownload: () async {
+                await di.sl<HistoricalFileSaveService>().save(
+                  bytes,
+                  attachment.name,
+                );
+              },
+            ),
+          );
+        } else {
+          setState(() {
+            _historicalAudioBytes[reference] = data;
+            _playingAttachmentIndex = index;
+          });
+        }
+      } catch (_) {
+        if (mounted) _showLimitMessage('No se pudo descargar el archivo.');
+      }
+      return;
+    }
+    if (widget.animal.isHistorical) return;
+    if (attachment.type == DiaryAttachmentType.image) {
+      await showDialog<void>(
+        context: context,
+        builder: (_) => ImagePreviewDialog(
+          imageUrl: attachment.remoteUrl ?? attachment.path,
+        ),
+      );
+    } else {
+      setState(() => _playingAttachmentIndex = index);
+    }
+  }
+
   Widget _buildAttachmentRow(DiaryAttachment attachment, int index) {
     final isImage = attachment.type == DiaryAttachmentType.image;
     final isPlayingThis = !isImage && _playingAttachmentIndex == index;
@@ -899,17 +996,21 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
             children: [
               if (isImage) ...[
                 GestureDetector(
-                  onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (_) => ImagePreviewDialog(
-                        imageUrl: attachment.remoteUrl ?? attachment.path,
-                      ),
-                    );
-                  },
+                  onTap: () => _openAttachment(attachment, index),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(6),
-                    child: attachment.remoteUrl != null
+                    child:
+                        widget.animal.isHistorical ||
+                            attachment.historicalFile != null
+                        ? const SizedBox(
+                            width: 48,
+                            height: 48,
+                            child: Icon(
+                              Icons.image,
+                              color: AppColors.greyBordes,
+                            ),
+                          )
+                        : attachment.remoteUrl != null
                         ? CachedNetworkImage(
                             imageUrl: attachment.remoteUrl!,
                             width: 48,
@@ -950,25 +1051,15 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                     ? AudioInlinePlayer(
                         key: ValueKey('player_create_$index'),
                         audioUrl: attachment.remoteUrl ?? attachment.path,
+                        audioBytes:
+                            _historicalAudioBytes[attachment.historicalFile],
                         onCompleted: () {
                           if (mounted)
                             setState(() => _playingAttachmentIndex = null);
                         },
                       )
                     : GestureDetector(
-                        onTap: () {
-                          if (isImage) {
-                            showDialog(
-                              context: context,
-                              builder: (_) => ImagePreviewDialog(
-                                imageUrl:
-                                    attachment.remoteUrl ?? attachment.path,
-                              ),
-                            );
-                          } else {
-                            setState(() => _playingAttachmentIndex = index);
-                          }
-                        },
+                        onTap: () => _openAttachment(attachment, index),
                         behavior: HitTestBehavior.opaque,
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1013,23 +1104,25 @@ class _AnimalDiaryCreateScreenState extends State<AnimalDiaryCreateScreen> {
                         ),
                       ), // closes Column
               ), // closes GestureDetector
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => _removeAttachment(index),
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.all(4),
-                  child: SvgPicture.asset(
-                    'assets/icons/icon_trash.svg',
-                    width: 22,
-                    height: 22,
-                    colorFilter: const ColorFilter.mode(
-                      AppColors.errorRojo,
-                      BlendMode.srcIn,
+              if (!widget.readOnly) ...[
+                const SizedBox(width: 12),
+                GestureDetector(
+                  onTap: () => _removeAttachment(index),
+                  behavior: HitTestBehavior.opaque,
+                  child: Padding(
+                    padding: const EdgeInsets.all(4),
+                    child: SvgPicture.asset(
+                      'assets/icons/icon_trash.svg',
+                      width: 22,
+                      height: 22,
+                      colorFilter: const ColorFilter.mode(
+                        AppColors.errorRojo,
+                        BlendMode.srcIn,
+                      ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),

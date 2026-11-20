@@ -10,6 +10,19 @@ import 'package:animal_record/features/medical_documents/domain/services/medical
 import 'package:animal_record/features/medical_documents/domain/services/medical_document_contract_validator.dart';
 import 'package:animal_record/features/shared_files/domain/entities/shared_file_entity.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_write_access.dart';
+
+class EnsureMedicalDocumentEditableUseCase {
+  final MedicalDocumentWriteAccess writeAccess;
+
+  const EnsureMedicalDocumentEditableUseCase(this.writeAccess);
+
+  Future<void> call(MedicalDocumentEntity document, {String? animalId}) =>
+      writeAccess.ensureWritable(
+        animalIds: {...document.animalIds, if (animalId != null) animalId},
+        documentIds: [document.id],
+      );
+}
 
 class GetMedicalFieldCatalogUseCase {
   final MedicalDocumentsRepository repository;
@@ -150,19 +163,24 @@ class LoadMedicalDocumentOriginalUseCase {
         'No se encontró el archivo en el expediente.',
       );
     }
-    final bytes = history == null
-        ? await fileLoader.load(await repository.getDownloadUri(document.id))
-        : await historicalRepository!.downloadHistoricalFile(
+    final historicalDownload = history == null
+        ? null
+        : await historicalRepository!.downloadHistoricalFileData(
             periodId: history.periodId,
             publicationHash: history.publicationHash,
             entryId: history.entryId,
             fileId: history.fileId,
           );
+    final bytes =
+        historicalDownload?.bytes ??
+        await fileLoader.load(await repository.getDownloadUri(document.id));
+    final fileName = historicalDownload?.fileName ?? document.originalFileName;
+    final mimeType = historicalDownload?.mimeType ?? document.mimeType;
     return SharedFileEntity(
       path: '',
-      name: document.originalFileName,
-      mimeType: document.mimeType,
-      type: _sharedFileType(document.mimeType, document.originalFileName),
+      name: fileName,
+      mimeType: mimeType,
+      type: _sharedFileType(mimeType, fileName),
       size: bytes.length,
       bytes: Uint8List.fromList(bytes),
     );

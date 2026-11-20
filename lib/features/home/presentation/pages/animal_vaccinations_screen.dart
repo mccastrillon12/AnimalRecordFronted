@@ -264,7 +264,7 @@ class _AnimalVaccinationsScreenState extends State<AnimalVaccinationsScreen> {
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
-                          readOnly: !widget.animal.canWrite,
+                          animal: widget.animal,
                           animalId: widget.animal.id,
                           requestedCategory:
                               MedicalDocumentCategory.vaccinationCard,

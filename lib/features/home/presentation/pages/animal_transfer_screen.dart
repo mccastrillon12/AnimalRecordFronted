@@ -318,10 +318,6 @@ class _AnimalTransferScreenState extends State<AnimalTransferScreen> {
                             ),
                           if (state.results.isNotEmpty) ...[
                             const SizedBox(height: AppSpacing.l),
-                            const Divider(
-                              height: 1,
-                              color: AppColors.greyDelineante,
-                            ),
                           ],
                         ],
                         const SizedBox(height: AppSpacing.l),

@@ -5,11 +5,16 @@ import 'package:animal_record/features/home/domain/entities/create_animal_params
 import 'package:animal_record/features/home/domain/entities/update_animal_params.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_repository.dart';
 import 'package:animal_record/features/home/data/datasources/animal_remote_datasource.dart';
+import 'package:animal_record/features/home/domain/services/animal_write_access.dart';
 
 class AnimalRepositoryImpl implements AnimalRepository {
   final AnimalRemoteDataSource remoteDataSource;
+  final AnimalWriteAccess writeAccess;
 
-  AnimalRepositoryImpl({required this.remoteDataSource});
+  AnimalRepositoryImpl({
+    required this.remoteDataSource,
+    required this.writeAccess,
+  });
 
   @override
   Future<Either<Failure, AnimalEntity>> createAnimal(
@@ -29,6 +34,7 @@ class AnimalRepositoryImpl implements AnimalRepository {
     UpdateAnimalParams params,
   ) async {
     try {
+      await writeAccess.ensureWritable([params.id]);
       final result = await remoteDataSource.updateAnimal(
         params.id,
         params.toJson(),
@@ -71,6 +77,7 @@ class AnimalRepositoryImpl implements AnimalRepository {
     int fileSize,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       final data = await remoteDataSource.getProfilePictureUploadUrl(
         animalId,
         mimeType,
@@ -89,6 +96,7 @@ class AnimalRepositoryImpl implements AnimalRepository {
     String finalUrl,
   ) async {
     try {
+      await writeAccess.ensureWritable([animalId]);
       await remoteDataSource.confirmProfilePicture(animalId, finalUrl);
       return const Right(null);
     } catch (e) {

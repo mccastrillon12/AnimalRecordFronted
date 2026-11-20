@@ -10,6 +10,9 @@ import 'package:animal_record/core/widgets/inputs/custom_text_field.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/repositories/animal_transfer_repository.dart';
+import 'package:animal_record/features/home/domain/entities/animal_transfer_data.dart';
+import 'package:animal_record/features/home/domain/services/transfer_comment_policy.dart';
+import 'package:animal_record/core/network/transfer_error_diagnostics.dart';
 import 'package:animal_record/features/home/domain/services/animal_transfer_availability.dart';
 import 'package:animal_record/features/home/domain/services/historical_file_save_service.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_transfer_requests_cubit.dart';
@@ -275,13 +278,33 @@ class _DetailBody extends StatefulWidget {
 }
 
 class _DetailBodyState extends State<_DetailBody> {
-  final _loadingOverlay = AppLoadingOverlay();
+  final _loadingOverlay = AppLoadingOverlay(
+    barrierColor: AppColors.overlayBlack,
+  );
   TransferDetailState? _decisionBackground;
   bool? _singleAnimalDecision;
   String? _rejectionSender;
+  bool _isFinishingDecision = false;
 
   bool get incoming => widget.incoming;
   bool get acceptanceLayout => widget.acceptanceLayout;
+
+  bool _isLoading(TransferDetailState state) =>
+      state.loading ||
+      state.submittingDecision ||
+      _decisionBackground != null ||
+      (_singleAnimalDecision != null && state.request?.status == 'PROCESSING');
+
+  void _syncLoadingOverlay() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || _isFinishingDecision) return;
+      if (_isLoading(context.read<TransferDetailCubit>().state)) {
+        _loadingOverlay.show(context);
+      } else {
+        _loadingOverlay.hide();
+      }
+    });
+  }
 
   void _showDecisionLoading(BuildContext context) {
     if (_decisionBackground == null) {
@@ -314,7 +337,13 @@ class _DetailBodyState extends State<_DetailBody> {
       return;
     }
     final singleAnimal = _singleAnimalDecision;
-    if (singleAnimal == null) return;
+    if (singleAnimal == null) {
+      if (state.error != null && _decisionBackground != null) {
+        _restoreDecisionView();
+        ErrorDisplay.showError(context, state.error!);
+      }
+      return;
+    }
     final status = state.request?.status;
     final error = state.error;
     if (status == 'PROCESSING' && error == null) {
@@ -330,11 +359,9 @@ class _DetailBodyState extends State<_DetailBody> {
       ErrorDisplay.showError(context, error);
       return;
     }
-    final sender = _rejectionSender;
+    final sender = _rejectionSender ?? state.request?.senderName.trim();
     final received = status == 'ACCEPTED' || status == 'PARTIALLY_ACCEPTED';
-    final rejected =
-        status == 'REJECTED' ||
-        (status == 'PARTIALLY_ACCEPTED' && sender != null);
+    final rejected = status == 'REJECTED' || status == 'PARTIALLY_ACCEPTED';
     if (rejected || received) {
       _singleAnimalDecision = null;
       _rejectionSender = null;
@@ -350,28 +377,32 @@ class _DetailBodyState extends State<_DetailBody> {
           if (!context.mounted) return;
         }
       }
+      _isFinishingDecision = true;
       _loadingOverlay.hide();
       final navigator = Navigator.of(context, rootNavigator: true);
       navigator.pushNamedAndRemoveUntil<void>(
         AppRoutes.home,
         (_) => false,
-        arguments: rejected
-            ? null
-            : const {homeInitialSectionArgument: homeMyAnimalsSection},
+        arguments: received
+            ? const {homeInitialSectionArgument: homeMyAnimalsSection}
+            : null,
       );
-      final message = rejected
-          ? 'Los animales han sido rechazados. '
-                '${sender?.isNotEmpty == true ? 'El usuario $sender' : 'El remitente'} '
-                'será notificado.'
-          : singleAnimal
-          ? 'Los animales han sido recibidos exitosamente. Visualícelos en la '
-                'sección “Mis animales”'
-          : 'Los animales seleccionados han sido recibidos exitosamente. '
-                'Visualícelos en la sección “Mis animales”';
+      final messages = [
+        if (rejected)
+          'Los animales han sido rechazados. '
+              '${sender?.isNotEmpty == true ? 'El usuario $sender' : 'El remitente'} '
+              'será notificado.',
+        if (received)
+          singleAnimal
+              ? 'Los animales han sido recibidos exitosamente. Visualícelos en la '
+                    'sección “Mis animales”'
+              : 'Los animales seleccionados han sido recibidos exitosamente. '
+                    'Visualícelos en la sección “Mis animales”',
+      ];
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final overlay = navigator.overlay;
         if (overlay != null && overlay.mounted) {
-          ErrorDisplay.showSuccessOnOverlay(overlay, message);
+          ErrorDisplay.showSuccessesOnOverlay(overlay, messages);
         }
       });
     } else {
@@ -390,13 +421,22 @@ class _DetailBodyState extends State<_DetailBody> {
   }) async {
     final cubit = context.read<TransferDetailCubit>();
     final sender = cubit.state.request?.senderName.trim() ?? '';
-    const otherReason = 'Otro';
-    const reasons = [
-      'Desconocimiento de transferencia',
-      'No tiene la responsabilidad o recursos',
-      otherReason,
-    ];
-    String? selectedReason;
+    final version = cubit.state.request?.version;
+    final List<TransferReason> reasons;
+    try {
+      reasons = await cubit.loadRejectionReasons();
+    } catch (error) {
+      TransferErrorDiagnostics.record(error);
+      if (context.mounted) {
+        ErrorDisplay.showError(
+          context,
+          'No se pudieron cargar los motivos de rechazo. Intenta nuevamente.',
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    TransferReason? selectedReason;
     var reasonDetail = '';
     var confirmed = false;
     await showDialog<void>(
@@ -414,32 +454,33 @@ class _DetailBodyState extends State<_DetailBody> {
           confirmLabel: 'Sí',
           isConfirmEnabled:
               selectedReason != null &&
-              (selectedReason != otherReason || reasonDetail.trim().isNotEmpty),
+              (!selectedReason!.needsComment ||
+                  TransferCommentPolicy.isValid(reasonDetail)),
           onConfirm: () => confirmed = true,
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              AppDropdown<String>(
+              AppDropdown<TransferReason>(
                 label: 'Seleccione el motivo de rechazo',
                 hint: 'Seleccionar',
                 value: selectedReason,
                 items: reasons,
-                itemAsString: (value) => value,
+                itemAsString: (value) => value.name,
                 preserveOrder: true,
                 showClearOption: false,
                 isInline: true,
                 onChanged: (value) => setDialogState(() {
                   selectedReason = value;
-                  if (value != otherReason) reasonDetail = '';
+                  if (value?.needsComment != true) reasonDetail = '';
                 }),
               ),
-              if (selectedReason == otherReason) ...[
+              if (selectedReason?.needsComment == true) ...[
                 const SizedBox(height: AppSpacing.m),
                 CustomTextField(
                   key: const Key('transfer-rejection-reason-detail'),
                   label: '¿Cuál?',
                   initialValue: reasonDetail,
-                  maxLength: 80,
+                  maxLength: TransferCommentPolicy.maxLength,
                   textInputAction: TextInputAction.done,
                   onChanged: (value) =>
                       setDialogState(() => reasonDetail = value),
@@ -451,9 +492,43 @@ class _DetailBodyState extends State<_DetailBody> {
       ),
     );
     if (confirmed && context.mounted) {
+      if (cubit.state.request?.version != version ||
+          cubit.state.request?.status != 'PENDING') {
+        ErrorDisplay.showError(
+          context,
+          'La solicitud cambió. Revisa nuevamente los animales.',
+        );
+        return;
+      }
       _rejectionSender = sender;
       if (acceptanceLayout) _showDecisionLoading(context);
-      await cubit.decide(ids);
+      await cubit.decide(
+        ids,
+        rejectionReason: selectedReason,
+        rejectionComment: selectedReason?.needsComment == true
+            ? reasonDetail
+            : null,
+      );
+    }
+  }
+
+  Future<void> _acceptSelected(BuildContext context) async {
+    final cubit = context.read<TransferDetailCubit>();
+    final selected = Set<String>.of(cubit.state.selectedAnimalIds);
+    if (!await cubit.loadAllAnimals() || !context.mounted) return;
+    final pending = cubit.state.items
+        .where((item) => item.status == 'PENDING')
+        .map((item) => item.animalId)
+        .toSet();
+    if (selected.isEmpty || !pending.containsAll(selected)) return;
+    if (selected.length < pending.length) {
+      await _confirmRejection(
+        context,
+        selected.toList(growable: false),
+        acceptOthers: true,
+      );
+    } else {
+      await cubit.decide(selected.toList(growable: false));
     }
   }
 
@@ -508,8 +583,10 @@ class _DetailBodyState extends State<_DetailBody> {
           builder: (context, currentState) {
             final cubit = context.read<TransferDetailCubit>();
             final state = _decisionBackground ?? currentState;
+            final loading = _isLoading(currentState);
+            _syncLoadingOverlay();
             final request = state.request;
-            final canRetry = state.canRetryDecision && !state.loading;
+            final canRetry = state.canRetryDecision && !loading;
             final retryRejection = _rejectionSender != null;
             void retryDecision() {
               _showDecisionLoading(context);
@@ -519,7 +596,7 @@ class _DetailBodyState extends State<_DetailBody> {
             final canDecide =
                 incoming &&
                 request?.status == 'PENDING' &&
-                !state.loading &&
+                !loading &&
                 !state.canRetryDecision;
             final singleAnimalId = state.singlePendingAnimalId;
             final multipleAnimals = !state.hasSingleAnimal;
@@ -532,25 +609,24 @@ class _DetailBodyState extends State<_DetailBody> {
                 ? 'No hay animales pendientes para aceptar.'
                 : null;
             return PopScope(
-              canPop: _decisionBackground == null && !_loadingOverlay.isVisible,
+              canPop: !loading,
               child: TransferAcceptanceView(
                 request: request,
                 items: state.items,
-                loading: state.loading && !_loadingOverlay.isVisible,
+                loading: loading,
                 error: state.error,
                 acceptUnavailableMessage: acceptUnavailableMessage,
                 selectedAnimalIds: state.selectedAnimalIds,
                 hasMoreAnimals: state.cursor != null,
                 onBack: () {
-                  if (_decisionBackground == null &&
-                      !_loadingOverlay.isVisible) {
+                  if (!loading) {
                     Navigator.of(context).pop();
                   }
                 },
                 onRefresh: cubit.refresh,
                 onImageError: (item, failedUrl) =>
                     cubit.refreshAnimalImage(item.id, failedUrl),
-                onLoadMore: state.loading || state.canRetryDecision
+                onLoadMore: loading || state.canRetryDecision
                     ? null
                     : cubit.loadMore,
                 onToggleAnimal: canSelectAnimals ? cubit.toggleAnimal : null,
@@ -674,9 +750,7 @@ class _DetailBodyState extends State<_DetailBody> {
                                   : null)
                             : state.selectedAnimalIds.isEmpty
                             ? null
-                            : () => cubit.decide(
-                                state.selectedAnimalIds.toList(growable: false),
-                              ),
+                            : () => _acceptSelected(context),
                         child: const Text('Aceptar seleccionados'),
                       ),
                     ],

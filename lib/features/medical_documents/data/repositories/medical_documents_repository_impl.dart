@@ -5,17 +5,20 @@ import 'package:animal_record/features/medical_documents/domain/entities/medical
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_rejection_reason.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_field_catalog.dart';
 import 'package:animal_record/features/medical_documents/domain/repositories/medical_documents_repository.dart';
+import 'package:animal_record/features/medical_documents/domain/services/medical_document_write_access.dart';
 
 class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   static const _fieldCatalogTtl = Duration(hours: 1);
   static const _fieldCatalogVersion = '1.2.0';
 
   final MedicalDocumentsRemoteDataSource remoteDataSource;
+  final MedicalDocumentWriteAccess writeAccess;
 
   final Map<_MedicalDocumentsCacheKey, List<MedicalDocumentEntity>> _cache = {};
   final Map<_MedicalDocumentsCacheKey, Future<List<MedicalDocumentEntity>>>
   _inFlight = {};
   final Map<_MedicalDocumentsCacheKey, int> _cacheGenerations = {};
+  int _cacheEpoch = 0;
   List<MedicalDocumentRejectionReasonEntity>? _rejectionReasons;
   Future<List<MedicalDocumentRejectionReasonEntity>>? _rejectionReasonsLoad;
   final Map<_MedicalFieldCatalogCacheKey, _CachedMedicalFieldCatalog>
@@ -23,7 +26,10 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   final Map<_MedicalFieldCatalogCacheKey, Future<MedicalFieldCatalog>>
   _fieldCatalogInFlight = {};
 
-  MedicalDocumentsRepositoryImpl({required this.remoteDataSource});
+  MedicalDocumentsRepositoryImpl({
+    required this.remoteDataSource,
+    required this.writeAccess,
+  });
 
   @override
   Future<MedicalFieldCatalog> getFieldCatalog({
@@ -67,13 +73,22 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   @override
   Future<MedicalDocumentEntity> analyze(
     AnalyzeMedicalDocumentRequest request,
-  ) => remoteDataSource.analyze(request);
+  ) async {
+    await writeAccess.ensureWritable(animalIds: request.animalIds);
+    return remoteDataSource.analyze(request);
+  }
 
   @override
   Future<MedicalDocumentEntity> analyzeReplacement(
     String documentId,
     AnalyzeMedicalDocumentReplacementRequest request,
-  ) => remoteDataSource.analyzeReplacement(documentId, request);
+  ) async {
+    await writeAccess.ensureWritable(
+      animalIds: request.animalIds,
+      documentIds: [documentId],
+    );
+    return remoteDataSource.analyzeReplacement(documentId, request);
+  }
 
   @override
   Future<MedicalDocumentEntity> getById(String documentId) =>
@@ -117,6 +132,10 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     String documentId,
     ReviewMedicalDocumentRequest request,
   ) async {
+    await writeAccess.ensureWritable(
+      animalIds: request.assignments.map((assignment) => assignment.animalId),
+      documentIds: [documentId],
+    );
     final document = await remoteDataSource.review(documentId, request);
     if (document.status == MedicalDocumentStatus.accepted) {
       final affectedAnimalIds = {
@@ -135,6 +154,14 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     String documentId,
     ReviewMedicalDocumentReplacementRequest request,
   ) async {
+    await writeAccess.ensureWritable(
+      animalIds: request.assignments.map((assignment) => assignment.animalId),
+      documentIds: {
+        documentId,
+        request.candidateDocumentId,
+        ...request.documentVersions.map((version) => version.documentId),
+      },
+    );
     final documents = await remoteDataSource.reviewReplacement(
       documentId,
       request,
@@ -158,6 +185,7 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     bool forceRefresh = false,
   }) {
     final key = _MedicalDocumentsCacheKey(animalId, category);
+    final epoch = _cacheEpoch;
     if (!forceRefresh) {
       final cached = _cache[key];
       if (cached != null) return Future.value(cached);
@@ -174,7 +202,15 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     late final Future<List<MedicalDocumentEntity>> request;
     request = remoteDataSource
         .getByAnimal(animalId, category: category)
-        .then((documents) {
+        .then<List<MedicalDocumentEntity>>((documents) {
+          if (epoch != _cacheEpoch) {
+            throw StateError('La consulta ya no pertenece al estado vigente.');
+          }
+          if (_cacheGenerations[key] != generation) {
+            // A targeted ownership change refreshes the affected query without
+            // cancelling documents being read for unrelated animals.
+            return getByAnimal(animalId, category: category);
+          }
           final immutableDocuments = List<MedicalDocumentEntity>.unmodifiable(
             documents,
           );
@@ -193,7 +229,15 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
   }
 
   @override
+  void invalidateAnimals(Iterable<String> animalIds) {
+    for (final animalId in animalIds.toSet()) {
+      _invalidateAnimal(animalId);
+    }
+  }
+
+  @override
   void clearCache() {
+    ++_cacheEpoch;
     final keys = {..._cache.keys, ..._inFlight.keys};
     for (final key in keys) {
       _cacheGenerations[key] = (_cacheGenerations[key] ?? 0) + 1;
@@ -216,6 +260,10 @@ class MedicalDocumentsRepositoryImpl implements MedicalDocumentsRepository {
     String documentId,
     int documentVersion,
   ) async {
+    await writeAccess.ensureWritable(
+      animalIds: [animalId],
+      documentIds: [documentId],
+    );
     await remoteDataSource.deleteDocument(
       animalId,
       documentId,

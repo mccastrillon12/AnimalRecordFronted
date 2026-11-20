@@ -24,11 +24,24 @@ class AnimalInfoGeneralTab extends StatelessWidget {
     try {
       final date = DateTime.parse(isoDate).toLocal();
       final months = [
-        '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        '',
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
       ];
       final month = months[date.month];
-      final hour = date.hour > 12 ? date.hour - 12 : (date.hour == 0 ? 12 : date.hour);
+      final hour = date.hour > 12
+          ? date.hour - 12
+          : (date.hour == 0 ? 12 : date.hour);
       final minute = date.minute.toString().padLeft(2, '0');
       final amPm = date.hour >= 12 ? 'p.m.' : 'a.m.';
       return '$month ${date.day}, ${date.year}. $hour:$minute $amPm';
@@ -39,15 +52,27 @@ class AnimalInfoGeneralTab extends StatelessWidget {
 
   /// Formats a short date (without time) for history items.
   /// Example: '2026-04-25T15:00:00.000Z' → 'Abril 25, 2026'
-  String _formatShortDate(String? isoDate) {
+  String _formatShortDate(String? isoDate, {bool abbreviateMonth = false}) {
     if (isoDate == null || isoDate.isEmpty) return 'No disponible';
     try {
       final date = DateTime.parse(isoDate).toLocal();
       final months = [
-        '', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-        'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
+        '',
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre',
       ];
-      final month = months[date.month];
+      final monthName = months[date.month];
+      final month = abbreviateMonth ? monthName.substring(0, 3) : monthName;
       return '$month ${date.day}, ${date.year}';
     } catch (_) {
       return 'No disponible';
@@ -80,7 +105,9 @@ class AnimalInfoGeneralTab extends StatelessWidget {
               Center(
                 child: Text(
                   'Creada: ${_formatDate(animal.createdAt)}',
-                  style: AppTypography.body4.copyWith(color: AppColors.greyBordes),
+                  style: AppTypography.body4.copyWith(
+                    color: AppColors.greyBordes,
+                  ),
                 ),
               ),
               const SizedBox(height: AppSpacing.xl),
@@ -94,25 +121,49 @@ class AnimalInfoGeneralTab extends StatelessWidget {
                 _formatDate(animal.updatedAt ?? animal.createdAt),
               ),
               const SizedBox(height: AppSpacing.m),
-              _buildInfoField('Última persona en modificar', formattedOwnerName),
+              _buildInfoField(
+                'Última persona en modificar',
+                formattedOwnerName,
+              ),
               const SizedBox(height: AppSpacing.l),
 
               // Historial de propietarios
               Text(
                 'Historial de propietarios',
-                style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.greyBordes,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxs),
-              _buildHistoryItem(
-                '1. $formattedOwnerName',
-                _formatShortDate(animal.createdAt),
-              ),
+              if (animal.ownerHistory.isEmpty)
+                _buildHistoryItem('No disponible', 'No disponible')
+              else
+                ...animal.ownerHistory.map((period) {
+                  final name = period.ownerName?.trim();
+                  final start = period.transferredAt ?? period.startedAt;
+                  final startLabel = _formatShortDate(
+                    start?.toIso8601String(),
+                    abbreviateMonth: true,
+                  );
+                  final endLabel = period.endedAt == null
+                      ? (period.isCurrent ? 'Actual' : 'No disponible')
+                      : _formatShortDate(
+                          period.endedAt!.toIso8601String(),
+                          abbreviateMonth: true,
+                        );
+                  return _buildHistoryItem(
+                    '${period.ownershipVersion}. ${name == null || name.isEmpty ? 'No disponible' : _formatOwnerName(name)}',
+                    '$startLabel - $endLabel',
+                  );
+                }),
               const SizedBox(height: AppSpacing.l),
 
               // Historial de nombres
               Text(
                 'Historial de nombres',
-                style: AppTypography.body6.copyWith(color: AppColors.greyBordes),
+                style: AppTypography.body6.copyWith(
+                  color: AppColors.greyBordes,
+                ),
               ),
               const SizedBox(height: AppSpacing.xxs),
               if (animal.nameHistory.isNotEmpty)
@@ -149,10 +200,12 @@ class AnimalInfoGeneralTab extends StatelessWidget {
     if (name.isEmpty) return '';
     final parts = name.trim().split(RegExp(r'\s+'));
     final limitedParts = parts.take(3);
-    return limitedParts.map((part) {
-      if (part.isEmpty) return '';
-      return part[0].toUpperCase() + part.substring(1).toLowerCase();
-    }).join(' ');
+    return limitedParts
+        .map((part) {
+          if (part.isEmpty) return '';
+          return part[0].toUpperCase() + part.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 
   Widget _buildInfoField(String label, String value) {

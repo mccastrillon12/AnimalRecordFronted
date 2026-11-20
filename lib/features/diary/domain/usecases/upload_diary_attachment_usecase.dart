@@ -37,14 +37,21 @@ class UploadDiaryAttachmentUseCase {
       );
 
       return await urlResult.fold<Future<Either<Failure, void>>>(
-        (_) async => const Right(null),
+        (failure) async => Left(failure),
         (urlData) async {
           final uploadUrl = urlData['uploadUrl'] as String?;
           final finalUrl = urlData['finalUrl'] as String?;
           final attachmentId = urlData['attachmentId'] as String?;
 
-          if (uploadUrl == null || finalUrl == null || attachmentId == null) {
-            return const Right(null);
+          if (uploadUrl == null ||
+              uploadUrl.isEmpty ||
+              finalUrl == null ||
+              finalUrl.isEmpty ||
+              attachmentId == null ||
+              attachmentId.isEmpty) {
+            return const Left(
+              ServerFailure('No se pudo preparar la carga del adjunto.'),
+            );
           }
 
           await fileUploader.upload(
@@ -53,15 +60,19 @@ class UploadDiaryAttachmentUseCase {
             mimeType: mimeType,
           );
 
-          await repository.confirmAttachment(animalId, entryId, {
-            'attachmentId': attachmentId,
-            'finalUrl': finalUrl,
-            'fileName': attachment.fileName,
-            'mimeType': mimeType,
-            'size': bytes.length,
-          });
+          final confirmation = await repository
+              .confirmAttachment(animalId, entryId, {
+                'attachmentId': attachmentId,
+                'finalUrl': finalUrl,
+                'fileName': attachment.fileName,
+                'mimeType': mimeType,
+                'size': bytes.length,
+              });
 
-          return const Right(null);
+          return confirmation.fold(
+            (failure) => Left(failure),
+            (_) => const Right(null),
+          );
         },
       );
     } catch (e) {

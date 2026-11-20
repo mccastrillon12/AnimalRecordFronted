@@ -2,7 +2,10 @@ import 'package:animal_record/core/theme/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class AppLoadingOverlay {
+  final Color barrierColor;
   OverlayEntry? _entry;
+
+  AppLoadingOverlay({this.barrierColor = Colors.transparent});
 
   bool get isVisible => _entry != null;
 
@@ -10,16 +13,13 @@ class AppLoadingOverlay {
     if (isVisible) return;
 
     final entry = OverlayEntry(
-      builder: (_) => const Positioned.fill(
+      builder: (_) => Positioned.fill(
         child: Stack(
           children: [
             Positioned.fill(
-              child: ModalBarrier(
-                color: Colors.transparent,
-                dismissible: false,
-              ),
+              child: ModalBarrier(color: barrierColor, dismissible: false),
             ),
-            Center(
+            const Center(
               child: SizedBox.square(
                 dimension: 36,
                 child: CircularProgressIndicator(

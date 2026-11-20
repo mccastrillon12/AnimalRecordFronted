@@ -502,7 +502,7 @@ class _AnimalDocumentsScreenState extends State<AnimalDocumentsScreen>
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
-                          readOnly: widget.animal?.canWrite == false,
+                          animal: widget.animal,
                           animalId: widget.animalId,
                           requestedCategory: _categoryForIndex(
                             _tabController.index,

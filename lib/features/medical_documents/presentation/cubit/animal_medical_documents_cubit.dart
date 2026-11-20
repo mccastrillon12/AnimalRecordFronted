@@ -37,6 +37,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
   bool _historical = false;
   String? _loadedAnimalId;
   MedicalDocumentCategory? _loadedCategory;
+  int _loadGeneration = 0;
 
   AnimalMedicalDocumentsCubit({
     required this.getDocumentsUseCase,
@@ -69,6 +70,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
     required bool preserveExisting,
   }) async {
     if (isClosed) return;
+    final generation = ++_loadGeneration;
 
     final previousDocuments =
         preserveExisting &&
@@ -89,7 +91,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
         final reader = historicalDocumentsUseCase;
         if (reader == null) throw StateError('Falta el lector de histórico.');
         final documents = await reader(history, category: category);
-        if (isClosed) return;
+        if (isClosed || generation != _loadGeneration) return;
         _loadedAnimalId = animalId;
         _loadedCategory = category;
         emit(AnimalMedicalDocumentsLoaded(documents, category: category));
@@ -100,7 +102,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
         category: category,
         forceRefresh: preserveExisting,
       );
-      if (isClosed) return;
+      if (isClosed || generation != _loadGeneration) return;
 
       final documents = preserveExisting
           ? _mergeDocuments(fetchedDocuments, previousDocuments)
@@ -109,7 +111,7 @@ class AnimalMedicalDocumentsCubit extends Cubit<AnimalMedicalDocumentsState> {
       _loadedCategory = category;
       emit(AnimalMedicalDocumentsLoaded(documents, category: category));
     } catch (error) {
-      if (isClosed) return;
+      if (isClosed || generation != _loadGeneration) return;
 
       emit(
         AnimalMedicalDocumentsError(

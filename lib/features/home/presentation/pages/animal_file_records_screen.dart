@@ -239,7 +239,7 @@ class _AnimalFileRecordsScreenState extends State<AnimalFileRecordsScreen> {
                         right: AppSpacing.l,
                         bottom: AppSpacing.l,
                         child: AnimalDocumentUploadMenu(
-                          readOnly: !widget.animal.canWrite,
+                          animal: widget.animal,
                           animalId: widget.animal.id,
                           requestedCategory: widget.section.category,
                           onUploaded: _handleUploadedDocument,

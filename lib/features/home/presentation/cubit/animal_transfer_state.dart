@@ -2,6 +2,7 @@ import 'package:animal_record/features/home/domain/entities/animal_transfer_data
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/domain/entities/animal_transfer_recipient.dart';
 import 'package:equatable/equatable.dart';
+import 'package:animal_record/features/home/domain/services/transfer_comment_policy.dart';
 
 enum AnimalTransferStep { searchUser, confirmUser, verifyContact, completed }
 
@@ -13,6 +14,7 @@ class AnimalTransferState extends Equatable {
   final AnimalTransferRecipient? selectedRecipient;
   final AnimalTransferStep step;
   final List<TransferReason> transferReasons;
+  final bool isLoadingReasons;
   final String identificationNumber;
   final String transferReasonCode;
   final String otherReasonDetail;
@@ -31,6 +33,7 @@ class AnimalTransferState extends Equatable {
     this.selectedRecipient,
     this.step = AnimalTransferStep.searchUser,
     this.transferReasons = const [],
+    this.isLoadingReasons = false,
     this.identificationNumber = '',
     this.transferReasonCode = '',
     this.otherReasonDetail = '',
@@ -43,7 +46,11 @@ class AnimalTransferState extends Equatable {
   });
 
   bool get canContinue => animals.isNotEmpty && selectedRecipient != null;
-  bool get requiresOtherReason => transferReasonCode == 'OTHER';
+  bool get requiresOtherReason =>
+      transferReasonCode == 'OTHER' ||
+      transferReasons.any(
+        (reason) => reason.code == transferReasonCode && reason.needsComment,
+      );
 
   bool get canTransfer =>
       step == AnimalTransferStep.confirmUser &&
@@ -51,7 +58,8 @@ class AnimalTransferState extends Equatable {
       !isLoading &&
       identificationNumber == selectedRecipient!.identificationNumber &&
       transferReasons.any((reason) => reason.code == transferReasonCode) &&
-      (!requiresOtherReason || otherReasonDetail.trim().isNotEmpty);
+      (!requiresOtherReason ||
+          TransferCommentPolicy.isValid(otherReasonDetail));
 
   AnimalTransferState copyWith({
     AnimalTransferStep? step,
@@ -59,6 +67,7 @@ class AnimalTransferState extends Equatable {
     String? nextRecipientCursor,
     bool clearRecipientCursor = false,
     List<TransferReason>? transferReasons,
+    bool? isLoadingReasons,
     String? identificationNumber,
     String? transferReasonCode,
     String? otherReasonDetail,
@@ -79,6 +88,7 @@ class AnimalTransferState extends Equatable {
     selectedRecipient: selectedRecipient,
     step: step ?? this.step,
     transferReasons: transferReasons ?? this.transferReasons,
+    isLoadingReasons: isLoadingReasons ?? this.isLoadingReasons,
     identificationNumber: identificationNumber ?? this.identificationNumber,
     transferReasonCode: transferReasonCode ?? this.transferReasonCode,
     otherReasonDetail: otherReasonDetail ?? this.otherReasonDetail,
@@ -100,6 +110,7 @@ class AnimalTransferState extends Equatable {
     selectedRecipient,
     step,
     transferReasons,
+    isLoadingReasons,
     identificationNumber,
     transferReasonCode,
     otherReasonDetail,

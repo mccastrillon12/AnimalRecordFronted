@@ -12,6 +12,7 @@ import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/presentation/models/animal_model.dart';
 import 'package:animal_record/features/home/presentation/widgets/animal_document_upload_menu.dart';
 import 'package:animal_record/features/medical_documents/domain/entities/medical_document_entity.dart';
+import 'package:animal_record/features/medical_documents/domain/services/group_documents_by_uploader.dart';
 import 'package:animal_record/features/medical_documents/domain/usecases/medical_document_usecases.dart';
 import 'package:animal_record/features/medical_documents/presentation/cubit/animal_medical_documents_cubit.dart';
 import 'package:animal_record/features/medical_documents/presentation/mappers/medical_document_date_mapper.dart';
@@ -77,11 +78,10 @@ class ClinicalHistoryGroupsView extends StatelessWidget {
         final currentUser = _currentUser(context);
         final allGroups = _groups(
           state.documents,
+          currentUserId: currentUser.id,
           currentUserName: currentUser.name.isNotEmpty
               ? currentUser.name
-              : (animal.ownerName?.trim().isNotEmpty == true
-                    ? animal.ownerName!.trim()
-                    : 'Usuario'),
+              : 'Usuario',
           currentUserPicture: currentUser.picture,
         );
         final shouldShowAiFeedback = showAiFeedback && allGroups.isNotEmpty;
@@ -296,6 +296,7 @@ class _ClinicalHistoryGroupScreenState
                       bottom: AppSpacing.l,
                       child: AnimalDocumentUploadMenu(
                         animalId: widget.animal.id,
+                        animal: widget.animal,
                         requestedCategory:
                             MedicalDocumentCategory.clinicalHistory,
                         onUploaded: () =>
@@ -432,7 +433,12 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final latest = group.documents.first;
+    final updates =
+        group.documents
+            .map((document) => document.updatedAt)
+            .whereType<DateTime>()
+            .toList()
+          ..sort((a, b) => b.compareTo(a));
     final borderRadius = AppBorders.small();
     return Material(
       color: Colors.transparent,
@@ -473,7 +479,9 @@ class _ClinicalHistoryGroupCard extends StatelessWidget {
                         const SizedBox(height: AppSpacing.l),
                         _GroupValue(
                           label: 'Última actualización:',
-                          value: _documentDate(latest),
+                          value: updates.isEmpty
+                              ? 'Fecha no disponible'
+                              : formatMedicalDocumentShortDate(updates.first),
                         ),
                         const SizedBox(height: AppSpacing.xs),
                         _GroupValue(
@@ -735,43 +743,42 @@ class _ClinicalHistoryNoResultsState extends StatelessWidget {
 
 List<ClinicalHistoryGroup> _groups(
   List<MedicalDocumentEntity> documents, {
+  required String? currentUserId,
   required String currentUserName,
   required String? currentUserPicture,
 }) {
-  final values = <String, List<MedicalDocumentEntity>>{};
-  final metadata =
-      <String, ({String name, String clinic, bool isCurrentUser})>{};
-  for (final document in documents) {
-    final name = currentUserName;
-    const clinic = '';
-    const isCurrentUser = true;
-    final key = '${name.toLowerCase()}|${clinic.toLowerCase()}';
-    values.putIfAbsent(key, () => []).add(document);
-    metadata[key] = (name: name, clinic: clinic, isCurrentUser: isCurrentUser);
-  }
-  return values.entries
-      .map((entry) {
-        final sorted = [...entry.value]..sort(_compareByDocumentDate);
-        final value = metadata[entry.key]!;
+  return groupDocumentsByUploader(documents)
+      .map((group) {
+        final sorted = [...group.documents]..sort(_compareByDocumentDate);
+        final isCurrentUser =
+            currentUserId != null && group.uploaderId == currentUserId;
         return ClinicalHistoryGroup(
-          name: value.name,
-          clinic: value.clinic,
-          profilePicture: value.isCurrentUser ? currentUserPicture : null,
-          isCurrentUser: value.isCurrentUser,
+          name: isCurrentUser
+              ? currentUserName
+              : group.uploaderName ?? 'Responsable no disponible',
+          clinic: '',
+          profilePicture: isCurrentUser ? currentUserPicture : null,
+          isCurrentUser: isCurrentUser,
           documents: sorted,
         );
       })
       .toList(growable: false);
 }
 
-({String name, String? picture}) _currentUser(BuildContext context) {
+({String? id, String name, String? picture}) _currentUser(
+  BuildContext context,
+) {
   try {
     final state = context.read<AuthBloc>().state;
     if (state is AuthSuccess) {
-      return (name: state.user.name, picture: state.user.profilePicture);
+      return (
+        id: state.user.id,
+        name: state.user.name,
+        picture: state.user.profilePicture,
+      );
     }
   } catch (_) {}
-  return (name: '', picture: null);
+  return (id: null, name: '', picture: null);
 }
 
 int _compareByDocumentDate(

@@ -1,4 +1,5 @@
 import 'animal_ownership.dart';
+import 'owner_history_period.dart';
 import 'package:equatable/equatable.dart';
 
 class NameHistoryItem extends Equatable {
@@ -56,6 +57,7 @@ class AnimalEntity extends Equatable {
   final String? updatedAt;
   final String? ownerName;
   final List<NameHistoryItem> nameHistory;
+  final List<OwnerHistoryPeriod> ownerHistory;
   final String? transferStatus;
   final bool readOnly;
   final AnimalOwnershipHistory? ownershipHistory;
@@ -105,10 +107,62 @@ class AnimalEntity extends Equatable {
     this.updatedAt,
     this.ownerName,
     this.nameHistory = const [],
+    this.ownerHistory = const [],
     this.transferStatus,
     this.readOnly = false,
     this.ownershipHistory,
   });
+
+  /// Keeps access from the own-animal list when a detail omits transfer flags.
+  AnimalEntity withOwnershipAccessFrom(AnimalEntity current) {
+    if (id != current.id) throw ArgumentError('El animal no coincide.');
+    // An explicit restriction in the detail must never be relaxed by a stale list.
+    if (!canWrite || current.canWrite) return this;
+    return AnimalEntity(
+      id: id,
+      name: name,
+      code: code,
+      species: species,
+      breed: breed,
+      sex: sex,
+      reproductiveStatus: reproductiveStatus,
+      birthdate: birthdate,
+      hasChip: hasChip,
+      isAssociationMember: isAssociationMember,
+      temperament: temperament,
+      diagnosis: diagnosis,
+      ownerId: ownerId,
+      profilePictureUrl: profilePictureUrl,
+      weight: weight,
+      colorAndMarkings: colorAndMarkings,
+      allergies: allergies,
+      housingType: housingType,
+      purpose: purpose,
+      feedingType: feedingType,
+      birthType: birthType,
+      birthCondition: birthCondition,
+      identificationType: identificationType,
+      identificationNumber: identificationNumber,
+      registrationAssociations: registrationAssociations,
+      isAdopted: isAdopted,
+      adoptionSource: adoptionSource,
+      adoptionPlaceName: adoptionPlaceName,
+      otherDiagnosisDetail: otherDiagnosisDetail,
+      unknownBirthDate: unknownBirthDate,
+      approximateAgeMinMonths: approximateAgeMinMonths,
+      approximateAgeMaxMonths: approximateAgeMaxMonths,
+      isActive: isActive,
+      deactivationReason: deactivationReason,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      ownerName: ownerName,
+      nameHistory: nameHistory,
+      ownerHistory: ownerHistory,
+      transferStatus: current.transferStatus,
+      readOnly: current.readOnly,
+      ownershipHistory: ownershipHistory,
+    );
+  }
 
   @override
   List<Object?> get props => [
@@ -150,6 +204,7 @@ class AnimalEntity extends Equatable {
     updatedAt,
     ownerName,
     nameHistory,
+    ownerHistory,
     transferStatus,
     readOnly,
     ownershipHistory,

@@ -121,7 +121,7 @@ class AnimalCubit extends Cubit<AnimalState> {
           (a) => a.id == animal.id && !a.isHistorical,
         );
         if (index != -1) {
-          _animals[index] = animal;
+          _animals[index] = animal.withOwnershipAccessFrom(_animals[index]);
         } else {
           _animals.add(animal);
         }
@@ -341,6 +341,7 @@ class AnimalCubit extends Cubit<AnimalState> {
           approximateAgeMinMonths: a.approximateAgeMinMonths,
           approximateAgeMaxMonths: a.approximateAgeMaxMonths,
           nameHistory: a.nameHistory,
+          ownerHistory: a.ownerHistory,
           createdAt: a.createdAt,
           updatedAt: a.updatedAt,
           ownerName: a.ownerName,

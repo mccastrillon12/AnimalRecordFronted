@@ -13,6 +13,7 @@ import 'package:animal_record/core/utils/error_display.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:animal_record/features/auth/presentation/bloc/auth_state.dart';
 import 'package:animal_record/features/home/domain/entities/animal_entity.dart';
+import 'package:animal_record/features/home/domain/services/animal_write_policy.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_cubit.dart';
 import 'package:animal_record/features/home/presentation/cubit/animal_state.dart';
 import 'package:animal_record/features/home/presentation/navigation/home_section_navigation.dart';
@@ -59,6 +60,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
   bool _analysisInterruptedByBackground = false;
   Future<void>? _interruptedAnalysisDiscard;
   bool _replacementInitialized = false;
+  bool _animalAccessLoaded = false;
 
   @override
   void initState() {
@@ -73,17 +75,43 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       if (!mounted) return;
       final authState = context.read<AuthBloc>().state;
       if (authState is AuthSuccess) {
-        await context.read<AnimalCubit>().loadAnimals(authState.user.id);
+        final animalsCubit = context.read<AnimalCubit>();
+        await animalsCubit.loadAnimals(authState.user.id, forceRefresh: true);
+        if (!mounted) return;
+        _animalAccessLoaded = animalsCubit.state is AnimalsLoaded;
       }
-      if (mounted && _syncReplacementSelection()) {
-        setState(() {});
-      } else if (mounted && _selectOnlyActiveAnimalForExternalShare()) {
-        setState(() {});
-      }
-      if (mounted && _shouldResumePending) {
+      if (!mounted) return;
+      _refreshSelectedAnimals();
+      if (_shouldResumePending && _animalAccessLoaded) {
         await _resumeCompatiblePendingFlow();
       }
     });
+  }
+
+  List<AnimalEntity> get _writableAnimals {
+    final cubit = context.read<AnimalCubit>();
+    if (!_animalAccessLoaded ||
+        cubit.state is AnimalsLoading ||
+        cubit.state is AnimalError) {
+      return const [];
+    }
+    return cubit.animals
+        .where((animal) => animal.canWrite)
+        .toList(growable: false);
+  }
+
+  void _refreshSelectedAnimals() {
+    final selectedIds = _selectedAnimals.map((animal) => animal.id).toSet();
+    _selectedAnimals = _writableAnimals
+        .where((animal) => selectedIds.contains(animal.id))
+        .toList(growable: false);
+    if (_isReplacement) {
+      _syncReplacementSelection();
+    } else if (_preselectedAnimal case final animal?) {
+      _selectedAnimals = [animal];
+    }
+    _selectOnlyActiveAnimal();
+    setState(() {});
   }
 
   @override
@@ -96,17 +124,15 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         _selectedAnimals = [preselected];
       }
     }
-    _selectOnlyActiveAnimalForExternalShare();
+    _selectOnlyActiveAnimal();
   }
 
-  bool _selectOnlyActiveAnimalForExternalShare() {
-    if (_isReplacement || !_isExternalShare || _selectedAnimals.isNotEmpty) {
+  bool _selectOnlyActiveAnimal() {
+    if (_isReplacement || _selectedAnimals.isNotEmpty) {
       return false;
     }
-    final activeAnimals = context
-        .read<AnimalCubit>()
-        .animals
-        .where((animal) => animal.isActive && animal.canWrite)
+    final activeAnimals = _writableAnimals
+        .where((animal) => animal.isActive)
         .toList(growable: false);
     if (activeAnimals.length != 1) return false;
     _selectedAnimals = [activeAnimals.single];
@@ -380,10 +406,8 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         .state
         .animalIds
         .toSet();
-    final selected = context
-        .read<AnimalCubit>()
-        .animals
-        .where((animal) => selectedIds.contains(animal.id) && animal.canWrite)
+    final selected = _writableAnimals
+        .where((animal) => selectedIds.contains(animal.id))
         .toList(growable: false);
     if (selected.length == _selectedAnimals.length &&
         selected.every(_selectedAnimals.contains)) {
@@ -425,7 +449,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final arguments = ModalRoute.of(context)?.settings.arguments;
     if (arguments is Map && arguments['preselectedAnimal'] is AnimalEntity) {
       final animal = arguments['preselectedAnimal'] as AnimalEntity;
-      return animal.canWrite ? animal : null;
+      for (final current in _writableAnimals) {
+        if (current.id == animal.id) return current;
+      }
     }
     return null;
   }
@@ -464,14 +490,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
       return;
     }
 
-    final availableAnimals = [
-      ...context.read<AnimalCubit>().animals,
-      if (preselectedAnimal != null &&
-          !context.read<AnimalCubit>().animals.any(
-            (animal) => animal.id == preselectedAnimal.id,
-          ))
-        preselectedAnimal,
-    ];
+    final availableAnimals = _writableAnimals;
     final restoredAnimals = availableAnimals
         .where((animal) => pending.animalIds.contains(animal.id))
         .toList(growable: false);
@@ -579,13 +598,22 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
     final selected = await showAnimalSelectionModal(
       context: context,
       animals: animals,
-      selectedAnimals: _selectedAnimals,
+      selectedAnimals: _selectedAnimals
+          .where(
+            (selected) => animals.any((animal) => animal.id == selected.id),
+          )
+          .toList(growable: false),
     );
     if (!mounted || selected == null) return;
-    setState(() => _selectedAnimals = selected);
+    final selectedIds = selected.map((animal) => animal.id).toSet();
+    setState(() {
+      _selectedAnimals = _writableAnimals
+          .where((animal) => selectedIds.contains(animal.id))
+          .toList(growable: false);
+    });
     if (_isReplacement) {
       context.read<MedicalDocumentFlowCubit>().selectReplacementAnimalIds(
-        selected.map((animal) => animal.id).toList(growable: false),
+        _selectedAnimals.map((animal) => animal.id).toList(growable: false),
       );
     }
   }
@@ -598,13 +626,9 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
         ? null
         : pendingFiles.first;
     if (sourceFile == null || _selectedAnimals.isEmpty) return;
-    final currentAnimals = context.read<AnimalCubit>().animals;
-    if (_selectedAnimals.any(
-      (selected) =>
-          !selected.canWrite ||
-          currentAnimals.any(
-            (animal) => animal.id == selected.id && !animal.canWrite,
-          ),
+    if (!AnimalWritePolicy.canWriteAll(
+      _selectedAnimals.map((animal) => animal.id),
+      _writableAnimals,
     )) {
       ErrorDisplay.showError(
         context,
@@ -797,6 +821,7 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
 
   @override
   Widget build(BuildContext context) {
+    context.watch<AnimalCubit>();
     final isManualUpload = _isManualUpload;
     final hasFile = isManualUpload
         ? _manualFile != null
@@ -848,7 +873,12 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                   _ => 'Subir archivo',
                 },
                 onPressed:
-                    !hasFile || _selectedAnimals.isEmpty || flowState.isBusy
+                    !hasFile ||
+                        flowState.isBusy ||
+                        !AnimalWritePolicy.canWriteAll(
+                          _selectedAnimals.map((animal) => animal.id),
+                          _writableAnimals,
+                        )
                     ? null
                     : switch (flowState.phase) {
                         MedicalDocumentFlowPhase.pollingPaused =>
@@ -910,17 +940,21 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                     else
                       BlocBuilder<AnimalCubit, AnimalState>(
                         builder: (context, state) {
-                          final cubit = context.read<AnimalCubit>();
-                          final animals = cubit.animals
+                          final animals = _writableAnimals
                               .where(
                                 (animal) => _isReplacement
                                     ? _editableReplacementAnimalIds.contains(
                                         animal.id,
                                       )
-                                    : animal.isActive && animal.canWrite,
+                                    : animal.isActive,
                               )
                               .toList(growable: false);
-                          if (_isReplacement && _selectedAnimals.length == 1) {
+                          if (_isReplacement &&
+                              _selectedAnimals.length == 1 &&
+                              animals.any(
+                                (animal) =>
+                                    animal.id == _selectedAnimals.single.id,
+                              )) {
                             final selectedAnimal = _selectedAnimals.single;
                             return AppDropdown<AnimalEntity>(
                               label: 'Animal',
@@ -948,10 +982,17 @@ class _SharedFileUploadScreenState extends State<SharedFileUploadScreen>
                             hint: state is AnimalsLoading
                                 ? 'Cargando animales...'
                                 : 'Seleccione el animal o animales',
-                            selectedItems: _selectedAnimals,
+                            selectedItems: _selectedAnimals
+                                .where(
+                                  (selected) => animals.any(
+                                    (animal) => animal.id == selected.id,
+                                  ),
+                                )
+                                .toList(growable: false),
                             items: animals,
                             itemAsString: (animal) => animal.name,
-                            enabled: state is! AnimalsLoading,
+                            enabled:
+                                _animalAccessLoaded && state is! AnimalsLoading,
                             searchable: false,
                             pushContentDown: false,
                             onTap: () {

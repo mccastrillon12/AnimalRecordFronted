@@ -36,12 +36,38 @@ class MedicalDocumentDetailCubit extends Cubit<MedicalDocumentDetailState> {
   final GetRelatedMedicalDocumentsUseCase getRelatedDocumentsUseCase;
   final DeleteMedicalDocumentUseCase deleteDocumentUseCase;
   final LoadMedicalDocumentOriginalUseCase loadOriginalUseCase;
+  final EnsureMedicalDocumentEditableUseCase ensureEditableUseCase;
 
   MedicalDocumentDetailCubit({
     required this.getRelatedDocumentsUseCase,
     required this.deleteDocumentUseCase,
     required this.loadOriginalUseCase,
+    required this.ensureEditableUseCase,
   }) : super(const MedicalDocumentDetailState());
+
+  Future<bool> ensureCanEdit(
+    MedicalDocumentEntity document, {
+    String? animalId,
+  }) async {
+    try {
+      await ensureEditableUseCase(document, animalId: animalId);
+      if (isClosed) return false;
+      emit(
+        MedicalDocumentDetailState(relatedDocuments: state.relatedDocuments),
+      );
+      return true;
+    } catch (error) {
+      if (!isClosed) {
+        emit(
+          MedicalDocumentDetailState(
+            relatedDocuments: state.relatedDocuments,
+            message: _message(error),
+          ),
+        );
+      }
+      return false;
+    }
+  }
 
   Future<List<MedicalDocumentEntity>?> loadRelatedDocuments(
     String documentId,

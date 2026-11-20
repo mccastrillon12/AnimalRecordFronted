@@ -272,6 +272,9 @@ class _RecordingFileSaver implements MedicalDocumentFileSaver {
 
 class _DownloadOnlyRepository implements MedicalDocumentsRepository {
   @override
+  void invalidateAnimals(Iterable<String> animalIds) {}
+
+  @override
   void clearCache() {}
 
   @override
